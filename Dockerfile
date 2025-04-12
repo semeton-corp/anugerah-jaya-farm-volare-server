@@ -16,4 +16,8 @@ WORKDIR /app
 COPY --from=builder /app/app .
 COPY --from=builder /app/env.yaml .
 
+RUN apk --no-cache add dumb-init
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+
 CMD ["./app"]

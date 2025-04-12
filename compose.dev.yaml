@@ -12,7 +12,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - dev_pg_data:/var/lib/postgresql/data
     networks:
       - volare-network
     healthcheck:
@@ -31,21 +31,27 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - dev_redis_data:/data
     command:
-      ["redis-server", "--requirepass", "redis-volare", "--appendonly", "yes"]
+      [
+        "redis-server",
+        "--requirepass",
+        "supersecretpassword",
+        "--appendonly",
+        "yes",
+      ]
     networks:
       - volare-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "redis-volare", "ping"]
+      test: ["CMD", "redis-cli", "-a", "supersecretpassword", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 5s
 
 volumes:
-  pgdata:
-  redis_data:
+  dev_pg_data:
+  dev_redis_data:
 
 networks:
   volare-network:

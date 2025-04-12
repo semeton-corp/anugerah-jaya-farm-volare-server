@@ -71,7 +71,9 @@ func (b *Bootstrap) Run() {
 		handler.SetEndpoint(b.router)
 	}
 
-	if err := b.router.Listen(fmt.Sprintf(":%d", viper.GetInt("app.port"))); err != nil {
+	addr := fmt.Sprintf("%s:%d", viper.GetString("app.address"), viper.GetInt("app.port"))
+
+	if err := b.router.Listen(addr); err != nil {
 		b.log.Fatal("failed to run server", zap.Error(err))
 	}
 }
