@@ -38,3 +38,10 @@ func Unauthorized(s string) error {
 		Message: s,
 	}
 }
+
+func Forbidden(s string) error {
+	return &Errx{
+		Err:     fiber.ErrForbidden,
+		Message: s,
+	}
+}

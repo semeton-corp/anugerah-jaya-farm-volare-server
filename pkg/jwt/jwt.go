@@ -18,7 +18,8 @@ var (
 
 func EncodeToken(account *entity.Account) (string, error) {
 	claims := &JWTClaims{
-		ID: account.Id.String(),
+		Role: account.Role.Name,
+		ID:   account.Id.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(viper.GetDuration("jwt.expiration"))),
 			Issuer:    viper.GetString("jwt.issuer"),

@@ -67,7 +67,7 @@ func (r *AuthenticationRepository) CreateAccount(account *entity.Account) error 
 
 func (r *AuthenticationRepository) GetAccountByEmail(email string) (entity.Account, error) {
 	var account entity.Account
-	if err := r.GetDB().Where("email = ?", email).First(&account).Error; err != nil {
+	if err := r.GetDB().Preload("Role").Where("email = ?", email).First(&account).Error; err != nil {
 		return entity.Account{}, err
 	}
 	return account, nil
@@ -82,7 +82,11 @@ func (r *AuthenticationRepository) GetAccountById(id uuid.UUID) (entity.Account,
 }
 
 func (r *AuthenticationRepository) UpdateAccount(account *entity.Account) error {
-	return r.GetDB().Save(account).Error
+	if err := r.GetDB().Save(account).Error; err != nil {
+		return err
+	}
+
+	return r.GetDB().Preload("Role").First(account, "id = ?", account.Id).Error
 }
 
 func (r *AuthenticationRepository) CreateStaff(staff *entity.Staff) error {

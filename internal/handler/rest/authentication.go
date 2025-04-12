@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
@@ -19,12 +20,11 @@ type AuthenticationHandler struct {
 
 func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/authentication")
-	v1.Post("/signup", a.SignUp)
 	v1.Post("/signin", a.SignIn)
 	v1.Post("/forgot-password", a.ForgotPassword)
 
-	// this one need middleware
-	v1.Post("/change-password", a.ChangePassword)
+	v1.Post("/signup", middleware.Authentication("ADMIN"), a.SignUp)
+	v1.Post("/change-password", middleware.Authentication("ADMIN"), a.ChangePassword)
 }
 
 func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService, validator *validator.Validate) *AuthenticationHandler {
@@ -81,7 +81,7 @@ func (a *AuthenticationHandler) SignIn(c *fiber.Ctx) error {
 
 	return response.SuccessResponse(
 		c,
-		fiber.StatusCreated,
+		fiber.StatusOK,
 		res,
 		"success sign in",
 	)

@@ -166,9 +166,14 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 		return dto.ChangePasswordResponse{}, nil
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(request.OldPassword), []byte(account.Password)) != nil {
+	if bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(request.OldPassword)) != nil {
 		a.log.Error("[ChangePassword] password is incorrect")
 		return dto.ChangePasswordResponse{}, nil
+	}
+
+	if request.NewPassword != request.ConfirmPassword {
+		a.log.Error("[ChangePassword] new password and confirm password not match")
+		return dto.ChangePasswordResponse{}, errx.BadRequest("new password and confirm password not match")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
