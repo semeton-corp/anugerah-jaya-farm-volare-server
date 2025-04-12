@@ -58,11 +58,7 @@ func (r *AuthenticationRepository) GetDB() *gorm.DB {
 }
 
 func (r *AuthenticationRepository) CreateAccount(account *entity.Account) error {
-	if err := r.GetDB().Preload("Role").Create(account).Error; err != nil {
-		return err
-	}
-
-	return r.GetDB().Preload("Role").First(account, "id = ?", account.Id).Error
+	return r.GetDB().Preload("Role").Create(account).Error
 }
 
 func (r *AuthenticationRepository) GetAccountByEmail(email string) (entity.Account, error) {
@@ -75,18 +71,14 @@ func (r *AuthenticationRepository) GetAccountByEmail(email string) (entity.Accou
 
 func (r *AuthenticationRepository) GetAccountById(id uuid.UUID) (entity.Account, error) {
 	var account entity.Account
-	if err := r.GetDB().Where("id = ?", id).First(&account).Error; err != nil {
+	if err := r.GetDB().Preload("Role").Where("id = ?", id).First(&account).Error; err != nil {
 		return entity.Account{}, err
 	}
 	return account, nil
 }
 
 func (r *AuthenticationRepository) UpdateAccount(account *entity.Account) error {
-	if err := r.GetDB().Save(account).Error; err != nil {
-		return err
-	}
-
-	return r.GetDB().Preload("Role").First(account, "id = ?", account.Id).Error
+	return r.GetDB().Save(account).Error
 }
 
 func (r *AuthenticationRepository) CreateStaff(staff *entity.Staff) error {

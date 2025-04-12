@@ -109,7 +109,7 @@ func (a *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
 		c,
 		fiber.StatusOK,
 		res,
-		"success forgot password",
+		"success reset password",
 	)
 }
 

@@ -2,9 +2,9 @@ package service
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
@@ -20,6 +20,7 @@ import (
 
 type AuthenticationService struct {
 	log        *zap.Logger
+	email      *email.Email
 	repository repository.IAuthenticationRepository
 }
 
@@ -30,10 +31,11 @@ type IAuthenticationService interface {
 	ChangePassword(request dto.ChangePasswordRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
 }
 
-func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository) IAuthenticationService {
+func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, email *email.Email) IAuthenticationService {
 	return &AuthenticationService{
 		log:        log,
 		repository: repository,
+		email:      email,
 	}
 }
 
@@ -85,6 +87,12 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest) (dto.SignUpRes
 
 	if err = a.repository.CreateStaff(&staff); err != nil {
 		a.log.Error("[SignUp] failed to create staff", zap.Error(err))
+		return dto.SignUpResponse{}, err
+	}
+
+	account, err = a.repository.GetAccountById(Id)
+	if err != nil {
+		a.log.Error("[SignUp] failed to get account by id", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
@@ -148,8 +156,26 @@ func (a *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 		return dto.ForgotPasswordResponse{}, nil
 	}
 
-	// Todo : send email
-	fmt.Printf("Send email to %s with temp password %s", account.Email, tempPassord)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(tempPassord), bcrypt.DefaultCost)
+	if err != nil {
+		a.log.Error("[ForgotPassword] failed to hash password", zap.Error(err))
+		return dto.ForgotPasswordResponse{}, nil
+	}
+
+	account.Password = string(hashedPassword)
+	if err := a.repository.UpdateAccount(&account); err != nil {
+		a.log.Error("[ForgotPassword] failed to update account", zap.Error(err))
+		return dto.ForgotPasswordResponse{}, nil
+	}
+
+	a.email.SetReciever(account.Email)
+	a.email.SetSubject("Forgot Password")
+	a.email.SetSender(viper.GetString("email.from"))
+	a.email.SetBodyHTML("forgot_password.html", tempPassord)
+	if err := a.email.Send(); err != nil {
+		a.log.Error("[ForgotPassword] failed to send email", zap.Error(err))
+		return dto.ForgotPasswordResponse{}, err
+	}
 
 	return dto.ForgotPasswordResponse{
 		Id:    account.Id.String(),
@@ -187,6 +213,12 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	if err := a.repository.UpdateAccount(&account); err != nil {
 		a.log.Error("[ChangePassword] failed to update account", zap.Error(err))
 		return dto.ChangePasswordResponse{}, nil
+	}
+
+	account, err = a.repository.GetAccountById(accountId)
+	if err != nil {
+		a.log.Error("[SignUp] failed to get account by id", zap.Error(err))
+		return dto.ChangePasswordResponse{}, err
 	}
 
 	return dto.ChangePasswordResponse{

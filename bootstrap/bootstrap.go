@@ -6,6 +6,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
+	_email "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/env"
 	_logger "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/logger"
 	_persistence "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/persistence"
@@ -24,6 +26,7 @@ type Bootstrap struct {
 	log       *zap.Logger
 	db        *gorm.DB
 	handlers  []Handler
+	email     *email.Email
 	validator *validator.Validate
 }
 
@@ -37,6 +40,7 @@ func New() *Bootstrap {
 	logger := _logger.New()
 	db := _persistence.New(logger)
 	validator := _validator.New()
+	email := _email.New()
 
 	return &Bootstrap{
 		router:    router,
@@ -44,6 +48,7 @@ func New() *Bootstrap {
 		db:        db,
 		handlers:  []Handler{},
 		validator: validator,
+		email:     email,
 	}
 }
 
@@ -53,6 +58,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		service.NewAuthenticationService(
 			b.log,
 			repository.NewAuthenticationRepository(b.db),
+			b.email,
 		),
 		b.validator,
 	)

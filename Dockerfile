@@ -15,6 +15,7 @@ WORKDIR /app
 
 COPY --from=builder /app/app .
 COPY --from=builder /app/env.yaml .
+COPY --from=builder /app/templates/ templates/
 
 RUN apk --no-cache add dumb-init
 
