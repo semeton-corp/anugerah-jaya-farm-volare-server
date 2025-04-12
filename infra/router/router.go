@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/spf13/viper"
 )
@@ -34,11 +35,12 @@ func New() *fiber.App {
 func GlobalErrorHandler() fiber.ErrorHandler {
 	return func(c *fiber.Ctx, err error) error {
 		if ce, ok := err.(*errx.Errx); ok {
-			return c.Status(ce.Err.Code).JSON(fiber.Map{
-				"message": ce.Err.Message,
-				"error":   ce.Error(),
-				"status":  ce.Err.Code,
-			})
+			return response.ErrorResponse(
+				c,
+				ce.Err.Code,
+				ce.Err.Error(),
+				ce.Error(),
+			)
 		}
 
 		if ve, ok := err.(validator.ValidationErrors); ok {
@@ -46,17 +48,20 @@ func GlobalErrorHandler() fiber.ErrorHandler {
 			for _, e := range ve {
 				out[e.Field()] = util.GetErrorValidationMessage(e)
 			}
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"message": fiber.ErrBadRequest.Message,
-				"error":   out,
-				"status":  fiber.StatusBadRequest,
-			})
+
+			return response.ErrorResponse(
+				c,
+				fiber.ErrBadRequest.Code,
+				out,
+				fiber.ErrBadRequest.Message,
+			)
 		}
 
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": fiber.ErrInternalServerError.Message,
-			"error":   err.Error(),
-			"status":  fiber.StatusInternalServerError,
-		})
+		return response.ErrorResponse(
+			c,
+			fiber.ErrInternalServerError.Code,
+			err.Error(),
+			fiber.ErrInternalServerError.Message,
+		)
 	}
 }

@@ -44,7 +44,6 @@ type ChangePasswordRequest struct {
 
 type ChangePasswordResponse struct {
 	Id           string       `json:"id"`
-	Name         string       `json:"name"`
 	PhotoProfile string       `json:"photoProfile"`
 	Email        string       `json:"email"`
 	Role         RoleResponse `json:"role"`

@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
 )
 
@@ -46,17 +47,18 @@ func (a *AuthenticationHandler) SignUp(c *fiber.Ctx) error {
 		return err
 	}
 
-	response, err := a.service.SignUp(request)
+	res, err := a.service.SignUp(request)
 	if err != nil {
 		a.log.Error("[SignUp] failed to sign up", zap.Error(err))
 		return err
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"status":  fiber.StatusCreated,
-		"data":    response,
-		"message": "success create account",
-	})
+	return response.SuccessResponse(
+		c,
+		fiber.StatusCreated,
+		res,
+		"success sign up",
+	)
 }
 
 func (a *AuthenticationHandler) SignIn(c *fiber.Ctx) error {
@@ -71,16 +73,18 @@ func (a *AuthenticationHandler) SignIn(c *fiber.Ctx) error {
 		return err
 	}
 
-	response, err := a.service.SignIn(request)
+	res, err := a.service.SignIn(request)
 	if err != nil {
 		a.log.Error("[SignIn] failed to sign in", zap.Error(err))
 		return err
 	}
 
-	return c.Status(fiber.StatusOK).Status(fiber.StatusCreated).JSON(fiber.Map{
-		"status": fiber.StatusOK,
-		"data":   response,
-	})
+	return response.SuccessResponse(
+		c,
+		fiber.StatusCreated,
+		res,
+		"success sign in",
+	)
 }
 
 func (a *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
@@ -95,13 +99,18 @@ func (a *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
 		return err
 	}
 
-	response, err := a.service.ForgotPassword(request)
+	res, err := a.service.ForgotPassword(request)
 	if err != nil {
 		a.log.Error("[ForgotPassword] failed to forgot password", zap.Error(err))
 		return err
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response)
+	return response.SuccessResponse(
+		c,
+		fiber.StatusOK,
+		res,
+		"success forgot password",
+	)
 }
 
 func (a *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
@@ -122,11 +131,16 @@ func (a *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
 		return errx.Unauthorized("no accountId in context")
 	}
 
-	response, err := a.service.ChangePassword(request, uuid.MustParse(accountId))
+	res, err := a.service.ChangePassword(request, uuid.MustParse(accountId))
 	if err != nil {
 		a.log.Error("[ChangePassword] failed to reset password", zap.Error(err))
 		return err
 	}
 
-	return c.Status(fiber.StatusOK).JSON(response)
+	return response.SuccessResponse(
+		c,
+		fiber.StatusOK,
+		res,
+		"success change password",
+	)
 }

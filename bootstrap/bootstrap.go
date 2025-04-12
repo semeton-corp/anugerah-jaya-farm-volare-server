@@ -57,8 +57,18 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	roleHandler := rest.NewRoleHandler(
+		b.log,
+		service.NewRoleService(
+			b.log,
+			repository.NewRoleRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
+		roleHandler,
 	}
 }
 
