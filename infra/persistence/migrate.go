@@ -9,5 +9,6 @@ func Migrate(db *gorm.DB) {
 	db.AutoMigrate(
 		&entity.Account{},
 		&entity.Role{},
+		&entity.Staff{},
 	)
 }

@@ -1,5 +1,7 @@
 package dto
 
+import "time"
+
 type SignUpRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Name     string `json:"name" validate:"required"`
@@ -9,7 +11,6 @@ type SignUpRequest struct {
 
 type SignUpResponse struct {
 	Id           string       `json:"id"`
-	Name         string       `json:"name"`
 	PhotoProfile string       `json:"photoProfile"`
 	Email        string       `json:"email"`
 	Role         RoleResponse `json:"role"`
@@ -21,9 +22,9 @@ type SignInRequest struct {
 }
 
 type SignInResponse struct {
-	TokenType   string `json:"tokenType"`
-	AccessToken string `json:"accessToken"`
-	ExpiredAt   uint64 `json:"expiredAt"`
+	TokenType   string        `json:"tokenType"`
+	AccessToken string        `json:"accessToken"`
+	ExpiredAt   time.Duration `json:"expiredAt"`
 }
 
 type ForgotPasswordRequest struct {

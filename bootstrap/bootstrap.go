@@ -54,6 +54,7 @@ func (b *Bootstrap) DepedencyInjection() {
 			b.log,
 			repository.NewAuthenticationRepository(b.db),
 		),
+		b.validator,
 	)
 
 	b.handlers = []Handler{
@@ -79,7 +80,24 @@ func (b *Bootstrap) Run() {
 }
 
 func (b *Bootstrap) Shutdown(ctx context.Context) {
+	if err := b.router.Shutdown(); err != nil {
+		b.log.Error("failed to shutdown server", zap.Error(err))
+	}
 
+	db, err := b.db.DB()
+	if err != nil {
+		b.log.Error("failed to get database connection", zap.Error(err))
+	}
+
+	if err := db.Close(); err != nil {
+		b.log.Error("failed to close database connection", zap.Error(err))
+	}
+
+	if err := b.log.Sync(); err != nil {
+		b.log.Error("failed to sync logger", zap.Error(err))
+	}
+
+	b.log.Info("server shutdown gracefully")
 }
 
 func (b *Bootstrap) Health() {

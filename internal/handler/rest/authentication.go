@@ -26,10 +26,11 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/change-password", a.ChangePassword)
 }
 
-func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService) *AuthenticationHandler {
+func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService, validator *validator.Validate) *AuthenticationHandler {
 	return &AuthenticationHandler{
-		log:     log,
-		service: service,
+		log:       log,
+		service:   service,
+		validator: validator,
 	}
 }
 

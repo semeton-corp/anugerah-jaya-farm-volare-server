@@ -47,14 +47,14 @@ func GlobalErrorHandler() fiber.ErrorHandler {
 				out[e.Field()] = util.GetErrorValidationMessage(e)
 			}
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"message": fiber.ErrBadRequest,
+				"message": fiber.ErrBadRequest.Message,
 				"error":   out,
 				"status":  fiber.StatusBadRequest,
 			})
 		}
 
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"message": fiber.ErrInternalServerError,
+			"message": fiber.ErrInternalServerError.Message,
 			"error":   err.Error(),
 			"status":  fiber.StatusInternalServerError,
 		})

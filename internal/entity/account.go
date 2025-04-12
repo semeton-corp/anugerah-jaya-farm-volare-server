@@ -8,7 +8,6 @@ import (
 
 type Account struct {
 	Id           uuid.UUID `gorm:"type:varchar(255);primary_key"`
-	Name         string    `gorm:"type:varchar(255);not null"`
 	Email        string    `gorm:"type:varchar(255);unique"`
 	Password     string    `gorm:"type:varchar(255);not null"`
 	RoleId       uint64    `gorm:"type:bigint;not null"`

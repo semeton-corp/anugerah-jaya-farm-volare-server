@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -8,9 +9,13 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/jwt"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type AuthenticationService struct {
@@ -63,26 +68,32 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest) (dto.SignUpRes
 	account := entity.Account{
 		Id:           Id,
 		Email:        request.Email,
-		Name:         request.Name,
 		Password:     string(hashedPassword),
 		RoleId:       request.RoleId,
 		PhotoProfile: "",
 	}
 
-	// Todo : create staff
+	staff := entity.Staff{
+		AccountId: Id,
+		Name:      request.Name,
+	}
 
-	if err := a.repository.CreateAccount(&account); err != nil {
+	if err = a.repository.CreateAccount(&account); err != nil {
 		a.log.Error("[SignUp] failed to create account", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
-	if err := a.repository.Commit(); err != nil {
+	if err = a.repository.CreateStaff(&staff); err != nil {
+		a.log.Error("[SignUp] failed to create staff", zap.Error(err))
+		return dto.SignUpResponse{}, err
+	}
+
+	if err = a.repository.Commit(); err != nil {
 		a.log.Error("[SignUp] failed to commit transaction", zap.Error(err))
 	}
 
 	return dto.SignUpResponse{
 		Id:           account.Id.String(),
-		Name:         account.Name,
 		PhotoProfile: account.PhotoProfile,
 		Email:        account.Email,
 		Role: dto.RoleResponse{
@@ -98,18 +109,27 @@ func (a *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 	account, err := a.repository.GetAccountByEmail(request.Email)
 	if err != nil {
 		a.log.Error("[SigIn] failed to get account by email", zap.Error(err))
-		return dto.SignInResponse{}, nil
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.SignInResponse{}, errx.BadRequest("password or email is incorrect")
+		}
+		return dto.SignInResponse{}, err
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(request.Password), []byte(account.Password)) != nil {
-		a.log.Error("[SignIn] password is incorrect")
-		return dto.SignInResponse{}, nil
+	if bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(request.Password)) != nil {
+		a.log.Error("[SignIn] password or email is incorrect")
+		return dto.SignInResponse{}, errx.BadRequest("password or email is incorrect")
+	}
+
+	token, err := jwt.EncodeToken(&account)
+	if err != nil {
+		a.log.Error("[SignIn] failed to encode token", zap.Error(err))
+		return dto.SignInResponse{}, err
 	}
 
 	return dto.SignInResponse{
 		TokenType:   constant.TokenType,
-		AccessToken: "",
-		ExpiredAt:   0,
+		AccessToken: token,
+		ExpiredAt:   viper.GetDuration("jwt.expiration"),
 	}, nil
 }
 
@@ -166,7 +186,6 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 
 	return dto.ChangePasswordResponse{
 		Id:           account.Id.String(),
-		Name:         account.Name,
 		PhotoProfile: account.PhotoProfile,
 		Email:        account.Email,
 		Role: dto.RoleResponse{
