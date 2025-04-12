@@ -1,0 +1,52 @@
+name: development
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: "volare"
+      POSTGRES_PASSWORD: "supersecretpassword"
+      POSTGRES_DB: "volare_db"
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - volare-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U volare"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7
+    container_name: redis
+    restart: always
+    environment:
+      REDIS_PASSWORD: "supersecretpassword"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command:
+      ["redis-server", "--requirepass", "redis-volare", "--appendonly", "yes"]
+    networks:
+      - volare-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis-volare", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  pgdata:
+  redis_data:
+
+networks:
+  volare-network:
+    driver: bridge
