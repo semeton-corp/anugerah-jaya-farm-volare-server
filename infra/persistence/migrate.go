@@ -10,5 +10,10 @@ func Migrate(db *gorm.DB) {
 		&entity.Account{},
 		&entity.Role{},
 		&entity.Staff{},
+		&entity.Location{},
+		&entity.Cage{},
+		&entity.ChickenMonitoring{},
+		&entity.ChickenDiseaseMonitoring{},
+		&entity.ChickenVaccineMonitoring{},
 	)
 }

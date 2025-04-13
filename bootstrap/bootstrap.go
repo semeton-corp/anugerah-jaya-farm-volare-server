@@ -72,9 +72,19 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	cageHandler := rest.NewCageHandler(
+		b.log,
+		service.NewCageService(
+			b.log,
+			repository.NewCageRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
+		cageHandler,
 	}
 }
 

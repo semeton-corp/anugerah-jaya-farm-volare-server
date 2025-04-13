@@ -17,7 +17,7 @@ func New() *fiber.App {
 			ReadTimeout:   viper.GetDuration("server.read_timeout"),
 			AppName:       viper.GetString("app.name"),
 			ErrorHandler:  GlobalErrorHandler(),
-			Prefork:       true,
+			Prefork:       false,
 			CaseSensitive: true,
 		},
 	)
