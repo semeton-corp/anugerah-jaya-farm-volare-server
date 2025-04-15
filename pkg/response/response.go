@@ -17,6 +17,10 @@ func SuccessResponse(ctx *fiber.Ctx, status int, data any, message string) error
 	})
 }
 
+func NoContentResponse(ctx *fiber.Ctx) error {
+	return ctx.SendStatus(fiber.StatusNoContent)
+}
+
 func ErrorResponse(ctx *fiber.Ctx, status int, err any, message string) error {
 	return ctx.Status(status).JSON(Response{
 		Status:  status,

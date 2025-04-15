@@ -81,10 +81,20 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	chickenHandler := rest.NewChickenHandler(
+		b.log,
+		service.NewChickenService(
+			b.log,
+			repository.NewChickenRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
 		cageHandler,
+		chickenHandler,
 	}
 }
 
@@ -93,6 +103,7 @@ func (b *Bootstrap) Run() {
 	b.Health()
 
 	_persistence.Migrate(b.db)
+	// _persistence.Rollback(b.db)
 
 	for _, handler := range b.handlers {
 		handler.SetEndpoint(b.router)

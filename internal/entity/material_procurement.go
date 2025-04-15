@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type MaterialProcurement struct {
-	ID                  uint64    `gorm:"primary_key;auto_increment"`
+	ID                  uint64    `gorm:"primaryKey;autoIncrement"`
 	DateTransaction     string    `gorm:"type:date;not null"`
 	ProcurementType     string    `gorm:"type:varchar(255);not null"`
 	Detail              string    `gorm:"type:text"`
@@ -19,6 +19,6 @@ type MaterialProcurement struct {
 	EstimateArrivalDate string    `gorm:"type:date;not null"`
 	Status              string    `gorm:"type:varchar(255);not null"`
 	CreatedBy           string    `gorm:"type:varchar(26);not null"`
-	CreatedAt           time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt           time.Time `gorm:"type:timestamp;auto_update_time"`
+	CreatedAt           time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt           time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

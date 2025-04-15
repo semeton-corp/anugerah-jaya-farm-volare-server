@@ -1,13 +1,20 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type DailyWork struct {
-	Id             uint64    `gorm:"primary_key;auto_increment"`
-	Name           string    `gorm:"type:varchar(255);not null"`
-	AssignedRoleId uint      `gorm:"type:varchar(255);not null"`
-	StartTime      time.Time `gorm:"type:time;not null"`
-	EndTime        time.Time `gorm:"type:time;not null"`
-	CreatedAt      time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt      time.Time `gorm:"type:timestamp;auto_update_time"`
+	Id          uint64    `gorm:"primaryKey;autoIncrement"`
+	Name        string    `gorm:"type:varchar(255);not null"`
+	Description string    `gorm:"type:text;not null"`
+	RoleId      uint64    `gorm:"type:bigint;not null"`
+	StartTime   time.Time `gorm:"type:time;not null"`
+	EndTime     time.Time `gorm:"type:time;not null"`
+	CreatedBy   uuid.UUID `gorm:"type:varchar(255);not null"`
+	CreatedAt   time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedBy   uuid.UUID `gorm:"type:varchar(255);not null"`
+	UpdatedAt   time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

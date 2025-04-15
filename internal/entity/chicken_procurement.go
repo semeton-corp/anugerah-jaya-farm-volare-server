@@ -3,7 +3,7 @@ package entity
 import "time"
 
 type ChickenProcurement struct {
-	ID                  uint64    `gorm:"primary_key;auto_increment"`
+	ID                  uint64    `gorm:"primaryKey;autoIncrement"`
 	ChickenType         string    `gorm:"type:varchar(255);not null"`
 	Age                 int       `gorm:"type:int;not null"`
 	Quantity            int       `gorm:"type:int;not null"`
@@ -17,6 +17,6 @@ type ChickenProcurement struct {
 	AcceptedBy          string    `gorm:"type:varchar(26);not null"`
 	EstimateArrivalDate string    `gorm:"type:date;not null"`
 	Status              string    `gorm:"type:varchar(255);not null"`
-	CreatedAt           time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt           time.Time `gorm:"type:timestamp;auto_update_time"`
+	CreatedAt           time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt           time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

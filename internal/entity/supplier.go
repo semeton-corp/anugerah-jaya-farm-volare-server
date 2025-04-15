@@ -3,10 +3,10 @@ package entity
 import "time"
 
 type Supplier struct {
-	ID          uint64    `gorm:"primary_key;auto_increment"`
+	ID          uint64    `gorm:"primaryKey;autoIncrement"`
 	Name        string    `gorm:"type:varchar(255);not null"`
 	PhoneNumber string    `gorm:"type:varchar(15);not null"`
 	Address     string    `gorm:"type:text;not null"`
-	CreatedAt   time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt   time.Time `gorm:"type:timestamp;auto_update_time"`
+	CreatedAt   time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

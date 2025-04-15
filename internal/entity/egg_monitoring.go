@@ -7,7 +7,7 @@ import (
 )
 
 type EggMonitoring struct {
-	ID              uint64    `gorm:"primary_key;auto_increment"`
+	ID              uint64    `gorm:"primaryKey;autoIncrement"`
 	CageID          uint64    `gorm:"type:integer;not null"`
 	Date            time.Time `gorm:"type:date;not null"`
 	TotalCrackedEgg uint64    `gorm:"type:integer;not null"`
@@ -15,6 +15,6 @@ type EggMonitoring struct {
 	TotalBrokeEgg   uint64    `gorm:"type:integer;not null"`
 	TotalRejectEgg  uint64    `gorm:"type:integer;not null"`
 	CreatedBy       uuid.UUID `gorm:"type:varchar(26);not null"`
-	CreatedAt       time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt       time.Time `gorm:"type:timestamp;auto_update_time"`
+	CreatedAt       time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt       time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

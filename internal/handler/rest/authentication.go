@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
@@ -23,8 +24,8 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/signin", a.SignIn)
 	v1.Post("/forgot-password", a.ForgotPassword)
 
-	v1.Post("/signup", middleware.Authentication("ADMIN"), a.SignUp)
-	v1.Post("/change-password", middleware.Authentication("ADMIN"), a.ChangePassword)
+	v1.Post("/signup", a.SignUp)
+	v1.Post("/change-password", middleware.Authentication(constant.RoleAdmin), a.ChangePassword)
 }
 
 func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService, validator *validator.Validate) *AuthenticationHandler {
@@ -47,7 +48,13 @@ func (a *AuthenticationHandler) SignUp(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := a.service.SignUp(request)
+	_, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[ChangePassword] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.SignUp(request, uuid.New())
 	if err != nil {
 		a.log.Error("[SignUp] failed to sign up", zap.Error(err))
 		return err

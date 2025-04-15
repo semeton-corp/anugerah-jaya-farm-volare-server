@@ -8,6 +8,6 @@ type DailyWorkStaff struct {
 	StaffId     uint64    `gorm:"type:biginteger;not null"`
 	Staff       Staff     `gorm:"foreignKey:Id;references:StaffId"`
 	IsDone      bool      `gorm:"type:bool;not null"`
-	CreatedAt   time.Time `gorm:"type:timestamp;auto_create_time"`
-	UpdatedAt   time.Time `gorm:"type:timestamp;auto_update_time"`
+	CreatedAt   time.Time `gorm:"type:timestamp;autoCreateTime"`
+	UpdatedAt   time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

@@ -17,3 +17,16 @@ func Migrate(db *gorm.DB) {
 		&entity.ChickenVaccineMonitoring{},
 	)
 }
+
+func Rollback(db *gorm.DB) {
+	db.Migrator().DropTable(
+		&entity.ChickenMonitoring{},
+		&entity.ChickenDiseaseMonitoring{},
+		&entity.ChickenVaccineMonitoring{},
+		&entity.Cage{},
+		&entity.Location{},
+		&entity.Staff{},
+		&entity.Role{},
+		&entity.Account{},
+	)
+}

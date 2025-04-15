@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -8,7 +9,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/jwt"
 )
 
-func Authentication(role string) func(*fiber.Ctx) error {
+func Authentication(roles ...string) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		authorization := c.Get("Authorization")
 
@@ -27,8 +28,8 @@ func Authentication(role string) func(*fiber.Ctx) error {
 			return err
 		}
 
-		if payload.Role != role {
-			return errx.Forbidden("access denied")
+		if !slices.Contains(roles, payload.Role) {
+			return errx.Unauthorized("invalid role")
 		}
 
 		c.Locals("accountId", payload.ID)

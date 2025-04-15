@@ -18,6 +18,8 @@ func GetErrorValidationMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s must be more than %s", fe.Field(), fe.Param())
 	case "number":
 		return fmt.Sprintf("%s must be a number", fe.Field())
+	case "chicken_category":
+		return fmt.Sprintf("%s is not a valid chicken category", fe.Field())
 	default:
 		return fmt.Sprintf("%s is not valid", fe.Field())
 	}

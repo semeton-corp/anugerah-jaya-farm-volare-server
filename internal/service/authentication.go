@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
@@ -25,7 +26,7 @@ type AuthenticationService struct {
 }
 
 type IAuthenticationService interface {
-	SignUp(request dto.SignUpRequest) (dto.SignUpResponse, error)
+	SignUp(request dto.SignUpRequest, accoundId uuid.UUID) (dto.SignUpResponse, error)
 	SignIn(request dto.SignInRequest) (dto.SignInResponse, error)
 	ForgotPassword(request dto.ForgotPasswordRequest) (dto.ForgotPasswordResponse, error)
 	ChangePassword(request dto.ChangePasswordRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
@@ -39,7 +40,7 @@ func NewAuthenticationService(log *zap.Logger, repository repository.IAuthentica
 	}
 }
 
-func (a *AuthenticationService) SignUp(request dto.SignUpRequest) (dto.SignUpResponse, error) {
+func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accoundId uuid.UUID) (dto.SignUpResponse, error) {
 	a.repository.UseTx(true)
 
 	var (
@@ -67,12 +68,15 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest) (dto.SignUpRes
 		return dto.SignUpResponse{}, err
 	}
 
+	fmt.Println("hashedPassword", hashedPassword)
+
 	account := entity.Account{
 		Id:           Id,
 		Email:        request.Email,
 		Password:     string(hashedPassword),
 		RoleId:       request.RoleId,
 		PhotoProfile: "",
+		CreatedBy:    accoundId,
 	}
 
 	staff := entity.Staff{
@@ -209,6 +213,7 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	}
 
 	account.Password = string(hashedPassword)
+	account.UpdatedBy = accountId
 
 	if err := a.repository.UpdateAccount(&account); err != nil {
 		a.log.Error("[ChangePassword] failed to update account", zap.Error(err))
