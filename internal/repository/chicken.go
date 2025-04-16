@@ -149,13 +149,13 @@ func (r *ChickenRepository) UpdateChickenVaccineMonitoring(chickenVaccineMonitor
 }
 
 func (r *ChickenRepository) DeleteChickenMonitoring(id uint64) error {
-	return r.GetDB().Delete(&entity.ChickenMonitoring{}, id).Error
+	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenMonitoring{}).Error
 }
 
 func (r *ChickenRepository) DeleteChickenDiseaseMonitoring(id uint64) error {
-	return r.GetDB().Delete(&entity.ChickenDiseaseMonitoring{}, id).Error
+	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenDiseaseMonitoring{}).Error
 }
 
 func (r *ChickenRepository) DeleteChickenVaccineMonitoring(id uint64) error {
-	return r.GetDB().Delete(&entity.ChickenVaccineMonitoring{}, id).Error
+	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenVaccineMonitoring{}).Error
 }

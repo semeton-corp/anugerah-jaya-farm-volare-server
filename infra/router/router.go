@@ -34,6 +34,15 @@ func New() *fiber.App {
 
 func GlobalErrorHandler() fiber.ErrorHandler {
 	return func(c *fiber.Ctx, err error) error {
+		if fe, ok := err.(*fiber.Error); ok {
+			return response.ErrorResponse(
+				c,
+				fe.Code,
+				fe.Message,
+				fe.Error(),
+			)
+		}
+
 		if ce, ok := err.(*errx.Errx); ok {
 			return response.ErrorResponse(
 				c,

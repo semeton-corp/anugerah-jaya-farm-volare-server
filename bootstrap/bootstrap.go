@@ -90,11 +90,21 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	eggHandler := rest.NewEggHandler(
+		b.log,
+		service.NewEggService(
+			b.log,
+			repository.NewEggRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
 		cageHandler,
 		chickenHandler,
+		eggHandler,
 	}
 }
 

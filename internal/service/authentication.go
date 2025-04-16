@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
@@ -28,7 +27,7 @@ type AuthenticationService struct {
 type IAuthenticationService interface {
 	SignUp(request dto.SignUpRequest, accoundId uuid.UUID) (dto.SignUpResponse, error)
 	SignIn(request dto.SignInRequest) (dto.SignInResponse, error)
-	ForgotPassword(request dto.ForgotPasswordRequest) (dto.ForgotPasswordResponse, error)
+	ForgotPassword(request dto.ForgotPasswordRequest, accountId uuid.UUID) (dto.ForgotPasswordResponse, error)
 	ChangePassword(request dto.ChangePasswordRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
 }
 
@@ -40,7 +39,7 @@ func NewAuthenticationService(log *zap.Logger, repository repository.IAuthentica
 	}
 }
 
-func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accoundId uuid.UUID) (dto.SignUpResponse, error) {
+func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid.UUID) (dto.SignUpResponse, error) {
 	a.repository.UseTx(true)
 
 	var (
@@ -68,15 +67,13 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accoundId uuid
 		return dto.SignUpResponse{}, err
 	}
 
-	fmt.Println("hashedPassword", hashedPassword)
-
 	account := entity.Account{
 		Id:           Id,
 		Email:        request.Email,
 		Password:     string(hashedPassword),
 		RoleId:       request.RoleId,
 		PhotoProfile: "",
-		CreatedBy:    accoundId,
+		CreatedBy:    accountId,
 	}
 
 	staff := entity.Staff{
@@ -141,11 +138,12 @@ func (a *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 	return dto.SignInResponse{
 		TokenType:   constant.TokenType,
 		AccessToken: token,
+		Role:        account.Role.Name,
 		ExpiredAt:   viper.GetDuration("jwt.expiration"),
 	}, nil
 }
 
-func (a *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest) (dto.ForgotPasswordResponse, error) {
+func (a *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest, accountId uuid.UUID) (dto.ForgotPasswordResponse, error) {
 	a.repository.UseTx(false)
 
 	account, err := a.repository.GetAccountByEmail(request.Email)
@@ -167,6 +165,7 @@ func (a *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 	}
 
 	account.Password = string(hashedPassword)
+	account.UpdatedBy = accountId
 	if err := a.repository.UpdateAccount(&account); err != nil {
 		a.log.Error("[ForgotPassword] failed to update account", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, nil

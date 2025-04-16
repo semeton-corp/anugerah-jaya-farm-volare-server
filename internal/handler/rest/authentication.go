@@ -24,7 +24,7 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/signin", a.SignIn)
 	v1.Post("/forgot-password", a.ForgotPassword)
 
-	v1.Post("/signup", a.SignUp)
+	v1.Post("/signup", middleware.Authentication(constant.RoleAdmin), a.SignUp)
 	v1.Post("/change-password", middleware.Authentication(constant.RoleAdmin), a.ChangePassword)
 }
 
@@ -48,13 +48,13 @@ func (a *AuthenticationHandler) SignUp(c *fiber.Ctx) error {
 		return err
 	}
 
-	_, ok := c.Locals("accountId").(string)
+	accountId, ok := c.Locals("accountId").(string)
 	if !ok {
-		a.log.Error("[ChangePassword] failed to get accountId from context")
+		a.log.Error("[SignUp] failed to get accountId from context")
 		return errx.Unauthorized("no accountId in context")
 	}
 
-	res, err := a.service.SignUp(request, uuid.New())
+	res, err := a.service.SignUp(request, uuid.MustParse(accountId))
 	if err != nil {
 		a.log.Error("[SignUp] failed to sign up", zap.Error(err))
 		return err
@@ -106,7 +106,13 @@ func (a *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := a.service.ForgotPassword(request)
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[ForgotPassword] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.ForgotPassword(request, uuid.MustParse(accountId))
 	if err != nil {
 		a.log.Error("[ForgotPassword] failed to forgot password", zap.Error(err))
 		return err

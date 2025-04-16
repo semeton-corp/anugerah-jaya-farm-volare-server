@@ -60,18 +60,12 @@ func (h *ChickenHandler) CreateChickenMonitoring(c *fiber.Ctx) error {
 		return errx.Unauthorized("accountId not found in locals")
 	}
 
-	accountId, err := uuid.Parse(accountIdContext)
-	if err != nil {
-		h.log.Error("[CreateChickenMonitoring] failed to parse accountId", zap.Error(err))
-		return err
-	}
-
 	if err := h.validator.Struct(request); err != nil {
 		h.log.Error("[CreateChickenMonitoring] validation failed", zap.Error(err))
 		return err
 	}
 
-	res, err := h.service.CreateChickenMonitoring(request, accountId)
+	res, err := h.service.CreateChickenMonitoring(request, uuid.MustParse(accountIdContext))
 	if err != nil {
 		h.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
 		return err

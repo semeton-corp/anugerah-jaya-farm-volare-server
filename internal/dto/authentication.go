@@ -23,6 +23,7 @@ type SignInRequest struct {
 
 type SignInResponse struct {
 	TokenType   string        `json:"tokenType"`
+	Role        string        `json:"role"`
 	AccessToken string        `json:"accessToken"`
 	ExpiredAt   time.Duration `json:"expiredAt"`
 }
