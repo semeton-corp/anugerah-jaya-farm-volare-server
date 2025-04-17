@@ -6,4 +6,4 @@ INSERT INTO roles (id, name, created_at, updated_at) VALUES
 (5, 'Pekerja Kandang X Admin Site', NOW(), NOW()),
 (6, 'Pekerja Kandang X Delivery Team', NOW(), NOW()),
 (7, 'Pekerja Kandang DOC', NOW(), NOW()),
-(8, 'Admin', NOW(), NOW());
+(8, 'Owner', NOW(), NOW());

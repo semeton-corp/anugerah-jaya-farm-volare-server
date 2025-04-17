@@ -1,8 +1,6 @@
 package service
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -15,7 +13,6 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 type AuthenticationService struct {
@@ -29,6 +26,8 @@ type IAuthenticationService interface {
 	SignIn(request dto.SignInRequest) (dto.SignInResponse, error)
 	ForgotPassword(request dto.ForgotPasswordRequest, accountId uuid.UUID) (dto.ForgotPasswordResponse, error)
 	ChangePassword(request dto.ChangePasswordRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
+	UpdateAccount(id uuid.UUID, request dto.UpdateAccountRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
+	DeleteAccount(id uuid.UUID) error
 }
 
 func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, email *email.Email) IAuthenticationService {
@@ -118,9 +117,6 @@ func (a *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 	account, err := a.repository.GetAccountByEmail(request.Email)
 	if err != nil {
 		a.log.Error("[SigIn] failed to get account by email", zap.Error(err))
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return dto.SignInResponse{}, errx.BadRequest("password or email is incorrect")
-		}
 		return dto.SignInResponse{}, err
 	}
 
@@ -234,4 +230,51 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 			Name: account.Role.Name,
 		},
 	}, nil
+}
+
+func (a *AuthenticationService) UpdateAccount(id uuid.UUID, request dto.UpdateAccountRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error) {
+	a.repository.UseTx(false)
+
+	account, err := a.repository.GetAccountById(id)
+	if err != nil {
+		a.log.Error("[UpdateAccount] failed to get account by id", zap.Error(err))
+		return dto.ChangePasswordResponse{}, nil
+	}
+
+	account.Email = request.Email
+	account.RoleId = request.RoleId
+	account.PhotoProfile = request.PhotoProfile
+	account.UpdatedBy = accountId
+
+	if err := a.repository.UpdateAccount(&account); err != nil {
+		a.log.Error("[UpdateAccount] failed to update account", zap.Error(err))
+		return dto.ChangePasswordResponse{}, nil
+	}
+
+	account, err = a.repository.GetAccountById(accountId)
+	if err != nil {
+		a.log.Error("[SignUp] failed to get account by id", zap.Error(err))
+		return dto.ChangePasswordResponse{}, nil
+	}
+
+	return dto.ChangePasswordResponse{
+		Id:           account.Id.String(),
+		PhotoProfile: account.PhotoProfile,
+		Email:        account.Email,
+		Role: dto.RoleResponse{
+			Id:   account.Role.Id,
+			Name: account.Role.Name,
+		},
+	}, nil
+}
+
+func (a *AuthenticationService) DeleteAccount(id uuid.UUID) error {
+	a.repository.UseTx(false)
+
+	if err := a.repository.DeleteAccount(id); err != nil {
+		a.log.Error("[DeleteAccount] failed to delete account", zap.Error(err))
+		return nil
+	}
+
+	return nil
 }

@@ -104,7 +104,7 @@ func (e *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 		return nil, err
 	}
 
-	var eggMonitoringResponses []dto.EggMonitoringListResponse
+	eggMonitoringResponses := make([]dto.EggMonitoringListResponse, 0, len(eggMonitorings))
 	for _, eggMonitoring := range eggMonitorings {
 		eggMonitoringResponse := dto.EggMonitoringListResponse{
 			Id: eggMonitoring.Id,
@@ -155,6 +155,12 @@ func (e *EggService) UpdateEggMonitoring(id uint64, request dto.EggMonitoringReq
 
 	if err := e.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
 		e.log.Error("[UpdateEggMonitoring] failed to update egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	eggMonitoring, err = e.repository.GetEggMonitoringById(eggMonitoring.Id)
+	if err != nil {
+		e.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 

@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
 
 type EggMonitoringRequest struct {
 	CageId          uint64 `json:"cageId" validate:"required,number"`
@@ -32,5 +34,5 @@ type EggMonitoringListResponse struct {
 }
 
 type GetEggMonitoringFilter struct {
-	Date time.Time `query:"date"`
+	Date param.DateParam `query:"date"`
 }

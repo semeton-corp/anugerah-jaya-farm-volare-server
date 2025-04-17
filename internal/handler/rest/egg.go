@@ -23,11 +23,11 @@ type EggHandler struct {
 
 func (a *EggHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/eggs")
-	v1.Post("/monitorings", middleware.Authentication(constant.RoleAdmin), a.CreateEggMonitoring)
-	v1.Get("/monitorings", middleware.Authentication(constant.RoleAdmin), a.GetEggMonitorings)
-	v1.Get("/monitorings/:id", middleware.Authentication(constant.RoleAdmin), a.GetEggMonitoringById)
-	v1.Put("/monitorings/:id", middleware.Authentication(constant.RoleAdmin), a.UpdateEggMonitoring)
-	v1.Delete("/monitorings/:id", middleware.Authentication(constant.RoleAdmin), a.DeleteEggMonitoring)
+	v1.Post("/monitorings", middleware.Authentication(constant.RoleOwner), a.CreateEggMonitoring)
+	v1.Get("/monitorings", middleware.Authentication(constant.RoleOwner), a.GetEggMonitorings)
+	v1.Get("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.GetEggMonitoringById)
+	v1.Put("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.UpdateEggMonitoring)
+	v1.Delete("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.DeleteEggMonitoring)
 }
 
 func NewEggHandler(log *zap.Logger, service service.IEggService, validator *validator.Validate) *EggHandler {

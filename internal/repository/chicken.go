@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -90,21 +93,24 @@ func (r *ChickenRepository) GetChickenMonitoringById(id uint64) (entity.ChickenM
 		Where("id = ?", id).First(&chickenMonitoring).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenMonitoring{}, errx.NotFound("chicken monitoring not found")
+		}
 		return entity.ChickenMonitoring{}, err
 	}
 	return chickenMonitoring, nil
 }
 
 func (r *ChickenRepository) UpdateChickenMonitoring(chickenMonitoring *entity.ChickenMonitoring) error {
-	return r.GetDB().Save(chickenMonitoring).Error
+	return r.GetDB().Model(entity.ChickenMonitoring{}).Where("id = ?", chickenMonitoring.Id).Updates(chickenMonitoring).Error
 }
 
 func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitoringFilter) ([]entity.ChickenMonitoring, error) {
 	var chickenMonitorings []entity.ChickenMonitoring
 	query := r.GetDB()
 
-	if !filter.Date.IsZero() {
-		query = query.Where("created_at = ?", filter.Date)
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
 	err := query.
@@ -124,6 +130,9 @@ func (r *ChickenRepository) GetChickenDiseaseMonitoringById(id uint64) (entity.C
 		Where("id = ?", id).First(&chickenDiseaseMonitoring).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenDiseaseMonitoring{}, errx.NotFound("chicken disease monitoring not found")
+		}
 		return entity.ChickenDiseaseMonitoring{}, err
 	}
 	return chickenDiseaseMonitoring, nil
@@ -135,17 +144,20 @@ func (r *ChickenRepository) GetChickenVaccineMonitoringById(id uint64) (entity.C
 		Where("id = ?", id).First(&chickenVaccineMonitoring).Error
 
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenVaccineMonitoring{}, errx.NotFound("chicken vaccine monitoring not found")
+		}
 		return entity.ChickenVaccineMonitoring{}, err
 	}
 	return chickenVaccineMonitoring, nil
 }
 
 func (r *ChickenRepository) UpdateChickenDiseaseMonitoring(chickenDiseaseMonitoring *entity.ChickenDiseaseMonitoring) error {
-	return r.GetDB().Save(chickenDiseaseMonitoring).Error
+	return r.GetDB().Model(entity.ChickenDiseaseMonitoring{}).Where("id = ?", chickenDiseaseMonitoring.Id).Updates(chickenDiseaseMonitoring).Error
 }
 
 func (r *ChickenRepository) UpdateChickenVaccineMonitoring(chickenVaccineMonitoring *entity.ChickenVaccineMonitoring) error {
-	return r.GetDB().Save(chickenVaccineMonitoring).Error
+	return r.GetDB().Model(entity.ChickenVaccineMonitoring{}).Where("id = ?", chickenVaccineMonitoring.Id).Updates(chickenVaccineMonitoring).Error
 }
 
 func (r *ChickenRepository) DeleteChickenMonitoring(id uint64) error {

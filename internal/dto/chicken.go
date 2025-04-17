@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
 
 type CreateChickenMonitoringRequest struct {
 	CageId            uint64                                  `json:"cageId" validate:"required"`
@@ -54,6 +56,7 @@ type ChickenMonitoringResponse struct {
 	Id                uint64                             `json:"id"`
 	Cage              CageResponse                       `json:"cage"`
 	Age               uint64                             `json:"age"`
+	ChickenCategory   string                             `json:"chickenCategory"`
 	TotalLiveChicken  uint64                             `json:"totalLiveChicken"`
 	TotalSickChicken  uint64                             `json:"totalSickChicken"`
 	TotalDeathChicken uint64                             `json:"totalDeathChicken"`
@@ -80,6 +83,7 @@ type ChickenVaccineMonitoringResponse struct {
 type ChickenMonitoringListResponse struct {
 	Id                uint64       `json:"id"`
 	Cage              CageResponse `json:"cage"`
+	ChickenCategory   string       `json:"chickenCategory"`
 	Age               uint64       `json:"age"`
 	TotalLiveChicken  uint64       `json:"totalLiveChicken"`
 	TotalSickChicken  uint64       `json:"totalSickChicken"`
@@ -89,5 +93,5 @@ type ChickenMonitoringListResponse struct {
 }
 
 type GetChickenMonitoringFilter struct {
-	Date time.Time `query:"date"`
+	Date param.DateParam `query:"date"`
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	_email "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/env"
@@ -99,12 +100,22 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	warehouseHandler := rest.NewWarehouseHandler(
+		b.log,
+		service.NewWarehouseService(
+			b.log,
+			repository.NewWarehouseRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
 		cageHandler,
 		chickenHandler,
 		eggHandler,
+		warehouseHandler,
 	}
 }
 
@@ -114,6 +125,14 @@ func (b *Bootstrap) Run() {
 
 	_persistence.Migrate(b.db)
 	// _persistence.Rollback(b.db)
+
+	b.router.Use(cors.New(cors.Config{
+		AllowOrigins:  viper.GetString("server.cors.allow_origins"),
+		AllowMethods:  viper.GetString("server.cors.allow_methods"),
+		AllowHeaders:  viper.GetString("server.cors.allow_headers"),
+		ExposeHeaders: viper.GetString("server.cors.expose_headers"),
+		MaxAge:        viper.GetInt("server.cors.max_age"),
+	}))
 
 	for _, handler := range b.handlers {
 		handler.SetEndpoint(b.router)

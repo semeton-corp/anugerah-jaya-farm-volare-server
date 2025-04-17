@@ -24,8 +24,10 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/signin", a.SignIn)
 	v1.Post("/forgot-password", a.ForgotPassword)
 
-	v1.Post("/signup", middleware.Authentication(constant.RoleAdmin), a.SignUp)
-	v1.Post("/change-password", middleware.Authentication(constant.RoleAdmin), a.ChangePassword)
+	v1.Post("/signup", middleware.Authentication(constant.RoleOwner), a.SignUp)
+	v1.Post("/change-password", middleware.Authentication(constant.RoleOwner), a.ChangePassword)
+	v1.Put("/:id", middleware.Authentication(constant.RoleOwner), a.UpdateAccount)
+	v1.Delete("/:id", middleware.Authentication(constant.RoleOwner), a.DeleteAccount)
 }
 
 func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService, validator *validator.Validate) *AuthenticationHandler {
@@ -156,4 +158,57 @@ func (a *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
 		res,
 		"success change password",
 	)
+}
+
+func (a *AuthenticationHandler) UpdateAccount(c *fiber.Ctx) error {
+	var request dto.UpdateAccountRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[UpdateAccount] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[UpdateAccount] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[UpdateAccount] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[UpdateAccount] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.UpdateAccount(uuid.MustParse(idParam), request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[UpdateAccount] failed to update account", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(
+		c,
+		fiber.StatusOK,
+		res,
+		"success update account",
+	)
+}
+
+func (a *AuthenticationHandler) DeleteAccount(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[DeleteAccount] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	if err := a.service.DeleteAccount(uuid.MustParse(idParam)); err != nil {
+		a.log.Error("[DeleteAccount] failed to delete account", zap.Error(err))
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }

@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -64,6 +67,9 @@ func (r *EggRepository) CreateEggMonitoring(eggMonitoring *entity.EggMonitoring)
 func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, error) {
 	var eggMonitoring entity.EggMonitoring
 	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Cage.Location").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.EggMonitoring{}, errx.NotFound("egg monitoring not found")
+		}
 		return entity.EggMonitoring{}, err
 	}
 
@@ -71,12 +77,12 @@ func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, e
 }
 
 func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]entity.EggMonitoring, error) {
-	var eggMonitorings []entity.EggMonitoring
+	eggMonitorings := make([]entity.EggMonitoring, 0)
 
 	query := r.GetDB().Preload("Cage.Location").Model(&entity.EggMonitoring{})
 
-	if !filter.Date.IsZero() {
-		query = query.Where("created_at = ?", filter.Date)
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
 	if err := query.Find(&eggMonitorings).Order("created_at ASC").Error; err != nil {
@@ -87,7 +93,7 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 }
 
 func (r *EggRepository) UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring) error {
-	return r.GetDB().Save(eggMonitoring).Error
+	return r.GetDB().Model(entity.EggMonitoring{}).Where("id = ?", eggMonitoring.Id).Updates(eggMonitoring).Error
 }
 
 func (r *EggRepository) DeleteEggMonitoring(id uint64) error {

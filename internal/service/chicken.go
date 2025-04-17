@@ -5,6 +5,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -40,9 +42,15 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 	c.repository.UseTx(true)
 	defer c.repository.Rollback()
 
+	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
+	if !chickenCategory.IsValid() {
+		return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
+	}
+
 	chickenMonitoring := entity.ChickenMonitoring{
 		CageId:            request.CageId,
 		Age:               request.Age,
+		ChickenCategory:   chickenCategory,
 		TotalLiveChicken:  request.TotalLiveChicken,
 		TotalDeathChicken: request.TotalDeathChicken,
 		TotalSickChicken:  request.TotalSickChicken,
@@ -129,7 +137,8 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,
@@ -206,7 +215,8 @@ func (c *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 	chickenMonitoringsResponse := make([]dto.ChickenMonitoringListResponse, len(chickenMonitorings))
 	for i, chickenMonitoring := range chickenMonitorings {
 		chickenMonitoringsResponse[i] = dto.ChickenMonitoringListResponse{
-			Id: chickenMonitoring.Id,
+			Id:              chickenMonitoring.Id,
+			ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 			Cage: dto.CageResponse{
 				Id:   chickenMonitoring.Cage.Id,
 				Name: chickenMonitoring.Cage.Name,
@@ -249,6 +259,12 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	chickenMonitoring, err = c.repository.GetChickenMonitoringById(chickenMonitoring.Id)
+	if err != nil {
+		c.log.Error("[UpdateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
 	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
 	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
 		chickenDiseasesResponse[i] = dto.ChickenDiseaseMonitoringResponse{
@@ -271,7 +287,8 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,
@@ -334,7 +351,8 @@ func (c *ChickenService) CreateChickenDiseaseMonitoring(chickenMonitoringId uint
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,
@@ -396,7 +414,8 @@ func (c *ChickenService) CreateChickenVaccineMonitoring(chickenMonitoringId uint
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,
@@ -462,7 +481,8 @@ func (c *ChickenService) UpdateChickenDiseaseMonitoring(id uint64, request dto.U
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,
@@ -527,7 +547,8 @@ func (c *ChickenService) UpdateChickenVaccineMonitoring(id uint64, request dto.U
 	}
 
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
+		Id:              chickenMonitoring.Id,
+		ChickenCategory: chickenMonitoring.ChickenCategory.String(),
 		Cage: dto.CageResponse{
 			Id:   chickenMonitoring.Cage.Id,
 			Name: chickenMonitoring.Cage.Name,

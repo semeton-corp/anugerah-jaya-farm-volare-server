@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 type ChickenMonitoring struct {
@@ -11,6 +12,7 @@ type ChickenMonitoring struct {
 	CageId                   uint64                     `gorm:"type:bigint;not null"`
 	Cage                     Cage                       `gorm:"foreignKey:CageId;references:Id"`
 	Age                      uint64                     `gorm:"type:bigint;not null"`
+	ChickenCategory          enum.ChickenCategory       `gorm:"type:int;not null"`
 	TotalLiveChicken         uint64                     `gorm:"type:bigint;not null"`
 	TotalDeathChicken        uint64                     `gorm:"type:bigint;not null"`
 	TotalSickChicken         uint64                     `gorm:"type:bigint;not null"`

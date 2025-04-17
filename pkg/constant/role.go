@@ -8,5 +8,5 @@ const (
 	RolePekerjaKandangAdminSite    string = "Pekerja Kandang X Admin Site"
 	RolePekerjaKandangDeliveryTeam string = "Pekerja Kandang X Delivery Team"
 	RolePekerjaKandangDOC          string = "Pekerja Kandang DOC"
-	RoleAdmin                      string = "Admin"
+	RoleOwner                      string = "Owner"
 )

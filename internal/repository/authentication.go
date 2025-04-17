@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -21,6 +24,7 @@ type IAuthenticationRepository interface {
 	GetAccountById(id uuid.UUID) (entity.Account, error)
 	UpdateAccount(account *entity.Account) error
 	CreateStaff(staff *entity.Staff) error
+	DeleteAccount(id uuid.UUID) error
 }
 
 func NewAuthenticationRepository(db *gorm.DB) IAuthenticationRepository {
@@ -64,6 +68,9 @@ func (r *AuthenticationRepository) CreateAccount(account *entity.Account) error 
 func (r *AuthenticationRepository) GetAccountByEmail(email string) (entity.Account, error) {
 	var account entity.Account
 	if err := r.GetDB().Preload("Role").Where("email = ?", email).First(&account).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.Account{}, errx.BadRequest("password or email is incorrect")
+		}
 		return entity.Account{}, err
 	}
 	return account, nil
@@ -78,9 +85,13 @@ func (r *AuthenticationRepository) GetAccountById(id uuid.UUID) (entity.Account,
 }
 
 func (r *AuthenticationRepository) UpdateAccount(account *entity.Account) error {
-	return r.GetDB().Save(account).Error
+	return r.GetDB().Model(entity.Account{}).Where("id = ?", account.Id).Updates(&account).Error
 }
 
 func (r *AuthenticationRepository) CreateStaff(staff *entity.Staff) error {
 	return r.GetDB().Create(staff).Error
+}
+
+func (r *AuthenticationRepository) DeleteAccount(id uuid.UUID) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.Account{}).Error
 }

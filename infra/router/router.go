@@ -3,7 +3,6 @@ package router
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
@@ -21,13 +20,6 @@ func New() *fiber.App {
 			CaseSensitive: true,
 		},
 	)
-
-	router.Use(cors.New(cors.Config{
-		AllowMethods:  viper.GetString("server.cors.allow_methods"),
-		AllowHeaders:  viper.GetString("server.cors.allow_headers"),
-		ExposeHeaders: viper.GetString("server.cors.expose_headers"),
-		MaxAge:        viper.GetInt("server.cors.max_age"),
-	}))
 
 	return router
 }

@@ -43,6 +43,12 @@ type ChangePasswordRequest struct {
 	ConfirmPassword string `json:"confirmPassword" validate:"required,min=8"`
 }
 
+type UpdateAccountRequest struct {
+	Email        string `json:"email" validate:"required,email"`
+	RoleId       uint64 `json:"roleId" validate:"required"`
+	PhotoProfile string `json:"photoProfile"`
+}
+
 type ChangePasswordResponse struct {
 	Id           string       `json:"id"`
 	PhotoProfile string       `json:"photoProfile"`

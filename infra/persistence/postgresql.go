@@ -29,6 +29,7 @@ func New(log *zap.Logger) *gorm.DB {
 		NowFunc: func() time.Time {
 			return time.Now().Local()
 		},
+		TranslateError: true,
 	})
 
 	if err != nil {
