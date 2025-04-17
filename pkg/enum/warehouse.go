@@ -19,13 +19,13 @@ func (c WarehouseItemCategory) String() string {
 	return WarehouseItemCategoryMap[c]
 }
 
-func ValueOfWarehouseItemCategory(value string) ChickenCategory {
-	for k, v := range ChickenCategoryMap {
+func ValueOfWarehouseItemCategory(value string) WarehouseItemCategory {
+	for k, v := range WarehouseItemCategoryMap {
 		if v == value {
 			return k
 		}
 	}
-	return ChickenCategoryUnknown
+	return WarehouseItemCategoryUnknown
 }
 
 func (c WarehouseItemCategory) IsValid() bool {

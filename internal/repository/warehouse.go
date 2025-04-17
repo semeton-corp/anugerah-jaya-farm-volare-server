@@ -20,7 +20,7 @@ type IWarehouseRepository interface {
 	Rollback() error
 
 	CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error
-	GetWarehouseItem() ([]entity.WarehouseItem, error)
+	GetWarehouseItem(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
 
 	CreateWarehouseStockItem(stockWarehouseItem *entity.WarehouseStockItem) error
 	GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]entity.WarehouseStockItem, error)
@@ -70,12 +70,20 @@ func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.Warehous
 	return r.GetDB().Create(warehouseItem).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseItem() ([]entity.WarehouseItem, error) {
+func (r *WarehouseRepository) GetWarehouseItem(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error) {
 	var warehouseItems []entity.WarehouseItem
-	err := r.GetDB().Find(&warehouseItems).Error
+
+	query := r.GetDB()
+
+	if filter.Category.Value().IsValid() {
+		query = query.Where("category = ?", filter.Category.Value())
+	}
+
+	err := query.Find(&warehouseItems).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return warehouseItems, nil
 }
 

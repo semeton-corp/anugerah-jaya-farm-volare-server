@@ -61,8 +61,8 @@ type ChickenMonitoringResponse struct {
 	TotalSickChicken  uint64                             `json:"totalSickChicken"`
 	TotalDeathChicken uint64                             `json:"totalDeathChicken"`
 	TotalFeed         float64                            `json:"totalFeed"`
-	ChickenDiseases   []ChickenDiseaseMonitoringResponse `json:"chickenDiseases,omitempty"`
-	ChickenVaccines   []ChickenVaccineMonitoringResponse `json:"chickenVaccines,omitempty"`
+	ChickenDiseases   []ChickenDiseaseMonitoringResponse `json:"chickenDiseases"`
+	ChickenVaccines   []ChickenVaccineMonitoringResponse `json:"chickenVaccines"`
 }
 
 type ChickenDiseaseMonitoringResponse struct {

@@ -1,8 +1,14 @@
 package dto
 
+import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+
 type CreateWarehouseItemRequest struct {
 	Name string `json:"name" validate:"required"`
 	Unit string `json:"unit" validate:"required,unit"`
+}
+
+type GetWarehouseItemFilter struct {
+	Category param.WarehouseItemCategoryParam `query:"category"`
 }
 
 type WarehouseItemResponse struct {

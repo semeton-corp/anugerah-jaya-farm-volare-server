@@ -9,7 +9,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
@@ -23,11 +22,11 @@ type EggHandler struct {
 
 func (a *EggHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/eggs")
-	v1.Post("/monitorings", middleware.Authentication(constant.RoleOwner), a.CreateEggMonitoring)
-	v1.Get("/monitorings", middleware.Authentication(constant.RoleOwner), a.GetEggMonitorings)
-	v1.Get("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.GetEggMonitoringById)
-	v1.Put("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.UpdateEggMonitoring)
-	v1.Delete("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.DeleteEggMonitoring)
+	v1.Post("/monitorings", middleware.Authentication(), a.CreateEggMonitoring)
+	v1.Get("/monitorings", middleware.Authentication(), a.GetEggMonitorings)
+	v1.Get("/monitorings/:id", middleware.Authentication(), a.GetEggMonitoringById)
+	v1.Put("/monitorings/:id", middleware.Authentication(), a.UpdateEggMonitoring)
+	v1.Delete("/monitorings/:id", middleware.Authentication(), a.DeleteEggMonitoring)
 }
 
 func NewEggHandler(log *zap.Logger, service service.IEggService, validator *validator.Validate) *EggHandler {

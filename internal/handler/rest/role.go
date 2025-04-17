@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
 )
@@ -18,7 +17,7 @@ type RoleHandler struct {
 
 func (h *RoleHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/roles")
-	v1.Get("/", middleware.Authentication(constant.RoleOwner), h.GetRoles)
+	v1.Get("/", middleware.Authentication(), h.GetRoles)
 }
 
 func NewRoleHandler(log *zap.Logger, service service.IRoleService, validator *validator.Validate) *RoleHandler {

@@ -9,7 +9,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
@@ -23,19 +22,19 @@ type ChickenHandler struct {
 
 func (a *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/chickens")
-	v1.Post("/monitorings", middleware.Authentication(constant.RoleOwner), a.CreateChickenMonitoring)
-	v1.Get("/monitorings", middleware.Authentication(constant.RoleOwner), a.GetChickenMonitorings)
-	v1.Put("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.UpdateChickenMonitoring)
-	v1.Get("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.GetChickenMonitoringById)
+	v1.Post("/monitorings", middleware.Authentication(), a.CreateChickenMonitoring)
+	v1.Get("/monitorings", middleware.Authentication(), a.GetChickenMonitorings)
+	v1.Put("/monitorings/:id", middleware.Authentication(), a.UpdateChickenMonitoring)
+	v1.Get("/monitorings/:id", middleware.Authentication(), a.GetChickenMonitoringById)
 
-	v1.Post("/monitorings/:chickenMonitoringId/diseases", middleware.Authentication(constant.RoleOwner), a.CreateChickenDiseaseMonitoring)
-	v1.Put("/monitorings/:chickenMonitoringId/diseases/:id", middleware.Authentication(constant.RoleOwner), a.UpdateChickenDiseaseMonitoring)
-	v1.Post("/monitorings/:chickenMonitoringId/vaccines", middleware.Authentication(constant.RoleOwner), a.CreateChickenVacccineMonitoring)
-	v1.Put("/monitorings/:chickenMonitoringId/vaccines/:id", middleware.Authentication(constant.RoleOwner), a.UpdateChickenVaccineMonitoring)
+	v1.Post("/monitorings/:chickenMonitoringId/diseases", middleware.Authentication(), a.CreateChickenDiseaseMonitoring)
+	v1.Put("/monitorings/:chickenMonitoringId/diseases/:id", middleware.Authentication(), a.UpdateChickenDiseaseMonitoring)
+	v1.Post("/monitorings/:chickenMonitoringId/vaccines", middleware.Authentication(), a.CreateChickenVacccineMonitoring)
+	v1.Put("/monitorings/:chickenMonitoringId/vaccines/:id", middleware.Authentication(), a.UpdateChickenVaccineMonitoring)
 
-	v1.Delete("/monitorings/:chickenMonitoringId/diseases/:id", middleware.Authentication(constant.RoleOwner), a.DeleteChickenDiseaseMonitoring)
-	v1.Delete("/monitorings/:chickenMonitoringId/vaccines/:id", middleware.Authentication(constant.RoleOwner), a.DeleteChickenVaccineMonitoring)
-	v1.Delete("/monitorings/:id", middleware.Authentication(constant.RoleOwner), a.DeleteChickenMonitoring)
+	v1.Delete("/monitorings/:chickenMonitoringId/diseases/:id", middleware.Authentication(), a.DeleteChickenDiseaseMonitoring)
+	v1.Delete("/monitorings/:chickenMonitoringId/vaccines/:id", middleware.Authentication(), a.DeleteChickenVaccineMonitoring)
+	v1.Delete("/monitorings/:id", middleware.Authentication(), a.DeleteChickenMonitoring)
 
 }
 

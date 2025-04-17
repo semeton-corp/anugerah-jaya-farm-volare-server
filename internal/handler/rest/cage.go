@@ -5,7 +5,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
 )
@@ -18,7 +17,7 @@ type CageHandler struct {
 
 func (a *CageHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/cages")
-	v1.Get("/", middleware.Authentication(constant.RoleOwner), a.GetCages)
+	v1.Get("/", middleware.Authentication(), a.GetCages)
 }
 
 func NewCageHandler(log *zap.Logger, service service.ICageService, validator *validator.Validate) *CageHandler {

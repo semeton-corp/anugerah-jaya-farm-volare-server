@@ -7,7 +7,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
@@ -24,10 +23,10 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/signin", a.SignIn)
 	v1.Post("/forgot-password", a.ForgotPassword)
 
-	v1.Post("/signup", middleware.Authentication(constant.RoleOwner), a.SignUp)
-	v1.Post("/change-password", middleware.Authentication(constant.RoleOwner), a.ChangePassword)
-	v1.Put("/:id", middleware.Authentication(constant.RoleOwner), a.UpdateAccount)
-	v1.Delete("/:id", middleware.Authentication(constant.RoleOwner), a.DeleteAccount)
+	v1.Post("/signup", middleware.Authentication(), a.SignUp)
+	v1.Post("/change-password", middleware.Authentication(), a.ChangePassword)
+	v1.Put("/:id", middleware.Authentication(), a.UpdateAccount)
+	v1.Delete("/:id", middleware.Authentication(), a.DeleteAccount)
 }
 
 func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationService, validator *validator.Validate) *AuthenticationHandler {

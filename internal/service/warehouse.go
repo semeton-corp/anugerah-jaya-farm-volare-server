@@ -19,7 +19,7 @@ type WarehouseService struct {
 
 type IWarehouseService interface {
 	CreateWarehouseItem(request *dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
-	GetWarehouseItem() ([]dto.WarehouseItemResponse, error)
+	GetWarehouseItem(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
 
 	GetWarehouses() ([]dto.WarehouseResponse, error)
 
@@ -59,8 +59,8 @@ func (w *WarehouseService) CreateWarehouseItem(request *dto.CreateWarehouseItemR
 	}, nil
 }
 
-func (w *WarehouseService) GetWarehouseItem() ([]dto.WarehouseItemResponse, error) {
-	warehouseItems, err := w.repository.GetWarehouseItem()
+func (w *WarehouseService) GetWarehouseItem(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error) {
+	warehouseItems, err := w.repository.GetWarehouseItem(filter)
 	if err != nil {
 		w.log.Error("[GetWarehouseItem] failed to get warehouse items", zap.Error(err))
 		return nil, err

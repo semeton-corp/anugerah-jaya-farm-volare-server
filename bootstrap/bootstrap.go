@@ -109,6 +109,15 @@ func (b *Bootstrap) DepedencyInjection() {
 		b.validator,
 	)
 
+	storeHandler := rest.NewStoreHandler(
+		b.log,
+		service.NewStoreService(
+			b.log,
+			repository.NewStoreRepository(b.db),
+		),
+		b.validator,
+	)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
@@ -116,6 +125,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		chickenHandler,
 		eggHandler,
 		warehouseHandler,
+		storeHandler,
 	}
 }
 

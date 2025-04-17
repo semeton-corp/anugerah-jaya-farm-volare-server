@@ -6,6 +6,7 @@ func New() *validator.Validate {
 	validate := validator.New()
 	validate.RegisterValidation("chicken_category", ValidateChickenCategory)
 	validate.RegisterValidation("unit", ValidationUnit)
+	validate.RegisterValidation("requestItemStatus", ValidationRequestItemStatus)
 	return validate
 }
 
@@ -23,6 +24,16 @@ func ValidationUnit(fl validator.FieldLevel) bool {
 	unit := fl.Field().String()
 	switch unit {
 	case "kg", "liter":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationRequestItemStatus(fl validator.FieldLevel) bool {
+	requestItemStatus := fl.Field().String()
+	switch requestItemStatus {
+	case "Diterima", "Menunggu", "Ditolak", "Dikirim":
 		return true
 	default:
 		return false

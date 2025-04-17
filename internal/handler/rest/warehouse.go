@@ -9,7 +9,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
@@ -23,14 +22,14 @@ type WarehouseHandler struct {
 
 func (a *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/warehouses")
-	v1.Post("/items", middleware.Authentication(constant.RoleOwner), a.CreateWarehouseItem)
-	v1.Get("/items", middleware.Authentication(constant.RoleOwner), a.GetWarehouseItem)
+	v1.Post("/items", middleware.Authentication(), a.CreateWarehouseItem)
+	v1.Get("/items", middleware.Authentication(), a.GetWarehouseItem)
 
-	v1.Post("/stock-items", middleware.Authentication(constant.RoleOwner), a.CreateStockWarehouseItem)
-	v1.Get("/stock-items", middleware.Authentication(constant.RoleOwner), a.GetStockWarehouseItems)
-	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(constant.RoleOwner), a.GetStockWarehouseItemByWarehouseIdAndWarehouseItemId)
-	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(constant.RoleOwner), a.UpdateStockWarehouseItem)
-	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(constant.RoleOwner), a.DeleteStockWarehouseItem)
+	v1.Post("/stock-items", middleware.Authentication(), a.CreateStockWarehouseItem)
+	v1.Get("/stock-items", middleware.Authentication(), a.GetStockWarehouseItems)
+	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.GetStockWarehouseItemByWarehouseIdAndWarehouseItemId)
+	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.UpdateStockWarehouseItem)
+	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.DeleteStockWarehouseItem)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -69,7 +68,13 @@ func (a *WarehouseHandler) CreateWarehouseItem(c *fiber.Ctx) error {
 }
 
 func (a *WarehouseHandler) GetWarehouseItem(c *fiber.Ctx) error {
-	warehouseItems, err := a.service.GetWarehouseItem()
+	var filter dto.GetWarehouseItemFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("[GetWarehouseItem] failed to parse query", zap.Error(err))
+		return err
+	}
+
+	warehouseItems, err := a.service.GetWarehouseItem(filter)
 	if err != nil {
 		a.log.Error("[GetWarehouseItem] failed to get warehouse items", zap.Error(err))
 		return err
