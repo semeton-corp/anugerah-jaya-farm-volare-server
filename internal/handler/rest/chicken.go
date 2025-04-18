@@ -27,6 +27,7 @@ func (a *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/monitorings/:id", middleware.Authentication(), a.UpdateChickenMonitoring)
 	v1.Get("/monitorings/:id", middleware.Authentication(), a.GetChickenMonitoringById)
 
+	// Note : for now unused
 	v1.Post("/monitorings/:chickenMonitoringId/diseases", middleware.Authentication(), a.CreateChickenDiseaseMonitoring)
 	v1.Put("/monitorings/:chickenMonitoringId/diseases/:id", middleware.Authentication(), a.UpdateChickenDiseaseMonitoring)
 	v1.Post("/monitorings/:chickenMonitoringId/vaccines", middleware.Authentication(), a.CreateChickenVacccineMonitoring)
@@ -72,7 +73,7 @@ func (h *ChickenHandler) CreateChickenMonitoring(c *fiber.Ctx) error {
 
 	return response.SuccessResponse(
 		c,
-		fiber.StatusOK,
+		fiber.StatusCreated,
 		res,
 		"success create chicken monitoring",
 	)

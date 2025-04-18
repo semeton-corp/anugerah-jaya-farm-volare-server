@@ -85,6 +85,10 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(int(filter.Limit))
+	}
+
 	if err := query.Find(&eggMonitorings).Order("created_at ASC").Error; err != nil {
 		return nil, err
 	}

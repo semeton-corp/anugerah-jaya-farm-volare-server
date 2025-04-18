@@ -34,5 +34,6 @@ type EggMonitoringListResponse struct {
 }
 
 type GetEggMonitoringFilter struct {
-	Date param.DateParam `query:"date"`
+	Date  param.DateParam `query:"date"`
+	Limit uint64
 }

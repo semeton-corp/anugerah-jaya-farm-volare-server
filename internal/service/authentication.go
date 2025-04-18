@@ -40,19 +40,7 @@ func NewAuthenticationService(log *zap.Logger, repository repository.IAuthentica
 
 func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid.UUID) (dto.SignUpResponse, error) {
 	a.repository.UseTx(true)
-
-	var (
-		err error
-	)
-
-	defer func() {
-		if err != nil {
-			if err := a.repository.Rollback(); err != nil {
-				a.log.Error("[SignUp] failed to rollback transaction", zap.Error(err))
-			}
-			return
-		}
-	}()
+	defer a.repository.Rollback()
 
 	Id, err := uuid.NewUUID()
 	if err != nil {

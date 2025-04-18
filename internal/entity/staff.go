@@ -7,8 +7,7 @@ import (
 )
 
 type Staff struct {
-	Id          uint64    `gorm:"primaryKey;autoIncrement"`
-	AccountId   uuid.UUID `gorm:"type:varchar(255);not null"`
+	AccountId   uuid.UUID `gorm:"primaryKey;type:varchar(255);not null"`
 	Account     Account   `gorm:"foreignKey:AccountId;references:Id;constraint:on_delete:cascade"`
 	Name        string    `gorm:"type:varchar(255);not null"`
 	PhoneNumber string    `gorm:"type:varchar(15);not null"`

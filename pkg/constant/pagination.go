@@ -1,5 +1,5 @@
 package constant
 
 const (
-	PaginationDefaultLimit uint64 = 1
+	PaginationDefaultLimit uint64 = 10
 )

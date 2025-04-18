@@ -62,7 +62,14 @@ func (r *AuthenticationRepository) GetDB() *gorm.DB {
 }
 
 func (r *AuthenticationRepository) CreateAccount(account *entity.Account) error {
-	return r.GetDB().Preload("Role").Create(account).Error
+	err := r.GetDB().Create(account).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errx.BadRequest("email already exists")
+		}
+	}
+
+	return nil
 }
 
 func (r *AuthenticationRepository) GetAccountByEmail(email string) (entity.Account, error) {

@@ -32,6 +32,15 @@ type IChickenRepository interface {
 	DeleteChickenMonitoring(id uint64) error
 	DeleteChickenDiseaseMonitoring(id uint64) error
 	DeleteChickenVaccineMonitoring(id uint64) error
+
+	FirstOrCreateChickenVaccineMonitoring(chickenVaccineMonitoring *entity.ChickenVaccineMonitoring) error
+	FirstOrCreateChickenDiseaseMonitoring(chickenDiseaseMonitoring *entity.ChickenDiseaseMonitoring) error
+
+	SaveChickenVaccineMonitoring(chickenVaccineMonitoring *entity.ChickenVaccineMonitoring) error
+	SaveChickenDiseaseMonitoring(chickenDiseaseMonitoring *entity.ChickenDiseaseMonitoring) error
+
+	DeleteChickenVaccineMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error
+	DeleteChickenDiseaseMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -113,6 +122,10 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
+	if filter.Limit > 0 {
+		query = query.Limit(int(filter.Limit))
+	}
+
 	err := query.
 		Preload("Cage.Location").
 		Order("created_at desc").
@@ -170,4 +183,38 @@ func (r *ChickenRepository) DeleteChickenDiseaseMonitoring(id uint64) error {
 
 func (r *ChickenRepository) DeleteChickenVaccineMonitoring(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenVaccineMonitoring{}).Error
+}
+
+func (r *ChickenRepository) FirstOrCreateChickenVaccineMonitoring(chickenVaccineMonitoring *entity.ChickenVaccineMonitoring) error {
+	return r.GetDB().FirstOrCreate(chickenVaccineMonitoring, entity.ChickenVaccineMonitoring{
+		Id: chickenVaccineMonitoring.Id,
+	}).Error
+}
+
+func (r *ChickenRepository) FirstOrCreateChickenDiseaseMonitoring(chickenDiseaseMonitoring *entity.ChickenDiseaseMonitoring) error {
+	return r.GetDB().FirstOrCreate(chickenDiseaseMonitoring, entity.ChickenDiseaseMonitoring{
+		Id: chickenDiseaseMonitoring.Id,
+	}).Error
+}
+
+func (r *ChickenRepository) SaveChickenVaccineMonitoring(chickenVaccineMonitoring *entity.ChickenVaccineMonitoring) error {
+	return r.GetDB().Save(chickenVaccineMonitoring).Error
+}
+
+func (r *ChickenRepository) SaveChickenDiseaseMonitoring(chickenDiseaseMonitoring *entity.ChickenDiseaseMonitoring) error {
+	return r.GetDB().Save(chickenDiseaseMonitoring).Error
+}
+
+func (r *ChickenRepository) DeleteChickenVaccineMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error {
+	return r.GetDB().
+		Where("chicken_monitoring_id = ?", chickenMonitoringId).
+		Where("id NOT IN ?", keepIds).
+		Delete(&entity.ChickenVaccineMonitoring{}).Error
+}
+
+func (r *ChickenRepository) DeleteChickenDiseaseMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error {
+	return r.GetDB().
+		Where("chicken_monitoring_id = ?", chickenMonitoringId).
+		Where("id NOT IN ?", keepIds).
+		Delete(&entity.ChickenDiseaseMonitoring{}).Error
 }
