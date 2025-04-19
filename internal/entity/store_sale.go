@@ -21,6 +21,7 @@ type StoreSale struct {
 	TotalPrice      decimal.Decimal    `gorm:"type:decimal;not null"`
 	SendDate        time.Time          `gorm:"type:date;not null"`
 	PaymentMethod   enum.PaymentMethod `gorm:"type:int;not null"`
+	PaymentStatus   enum.PaymentStatus `gorm:"type:int;not null"`
 	IsSend          bool               `gorm:"type:boolean;not null"`
 	Payments        []StoreSalePayment `gorm:"foreignKey:StoreSaleId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
 	CreatedAt       time.Time          `gorm:"type:timestamp;autoCreateTime"`

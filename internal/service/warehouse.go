@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
@@ -38,25 +39,20 @@ func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseReposi
 }
 
 func (w *WarehouseService) CreateWarehouseItem(request *dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error) {
-	warehouseItem := &entity.WarehouseItem{
+	warehouseItem := entity.WarehouseItem{
 		Name:      request.Name,
 		Unit:      request.Unit,
 		Category:  enum.WarehouseItemCategoryFeed,
 		CreatedBy: accountId,
 	}
 
-	err := w.repository.CreateWarehouseItem(warehouseItem)
+	err := w.repository.CreateWarehouseItem(&warehouseItem)
 	if err != nil {
 		w.log.Error("[CreateWarehouseItem] failed to create warehouse item", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
 
-	return dto.WarehouseItemResponse{
-		Id:       warehouseItem.Id,
-		Name:     warehouseItem.Name,
-		Unit:     warehouseItem.Unit,
-		Category: warehouseItem.Category.String(),
-	}, nil
+	return mapper.WarehouseItemToResponse(&warehouseItem), nil
 }
 
 func (w *WarehouseService) GetWarehouseItem(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error) {
@@ -68,12 +64,7 @@ func (w *WarehouseService) GetWarehouseItem(filter dto.GetWarehouseItemFilter) (
 
 	warehouseItemResponses := make([]dto.WarehouseItemResponse, 0, len(warehouseItems))
 	for _, item := range warehouseItems {
-		warehouseItemResponses = append(warehouseItemResponses, dto.WarehouseItemResponse{
-			Id:       item.Id,
-			Name:     item.Name,
-			Unit:     item.Unit,
-			Category: item.Category.String(),
-		})
+		warehouseItemResponses = append(warehouseItemResponses, mapper.WarehouseItemToResponse(&item))
 	}
 
 	return warehouseItemResponses, nil
@@ -88,10 +79,7 @@ func (w *WarehouseService) GetWarehouses() ([]dto.WarehouseResponse, error) {
 
 	warehouseResponses := make([]dto.WarehouseResponse, 0, len(warehouses))
 	for _, warehouse := range warehouses {
-		warehouseResponses = append(warehouseResponses, dto.WarehouseResponse{
-			Id:   warehouse.Id,
-			Name: warehouse.Name,
-		})
+		warehouseResponses = append(warehouseResponses, mapper.WarehouseToResponse(&warehouse))
 	}
 
 	return warehouseResponses, nil
@@ -130,25 +118,9 @@ func (w *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouse
 		description = constant.StockWarehouseItemSafe
 	}
 
-	return dto.WarehouseStockItemResponse{
-		Warehouse: dto.WarehouseResponse{
-			Id:   stockWarehouseItem.Warehouse.Id,
-			Name: stockWarehouseItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   stockWarehouseItem.Warehouse.Location.Id,
-				Name: stockWarehouseItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       stockWarehouseItem.WarehouseItem.Id,
-			Name:     stockWarehouseItem.WarehouseItem.Name,
-			Unit:     stockWarehouseItem.WarehouseItem.Unit,
-			Category: stockWarehouseItem.WarehouseItem.Category.String(),
-		},
-		Quantity:         stockWarehouseItem.Quantity,
-		EstimationRunOut: stockWarehouseItem.EstimationRunOut.Format("02-Jan-2006"),
-		Description:      description,
-	}, nil
+	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
+	warehouseStockItemResponse.Description = description
+	return warehouseStockItemResponse, nil
 }
 
 func (w *WarehouseService) GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]dto.WarehouseStockItemResponse, error) {
@@ -167,25 +139,10 @@ func (w *WarehouseService) GetWarehouseStockItems(filter dto.GetWarehouseStockIt
 			description = constant.StockWarehouseItemSafe
 		}
 
-		stockWarehouseItemResponses = append(stockWarehouseItemResponses, dto.WarehouseStockItemResponse{
-			Warehouse: dto.WarehouseResponse{
-				Id:   item.Warehouse.Id,
-				Name: item.Warehouse.Name,
-				Location: dto.LocationResponse{
-					Id:   item.Warehouse.Location.Id,
-					Name: item.Warehouse.Location.Name,
-				},
-			},
-			WarehouseItem: dto.WarehouseItemResponse{
-				Id:       item.WarehouseItem.Id,
-				Name:     item.WarehouseItem.Name,
-				Unit:     item.WarehouseItem.Unit,
-				Category: item.WarehouseItem.Category.String(),
-			},
-			Quantity:         item.Quantity,
-			EstimationRunOut: item.EstimationRunOut.Format("02-Jan-2006"),
-			Description:      description,
-		})
+		warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&item)
+		warehouseStockItemResponse.Description = description
+
+		stockWarehouseItemResponses = append(stockWarehouseItemResponses, warehouseStockItemResponse)
 	}
 
 	return stockWarehouseItemResponses, nil
@@ -205,25 +162,10 @@ func (w *WarehouseService) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(
 		description = constant.StockWarehouseItemSafe
 	}
 
-	return dto.WarehouseStockItemResponse{
-		Warehouse: dto.WarehouseResponse{
-			Id:   stockWarehouseItem.Warehouse.Id,
-			Name: stockWarehouseItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   stockWarehouseItem.Warehouse.Location.Id,
-				Name: stockWarehouseItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       stockWarehouseItem.WarehouseItem.Id,
-			Name:     stockWarehouseItem.WarehouseItem.Name,
-			Unit:     stockWarehouseItem.WarehouseItem.Unit,
-			Category: stockWarehouseItem.WarehouseItem.Category.String(),
-		},
-		Quantity:         stockWarehouseItem.Quantity,
-		EstimationRunOut: stockWarehouseItem.EstimationRunOut.Format("02-Jan-2006"),
-		Description:      description,
-	}, nil
+	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
+	warehouseStockItemResponse.Description = description
+
+	return warehouseStockItemResponse, nil
 }
 
 func (w *WarehouseService) UpdateWarehouseStockItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
@@ -249,25 +191,10 @@ func (w *WarehouseService) UpdateWarehouseStockItem(warehouseId uint64, warehous
 		description = constant.StockWarehouseItemSafe
 	}
 
-	return dto.WarehouseStockItemResponse{
-		Warehouse: dto.WarehouseResponse{
-			Id:   stockWarehouseItem.Warehouse.Id,
-			Name: stockWarehouseItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   stockWarehouseItem.Warehouse.Location.Id,
-				Name: stockWarehouseItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       stockWarehouseItem.WarehouseItem.Id,
-			Name:     stockWarehouseItem.WarehouseItem.Name,
-			Unit:     stockWarehouseItem.WarehouseItem.Unit,
-			Category: stockWarehouseItem.WarehouseItem.Category.String(),
-		},
-		EstimationRunOut: stockWarehouseItem.EstimationRunOut.Format("02-Jan-2006"),
-		Quantity:         stockWarehouseItem.Quantity,
-		Description:      description,
-	}, nil
+	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
+	warehouseStockItemResponse.Description = description
+
+	return warehouseStockItemResponse, nil
 }
 
 func (w *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehouseItemId uint64) error {

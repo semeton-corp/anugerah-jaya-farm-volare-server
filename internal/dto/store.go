@@ -52,8 +52,9 @@ type StoreItemResponse struct {
 }
 
 type GetStoreSaleFilter struct {
-	Date param.DateParam `query:"date"`
-	Page uint64          `query:"page"`
+	Date          param.DateParam          `query:"date"`
+	PaymentMethod param.PaymentMethodParam `query:"paymentMethod"`
+	Page          uint64                   `query:"page"`
 }
 
 type StoreSaleResponse struct {
@@ -65,6 +66,9 @@ type StoreSaleResponse struct {
 	Store            StoreResponse              `json:"store"`
 	Quantity         uint64                     `json:"quantity"`
 	PaymentMethod    string                     `json:"paymentMethod"`
+	PaymentStatus    string                     `json:"paymentStatus"`
+	Price            string                     `json:"price"`
+	TotalPrice       string                     `json:"totalPrice"`
 	IsSend           bool                       `json:"isSend"`
 	Payments         []StoreSalePaymentResponse `json:"payments"`
 	RemainingPayment string                     `json:"remainingPayment"`
@@ -83,6 +87,13 @@ type CreateStoreSaleRequest struct {
 }
 
 type CreateStoreSalePaymentRequest struct {
+	PaymentDate  string `json:"paymentDate" validate:"required"`
+	Nominal      string `json:"nominal" validate:"required,number"`
+	PaymentProof string `json:"paymentProof" validate:"required,url"`
+}
+
+type UpdateStoreSalePaymentRequest struct {
+	PaymentDate  string `json:"paymentDate" validate:"required"`
 	Nominal      string `json:"nominal" validate:"required,number"`
 	PaymentProof string `json:"paymentProof" validate:"required,url"`
 }
@@ -96,6 +107,7 @@ type StoreSaleListResponse struct {
 	Store         StoreResponse         `json:"store"`
 	Quantity      uint64                `json:"quantity"`
 	PaymentMethod string                `json:"paymentMethod"`
+	PaymentStatus string                `json:"paymentStatus"`
 	IsSend        bool                  `json:"isSend"`
 }
 

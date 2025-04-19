@@ -25,7 +25,7 @@ func New() *fiber.App {
 
 	router.Use(logger.New(logger.Config{
 		Format:     "${time} ${status} ${latency} ${method} ${path}\n",
-		TimeFormat: "2006-01-02 15:04:05",
+		TimeFormat: "02-01-2006 15:04:05",
 		TimeZone:   "Asia/Jakarta",
 	}))
 

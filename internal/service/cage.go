@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"go.uber.org/zap"
 )
@@ -33,14 +34,7 @@ func (c *CageService) GetCages() ([]dto.CageResponse, error) {
 
 	var cageResponses []dto.CageResponse
 	for _, cage := range cages {
-		cageResponses = append(cageResponses, dto.CageResponse{
-			Id:   cage.Id,
-			Name: cage.Name,
-			Location: dto.LocationResponse{
-				Id:   cage.Location.Id,
-				Name: cage.Location.Name,
-			},
-		})
+		cageResponses = append(cageResponses, mapper.CageToResponse(&cage))
 	}
 
 	return cageResponses, nil

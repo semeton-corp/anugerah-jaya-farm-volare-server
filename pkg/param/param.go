@@ -10,7 +10,7 @@ import (
 type DateParam time.Time
 
 func (cd *DateParam) UnmarshalText(text []byte) error {
-	parsedTime, err := time.Parse("2006-01-02", string(text))
+	parsedTime, err := time.Parse("02-01-2006", string(text))
 	if err != nil {
 		return err
 	}
@@ -36,4 +36,20 @@ func (w *WarehouseItemCategoryParam) UnmarshalText(text []byte) error {
 
 func (w WarehouseItemCategoryParam) Value() enum.WarehouseItemCategory {
 	return enum.WarehouseItemCategory(w)
+}
+
+type PaymentMethodParam enum.PaymentMethod
+
+func (p *PaymentMethodParam) UnmarshalText(text []byte) error {
+	parsedMethod := enum.ValueOfPaymentMethod(string(text))
+	if !parsedMethod.IsValid() {
+		return errx.BadRequest("invalid payment method")
+	}
+
+	*p = PaymentMethodParam(parsedMethod)
+	return nil
+}
+
+func (p PaymentMethodParam) Value() enum.PaymentMethod {
+	return enum.PaymentMethod(p)
 }

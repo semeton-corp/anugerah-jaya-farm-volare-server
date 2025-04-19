@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"go.uber.org/zap"
 )
@@ -33,10 +34,7 @@ func (r *RoleService) GetRoles() ([]dto.RoleResponse, error) {
 
 	var roleResponses []dto.RoleResponse
 	for _, role := range roles {
-		roleResponses = append(roleResponses, dto.RoleResponse{
-			Id:   role.Id,
-			Name: role.Name,
-		})
+		roleResponses = append(roleResponses, mapper.RoleToResponse(&role))
 	}
 
 	return roleResponses, nil

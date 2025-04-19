@@ -45,7 +45,7 @@ func ValidationRequestItemStatus(fl validator.FieldLevel) bool {
 func ValidationPaymentMethod(fl validator.FieldLevel) bool {
 	paymentMethod := fl.Field().String()
 	switch paymentMethod {
-	case "Lunas", "Cicil":
+	case "Penuh", "Cicil":
 		return true
 	default:
 		return false

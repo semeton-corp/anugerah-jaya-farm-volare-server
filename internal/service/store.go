@@ -6,8 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/shopspring/decimal"
@@ -35,6 +35,7 @@ type IStoreService interface {
 	UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
+	UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository) IStoreService {
@@ -53,21 +54,14 @@ func (s *StoreService) GetStores() ([]dto.StoreResponse, error) {
 
 	storeResponses := make([]dto.StoreResponse, len(stores))
 	for i, store := range stores {
-		storeResponses[i] = dto.StoreResponse{
-			Id:   store.Id,
-			Name: store.Name,
-			Location: dto.LocationResponse{
-				Id:   store.Location.Id,
-				Name: store.Location.Name,
-			},
-		}
+		storeResponses[i] = mapper.StoreToResponse(&store)
 	}
 
 	return storeResponses, nil
 }
 
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error) {
-	// Todo : Check if warehouse is hava warehouse item
+	// Todo : Check if warehouse is have warehouse item
 
 	storeRequestItem := entity.StoreRequestItem{
 		WarehouseId:     request.WarehouseId,
@@ -90,34 +84,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	return dto.StoreRequestItemResponse{
-		Id: storeRequestItem.Id,
-		Warehouse: dto.WarehouseResponse{
-			Id:   storeRequestItem.Warehouse.Id,
-			Name: storeRequestItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Warehouse.Location.Id,
-				Name: storeRequestItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeRequestItem.WarehouseItem.Id,
-			Name:     storeRequestItem.WarehouseItem.Name,
-			Category: storeRequestItem.WarehouseItem.Category.String(),
-			Unit:     storeRequestItem.WarehouseItem.Unit,
-		},
-		Store: dto.StoreResponse{
-			Id:   storeRequestItem.Store.Id,
-			Name: storeRequestItem.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Store.Location.Id,
-				Name: storeRequestItem.Store.Location.Name,
-			},
-		},
-		Quantity:    storeRequestItem.Quantity,
-		Status:      storeRequestItem.Status.String(),
-		RequestDate: storeRequestItem.CreatedAt.Format("2006-01-02"),
-	}, nil
+	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
 }
 
 func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error) {
@@ -127,34 +94,7 @@ func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemR
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	return dto.StoreRequestItemResponse{
-		Id: storeRequestItem.Id,
-		Warehouse: dto.WarehouseResponse{
-			Id:   storeRequestItem.Warehouse.Id,
-			Name: storeRequestItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Warehouse.Location.Id,
-				Name: storeRequestItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeRequestItem.WarehouseItem.Id,
-			Name:     storeRequestItem.WarehouseItem.Name,
-			Category: storeRequestItem.WarehouseItem.Category.String(),
-			Unit:     storeRequestItem.WarehouseItem.Unit,
-		},
-		Store: dto.StoreResponse{
-			Id:   storeRequestItem.Store.Id,
-			Name: storeRequestItem.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Store.Location.Id,
-				Name: storeRequestItem.Store.Location.Name,
-			},
-		},
-		Quantity:    storeRequestItem.Quantity,
-		Status:      storeRequestItem.Status.String(),
-		RequestDate: storeRequestItem.CreatedAt.Format("2006-01-02"),
-	}, nil
+	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
 }
 
 func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]dto.StoreRequestItemResponse, error) {
@@ -166,34 +106,7 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 
 	storeRequestItemResponses := make([]dto.StoreRequestItemResponse, len(storeRequestItems))
 	for i, storeRequestItem := range storeRequestItems {
-		storeRequestItemResponses[i] = dto.StoreRequestItemResponse{
-			Id: storeRequestItem.Id,
-			Warehouse: dto.WarehouseResponse{
-				Id:   storeRequestItem.Warehouse.Id,
-				Name: storeRequestItem.Warehouse.Name,
-				Location: dto.LocationResponse{
-					Id:   storeRequestItem.Warehouse.Location.Id,
-					Name: storeRequestItem.Warehouse.Location.Name,
-				},
-			},
-			WarehouseItem: dto.WarehouseItemResponse{
-				Id:       storeRequestItem.WarehouseItem.Id,
-				Name:     storeRequestItem.WarehouseItem.Name,
-				Category: storeRequestItem.WarehouseItem.Category.String(),
-				Unit:     storeRequestItem.WarehouseItem.Unit,
-			},
-			Store: dto.StoreResponse{
-				Id:   storeRequestItem.Store.Id,
-				Name: storeRequestItem.Store.Name,
-				Location: dto.LocationResponse{
-					Id:   storeRequestItem.Store.Location.Id,
-					Name: storeRequestItem.Store.Location.Name,
-				},
-			},
-			Quantity:    storeRequestItem.Quantity,
-			Status:      storeRequestItem.Status.String(),
-			RequestDate: storeRequestItem.CreatedAt.Format("2006-01-02"),
-		}
+		storeRequestItemResponses[i] = mapper.StoreRequestItemToResponse(&storeRequestItem)
 	}
 
 	return storeRequestItemResponses, nil
@@ -282,34 +195,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 		s.log.Error("[UpdateStoreRequestItem] failed to commit transaction", zap.Error(err))
 	}
 
-	return dto.StoreRequestItemResponse{
-		Id: storeRequestItem.Id,
-		Warehouse: dto.WarehouseResponse{
-			Id:   storeRequestItem.Warehouse.Id,
-			Name: storeRequestItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Warehouse.Location.Id,
-				Name: storeRequestItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeRequestItem.WarehouseItem.Id,
-			Name:     storeRequestItem.WarehouseItem.Name,
-			Category: storeRequestItem.WarehouseItem.Category.String(),
-			Unit:     storeRequestItem.WarehouseItem.Unit,
-		},
-		Store: dto.StoreResponse{
-			Id:   storeRequestItem.Store.Id,
-			Name: storeRequestItem.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Store.Location.Id,
-				Name: storeRequestItem.Store.Location.Name,
-			},
-		},
-		Quantity:    storeRequestItem.Quantity,
-		Status:      storeRequestItem.Status.String(),
-		RequestDate: storeRequestItem.CreatedAt.Format("2006-01-02"),
-	}, nil
+	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
 }
 
 func (s *StoreService) GetStoreItems() ([]dto.StoreItemResponse, error) {
@@ -321,24 +207,7 @@ func (s *StoreService) GetStoreItems() ([]dto.StoreItemResponse, error) {
 
 	storeItemResponses := make([]dto.StoreItemResponse, len(storeItems))
 	for i, storeItem := range storeItems {
-		storeItemResponses[i] = dto.StoreItemResponse{
-			Store: dto.StoreResponse{
-				Id:   storeItem.Store.Id,
-				Name: storeItem.Store.Name,
-				Location: dto.LocationResponse{
-					Id:   storeItem.Store.Location.Id,
-					Name: storeItem.Store.Location.Name,
-				},
-			},
-			WarehouseItem: dto.WarehouseItemResponse{
-				Id:       storeItem.WarehouseItem.Id,
-				Name:     storeItem.WarehouseItem.Name,
-				Category: storeItem.WarehouseItem.Category.String(),
-				Unit:     storeItem.WarehouseItem.Unit,
-			},
-			Quantity:    storeItem.Quantity,
-			Description: constant.StoreItemDescriptionDanger, // Todo : give formula for description
-		}
+		storeItemResponses[i] = mapper.StoreItemToResponse(&storeItem)
 	}
 
 	return storeItemResponses, nil
@@ -395,6 +264,10 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 			s.log.Error("[CreateStoreSale] nominal is not equal to total price", zap.Error(err))
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
+
+		storeSale.PaymentStatus = enum.PaymentStatusPaid
+	} else {
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
@@ -404,7 +277,14 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 	}
 
 	if request.StoreSalePayment.Nominal != "" || request.StoreSalePayment.PaymentProof != "" {
+		paymentDate, err := time.Parse("02-01-2006", request.StoreSalePayment.PaymentDate)
+		if err != nil {
+			s.log.Error("[CreateStoreSale] failed to parse payment date", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+		}
+
 		storeSalePayment := entity.StoreSalePayment{
+			PaymentDate:  paymentDate,
 			StoreSaleId:  storeSale.Id,
 			Nominal:      nominal,
 			PaymentProof: request.StoreSalePayment.PaymentProof,
@@ -433,41 +313,15 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 	storeSalePayments := make([]dto.StoreSalePaymentResponse, len(storeSale.Payments))
 	remainingPayment := storeSale.TotalPrice
 	for i, storeSalePayment := range storeSale.Payments {
-		storeSalePayments[i] = dto.StoreSalePaymentResponse{
-			Id:           storeSalePayment.Id,
-			Nominal:      storeSalePayment.Nominal.String(),
-			PaymentProof: storeSalePayment.PaymentProof,
-			Date:         storeSalePayment.CreatedAt.Format("2006-01-02"),
-		}
-
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
 	}
 
-	return dto.StoreSaleResponse{
-		Id:       storeSale.Id,
-		SendDate: storeSale.SendDate.Format("2006-01-02"),
-		Customer: storeSale.Customer,
-		Phone:    storeSale.Phone,
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeSale.WarehouseItem.Id,
-			Name:     storeSale.WarehouseItem.Name,
-			Unit:     storeSale.WarehouseItem.Unit,
-			Category: storeSale.WarehouseItem.Category.String(),
-		},
-		Store: dto.StoreResponse{
-			Id:   storeSale.Store.Id,
-			Name: storeSale.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeSale.Store.Location.Id,
-				Name: storeSale.Store.Location.Name,
-			},
-		},
-		Quantity:         storeSale.Quantity,
-		PaymentMethod:    storeSale.PaymentMethod.String(),
-		IsSend:           storeSale.IsSend,
-		Payments:         storeSalePayments,
-		RemainingPayment: remainingPayment.String(),
-	}, nil
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
 }
 
 func (s *StoreService) GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error) {
@@ -481,41 +335,15 @@ func (s *StoreService) GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error
 
 	remainingPayment := storeSale.TotalPrice
 	for i, storeSalePayment := range storeSale.Payments {
-		storeSalePayments[i] = dto.StoreSalePaymentResponse{
-			Id:           storeSalePayment.Id,
-			Nominal:      storeSalePayment.Nominal.String(),
-			PaymentProof: storeSalePayment.PaymentProof,
-			Date:         storeSalePayment.CreatedAt.Format("2006-01-02"),
-		}
-
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
 	}
 
-	return dto.StoreSaleResponse{
-		Id:       storeSale.Id,
-		SendDate: storeSale.SendDate.Format("2006-01-02"),
-		Customer: storeSale.Customer,
-		Phone:    storeSale.Phone,
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeSale.WarehouseItem.Id,
-			Name:     storeSale.WarehouseItem.Name,
-			Unit:     storeSale.WarehouseItem.Unit,
-			Category: storeSale.WarehouseItem.Category.String(),
-		},
-		Store: dto.StoreResponse{
-			Id:   storeSale.Store.Id,
-			Name: storeSale.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeSale.Store.Location.Id,
-				Name: storeSale.Store.Location.Name,
-			},
-		},
-		Quantity:         storeSale.Quantity,
-		PaymentMethod:    storeSale.PaymentMethod.String(),
-		IsSend:           storeSale.IsSend,
-		Payments:         storeSalePayments,
-		RemainingPayment: remainingPayment.String(),
-	}, nil
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
 }
 
 func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) ([]dto.StoreSaleListResponse, error) {
@@ -527,35 +355,22 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) ([]dto.Store
 
 	storeSaleResponses := make([]dto.StoreSaleListResponse, len(storeSales))
 	for i, storeSale := range storeSales {
-		storeSaleResponses[i] = dto.StoreSaleListResponse{
-			Id:       storeSale.Id,
-			SendDate: storeSale.SendDate.Format("2006-01-02"),
-			Customer: storeSale.Customer,
-			Phone:    storeSale.Phone,
-			WarehouseItem: dto.WarehouseItemResponse{
-				Id:       storeSale.WarehouseItem.Id,
-				Name:     storeSale.WarehouseItem.Name,
-				Unit:     storeSale.WarehouseItem.Unit,
-				Category: storeSale.WarehouseItem.Category.String(),
-			},
-			Store: dto.StoreResponse{
-				Id:   storeSale.Store.Id,
-				Name: storeSale.Store.Name,
-				Location: dto.LocationResponse{
-					Id:   storeSale.Store.Location.Id,
-					Name: storeSale.Store.Location.Name,
-				},
-			},
-			Quantity:      storeSale.Quantity,
-			PaymentMethod: storeSale.PaymentMethod.String(),
-			IsSend:        storeSale.IsSend,
-		}
+		storeSaleResponses[i] = mapper.StoreSaleToListResponse(&storeSale)
 	}
 
 	return storeSaleResponses, nil
 }
 
 func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
+	if err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to parse payment date", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+	}
+
 	nominal, err := decimal.NewFromString(request.Nominal)
 	if err != nil {
 		s.log.Error("[CreateStoreSalePayment] failed to parse nominal", zap.Error(err))
@@ -564,15 +379,10 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 
 	storeSalePayment := entity.StoreSalePayment{
 		StoreSaleId:  storeSaleId,
+		PaymentDate:  paymentDate,
 		Nominal:      nominal,
 		PaymentProof: request.PaymentProof,
 		CreatedBy:    accountId,
-	}
-
-	err = s.repository.CreateStoreSalePayment(&storeSalePayment)
-	if err != nil {
-		s.log.Error("[CreateStoreSalePayment] failed to create store sale payment", zap.Error(err))
-		return dto.StoreSaleResponse{}, err
 	}
 
 	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
@@ -581,45 +391,54 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 		return dto.StoreSaleResponse{}, err
 	}
 
+	if storeSale.PaymentStatus == enum.PaymentStatusPaid {
+		s.log.Error("[CreateStoreSalePayment] store sale is already paid", zap.Uint64("id", storeSaleId))
+		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already paid")
+	}
+
+	totalPayment := nominal
+	for _, payment := range storeSale.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	if totalPayment.Equal(storeSale.TotalPrice) {
+		storeSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
+		s.log.Error("[CreateStoreSalePayment] total payment is greater than total price", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+	}
+
+	err = s.repository.CreateStoreSalePayment(&storeSalePayment)
+	if err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to create store sale payment", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	err = s.repository.UpdateStoreSale(&storeSale)
+	if err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to update store sale", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to commit transaction", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSale.Payments = append(storeSale.Payments, storeSalePayment)
 	storeSalePayments := make([]dto.StoreSalePaymentResponse, len(storeSale.Payments))
 
 	remainingPayment := storeSale.TotalPrice
 	for i, storeSalePayment := range storeSale.Payments {
-		storeSalePayments[i] = dto.StoreSalePaymentResponse{
-			Id:           storeSalePayment.Id,
-			Nominal:      storeSalePayment.Nominal.String(),
-			PaymentProof: storeSalePayment.PaymentProof,
-			Date:         storeSalePayment.CreatedAt.Format("2006-01-02"),
-		}
-
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
 	}
 
-	return dto.StoreSaleResponse{
-		Id:       storeSale.Id,
-		SendDate: storeSale.SendDate.Format("2006-01-02"),
-		Customer: storeSale.Customer,
-		Phone:    storeSale.Phone,
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeSale.WarehouseItem.Id,
-			Name:     storeSale.WarehouseItem.Name,
-			Unit:     storeSale.WarehouseItem.Unit,
-			Category: storeSale.WarehouseItem.Category.String(),
-		},
-		Store: dto.StoreResponse{
-			Id:   storeSale.Store.Id,
-			Name: storeSale.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeSale.Store.Location.Id,
-				Name: storeSale.Store.Location.Name,
-			},
-		},
-		Quantity:         storeSale.Quantity,
-		PaymentMethod:    storeSale.PaymentMethod.String(),
-		IsSend:           storeSale.IsSend,
-		Payments:         storeSalePayments,
-		RemainingPayment: remainingPayment.String(),
-	}, nil
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
 }
 
 func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {
@@ -653,38 +472,104 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 
 	remainingPayment := storeSale.TotalPrice
 	for i, storeSalePayment := range storeSale.Payments {
-		storeSalePayments[i] = dto.StoreSalePaymentResponse{
-			Id:           storeSalePayment.Id,
-			Nominal:      storeSalePayment.Nominal.String(),
-			PaymentProof: storeSalePayment.PaymentProof,
-			Date:         storeSalePayment.CreatedAt.Format("2006-01-02"),
-		}
-
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
 	}
 
-	return dto.StoreSaleResponse{
-		Id:       storeSale.Id,
-		SendDate: storeSale.SendDate.Format("2006-01-02"),
-		Customer: storeSale.Customer,
-		Phone:    storeSale.Phone,
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeSale.WarehouseItem.Id,
-			Name:     storeSale.WarehouseItem.Name,
-			Unit:     storeSale.WarehouseItem.Unit,
-			Category: storeSale.WarehouseItem.Category.String(),
-		},
-		Store: dto.StoreResponse{
-			Id:   storeSale.Store.Id,
-			Name: storeSale.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeSale.Store.Location.Id,
-				Name: storeSale.Store.Location.Name,
-			},
-		},
-		Quantity:         storeSale.Quantity,
-		IsSend:           storeSale.IsSend,
-		Payments:         storeSalePayments,
-		RemainingPayment: remainingPayment.String(),
-	}, nil
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
+}
+
+func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	storeSalePayment, err := s.repository.GetStoreSalePaymentById(id)
+	if err != nil {
+		s.log.Error("[UpdateStoreSalePayment] failed to get store sale payment by id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSale, err := s.repository.GetStoreSaleById(storeSalePayment.StoreSaleId)
+	if err != nil {
+		s.log.Error("[UpdateStoreSalePayment] failed to get store sale by id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	if storeSale.PaymentStatus == enum.PaymentStatusPaid {
+		s.log.Error("[CreateStoreSalePayment] store sale is already paid", zap.Uint64("id", storeSale.Id))
+		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already paid")
+	}
+
+	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
+	if err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to parse payment date", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+	}
+
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		s.log.Error("[CreateStoreSalePayment] failed to parse nominal", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+	}
+
+	totalPayment := nominal
+	for _, payment := range storeSale.Payments {
+		if payment.Id != storeSalePayment.Id {
+			totalPayment = totalPayment.Add(payment.Nominal)
+		}
+	}
+
+	if totalPayment.Equal(storeSale.TotalPrice) {
+		storeSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
+		s.log.Error("[CreateStoreSalePayment] total payment is greater than total price", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+	} else if totalPayment.LessThan(storeSale.TotalPrice) {
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	storeSalePayment.Nominal = nominal
+	storeSalePayment.PaymentProof = request.PaymentProof
+	storeSalePayment.PaymentDate = paymentDate
+	storeSalePayment.UpdatedBy = accountId
+
+	err = s.repository.UpdateStoreSale(&storeSale)
+	if err != nil {
+		s.log.Error("[UpdateStoreSalePayment] failed to update store sale", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	err = s.repository.UpdateStoreSalePayment(&storeSalePayment)
+	if err != nil {
+		s.log.Error("[UpdateStoreSalePayment] failed to update store sale payment", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("[UpdateStoreSalePayment] failed to commit transaction", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSalePayments := make([]dto.StoreSalePaymentResponse, len(storeSale.Payments))
+
+	remainingPayment := storeSale.TotalPrice
+	for i, payment := range storeSale.Payments {
+		if payment.Id == id {
+			storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
+			remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		} else {
+			storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&payment)
+			remainingPayment = remainingPayment.Sub(payment.Nominal)
+		}
+	}
+
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
 }

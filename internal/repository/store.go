@@ -36,6 +36,8 @@ type IStoreRepository interface {
 	UpdateStoreSale(storeSale *entity.StoreSale) error
 
 	CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
+	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
+	UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 }
 
 func NewStoreRepository(db *gorm.DB) IStoreRepository {
@@ -168,6 +170,10 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
+	if filter.PaymentMethod.Value().IsValid() {
+		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	}
+
 	err := query.Preload("Store.Location").Preload("WarehouseItem").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
@@ -181,4 +187,20 @@ func (r *StoreRepository) CreateStoreSalePayment(storeSalePayment *entity.StoreS
 
 func (r *StoreRepository) UpdateStoreSale(storeSale *entity.StoreSale) error {
 	return r.GetDB().Model(entity.StoreSale{}).Where("id = ?", storeSale.Id).Updates(storeSale).Error
+}
+
+func (r *StoreRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error) {
+	var storeSalePayment entity.StoreSalePayment
+	err := r.GetDB().First(&storeSalePayment, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StoreSalePayment{}, errx.NotFound("store sale payment not found")
+		}
+		return entity.StoreSalePayment{}, err
+	}
+	return storeSalePayment, nil
+}
+
+func (r *StoreRepository) UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error {
+	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", storeSalePayment.Id).Updates(storeSalePayment).Error
 }

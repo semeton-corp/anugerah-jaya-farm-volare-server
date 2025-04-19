@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"go.uber.org/zap"
@@ -52,21 +53,7 @@ func (e *EggService) CreateEggMonitoring(request dto.EggMonitoringRequest, accou
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoringResponse := dto.EggMonitoringResponse{
-		Id: eggMonitoring.Id,
-		Cage: dto.CageResponse{
-			Id:   eggMonitoring.Cage.Id,
-			Name: eggMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				Id:   eggMonitoring.Cage.Location.Id,
-				Name: eggMonitoring.Cage.Location.Name,
-			},
-		},
-		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
-		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
-		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-	}
+	eggMonitoringResponse := mapper.EggMonitoringToResponse(&eggMonitoring)
 
 	return eggMonitoringResponse, nil
 }
@@ -78,21 +65,7 @@ func (e *EggService) GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse,
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoringResponse := dto.EggMonitoringResponse{
-		Id: eggMonitoring.Id,
-		Cage: dto.CageResponse{
-			Id:   eggMonitoring.Cage.Id,
-			Name: eggMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				Id:   eggMonitoring.Cage.Location.Id,
-				Name: eggMonitoring.Cage.Location.Name,
-			},
-		},
-		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
-		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
-		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-	}
+	eggMonitoringResponse := mapper.EggMonitoringToResponse(&eggMonitoring)
 
 	return eggMonitoringResponse, nil
 }
@@ -106,22 +79,7 @@ func (e *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 
 	eggMonitoringResponses := make([]dto.EggMonitoringListResponse, 0, len(eggMonitorings))
 	for _, eggMonitoring := range eggMonitorings {
-		eggMonitoringResponse := dto.EggMonitoringListResponse{
-			Id: eggMonitoring.Id,
-			Cage: dto.CageResponse{
-				Id:   eggMonitoring.Cage.Id,
-				Name: eggMonitoring.Cage.Name,
-				Location: dto.LocationResponse{
-					Id:   eggMonitoring.Cage.Location.Id,
-					Name: eggMonitoring.Cage.Location.Name,
-				},
-			},
-			TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
-			TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-			TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
-			TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-			TotalAll:        eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalBrokeEgg + eggMonitoring.TotalRejectEgg,
-		}
+		eggMonitoringResponse := mapper.EggMonitoringToListResponse(&eggMonitoring)
 
 		if eggMonitoringResponse.TotalAll == 0 {
 			eggMonitoringResponse.AbnormalityRate = 0
@@ -164,21 +122,7 @@ func (e *EggService) UpdateEggMonitoring(id uint64, request dto.EggMonitoringReq
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoringResponse := dto.EggMonitoringResponse{
-		Id: eggMonitoring.Id,
-		Cage: dto.CageResponse{
-			Id:   eggMonitoring.Cage.Id,
-			Name: eggMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				Id:   eggMonitoring.Cage.Location.Id,
-				Name: eggMonitoring.Cage.Location.Name,
-			},
-		},
-		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
-		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
-		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-	}
+	eggMonitoringResponse := mapper.EggMonitoringToResponse(&eggMonitoring)
 
 	return eggMonitoringResponse, nil
 }

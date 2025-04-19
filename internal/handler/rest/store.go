@@ -37,6 +37,7 @@ func (a *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/sales", middleware.Authentication(), a.GetStoreSales)
 	v1.Put("/sales/:id", middleware.Authentication(), a.UpdateStoreSale)
 	v1.Post("/sales/:storeSaleId/payments", middleware.Authentication(), a.CreateStoreSalePayment)
+	v1.Put("/sales/:storeSaleId/payments/:id", middleware.Authentication(), a.UpdateStoreSalePayment)
 }
 
 func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *validator.Validate) *StoreHandler {
@@ -367,4 +368,43 @@ func (a *StoreHandler) UpdateStoreSale(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store sale")
+}
+
+func (a *StoreHandler) UpdateStoreSalePayment(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[UpdateStoreSalePayment] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[UpdateStoreSalePayment] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	var request dto.UpdateStoreSalePaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[UpdateStoreSalePayment] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[UpdateStoreSalePayment] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[UpdateStoreSalePayment] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.UpdateStoreSalePayment(id, request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[UpdateStoreSalePayment] failed to update store sale payment", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store sale payment")
 }
