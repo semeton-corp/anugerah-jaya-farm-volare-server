@@ -22,8 +22,12 @@ type WarehouseHandler struct {
 
 func (a *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/warehouses")
+	v1.Get("/", middleware.Authentication(), a.GetWarehouses)
+
 	v1.Post("/items", middleware.Authentication(), a.CreateWarehouseItem)
 	v1.Get("/items", middleware.Authentication(), a.GetWarehouseItem)
+	v1.Get("/items/:id", middleware.Authentication(), a.GetWarehouseItemById)
+	v1.Put("/items/:id", middleware.Authentication(), a.UpdateWarehouseItem)
 
 	v1.Post("/stock-items", middleware.Authentication(), a.CreateStockWarehouseItem)
 	v1.Get("/stock-items", middleware.Authentication(), a.GetStockWarehouseItems)
@@ -38,6 +42,16 @@ func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, val
 		service:   service,
 		validator: validator,
 	}
+}
+
+func (a *WarehouseHandler) GetWarehouses(c *fiber.Ctx) error {
+	warehouses, err := a.service.GetWarehouses()
+	if err != nil {
+		a.log.Error("[GetWarehouses] failed to get warehouses", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, warehouses, "get warehouses success")
 }
 
 func (a *WarehouseHandler) CreateWarehouseItem(c *fiber.Ctx) error {
@@ -58,7 +72,7 @@ func (a *WarehouseHandler) CreateWarehouseItem(c *fiber.Ctx) error {
 		return errx.Unauthorized("no accountId in context")
 	}
 
-	res, err := a.service.CreateWarehouseItem(&request, uuid.MustParse(accountId))
+	res, err := a.service.CreateWarehouseItem(request, uuid.MustParse(accountId))
 	if err != nil {
 		a.log.Error("[CreateWarehouseItem] failed to create warehouse item", zap.Error(err))
 		return err
@@ -74,13 +88,74 @@ func (a *WarehouseHandler) GetWarehouseItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	warehouseItems, err := a.service.GetWarehouseItem(filter)
+	warehouseItems, err := a.service.GetWarehouseItems(filter)
 	if err != nil {
 		a.log.Error("[GetWarehouseItem] failed to get warehouse items", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, warehouseItems, "get warehouse items success")
+}
+
+func (a *WarehouseHandler) GetWarehouseItemById(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[GetWarehouseItemById] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[GetWarehouseItemById] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	res, err := a.service.GetWarehouseItemById(id)
+	if err != nil {
+		a.log.Error("[GetWarehouseItemById] failed to get warehouse item", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "get warehouse item success")
+}
+
+func (a *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[UpdateWarehouseItem] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[UpdateWarehouseItem] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	var request dto.UpdateWarehouseItemRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[UpdateWarehouseItem] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[UpdateWarehouseItem] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[UpdateWarehouseItem] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.UpdateWarehouseItem(id, request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[UpdateWarehouseItem] failed to update warehouse item", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "update warehouse item success")
 }
 
 func (a *WarehouseHandler) CreateStockWarehouseItem(c *fiber.Ctx) error {

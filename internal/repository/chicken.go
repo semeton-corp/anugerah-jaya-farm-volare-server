@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -41,6 +42,8 @@ type IChickenRepository interface {
 
 	DeleteChickenVaccineMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error
 	DeleteChickenDiseaseMonitoringNotInIds(chickenMonitoringId uint64, keepIds []uint64) error
+
+	CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error)
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -75,6 +78,14 @@ func (r *ChickenRepository) GetDB() *gorm.DB {
 		return r.tx
 	}
 	return r.db
+}
+
+func (r *ChickenRepository) CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error) {
+	var count int64
+	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r *ChickenRepository) CreateChickenMonitoring(chickenMonitoring *entity.ChickenMonitoring) error {

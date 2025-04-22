@@ -16,13 +16,23 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 				Name: eggMonitoring.Cage.Location.Name,
 			},
 		},
+		Warehouse: dto.WarehouseResponse{
+			Id:   eggMonitoring.Warehouse.Id,
+			Name: eggMonitoring.Warehouse.Name,
+			Location: dto.LocationResponse{
+				Id:   eggMonitoring.Warehouse.Location.Id,
+				Name: eggMonitoring.Warehouse.Location.Name,
+			},
+		},
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
 		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
+		Weight:          eggMonitoring.Weight,
 	}
 }
 
+// Note : without AbnormalityRate and Description
 func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitoringListResponse {
 	return dto.EggMonitoringListResponse{
 		Id: eggMonitoring.Id,
@@ -34,10 +44,19 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 				Name: eggMonitoring.Cage.Location.Name,
 			},
 		},
+		Warehouse: dto.WarehouseResponse{
+			Id:   eggMonitoring.Warehouse.Id,
+			Name: eggMonitoring.Warehouse.Name,
+			Location: dto.LocationResponse{
+				Id:   eggMonitoring.Warehouse.Location.Id,
+				Name: eggMonitoring.Warehouse.Location.Name,
+			},
+		},
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
 		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
 		TotalAll:        eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalBrokeEgg + eggMonitoring.TotalRejectEgg,
+		Weight:          eggMonitoring.Weight,
 	}
 }

@@ -27,7 +27,7 @@ type IStoreService interface {
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]dto.StoreRequestItemResponse, error)
 	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 
-	GetStoreItems() ([]dto.StoreItemResponse, error)
+	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
 
 	CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
@@ -198,8 +198,8 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
 }
 
-func (s *StoreService) GetStoreItems() ([]dto.StoreItemResponse, error) {
-	storeItems, err := s.repository.GetStoreItems()
+func (s *StoreService) GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error) {
+	storeItems, err := s.repository.GetStoreItems(filter)
 	if err != nil {
 		s.log.Error("[GetStoreItem] failed to get store items", zap.Error(err))
 		return nil, err
@@ -225,9 +225,15 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sent date format")
 	}
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("[CreateStoreSale] invalid payment type", zap.String("paymentType", request.PaymentType))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
 	if !paymentMethod.IsValid() {
-		s.log.Error("[CreateStoreSale] invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
+		s.log.Error("[CreateStoreSale] invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
 	}
 
@@ -249,7 +255,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		TotalPrice:      totalPrice,
 		SendDate:        sendDate,
 		IsSend:          false,
-		PaymentMethod:   paymentMethod,
+		PaymentType:     paymentType,
 		CreatedBy:       accountId,
 	}
 
@@ -259,7 +265,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
 	}
 
-	if paymentMethod == enum.PaymentMethodPaidOff {
+	if paymentType == enum.PaymentTypePaidOff {
 		if !storeSale.TotalPrice.Equal(nominal) {
 			s.log.Error("[CreateStoreSale] nominal is not equal to total price", zap.Error(err))
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
@@ -315,6 +321,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 	for i, storeSalePayment := range storeSale.Payments {
 		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
@@ -337,6 +344,7 @@ func (s *StoreService) GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error
 	for i, storeSalePayment := range storeSale.Payments {
 		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
@@ -432,6 +440,7 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 	for i, storeSalePayment := range storeSale.Payments {
 		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
@@ -474,6 +483,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	for i, storeSalePayment := range storeSale.Payments {
 		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
@@ -561,9 +571,11 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 		if payment.Id == id {
 			storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
 			remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+			storeSalePayments[i].Remaining = remainingPayment.String()
 		} else {
 			storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&payment)
 			remainingPayment = remainingPayment.Sub(payment.Nominal)
+			storeSalePayments[i].Remaining = remainingPayment.String()
 		}
 	}
 

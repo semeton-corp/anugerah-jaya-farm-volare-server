@@ -3,15 +3,19 @@ package enum
 type WarehouseItemCategory uint8
 
 const (
-	WarehouseItemCategoryUnknown WarehouseItemCategory = 0
-	WarehouseItemCategoryFeed    WarehouseItemCategory = 1
-	WarehouseItemCategoryEgg     WarehouseItemCategory = 2
+	WarehouseItemCategoryUnknown     WarehouseItemCategory = 0
+	WarehouseItemCategoryFeed        WarehouseItemCategory = 1
+	WarehouseItemCategoryEgg         WarehouseItemCategory = 2
+	WarehouseItemCategoryEquipment   WarehouseItemCategory = 3
+	WarehouseItemCategoryRawMaterial WarehouseItemCategory = 4
 )
 
 var (
 	WarehouseItemCategoryMap = map[WarehouseItemCategory]string{
-		WarehouseItemCategoryFeed: "Pakan",
-		WarehouseItemCategoryEgg:  "Telur",
+		WarehouseItemCategoryFeed:        "Pakan",
+		WarehouseItemCategoryEgg:         "Telur",
+		WarehouseItemCategoryEquipment:   "Barang",
+		WarehouseItemCategoryRawMaterial: "Bahan Baku",
 	}
 )
 

@@ -10,10 +10,11 @@ import (
 )
 
 var (
-	ErrInvalidTokenExpired = errx.InternalServerError("invalid token expired")
-	ErrFailedClaimJWT      = errx.InternalServerError("failed claim jwt")
-	ErrInvalidSignature    = errx.InternalServerError("invalid signature")
-	ErrSignJwt             = errx.InternalServerError("failed to sign jwt")
+	ErrInvalidTokenExpired = errx.Unauthorized("invalid token expired")
+	ErrFailedClaimJWT      = errx.Unauthorized("failed claim jwt")
+	ErrInvalidSignature    = errx.Unauthorized("invalid signature")
+	ErrSignJwt             = errx.Unauthorized("failed to sign jwt")
+	ErrMalformedToken      = errx.BadRequest("malformed token")
 )
 
 func EncodeToken(account *entity.Account) (string, error) {
@@ -43,6 +44,14 @@ func DecodeToken(token string) (*JWTClaims, error) {
 	})
 
 	if err != nil {
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				return &JWTClaims{}, ErrMalformedToken
+			}
+			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				return &JWTClaims{}, ErrInvalidTokenExpired
+			}
+		}
 		return &JWTClaims{}, ErrInvalidSignature
 	}
 

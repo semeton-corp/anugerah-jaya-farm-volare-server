@@ -3,15 +3,15 @@ package enum
 type PaymentMethod uint8
 
 const (
-	PaymentMethodUnknown     PaymentMethod = 0
-	PaymentMethodPaidOff     PaymentMethod = 1
-	PaymentMethodinstallment PaymentMethod = 2
+	PaymentMethodUnknown  PaymentMethod = 0
+	PaymentMethodCash     PaymentMethod = 1
+	PaymentMethodTransfer PaymentMethod = 2
 )
 
 var (
 	PaymentMethodMap = map[PaymentMethod]string{
-		PaymentMethodPaidOff:     "Penuh",
-		PaymentMethodinstallment: "Cicil",
+		PaymentMethodCash:     "Tunai",
+		PaymentMethodTransfer: "Non Tunai",
 	}
 )
 
@@ -63,5 +63,73 @@ func ValueOfPaymentStatus(value string) PaymentStatus {
 
 func (c PaymentStatus) IsValid() bool {
 	_, ok := PaymentStatusMap[c]
+	return ok
+}
+
+type PaymentType uint8
+
+const (
+	PaymentTypeUnknown     PaymentType = 0
+	PaymentTypePaidOff     PaymentType = 1
+	PaymentTypeinstallment PaymentType = 2
+)
+
+var (
+	PaymentTypeMap = map[PaymentType]string{
+		PaymentTypePaidOff:     "Penuh",
+		PaymentTypeinstallment: "Cicil",
+	}
+)
+
+func (c PaymentType) String() string {
+	return PaymentTypeMap[c]
+}
+
+func ValueOfPaymentType(value string) PaymentType {
+	for k, v := range PaymentTypeMap {
+		if v == value {
+			return k
+		}
+	}
+	return PaymentTypeUnknown
+}
+
+func (c PaymentType) IsValid() bool {
+	_, ok := PaymentTypeMap[c]
+	return ok
+}
+
+type SaleUnit uint8
+
+const (
+	SaleUnitUnknown SaleUnit = 0
+	SaleUnitButir   SaleUnit = 1
+	SaleUnitIkat    SaleUnit = 2
+	SaleUnitKarpet  SaleUnit = 3
+)
+
+var (
+	SaleUnitMap = map[SaleUnit]string{
+		SaleUnitButir:  "Butir",
+		SaleUnitIkat:   "Ikat",
+		SaleUnitKarpet: "Karpet",
+	}
+)
+
+func (c SaleUnit) String() string {
+	return SaleUnitMap[c]
+}
+
+func ValueOfSaleUnit(value string) SaleUnit {
+	for k, v := range SaleUnitMap {
+		if v == value {
+			return k
+		}
+	}
+	return SaleUnitUnknown
+}
+
+func (c SaleUnit) IsValid() bool {
+	_, ok := SaleUnitMap[c]
 	return ok
 }

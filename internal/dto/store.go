@@ -65,7 +65,8 @@ type StoreSaleResponse struct {
 	WarehouseItem    WarehouseItemResponse      `json:"warehouseItem"`
 	Store            StoreResponse              `json:"store"`
 	Quantity         uint64                     `json:"quantity"`
-	PaymentMethod    string                     `json:"paymentMethod"`
+	SaleUnit         string                     `json:"saleUnit"`
+	PaymentType      string                     `json:"paymentType"`
 	PaymentStatus    string                     `json:"paymentStatus"`
 	Price            string                     `json:"price"`
 	TotalPrice       string                     `json:"totalPrice"`
@@ -80,16 +81,18 @@ type CreateStoreSaleRequest struct {
 	WarehouseItemId  uint64                        `json:"warehouseItemId" validate:"required,number"`
 	StoreId          uint64                        `json:"storeId" validate:"required,number"`
 	Quantity         uint64                        `json:"quantity" validate:"required,number"`
+	SaleUnit         string                        `json:"saleUnit" validate:"required,saleUnit"`
 	Price            string                        `json:"price" validate:"required,number"`
 	SendDate         string                        `json:"sendDate" validate:"required"`
-	PaymentMethod    string                        `json:"paymentMethod" validate:"required,paymentMethod"`
+	PaymentType      string                        `json:"paymentType" validate:"required,paymentType"`
 	StoreSalePayment CreateStoreSalePaymentRequest `json:"storeSalePayment"`
 }
 
 type CreateStoreSalePaymentRequest struct {
-	PaymentDate  string `json:"paymentDate" validate:"required"`
-	Nominal      string `json:"nominal" validate:"required,number"`
-	PaymentProof string `json:"paymentProof" validate:"required,url"`
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
 
 type UpdateStoreSalePaymentRequest struct {
@@ -106,18 +109,26 @@ type StoreSaleListResponse struct {
 	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
 	Store         StoreResponse         `json:"store"`
 	Quantity      uint64                `json:"quantity"`
-	PaymentMethod string                `json:"paymentMethod"`
+	SaleUnit      string                `json:"saleUnit"`
+	PaymentType   string                `json:"paymentType"`
 	PaymentStatus string                `json:"paymentStatus"`
 	IsSend        bool                  `json:"isSend"`
 }
 
 type StoreSalePaymentResponse struct {
-	Id           uint64 `json:"id"`
-	Date         string `json:"date"`
-	Nominal      string `json:"nominal"`
-	PaymentProof string `json:"paymentProof"`
+	Id            uint64 `json:"id"`
+	Date          string `json:"date"`
+	Nominal       string `json:"nominal"`
+	Remaining     string `json:"remaining"`
+	PaymentMethod string `json:"paymentMethod"`
+	PaymentProof  string `json:"paymentProof"`
 }
 
 type UpdateStoreSaleRequest struct {
 	IsSend bool `json:"isSend"`
+}
+
+type GetStoreItemFilter struct {
+	StoreId  uint64                           `query:"storeId"`
+	Category param.WarehouseItemCategoryParam `query:"category"`
 }

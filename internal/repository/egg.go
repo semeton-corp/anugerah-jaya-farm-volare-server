@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -24,6 +25,7 @@ type IEggRepository interface {
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]entity.EggMonitoring, error)
 	UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring) error
 	DeleteEggMonitoring(id uint64) error
+	CountEggMonitoringByCageIdToday(cageId uint64) (int64, error)
 }
 
 func NewEggRepository(db *gorm.DB) IEggRepository {
@@ -66,7 +68,7 @@ func (r *EggRepository) CreateEggMonitoring(eggMonitoring *entity.EggMonitoring)
 
 func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, error) {
 	var eggMonitoring entity.EggMonitoring
-	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Cage.Location").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Warehouse.Location").Preload("Cage.Location").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.EggMonitoring{}, errx.NotFound("egg monitoring not found")
 		}
@@ -79,7 +81,7 @@ func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, e
 func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]entity.EggMonitoring, error) {
 	eggMonitorings := make([]entity.EggMonitoring, 0)
 
-	query := r.GetDB().Preload("Cage.Location").Model(&entity.EggMonitoring{})
+	query := r.GetDB().Preload("Warehouse.Location").Preload("Cage.Location").Model(&entity.EggMonitoring{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
@@ -102,4 +104,12 @@ func (r *EggRepository) UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring)
 
 func (r *EggRepository) DeleteEggMonitoring(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.EggMonitoring{}).Error
+}
+
+func (r *EggRepository) CountEggMonitoringByCageIdToday(cageId uint64) (int64, error) {
+	var count int64
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Where("cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

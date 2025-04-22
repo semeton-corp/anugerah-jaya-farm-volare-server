@@ -1,14 +1,13 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -18,10 +17,10 @@ type EggService struct {
 }
 
 type IEggService interface {
-	CreateEggMonitoring(request dto.EggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
+	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error)
 	GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error)
-	UpdateEggMonitoring(id uint64, request dto.EggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
+	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
 	DeleteEggMonitoring(id uint64) error
 }
 
@@ -32,13 +31,26 @@ func NewEggService(log *zap.Logger, repository repository.IEggRepository) IEggSe
 	}
 }
 
-func (e *EggService) CreateEggMonitoring(request dto.EggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
+func (e *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
+	count, err := e.repository.CountEggMonitoringByCageIdToday(request.CageId)
+	if err != nil {
+		e.log.Error("[CreateEggMonitoring] failed to count egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	if count > 0 {
+		e.log.Error("[CreateEggMonitoring] egg monitoring already exists for today", zap.Error(errx.BadRequest("egg monitoring already exists for today")))
+		return dto.EggMonitoringResponse{}, errx.BadRequest("egg monitoring already exists for today")
+	}
+
 	eggMonitoring := entity.EggMonitoring{
 		CageId:          request.CageId,
+		WarehouseId:     request.WarehouseId,
 		TotalGoodEgg:    request.TotalGoodEgg,
 		TotalCrackedEgg: request.TotalCrackedEgg,
 		TotalBrokeEgg:   request.TotalBrokeEgg,
 		TotalRejectEgg:  request.TotalRejectEgg,
+		Weight:          request.Weight,
 		CreatedBy:       accountId,
 	}
 
@@ -47,7 +59,7 @@ func (e *EggService) CreateEggMonitoring(request dto.EggMonitoringRequest, accou
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoring, err := e.repository.GetEggMonitoringById(eggMonitoring.Id)
+	eggMonitoring, err = e.repository.GetEggMonitoringById(eggMonitoring.Id)
 	if err != nil {
 		e.log.Error("[CreateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
@@ -95,16 +107,16 @@ func (e *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 	return eggMonitoringResponses, nil
 }
 
-func (e *EggService) UpdateEggMonitoring(id uint64, request dto.EggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
+func (e *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
 	eggMonitoring, err := e.repository.GetEggMonitoringById(id)
 	if err != nil {
 		e.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	fmt.Println("cageId", request.CageId)
-
+	eggMonitoring.Weight = request.Weight
 	eggMonitoring.CageId = request.CageId
+	eggMonitoring.WarehouseId = request.WarehouseId
 	eggMonitoring.TotalGoodEgg = request.TotalGoodEgg
 	eggMonitoring.TotalCrackedEgg = request.TotalCrackedEgg
 	eggMonitoring.TotalBrokeEgg = request.TotalBrokeEgg

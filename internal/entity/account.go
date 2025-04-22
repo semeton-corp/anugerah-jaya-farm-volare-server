@@ -13,8 +13,8 @@ type Account struct {
 	RoleId       uint64    `gorm:"type:bigint;not null"`
 	Role         Role      `gorm:"foreignKey:RoleId;references:Id;constraint:on_delete:set_null"`
 	PhotoProfile string    `gorm:"type:text;default:null"`
-	CreatedBy    uuid.UUID `gorm:"type:varchar(255);not null"`
+	CreatedBy    uuid.UUID `gorm:"type:varchar(255)"`
 	CreatedAt    time.Time `gorm:"type:timestamp;autoCreateTime"`
-	UpdatedBy    uuid.UUID `gorm:"type:varchar(255);not null"`
+	UpdatedBy    uuid.UUID `gorm:"type:varchar(255)"`
 	UpdatedAt    time.Time `gorm:"type:timestamp;autoUpdateTime"`
 }

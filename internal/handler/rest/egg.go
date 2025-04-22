@@ -38,7 +38,7 @@ func NewEggHandler(log *zap.Logger, service service.IEggService, validator *vali
 }
 
 func (a *EggHandler) CreateEggMonitoring(c *fiber.Ctx) error {
-	var request dto.EggMonitoringRequest
+	var request dto.CreateEggMonitoringRequest
 	if err := c.BodyParser(&request); err != nil {
 		a.log.Error("[CreateEggMonitoring] failed to parse request", zap.Error(err))
 		return err
@@ -115,7 +115,7 @@ func (a *EggHandler) UpdateEggMonitoring(c *fiber.Ctx) error {
 		return errx.BadRequest("failed to parse id")
 	}
 
-	var request dto.EggMonitoringRequest
+	var request dto.UpdateEggMonitoringRequest
 	if err := c.BodyParser(&request); err != nil {
 		a.log.Error("[UpdateEggMonitoring] failed to parse request", zap.Error(err))
 		return err

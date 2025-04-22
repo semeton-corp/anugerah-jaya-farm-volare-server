@@ -7,7 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	_email "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/env"
 	_logger "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/logger"
@@ -27,7 +26,7 @@ type Bootstrap struct {
 	log       *zap.Logger
 	db        *gorm.DB
 	handlers  []Handler
-	email     *email.Email
+	email     *_email.Email
 	validator *validator.Validate
 }
 
@@ -54,69 +53,40 @@ func New() *Bootstrap {
 }
 
 func (b *Bootstrap) DepedencyInjection() {
-	authenticationHandler := rest.NewAuthenticationHandler(
-		b.log,
-		service.NewAuthenticationService(
-			b.log,
-			repository.NewAuthenticationRepository(b.db),
-			b.email,
-		),
-		b.validator,
-	)
+	staffRepository := repository.NewStaffRepository(b.db)
+	staffService := service.NewStaffService(b.log, staffRepository)
 
-	roleHandler := rest.NewRoleHandler(
-		b.log,
-		service.NewRoleService(
-			b.log,
-			repository.NewRoleRepository(b.db),
-		),
-		b.validator,
-	)
+	authRepository := repository.NewAuthenticationRepository(b.db)
+	authService := service.NewAuthenticationService(b.log, authRepository, b.email, staffService)
+	authenticationHandler := rest.NewAuthenticationHandler(b.log, authService, b.validator)
 
-	cageHandler := rest.NewCageHandler(
-		b.log,
-		service.NewCageService(
-			b.log,
-			repository.NewCageRepository(b.db),
-		),
-		b.validator,
-	)
+	roleRepository := repository.NewRoleRepository(b.db)
+	roleService := service.NewRoleService(b.log, roleRepository)
+	roleHandler := rest.NewRoleHandler(b.log, roleService, b.validator)
 
-	chickenHandler := rest.NewChickenHandler(
-		b.log,
-		service.NewChickenService(
-			b.log,
-			repository.NewChickenRepository(b.db),
-		),
-		b.validator,
-	)
+	cageRepository := repository.NewCageRepository(b.db)
+	cageService := service.NewCageService(b.log, cageRepository)
+	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
 
-	eggHandler := rest.NewEggHandler(
-		b.log,
-		service.NewEggService(
-			b.log,
-			repository.NewEggRepository(b.db),
-		),
-		b.validator,
-	)
+	chickenRepository := repository.NewChickenRepository(b.db)
+	chickenService := service.NewChickenService(b.log, chickenRepository)
+	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
 
-	warehouseHandler := rest.NewWarehouseHandler(
-		b.log,
-		service.NewWarehouseService(
-			b.log,
-			repository.NewWarehouseRepository(b.db),
-		),
-		b.validator,
-	)
+	eggRepository := repository.NewEggRepository(b.db)
+	eggService := service.NewEggService(b.log, eggRepository)
+	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
 
-	storeHandler := rest.NewStoreHandler(
-		b.log,
-		service.NewStoreService(
-			b.log,
-			repository.NewStoreRepository(b.db),
-		),
-		b.validator,
-	)
+	storeRepository := repository.NewStoreRepository(b.db)
+	storeService := service.NewStoreService(b.log, storeRepository)
+	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
+
+	warehouseRepository := repository.NewWarehouseRepository(b.db)
+	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, storeService)
+	warehouseHandler := rest.NewWarehouseHandler(b.log, warehouseService, b.validator)
+
+	workRepository := repository.NewWorkRepository(b.db)
+	workService := service.NewWorkService(b.log, workRepository, roleService)
+	workHandler := rest.NewWorkHandler(b.log, workService, b.validator)
 
 	b.handlers = []Handler{
 		authenticationHandler,
@@ -126,6 +96,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		eggHandler,
 		warehouseHandler,
 		storeHandler,
+		workHandler,
 	}
 }
 

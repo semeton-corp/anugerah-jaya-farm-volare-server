@@ -218,7 +218,13 @@ func (a *StoreHandler) UpdateStoreRequestItemByStore(c *fiber.Ctx) error {
 }
 
 func (a *StoreHandler) GetStoreItems(c *fiber.Ctx) error {
-	res, err := a.service.GetStoreItems()
+	var filter dto.GetStoreItemFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("[GetStoreItems] failed to parse query", zap.Error(err))
+		return err
+	}
+
+	res, err := a.service.GetStoreItems(filter)
 	if err != nil {
 		a.log.Error("[GetStoreItems] failed to get store items", zap.Error(err))
 		return err

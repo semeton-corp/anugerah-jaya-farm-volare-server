@@ -43,6 +43,16 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 	c.repository.UseTx(true)
 	defer c.repository.Rollback()
 
+	count, err := c.repository.CountChickenMonitoringByCageIdToday(request.CageId)
+	if err != nil {
+		c.log.Error("[CreateChickenMonitoring] failed to count chicken monitoring by cage id", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	if count > 0 {
+		return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken monitoring already exists for today")
+	}
+
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
 		return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
@@ -59,7 +69,7 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		CreatedBy:         accoundId,
 	}
 
-	err := c.repository.CreateChickenMonitoring(&chickenMonitoring)
+	err = c.repository.CreateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
 		c.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
@@ -192,6 +202,19 @@ func (c *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 	chickenMonitoringsResponse := make([]dto.ChickenMonitoringListResponse, len(chickenMonitorings))
 	for i, chickenMonitoring := range chickenMonitorings {
 		chickenMonitoringsResponse[i] = mapper.ChickenMonitoringToListResponse(&chickenMonitoring)
+
+		chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
+		for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
+			chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
+		}
+
+		chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
+		for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
+			chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
+		}
+
+		chickenMonitoringsResponse[i].ChickenDiseases = chickenDiseasesResponse
+		chickenMonitoringsResponse[i].ChickenVaccines = chickenVaccinesResponse
 	}
 
 	return chickenMonitoringsResponse, nil

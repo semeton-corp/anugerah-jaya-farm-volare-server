@@ -17,15 +17,16 @@ type StoreSale struct {
 	StoreId         uint64             `gorm:"type:bigint;not null"`
 	Store           Store              `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
 	Quantity        uint64             `gorm:"type:bigint;not null"`
+	SaleUnit        enum.SaleUnit      `gorm:"type:int;not null"`
 	Price           decimal.Decimal    `gorm:"type:decimal;not null"`
 	TotalPrice      decimal.Decimal    `gorm:"type:decimal;not null"`
 	SendDate        time.Time          `gorm:"type:date;not null"`
-	PaymentMethod   enum.PaymentMethod `gorm:"type:int;not null"`
+	PaymentType     enum.PaymentType   `gorm:"type:int;not null"`
 	PaymentStatus   enum.PaymentStatus `gorm:"type:int;not null"`
 	IsSend          bool               `gorm:"type:boolean;not null"`
 	Payments        []StoreSalePayment `gorm:"foreignKey:StoreSaleId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
 	CreatedAt       time.Time          `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy       uuid.UUID          `gorm:"type:varchar(255);not null"`
+	CreatedBy       uuid.UUID          `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time          `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy       uuid.UUID          `gorm:"type:varchar(255);not null"`
+	UpdatedBy       uuid.UUID          `gorm:"type:varchar(255)"`
 }

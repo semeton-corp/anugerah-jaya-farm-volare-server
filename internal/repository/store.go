@@ -28,7 +28,7 @@ type IStoreRepository interface {
 
 	FirstOrCreateStoreItem(storeItem *entity.StoreItem) error
 	UpdateStoreItem(storeItem *entity.StoreItem) error
-	GetStoreItems() ([]entity.StoreItem, error)
+	GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error)
 
 	CreateStoreSale(storeSale *entity.StoreSale) error
 	GetStoreSaleById(id uint64) (entity.StoreSale, error)
@@ -133,12 +133,25 @@ func (r *StoreRepository) UpdateStoreItem(storeItem *entity.StoreItem) error {
 	return r.GetDB().Model(entity.StoreItem{}).Where("store_id = ? AND warehouse_item_id = ?", storeItem.StoreId, storeItem.WarehouseItemId).Updates(storeItem).Error
 }
 
-func (r *StoreRepository) GetStoreItems() ([]entity.StoreItem, error) {
+func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error) {
 	var storeItems []entity.StoreItem
-	err := r.GetDB().Preload("Store.Location").Preload("WarehouseItem").Find(&storeItems).Error
+	query := r.GetDB()
+
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
+	}
+
+	if filter.Category.Value().IsValid() {
+		query = query.Preload("WarehouseItem", "category = ?", filter.Category)
+	} else {
+		query = query.Preload("WarehouseItem")
+	}
+
+	err := query.Preload("Store.Location").Find(&storeItems).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return storeItems, nil
 }
 

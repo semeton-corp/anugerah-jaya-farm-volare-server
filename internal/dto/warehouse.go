@@ -3,12 +3,21 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type CreateWarehouseItemRequest struct {
-	Name string `json:"name" validate:"required"`
-	Unit string `json:"unit" validate:"required,unit"`
+	Name     string `json:"name" validate:"required"`
+	Unit     string `json:"unit" validate:"required"`
+	Category string `json:"category" validate:"required,warehouseItemCategory"`
+}
+
+type UpdateWarehouseItemRequest struct {
+	Name     string `json:"name" validate:"required"`
+	Unit     string `json:"unit" validate:"required"`
+	Category string `json:"category" validate:"required,warehouseItemCategory"`
 }
 
 type GetWarehouseItemFilter struct {
-	Category param.WarehouseItemCategoryParam `query:"category"`
+	Category    param.WarehouseItemCategoryParam `query:"category"`
+	StoreId     uint64                           `query:"storeId"`
+	WarehouseId uint64                           `query:"warehouseId"`
 }
 
 type WarehouseItemResponse struct {
@@ -19,7 +28,8 @@ type WarehouseItemResponse struct {
 }
 
 type GetWarehouseStockItemFilter struct {
-	WarehouseId uint64 `query:"warehouseId"`
+	WarehouseId uint64                           `query:"warehouseId"`
+	Category    param.WarehouseItemCategoryParam `query:"category"`
 }
 
 type WarehouseResponse struct {

@@ -14,6 +14,7 @@ type RoleService struct {
 
 type IRoleService interface {
 	GetRoles() ([]dto.RoleResponse, error)
+	GetRoleById(id uint64) (dto.RoleResponse, error)
 }
 
 func NewRoleService(log *zap.Logger, repository repository.IRoleRepository) IRoleService {
@@ -38,4 +39,14 @@ func (r *RoleService) GetRoles() ([]dto.RoleResponse, error) {
 	}
 
 	return roleResponses, nil
+}
+
+func (r *RoleService) GetRoleById(id uint64) (dto.RoleResponse, error) {
+	role, err := r.repository.GetRoleById(id)
+	if err != nil {
+		r.log.Error("[GetRoleById] failed to get role by id", zap.Error(err))
+		return dto.RoleResponse{}, err
+	}
+
+	return mapper.RoleToResponse(&role), nil
 }

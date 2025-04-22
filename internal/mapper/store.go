@@ -69,7 +69,7 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 	}
 }
 
-// Note : without payments, remaining payment
+// Note : without payments, payment payment
 func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	return dto.StoreSaleResponse{
 		Id:         storeSale.Id,
@@ -93,18 +93,21 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 			},
 		},
 		Quantity:      storeSale.Quantity,
-		PaymentMethod: storeSale.PaymentMethod.String(),
+		SaleUnit:      storeSale.SaleUnit.String(),
+		PaymentType:   storeSale.PaymentType.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
 	}
 }
 
+// Note : without remaining payment
 func StoreSalePaymentToResponse(storeSalePayment *entity.StoreSalePayment) dto.StoreSalePaymentResponse {
 	return dto.StoreSalePaymentResponse{
-		Id:           storeSalePayment.Id,
-		Nominal:      storeSalePayment.Nominal.String(),
-		PaymentProof: storeSalePayment.PaymentProof,
-		Date:         storeSalePayment.PaymentDate.Format("02-01-2006"),
+		Id:            storeSalePayment.Id,
+		Nominal:       storeSalePayment.Nominal.String(),
+		PaymentProof:  storeSalePayment.PaymentProof,
+		PaymentMethod: storeSalePayment.PaymentMethod.String(),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
 	}
 }
 
@@ -117,7 +120,8 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		WarehouseItem: WarehouseItemToResponse(&storeSale.WarehouseItem),
 		Store:         StoreToResponse(&storeSale.Store),
 		Quantity:      storeSale.Quantity,
-		PaymentMethod: storeSale.PaymentMethod.String(),
+		SaleUnit:      storeSale.SaleUnit.String(),
+		PaymentType:   storeSale.PaymentType.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
 	}

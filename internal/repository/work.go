@@ -1,0 +1,235 @@
+package repository
+
+import (
+	"errors"
+
+	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"gorm.io/gorm"
+)
+
+type WorkRepository struct {
+	db *gorm.DB
+	tx *gorm.DB
+}
+
+type IWorkRepository interface {
+	UseTx(tx bool)
+	Commit() error
+	Rollback() error
+
+	GetDailyWorkStaffsByStaffId(staffId uuid.UUID) ([]entity.DailyWorkStaff, error)
+	GetAdditionalWorkStaffByStaffId(staffId uuid.UUID) ([]entity.AdditionalWorkStaff, error)
+
+	CreateDailyWork(dailyWork *entity.DailyWork) error
+	GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork, error)
+	GetDailyWorkBasedOnRole() ([]entity.DailyWorkSummary, error)
+
+	CreateAdditionalWork(additionalWork *entity.AdditionalWork) error
+	GetAdditionalWorkById(id uint64) (entity.AdditionalWork, error)
+	DeleteAdditionalWork(id uint64) error
+	GetAdditionalWorks() ([]entity.AdditionalWork, error)
+	CreateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error
+	GetAdditionalWorkStaffById(id uint64) (entity.AdditionalWorkStaff, error)
+	UpdateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error
+	GetDailyWorkStaffById(id uint64) (entity.DailyWorkStaff, error)
+	UpdateDailyWorkStaff(dailyWorkStaff *entity.DailyWorkStaff) error
+}
+
+func NewWorkRepository(db *gorm.DB) IWorkRepository {
+	return &WorkRepository{
+		db: db,
+	}
+}
+
+func (r *WorkRepository) UseTx(tx bool) {
+	if tx {
+		r.tx = r.db.Begin()
+	}
+}
+
+func (r *WorkRepository) Commit() error {
+	err := r.GetDB().Commit().Error
+	r.tx = nil
+	return err
+}
+
+func (r *WorkRepository) Rollback() error {
+	if r.tx == nil {
+		return nil
+	}
+	err := r.GetDB().Rollback().Error
+	r.tx = nil
+	return err
+}
+
+func (r *WorkRepository) GetDB() *gorm.DB {
+	if r.tx != nil {
+		return r.tx
+	}
+	return r.db
+}
+
+func (r *WorkRepository) CreateDailyWork(dailyWork *entity.DailyWork) error {
+	return r.GetDB().Save(dailyWork).Error
+}
+
+func (r *WorkRepository) CreateAdditionalWork(additionalWork *entity.AdditionalWork) error {
+	return r.GetDB().Save(additionalWork).Error
+}
+
+func (r *WorkRepository) GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork, error) {
+	var dailyWorks []entity.DailyWork
+	err := r.GetDB().
+		Preload("Role").
+		Where("role_id = ?", roleId).
+		Find(&dailyWorks).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dailyWorks, nil
+}
+
+func (r *WorkRepository) GetAdditionalWorkById(id uint64) (entity.AdditionalWork, error) {
+	var additionalWorks entity.AdditionalWork
+	err := r.GetDB().
+		Preload("AdditionalWorkStaff.Staff").
+		Where("id = ?", id).
+		First(&additionalWorks).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AdditionalWork{}, errx.NotFound("additional work not found")
+		}
+		return entity.AdditionalWork{}, err
+	}
+	return additionalWorks, nil
+}
+
+func (r *WorkRepository) GetDailyWorkStaffsByStaffId(staffId uuid.UUID) ([]entity.DailyWorkStaff, error) {
+	var dailyWorkStaffs []entity.DailyWorkStaff
+	err := r.GetDB().
+		Preload("DailyWork").
+		Preload("Staff.Account", "id = ?", staffId).
+		Find(&dailyWorkStaffs).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return dailyWorkStaffs, nil
+}
+
+func (r *WorkRepository) GetAdditionalWorkStaffByStaffId(staffId uuid.UUID) ([]entity.AdditionalWorkStaff, error) {
+	var additionalWorks []entity.AdditionalWorkStaff
+	err := r.GetDB().
+		Preload("AdditionalWork").
+		Preload("Staff.Account", "id = ?", staffId).
+		Find(&additionalWorks).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return additionalWorks, nil
+}
+
+func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
+	err := r.GetDB().Delete(&entity.AdditionalWork{}, id).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *WorkRepository) GetAdditionalWorks() ([]entity.AdditionalWork, error) {
+	var additionalWorks []entity.AdditionalWork
+	err := r.GetDB().
+		Preload("AdditionalWorkStaff.Staff").
+		Find(&additionalWorks).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return additionalWorks, nil
+}
+
+func (r *WorkRepository) GetDailyWorkBasedOnRole() ([]entity.DailyWorkSummary, error) {
+	var dailyWorkSummaries []entity.DailyWorkSummary
+	err := r.GetDB().
+		Table("daily_works").
+		Select("role_id, roles.name AS role_name, count(daily_works.id) AS total_work, count(daily_work_staffs.staff_id) AS total_staff").
+		Joins("LEFT JOIN daily_work_staffs ON daily_works.id = daily_work_staffs.daily_work_id").
+		Joins("LEFT JOIN roles ON daily_works.role_id = roles.id").
+		Group("daily_works.role_id").
+		Group("roles.name").
+		Find(&dailyWorkSummaries).Error
+
+	if err != nil {
+		return nil, err
+	}
+	return dailyWorkSummaries, nil
+}
+
+func (r *WorkRepository) CreateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error {
+	return r.GetDB().Create(additionalWorkStaff).Error
+}
+
+func (r *WorkRepository) GetAdditionalWorkStaffById(id uint64) (entity.AdditionalWorkStaff, error) {
+	var additionalWorkStaff entity.AdditionalWorkStaff
+	err := r.GetDB().
+		Preload("AdditionalWork").
+		Preload("Staff.Account").
+		Where("id = ?", id).
+		First(&additionalWorkStaff).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AdditionalWorkStaff{}, errx.NotFound("additional work staff not found")
+		}
+		return entity.AdditionalWorkStaff{}, err
+	}
+	return additionalWorkStaff, nil
+}
+
+func (r *WorkRepository) UpdateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error {
+	err := r.GetDB().Model(&entity.AdditionalWorkStaff{}).Where("id = ?", additionalWorkStaff.Id).Updates(additionalWorkStaff).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *WorkRepository) UpdateDailyWorkStaff(dailyWorkStaff *entity.DailyWorkStaff) error {
+	err := r.GetDB().Model(&entity.DailyWorkStaff{}).Where("id = ?", dailyWorkStaff.Id).Updates(dailyWorkStaff).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *WorkRepository) GetDailyWorkStaffById(id uint64) (entity.DailyWorkStaff, error) {
+	var dailyWorkStaff entity.DailyWorkStaff
+	err := r.GetDB().
+		Preload("DailyWork").
+		Preload("Staff.Account").
+		Where("id = ?", id).
+		First(&dailyWorkStaff).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.DailyWorkStaff{}, errx.NotFound("daily work staff not found")
+		}
+		return entity.DailyWorkStaff{}, err
+	}
+	return dailyWorkStaff, nil
+}
+
+func (r *WorkRepository) UpdateDailyWorkStaffStatus(dailyWorkStaff *entity.DailyWorkStaff) error {
+	err := r.GetDB().Model(&entity.DailyWorkStaff{}).Updates(dailyWorkStaff).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}

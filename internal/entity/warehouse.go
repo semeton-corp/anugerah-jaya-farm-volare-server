@@ -8,7 +8,7 @@ type Warehouse struct {
 	Location   Location  `gorm:"foreignKey:LocationId;references:Id;constraint:OnDelete:CASCADE"`
 	Name       string    `gorm:"type:varchar(255);not null"`
 	CreatedAt  string    `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy  uuid.UUID `gorm:"type:varchar(255);not null"`
+	CreatedBy  uuid.UUID `gorm:"type:varchar(255)"`
 	UpdatedAt  string    `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy  uuid.UUID `gorm:"type:varchar(255);not null"`
+	UpdatedBy  uuid.UUID `gorm:"type:varchar(255)"`
 }

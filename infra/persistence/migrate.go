@@ -7,9 +7,9 @@ import (
 
 func Migrate(db *gorm.DB) {
 	db.AutoMigrate(
-		&entity.Account{},
 		&entity.Role{},
 		&entity.Staff{},
+		&entity.Account{},
 		&entity.Location{},
 		&entity.Cage{},
 		&entity.ChickenMonitoring{},
@@ -24,6 +24,10 @@ func Migrate(db *gorm.DB) {
 		&entity.StoreItem{},
 		&entity.StoreSale{},
 		&entity.StoreSalePayment{},
+		&entity.DailyWork{},
+		&entity.AdditionalWork{},
+		&entity.AdditionalWorkStaff{},
+		&entity.DailyWorkStaff{},
 	)
 }
 
@@ -46,5 +50,9 @@ func Rollback(db *gorm.DB) {
 		&entity.StoreItem{},
 		&entity.StoreSale{},
 		&entity.StoreSalePayment{},
+		&entity.DailyWork{},
+		&entity.AdditionalWork{},
+		&entity.AdditionalWorkStaff{},
+		&entity.DailyWorkStaff{},
 	)
 }

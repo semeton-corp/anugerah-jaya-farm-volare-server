@@ -22,10 +22,12 @@ type SignInRequest struct {
 }
 
 type SignInResponse struct {
-	TokenType   string        `json:"tokenType"`
-	Role        string        `json:"role"`
-	AccessToken string        `json:"accessToken"`
-	ExpiredAt   time.Duration `json:"expiredAt"`
+	TokenType    string        `json:"tokenType"`
+	Role         RoleResponse  `json:"role"`
+	Name         string        `json:"name"`
+	PhotoProfile string        `json:"photoProfile"`
+	AccessToken  string        `json:"accessToken"`
+	ExpiredAt    time.Duration `json:"expiredAt"`
 }
 
 type ForgotPasswordRequest struct {
@@ -46,7 +48,8 @@ type ChangePasswordRequest struct {
 type UpdateAccountRequest struct {
 	Email        string `json:"email" validate:"required,email"`
 	RoleId       uint64 `json:"roleId" validate:"required"`
-	PhotoProfile string `json:"photoProfile"`
+	PhotoProfile string `json:"photoProfile" validate:"required"`
+	Name         string `json:"name" validate:"required"`
 }
 
 type ChangePasswordResponse struct {
