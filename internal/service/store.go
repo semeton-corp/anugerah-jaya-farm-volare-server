@@ -231,12 +231,6 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
 	}
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
-	if !paymentMethod.IsValid() {
-		s.log.Error("[CreateStoreSale] invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
-		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
-	}
-
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
 		s.log.Error("[CreateStoreSale] failed to parse price", zap.Error(err))
@@ -244,6 +238,12 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 	}
 
 	totalPrice := price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		s.log.Error("[CreateStoreSale] invalid sale unit", zap.String("saleUnit", request.SaleUnit))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
 
 	storeSale := entity.StoreSale{
 		Customer:        request.Customer,
@@ -255,6 +255,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		TotalPrice:      totalPrice,
 		SendDate:        sendDate,
 		IsSend:          false,
+		SaleUnit:        saleUnit,
 		PaymentType:     paymentType,
 		CreatedBy:       accountId,
 	}
@@ -282,7 +283,16 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		return dto.StoreSaleResponse{}, err
 	}
 
-	if request.StoreSalePayment.Nominal != "" || request.StoreSalePayment.PaymentProof != "" {
+	if request.StoreSalePayment.Nominal != "" &&
+		request.StoreSalePayment.PaymentDate != "" &&
+		request.StoreSalePayment.PaymentProof != "" &&
+		request.StoreSalePayment.PaymentMethod != "" {
+		paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			s.log.Error("[CreateStoreSale] invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+		}
+
 		paymentDate, err := time.Parse("02-01-2006", request.StoreSalePayment.PaymentDate)
 		if err != nil {
 			s.log.Error("[CreateStoreSale] failed to parse payment date", zap.Error(err))
@@ -290,11 +300,12 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		}
 
 		storeSalePayment := entity.StoreSalePayment{
-			PaymentDate:  paymentDate,
-			StoreSaleId:  storeSale.Id,
-			Nominal:      nominal,
-			PaymentProof: request.StoreSalePayment.PaymentProof,
-			CreatedBy:    accountId,
+			PaymentDate:   paymentDate,
+			StoreSaleId:   storeSale.Id,
+			Nominal:       nominal,
+			PaymentProof:  request.StoreSalePayment.PaymentProof,
+			PaymentMethod: paymentMethod,
+			CreatedBy:     accountId,
 		}
 
 		err = s.repository.CreateStoreSalePayment(&storeSalePayment)
@@ -373,6 +384,12 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		s.log.Error("[CreateStoreSalePayment] invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+	}
+
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("[CreateStoreSalePayment] failed to parse payment date", zap.Error(err))
@@ -386,11 +403,12 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 	}
 
 	storeSalePayment := entity.StoreSalePayment{
-		StoreSaleId:  storeSaleId,
-		PaymentDate:  paymentDate,
-		Nominal:      nominal,
-		PaymentProof: request.PaymentProof,
-		CreatedBy:    accountId,
+		StoreSaleId:   storeSaleId,
+		PaymentDate:   paymentDate,
+		PaymentMethod: paymentMethod,
+		Nominal:       nominal,
+		PaymentProof:  request.PaymentProof,
+		CreatedBy:     accountId,
 	}
 
 	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
@@ -462,6 +480,37 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already sent")
 	}
 
+	storeSale.Customer = request.Customer
+	storeSale.Phone = request.Phone
+	storeSale.StoreId = request.StoreId
+	storeSale.WarehouseItemId = request.WarehouseItemId
+	storeSale.Quantity = request.Quantity
+	storeSale.Price, err = decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("[UpdateStoreSale] failed to parse price", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid price format")
+	}
+
+	storeSale.TotalPrice = storeSale.Price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+
+	storeSale.SaleUnit = enum.ValueOfSaleUnit(request.SaleUnit)
+	if !storeSale.SaleUnit.IsValid() {
+		s.log.Error("[UpdateStoreSale] invalid sale unit", zap.String("saleUnit", request.SaleUnit))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	storeSale.PaymentType = enum.ValueOfPaymentType(request.PaymentType)
+	if !storeSale.PaymentType.IsValid() {
+		s.log.Error("[UpdateStoreSale] invalid payment type", zap.String("paymentType", request.PaymentType))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	storeSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
+	if err != nil {
+		s.log.Error("[UpdateStoreSale] failed to parse send date", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid send date format")
+	}
+
 	storeSale.IsSend = request.IsSend
 	storeSale.UpdatedBy = accountId
 
@@ -507,6 +556,11 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 	if err != nil {
 		s.log.Error("[UpdateStoreSalePayment] failed to get store sale by id", zap.Error(err))
 		return dto.StoreSaleResponse{}, err
+	}
+
+	if storeSale.IsSend {
+		s.log.Error("[UpdateStoreSalePayment] store sale is already sent", zap.Uint64("id", storeSale.Id))
+		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already sent")
 	}
 
 	if storeSale.PaymentStatus == enum.PaymentStatusPaid {

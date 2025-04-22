@@ -125,7 +125,16 @@ type StoreSalePaymentResponse struct {
 }
 
 type UpdateStoreSaleRequest struct {
-	IsSend bool `json:"isSend"`
+	Customer        string `json:"customer" validate:"required"`
+	Phone           string `json:"phone" validate:"required"`
+	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required,number"`
+	StoreId         uint64 `json:"storeId" validate:"required,number"`
+	Quantity        uint64 `json:"quantity" validate:"required,number"`
+	SaleUnit        string `json:"saleUnit" validate:"required,saleUnit"`
+	Price           string `json:"price" validate:"required,number"`
+	SendDate        string `json:"sendDate" validate:"required"`
+	PaymentType     string `json:"paymentType" validate:"required,paymentType"`
+	IsSend          bool   `json:"isSend" validate:"required"`
 }
 
 type GetStoreItemFilter struct {
