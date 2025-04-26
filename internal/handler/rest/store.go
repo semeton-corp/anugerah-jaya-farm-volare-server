@@ -38,6 +38,7 @@ func (a *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/sales/:id", middleware.Authentication(), a.UpdateStoreSale)
 	v1.Post("/sales/:storeSaleId/payments", middleware.Authentication(), a.CreateStoreSalePayment)
 	v1.Put("/sales/:storeSaleId/payments/:id", middleware.Authentication(), a.UpdateStoreSalePayment)
+	v1.Patch("sales/:storeSaleId/send", middleware.Authentication(), a.SendStoreSale)
 }
 
 func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *validator.Validate) *StoreHandler {
@@ -413,4 +414,32 @@ func (a *StoreHandler) UpdateStoreSalePayment(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store sale payment")
+}
+
+func (a *StoreHandler) SendStoreSale(c *fiber.Ctx) error {
+	storeSaleIdParam := c.Params("storeSaleId")
+	if storeSaleIdParam == "" {
+		a.log.Error("[SendStoreSale] storeSaleId is required")
+		return errx.BadRequest("storeSaleId is required")
+	}
+
+	storeSaleId, err := strconv.ParseUint(storeSaleIdParam, 10, 64)
+	if err != nil {
+		a.log.Error("[SendStoreSale] failed to parse storeSaleId", zap.Error(err))
+		return errx.BadRequest("failed to parse storeSaleId")
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[SendStoreSale] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.SendStoreSale(storeSaleId, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[SendStoreSale] failed to send store sale", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success send store sale")
 }

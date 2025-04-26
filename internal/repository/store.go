@@ -156,7 +156,14 @@ func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity
 }
 
 func (r *StoreRepository) CreateStoreSale(storeSale *entity.StoreSale) error {
-	return r.GetDB().Create(storeSale).Error
+	if err := r.GetDB().Create(storeSale).Error; err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.NotFound("some resources not found")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *StoreRepository) GetStoreSaleById(id uint64) (entity.StoreSale, error) {

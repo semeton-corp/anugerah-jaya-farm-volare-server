@@ -138,6 +138,8 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	}
 
 	err := query.
+		Preload("ChickenDiseaseMonitoring").
+		Preload("ChickenVaccineMonitoring").
 		Preload("Cage.Location").
 		Order("created_at desc").
 		Find(&chickenMonitorings).Error

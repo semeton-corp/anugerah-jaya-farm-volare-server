@@ -85,7 +85,19 @@ type CreateStoreSaleRequest struct {
 	Price            string                        `json:"price" validate:"required,number"`
 	SendDate         string                        `json:"sendDate" validate:"required"`
 	PaymentType      string                        `json:"paymentType" validate:"required,paymentType"`
-	StoreSalePayment CreateStoreSalePaymentRequest `json:"storeSalePayment"`
+	StoreSalePayment CreateStoreSalePaymentRequest `json:"storeSalePayment" validate:"required"`
+}
+
+type UpdateStoreSaleRequest struct {
+	Customer        string `json:"customer" validate:"required"`
+	Phone           string `json:"phone" validate:"required"`
+	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required,number"`
+	StoreId         uint64 `json:"storeId" validate:"required,number"`
+	Quantity        uint64 `json:"quantity" validate:"required,number"`
+	SaleUnit        string `json:"saleUnit" validate:"required,saleUnit"`
+	Price           string `json:"price" validate:"required,number"`
+	SendDate        string `json:"sendDate" validate:"required"`
+	PaymentType     string `json:"paymentType" validate:"required,paymentType"`
 }
 
 type CreateStoreSalePaymentRequest struct {
@@ -122,19 +134,6 @@ type StoreSalePaymentResponse struct {
 	Remaining     string `json:"remaining"`
 	PaymentMethod string `json:"paymentMethod"`
 	PaymentProof  string `json:"paymentProof"`
-}
-
-type UpdateStoreSaleRequest struct {
-	Customer        string `json:"customer" validate:"required"`
-	Phone           string `json:"phone" validate:"required"`
-	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required,number"`
-	StoreId         uint64 `json:"storeId" validate:"required,number"`
-	Quantity        uint64 `json:"quantity" validate:"required,number"`
-	SaleUnit        string `json:"saleUnit" validate:"required,saleUnit"`
-	Price           string `json:"price" validate:"required,number"`
-	SendDate        string `json:"sendDate" validate:"required"`
-	PaymentType     string `json:"paymentType" validate:"required,paymentType"`
-	IsSend          bool   `json:"isSend" validate:"required"`
 }
 
 type GetStoreItemFilter struct {

@@ -36,6 +36,8 @@ type IStoreService interface {
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
+
+	SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository) IStoreService {
@@ -511,7 +513,6 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid send date format")
 	}
 
-	storeSale.IsSend = request.IsSend
 	storeSale.UpdatedBy = accountId
 
 	err = s.repository.UpdateStoreSale(&storeSale)
@@ -631,6 +632,49 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 			remainingPayment = remainingPayment.Sub(payment.Nominal)
 			storeSalePayments[i].Remaining = remainingPayment.String()
 		}
+	}
+
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
+}
+
+func (s *StoreService) SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error) {
+	storeSale, err := s.repository.GetStoreSaleById(id)
+	if err != nil {
+		s.log.Error("[SendStoreSale] failed to get store sale by id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	if storeSale.IsSend {
+		s.log.Error("[SendStoreSale] store sale is already sent", zap.Uint64("id", id))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSale.IsSend = true
+	storeSale.UpdatedBy = accountId
+
+	err = s.repository.UpdateStoreSale(&storeSale)
+	if err != nil {
+		s.log.Error("[SendStoreSale] failed to update store sale", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSale, err = s.repository.GetStoreSaleById(storeSale.Id)
+	if err != nil {
+		s.log.Error("[GetStoreSaleById] failed to get store sale by id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSalePayments := make([]dto.StoreSalePaymentResponse, len(storeSale.Payments))
+
+	remainingPayment := storeSale.TotalPrice
+	for i, storeSalePayment := range storeSale.Payments {
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
+		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)

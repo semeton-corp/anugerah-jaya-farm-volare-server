@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type WarehouseRequestItem struct {
+type WarehouseOrderItem struct {
 	Id              uint64        `gorm:"primaryKey;autoIncrement"`
 	WarehouseItemId uint64        `gorm:"type:bigint;not null"`
 	WarehouseItem   WarehouseItem `gorm:"foreignKey:WarehouseItemId;references:Id;constraint:OnDelete:CASCADE"`
