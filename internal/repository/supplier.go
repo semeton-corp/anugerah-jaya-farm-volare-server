@@ -1,7 +1,11 @@
 package repository
 
 import (
+	"errors"
+
+	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -56,9 +60,17 @@ func (r *SupplierRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
+// Todo : check to handle violation errror
 func (r *SupplierRepository) CreateSupplier(supplier *entity.Supplier) error {
 	err := r.GetDB().Create(&supplier).Error
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code.Name() == "foreign_key_violation" && pqErr.Constraint == "fk_suppliers_warehouse_item" {
+				return errx.NotFound("Warehouse Item not found")
+			}
+		}
+
 		return err
 	}
 

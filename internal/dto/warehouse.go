@@ -64,8 +64,12 @@ type CreateWarehouseOrderItemRequest struct {
 }
 
 type WarehouseOrderItemResponse struct {
-	Warehouse     WarehouseResponse     `json:"warehouse"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
-	Supplier      SupplierResponse      `json:"supplier"`
-	Quantity      uint64                `json:"quantity"`
+	Id            uint64                               `json:"id"`
+	Warehouse     WarehouseResponse                    `json:"warehouse"`
+	WarehouseItem WarehouseItemResponse                `json:"warehouseItem"`
+	Supplier      SupplierWithoutWarehouseItemResponse `json:"supplier"`
+	TakenBy       string                               `json:"takenBy"`
+	TakenAt       string                               `json:"takenAt"`
+	IsTaken       bool                                 `json:"isTaken"`
+	Quantity      uint64                               `json:"quantity"`
 }

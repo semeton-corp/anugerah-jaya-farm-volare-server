@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -325,13 +326,23 @@ func (w *WarehouseService) CreateWarehouseOrderItem(request dto.CreateWarehouseO
 
 	warehouseOrderItem := entity.WarehouseOrderItem{
 		WarehouseId:     request.WarehouseId,
+		SupplierId:      request.SupplierId,
 		WarehouseItemId: request.WarehouseItemId,
 		Quantity:        request.Quantity,
+		Status:          enum.WarehouseOrderStatusInSend,
+		TakenAt:         sql.NullTime{},
+		CreatedBy:       sql.NullString{String: accountId.String(), Valid: true},
 	}
 
 	err := w.repository.CreateWarehouseOrderItem(&warehouseOrderItem)
 	if err != nil {
 		w.log.Error("[CreateWarehouseOrderItem] failed to create warehouse order item", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, err
+	}
+
+	warehouseOrderItem, err = w.repository.GetWarehouseOrderItemById(warehouseOrderItem.Id)
+	if err != nil {
+		w.log.Error("[CreateWarehouseOrderItem] failed to get warehouse order item", zap.Error(err))
 		return dto.WarehouseOrderItemResponse{}, err
 	}
 
@@ -389,9 +400,15 @@ func (w *WarehouseService) TakeWarehouseOrderItem(id uint64, accountId uuid.UUID
 		return dto.WarehouseOrderItemResponse{}, err
 	}
 
-	warehouseOrderItem.TakenBy = accountId
-	warehouseOrderItem.TakenAt = time.Now()
-	warehouseOrderItem.UpdatedBy = accountId
+	if warehouseOrderItem.IsTaken.Bool {
+		w.log.Error("[TakeWarehouseOrderItem] warehouse order item already taken", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, errx.BadRequest("warehouse order item already taken")
+	}
+
+	warehouseOrderItem.IsTaken = sql.NullBool{Bool: true, Valid: true}
+	warehouseOrderItem.TakenBy = sql.NullString{String: accountId.String(), Valid: true}
+	warehouseOrderItem.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
+	warehouseOrderItem.UpdatedBy = sql.NullString{String: accountId.String(), Valid: true}
 
 	err = w.repository.UpdateWarehouseOrderItem(&warehouseOrderItem)
 	if err != nil {

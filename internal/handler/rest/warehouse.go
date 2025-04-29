@@ -39,6 +39,7 @@ func (a *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/order-items", middleware.Authentication(), a.GetWarehouseOrderItems)
 	v1.Get("/order-items/:id", middleware.Authentication(), a.GetWarehouseOrderItemById)
 	v1.Delete("/order-items/:id", middleware.Authentication(), a.DeleteWarehouseOrderItem)
+	v1.Patch("/order-items/:id/takes", middleware.Authentication(), a.TakeWarehouseOrderItem)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -392,4 +393,32 @@ func (a *WarehouseHandler) DeleteWarehouseOrderItem(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (a *WarehouseHandler) TakeWarehouseOrderItem(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[TakeWarehouseOrderItem] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[TakeWarehouseOrderItem] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[TakeWarehouseOrderItem] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.TakeWarehouseOrderItem(id, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[TakeWarehouseOrderItem] failed to take store order item", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "take store order item success")
 }

@@ -181,7 +181,9 @@ func (r *WarehouseRepository) CreateWarehouseOrderItem(warehouseOrderItem *entit
 
 func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error) {
 	var warehouseOrderItem entity.WarehouseOrderItem
-	err := r.GetDB().Preload("WarehouseItem").Preload("Supplier").Where("id = ?", id).First(&warehouseOrderItem).Error
+	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier", func(tx *gorm.DB) *gorm.DB {
+		return tx.Omit("WarehouseItemId")
+	}).Where("id = ?", id).First(&warehouseOrderItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.WarehouseOrderItem{}, errx.NotFound("warehouse order item not found")
@@ -193,7 +195,7 @@ func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.Wareh
 
 func (r *WarehouseRepository) GetWarehouseOrderItems() ([]entity.WarehouseOrderItem, error) {
 	var warehouseOrderItems []entity.WarehouseOrderItem
-	err := r.GetDB().Preload("WarehouseItem").Preload("Supplier").Find(&warehouseOrderItems).Error
+	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier").Find(&warehouseOrderItems).Error
 	if err != nil {
 		return nil, err
 	}

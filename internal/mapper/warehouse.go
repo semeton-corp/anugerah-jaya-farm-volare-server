@@ -36,10 +36,24 @@ func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseStockItem)
 }
 
 func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem) dto.WarehouseOrderItemResponse {
-	return dto.WarehouseOrderItemResponse{
+	warehouseItemResponse := dto.WarehouseOrderItemResponse{
+		Id:            warehouseOrderItem.Id,
+		TakenBy:       warehouseOrderItem.TakenBy.String,
+		IsTaken:       warehouseOrderItem.IsTaken.Bool,
 		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
 		WarehouseItem: WarehouseItemToResponse(&warehouseOrderItem.WarehouseItem),
-		Supplier:      SupplierToResponse(&warehouseOrderItem.Supplier),
-		Quantity:      warehouseOrderItem.Quantity,
+		Supplier: dto.SupplierWithoutWarehouseItemResponse{
+			Id:          warehouseOrderItem.Supplier.Id,
+			Name:        warehouseOrderItem.Supplier.Name,
+			PhoneNumber: warehouseOrderItem.Supplier.PhoneNumber,
+			Address:     warehouseOrderItem.Supplier.Address,
+		},
+		Quantity: warehouseOrderItem.Quantity,
 	}
+
+	if warehouseOrderItem.TakenAt.Valid {
+		warehouseItemResponse.TakenAt = warehouseOrderItem.TakenAt.Time.Format("02-Jan-2006")
+	}
+
+	return warehouseItemResponse
 }

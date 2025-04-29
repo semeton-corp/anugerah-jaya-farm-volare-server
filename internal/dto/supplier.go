@@ -16,10 +16,17 @@ type UpdateSupplierRequest struct {
 
 type SupplierResponse struct {
 	Id            uint64                `json:"id"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
+	WarehouseItem WarehouseItemResponse `json:"warehouseItem,omitempty"`
 	Name          string                `json:"name"`
 	PhoneNumber   string                `json:"phoneNumber"`
 	Address       string                `json:"address"`
+}
+
+type SupplierWithoutWarehouseItemResponse struct {
+	Id          uint64 `json:"id"`
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+	Address     string `json:"address"`
 }
 
 type SupplierListResponse struct {
