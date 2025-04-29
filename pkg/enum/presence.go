@@ -32,3 +32,37 @@ func (c PresenceStatus) IsValid() bool {
 	_, ok := PresenceStatusMap[c]
 	return ok
 }
+
+type PresenceFilter uint8
+
+const (
+	PresenceFilterUnknown  PresenceFilter = 0
+	PresenceFilterThisWeek PresenceFilter = 1
+	PresenceFilterJanuary  PresenceFilter = 2
+	// Note : wait confirmation
+)
+
+var (
+	PresenceFilterMap = map[PresenceFilter]string{
+		PresenceFilterThisWeek: "Minggu Ini",
+		PresenceFilterJanuary:  "Januari",
+	}
+)
+
+func (c PresenceFilter) String() string {
+	return PresenceFilterMap[c]
+}
+
+func ValueOfPresenceFilter(value string) PresenceFilter {
+	for k, v := range PresenceFilterMap {
+		if v == value {
+			return k
+		}
+	}
+	return PresenceFilterUnknown
+}
+
+func (c PresenceFilter) IsValid() bool {
+	_, ok := PresenceFilterMap[c]
+	return ok
+}

@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"gorm.io/gorm"
 )
 
@@ -121,7 +122,7 @@ func (s *Scheduler) CheckStaffPresent() error {
 
 	for _, staffPresence := range staffPresences {
 		staffPresence.IsPresent = true
-		staffPresence.EndTime = endTime
+		staffPresence.EndTime = datatype.TimeOnly{endTime}
 		if err := s.db.Save(&staffPresence).Error; err != nil {
 			return err
 		}

@@ -34,6 +34,11 @@ func (a *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.GetStockWarehouseItemByWarehouseIdAndWarehouseItemId)
 	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.UpdateStockWarehouseItem)
 	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.DeleteStockWarehouseItem)
+
+	v1.Post("/order-items", middleware.Authentication(), a.CreateWarehouseOrderItem)
+	v1.Get("/order-items", middleware.Authentication(), a.GetWarehouseOrderItems)
+	v1.Get("/order-items/:id", middleware.Authentication(), a.GetWarehouseOrderItemById)
+	v1.Delete("/order-items/:id", middleware.Authentication(), a.DeleteWarehouseOrderItem)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -302,6 +307,87 @@ func (a *WarehouseHandler) DeleteStockWarehouseItem(c *fiber.Ctx) error {
 	err = a.service.DeleteWarehouseStockItem(warehouseId, warehouseItemId)
 	if err != nil {
 		a.log.Error("[DeleteStockWarehouseItem] failed to delete stock warehouse item", zap.Error(err))
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (a *WarehouseHandler) CreateWarehouseOrderItem(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseOrderItemRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[CreateStoreOrderItem] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[CreateStoreOrderItem] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[CreateStoreOrderItem] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.CreateWarehouseOrderItem(request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[CreateStoreOrderItem] failed to create store order item", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "create store order item success")
+}
+
+func (a *WarehouseHandler) GetWarehouseOrderItemById(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[GetWarehouseOrderItemById] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[GetWarehouseOrderItemById] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	res, err := a.service.GetWarehouseOrderItemById(id)
+	if err != nil {
+		a.log.Error("[GetWarehouseOrderItemById] failed to get store order item", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "get store order item success")
+}
+
+func (a *WarehouseHandler) GetWarehouseOrderItems(c *fiber.Ctx) error {
+	warehouseOrderItems, err := a.service.GetWarehouseOrderItems()
+	if err != nil {
+		a.log.Error("[GetWarehouseOrderItems] failed to get store order items", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, warehouseOrderItems, "get store order items success")
+}
+
+func (a *WarehouseHandler) DeleteWarehouseOrderItem(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[DeleteWarehouseOrderItem] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[DeleteWarehouseOrderItem] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	err = a.service.DeleteWarehouseOrderItem(id)
+	if err != nil {
+		a.log.Error("[DeleteWarehouseOrderItem] failed to delete store order item", zap.Error(err))
 		return err
 	}
 

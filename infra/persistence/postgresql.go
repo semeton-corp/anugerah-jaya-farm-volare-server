@@ -36,5 +36,13 @@ func New(log *zap.Logger) *gorm.DB {
 		zap.L().Panic("failed to connect database", zap.Error(err))
 	}
 
+	ddb, err := db.DB()
+	if err != nil {
+		zap.L().Panic("failed to get database connection", zap.Error(err))
+	}
+
+	ddb.SetMaxIdleConns(viper.GetInt("database.max_idle_conns"))
+	ddb.SetMaxOpenConns(viper.GetInt("database.max_open_conns"))
+
 	return db
 }

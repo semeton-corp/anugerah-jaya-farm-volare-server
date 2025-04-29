@@ -55,3 +55,17 @@ type WarehouseStockItemResponse struct {
 	EstimationRunOut string                `json:"estimationRunOut"`
 	Description      string                `json:"description"`
 }
+
+type CreateWarehouseOrderItemRequest struct {
+	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
+	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required"`
+	SupplierId      uint64 `json:"supplierId" validate:"required"`
+	Quantity        uint64 `json:"quantity" validate:"required"`
+}
+
+type WarehouseOrderItemResponse struct {
+	Warehouse     WarehouseResponse     `json:"warehouse"`
+	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
+	Supplier      SupplierResponse      `json:"supplier"`
+	Quantity      uint64                `json:"quantity"`
+}

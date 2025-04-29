@@ -2,9 +2,13 @@ package repository
 
 import (
 	"errors"
+	"time"
 
+	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
 )
 
@@ -17,6 +21,12 @@ type IPresenceRepository interface {
 	UseTx(tx bool)
 	Commit() error
 	Rollback() error
+
+	UpdateStaffPresence(staffPresence *entity.StaffPresence) error
+	GetStaffPresenceById(id uint64) (entity.StaffPresence, error)
+	GetStaffPresenceTodayByStaffId(staffId uuid.UUID) (entity.StaffPresence, error)
+	GetStaffPresenceByStaffId(staffId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.StaffPresence, error)
+	GetStaffPresenceInRoleIds(roleIds []uint64) ([]entity.StaffPresence, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -54,7 +64,7 @@ func (r *PresenceRepository) GetDB() *gorm.DB {
 }
 
 func (r *PresenceRepository) UpdateStaffPresence(staffPresence *entity.StaffPresence) error {
-	return r.GetDB().Model(&entity.StaffPresence{}).Updates(staffPresence).Error
+	return r.GetDB().Model(&entity.StaffPresence{}).Where("id = ?", staffPresence.Id).Updates(staffPresence).Error
 }
 
 func (r *PresenceRepository) GetStaffPresenceById(id uint64) (entity.StaffPresence, error) {
@@ -69,16 +79,23 @@ func (r *PresenceRepository) GetStaffPresenceById(id uint64) (entity.StaffPresen
 	return staffPresence, nil
 }
 
-func (r *PresenceRepository) GetStaffPresenceByStaffId(staffId uint64) (entity.StaffPresence, error) {
-	var staffPresence entity.StaffPresence
-	err := r.GetDB().Preload("Staff.Account.Role").Where("staff_id = ?", staffId).First(&staffPresence).Error
+func (r *PresenceRepository) GetStaffPresenceByStaffId(staffId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.StaffPresence, error) {
+	var staffPresences []entity.StaffPresence
+	query := r.GetDB().Preload("Staff.Account.Role").Where("staff_id = ?", staffId)
+
+	if filter.Status.Value().IsValid() {
+		startDate, endDate := util.GetStartDayAndEndDayByPresenceFilter(filter.Status.Value())
+		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+	}
+
+	err := query.Find(&staffPresences).Order("created_at DESC").Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return staffPresence, errx.NotFound("staff presence not found")
+			return staffPresences, errx.NotFound("staff presence not found")
 		}
-		return staffPresence, err
+		return staffPresences, err
 	}
-	return staffPresence, nil
+	return staffPresences, nil
 }
 
 func (r *PresenceRepository) GetStaffPresenceInRoleIds(roleIds []uint64) ([]entity.StaffPresence, error) {
@@ -88,4 +105,16 @@ func (r *PresenceRepository) GetStaffPresenceInRoleIds(roleIds []uint64) ([]enti
 		return nil, err
 	}
 	return staffPresences, nil
+}
+
+func (r *PresenceRepository) GetStaffPresenceTodayByStaffId(staffId uuid.UUID) (entity.StaffPresence, error) {
+	var staffPresence entity.StaffPresence
+	err := r.GetDB().Preload("Staff.Account.Role").Where("staff_id = ? AND DATE(created_at) = ?", staffId, time.Now()).First(&staffPresence).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return staffPresence, errx.NotFound("staff presence not found")
+		}
+		return staffPresence, err
+	}
+	return staffPresence, nil
 }

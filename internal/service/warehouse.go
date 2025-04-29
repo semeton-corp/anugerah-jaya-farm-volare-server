@@ -33,6 +33,12 @@ type IWarehouseService interface {
 	GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseStockItemResponse, error)
 	UpdateWarehouseStockItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error)
 	DeleteWarehouseStockItem(warehouseId uint64, warehouseItemId uint64) error
+
+	CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
+	GetWarehouseOrderItemById(id uint64) (dto.WarehouseOrderItemResponse, error)
+	GetWarehouseOrderItems() ([]dto.WarehouseOrderItemResponse, error)
+	DeleteWarehouseOrderItem(id uint64) error
+	TakeWarehouseOrderItem(id uint64, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, storeService IStoreService) IWarehouseService {
@@ -223,6 +229,8 @@ func (w *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouse
 }
 
 func (w *WarehouseService) GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]dto.WarehouseStockItemResponse, error) {
+	w.repository.UseTx(false)
+
 	stockWarehouseItems, err := w.repository.GetWarehouseStockItems(filter)
 	if err != nil {
 		w.log.Error("[GetStockWarehouseItem] failed to get stock warehouse items", zap.Error(err))
@@ -248,6 +256,8 @@ func (w *WarehouseService) GetWarehouseStockItems(filter dto.GetWarehouseStockIt
 }
 
 func (w *WarehouseService) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseStockItemResponse, error) {
+	w.repository.UseTx(false)
+
 	stockWarehouseItem, err := w.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
 		w.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to get stock warehouse item", zap.Error(err))
@@ -268,6 +278,8 @@ func (w *WarehouseService) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(
 }
 
 func (w *WarehouseService) UpdateWarehouseStockItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
+	w.repository.UseTx(false)
+
 	stockWarehouseItem, err := w.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
 		w.log.Error("[UpdateStockWarehouseItem] failed to get stock warehouse item", zap.Error(err))
@@ -297,6 +309,8 @@ func (w *WarehouseService) UpdateWarehouseStockItem(warehouseId uint64, warehous
 }
 
 func (w *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehouseItemId uint64) error {
+	w.repository.UseTx(false)
+
 	err := w.repository.DeleteWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
 		w.log.Error("[DeleteStockWarehouseItem] failed to delete stock warehouse item", zap.Error(err))
@@ -304,4 +318,86 @@ func (w *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehous
 	}
 
 	return nil
+}
+
+func (w *WarehouseService) CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error) {
+	w.repository.UseTx(false)
+
+	warehouseOrderItem := entity.WarehouseOrderItem{
+		WarehouseId:     request.WarehouseId,
+		WarehouseItemId: request.WarehouseItemId,
+		Quantity:        request.Quantity,
+	}
+
+	err := w.repository.CreateWarehouseOrderItem(&warehouseOrderItem)
+	if err != nil {
+		w.log.Error("[CreateWarehouseOrderItem] failed to create warehouse order item", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, err
+	}
+
+	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
+}
+
+func (w *WarehouseService) GetWarehouseOrderItemById(id uint64) (dto.WarehouseOrderItemResponse, error) {
+	w.repository.UseTx(false)
+
+	warehouseOrderItem, err := w.repository.GetWarehouseOrderItemById(id)
+	if err != nil {
+		w.log.Error("[GetWarehouseOrderItemById] failed to get warehouse order item", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, err
+	}
+
+	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
+}
+
+func (w *WarehouseService) GetWarehouseOrderItems() ([]dto.WarehouseOrderItemResponse, error) {
+	w.repository.UseTx(false)
+
+	warehouseOrderItems, err := w.repository.GetWarehouseOrderItems()
+	if err != nil {
+		w.log.Error("[GetWarehouseOrderItems] failed to get warehouse order items", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseOrderItemResponses := make([]dto.WarehouseOrderItemResponse, 0, len(warehouseOrderItems))
+	for _, item := range warehouseOrderItems {
+		warehouseOrderItemResponses = append(warehouseOrderItemResponses, mapper.WarehouseOrderItemToResponse(&item))
+	}
+
+	return warehouseOrderItemResponses, nil
+}
+
+func (w *WarehouseService) DeleteWarehouseOrderItem(id uint64) error {
+	w.repository.UseTx(false)
+
+	err := w.repository.DeleteWarehouseOrderItem(id)
+	if err != nil {
+		w.log.Error("[DeleteWarehouseOrderItem] failed to delete warehouse order item", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (w *WarehouseService) TakeWarehouseOrderItem(id uint64, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error) {
+	w.repository.UseTx(false)
+
+	// Todo : add stock warehouse item in warehouse
+	warehouseOrderItem, err := w.repository.GetWarehouseOrderItemById(id)
+	if err != nil {
+		w.log.Error("[TakeWarehouseOrderItem] failed to get warehouse order item", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, err
+	}
+
+	warehouseOrderItem.TakenBy = accountId
+	warehouseOrderItem.TakenAt = time.Now()
+	warehouseOrderItem.UpdatedBy = accountId
+
+	err = w.repository.UpdateWarehouseOrderItem(&warehouseOrderItem)
+	if err != nil {
+		w.log.Error("[TakeWarehouseOrderItem] failed to update warehouse order item", zap.Error(err))
+		return dto.WarehouseOrderItemResponse{}, err
+	}
+
+	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
 }

@@ -69,7 +69,7 @@ func GlobalErrorHandler() fiber.ErrorHandler {
 		return response.ErrorResponse(
 			c,
 			fiber.ErrInternalServerError.Code,
-			err.Error(),
+			nil,
 			fiber.ErrInternalServerError.Message,
 		)
 	}

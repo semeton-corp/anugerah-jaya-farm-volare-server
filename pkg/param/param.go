@@ -53,3 +53,19 @@ func (p *PaymentMethodParam) UnmarshalText(text []byte) error {
 func (p PaymentMethodParam) Value() enum.PaymentMethod {
 	return enum.PaymentMethod(p)
 }
+
+type PresenceFilterParam enum.PresenceFilter
+
+func (p *PresenceFilterParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfPresenceFilter(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid presence filter")
+	}
+
+	*p = PresenceFilterParam(parsedFilter)
+	return nil
+}
+
+func (p PresenceFilterParam) Value() enum.PresenceFilter {
+	return enum.PresenceFilter(p)
+}

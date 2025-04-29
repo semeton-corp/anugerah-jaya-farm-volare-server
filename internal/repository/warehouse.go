@@ -31,6 +31,12 @@ type IWarehouseRepository interface {
 	UpdateWarehouseStockItem(stockWarehouseItem *entity.WarehouseStockItem) error
 	DeleteWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) error
 
+	CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
+	GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error)
+	GetWarehouseOrderItems() ([]entity.WarehouseOrderItem, error)
+	DeleteWarehouseOrderItem(id uint64) error
+	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
+
 	GetWarehouses() ([]entity.Warehouse, error)
 }
 
@@ -167,4 +173,38 @@ func (r *WarehouseRepository) UpdateWarehouseStockItem(stockWarehouseItem *entit
 
 func (r *WarehouseRepository) DeleteWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) error {
 	return r.GetDB().Where("warehouse_id = ? AND warehouse_item_id = ?", warehouseId, warehouseItemId).Delete(&entity.WarehouseStockItem{}).Error
+}
+
+func (r *WarehouseRepository) CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error {
+	return r.GetDB().Create(warehouseOrderItem).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error) {
+	var warehouseOrderItem entity.WarehouseOrderItem
+	err := r.GetDB().Preload("WarehouseItem").Preload("Supplier").Where("id = ?", id).First(&warehouseOrderItem).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseOrderItem{}, errx.NotFound("warehouse order item not found")
+		}
+		return entity.WarehouseOrderItem{}, err
+	}
+	return warehouseOrderItem, nil
+}
+
+func (r *WarehouseRepository) GetWarehouseOrderItems() ([]entity.WarehouseOrderItem, error) {
+	var warehouseOrderItems []entity.WarehouseOrderItem
+	err := r.GetDB().Preload("WarehouseItem").Preload("Supplier").Find(&warehouseOrderItems).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return warehouseOrderItems, nil
+}
+
+func (r *WarehouseRepository) DeleteWarehouseOrderItem(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseOrderItem{}).Error
+}
+
+func (r *WarehouseRepository) UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error {
+	return r.GetDB().Model(entity.WarehouseOrderItem{}).Where("id = ?", warehouseOrderItem.Id).Updates(&warehouseOrderItem).Error
 }

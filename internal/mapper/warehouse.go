@@ -28,21 +28,18 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 // Note : without description
 func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseStockItem) dto.WarehouseStockItemResponse {
 	return dto.WarehouseStockItemResponse{
-		Warehouse: dto.WarehouseResponse{
-			Id:   warehouseStockItem.Warehouse.Id,
-			Name: warehouseStockItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   warehouseStockItem.Warehouse.Location.Id,
-				Name: warehouseStockItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       warehouseStockItem.WarehouseItem.Id,
-			Name:     warehouseStockItem.WarehouseItem.Name,
-			Unit:     warehouseStockItem.WarehouseItem.Unit,
-			Category: warehouseStockItem.WarehouseItem.Category.String(),
-		},
+		Warehouse:        WarehouseToResponse(&warehouseStockItem.Warehouse),
+		WarehouseItem:    WarehouseItemToResponse(&warehouseStockItem.WarehouseItem),
 		Quantity:         warehouseStockItem.Quantity,
 		EstimationRunOut: warehouseStockItem.EstimationRunOut.Format("02-Jan-2006"),
+	}
+}
+
+func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem) dto.WarehouseOrderItemResponse {
+	return dto.WarehouseOrderItemResponse{
+		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
+		WarehouseItem: WarehouseItemToResponse(&warehouseOrderItem.WarehouseItem),
+		Supplier:      SupplierToResponse(&warehouseOrderItem.Supplier),
+		Quantity:      warehouseOrderItem.Quantity,
 	}
 }

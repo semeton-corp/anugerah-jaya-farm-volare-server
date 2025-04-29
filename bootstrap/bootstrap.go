@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -35,6 +36,13 @@ type Handler interface {
 }
 
 func New() *Bootstrap {
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		zap.L().Fatal(fmt.Sprintf("failed to load timezone: %v", err))
+	}
+
+	time.Local = loc // -> this is setting the global timezone
+
 	env.Load()
 	router := _router.New()
 	logger := _logger.New()
@@ -88,6 +96,14 @@ func (b *Bootstrap) DepedencyInjection() {
 	workService := service.NewWorkService(b.log, workRepository, roleService)
 	workHandler := rest.NewWorkHandler(b.log, workService, b.validator)
 
+	presenceRepository := repository.NewPresenceRepository(b.db)
+	presenceService := service.NewPresenceService(b.log, presenceRepository)
+	presenceHandler := rest.NewPresenceHandler(b.log, presenceService, b.validator)
+
+	supplierRepository := repository.NewSupplierRepository(b.db)
+	supplierService := service.NewSupplierService(b.log, supplierRepository)
+	supplierHandler := rest.NewSupplierHandler(b.log, supplierService, b.validator)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
@@ -97,6 +113,8 @@ func (b *Bootstrap) DepedencyInjection() {
 		warehouseHandler,
 		storeHandler,
 		workHandler,
+		presenceHandler,
+		supplierHandler,
 	}
 }
 

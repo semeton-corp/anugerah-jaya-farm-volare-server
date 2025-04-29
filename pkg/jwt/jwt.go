@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var (
@@ -32,6 +33,7 @@ func EncodeToken(account *entity.Account) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(viper.GetString("JWT_SECRET_KEY")))
 	if err != nil {
+		zap.L().Error("failed to sign token", zap.Error(err))
 		return "", ErrSignJwt
 	}
 	return signedToken, nil
@@ -46,9 +48,11 @@ func DecodeToken(token string) (*JWTClaims, error) {
 	if err != nil {
 		if ve, ok := err.(*jwt.ValidationError); ok {
 			if ve.Errors&jwt.ValidationErrorMalformed != 0 {
+				zap.L().Error("failed to parse token", zap.Error(err))
 				return &JWTClaims{}, ErrMalformedToken
 			}
 			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				zap.L().Error("token expired", zap.Error(err))
 				return &JWTClaims{}, ErrInvalidTokenExpired
 			}
 		}
@@ -56,11 +60,13 @@ func DecodeToken(token string) (*JWTClaims, error) {
 	}
 
 	if !decoded.Valid {
+		zap.L().Error("token is not valid", zap.Error(err))
 		return &JWTClaims{}, ErrInvalidTokenExpired
 	}
 
 	claims, ok := decoded.Claims.(*JWTClaims)
 	if !ok {
+		zap.L().Error("failed to claim token", zap.Error(err))
 		return &JWTClaims{}, ErrFailedClaimJWT
 	}
 
