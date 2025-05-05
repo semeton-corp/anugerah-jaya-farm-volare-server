@@ -32,7 +32,7 @@ func New(db *gorm.DB, log *zap.Logger) *Scheduler {
 }
 
 func (s *Scheduler) InitScheduler() {
-	s.cron.AddFunc("*/1 * * * *", func() {
+	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.CreateDailyWorkStaff(tx)
 			if err != nil {
@@ -43,7 +43,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("*/1 * * * *", func() {
+	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.CreateStaffPresence(tx)
 			if err != nil {
@@ -54,7 +54,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("1 00 * * *", func() {
+	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.CheckForgottenStaffPresence(tx)
 			if err != nil {
