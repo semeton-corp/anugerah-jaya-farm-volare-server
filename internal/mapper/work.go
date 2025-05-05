@@ -9,8 +9,8 @@ func DailyWorkDetailToResponse(dailyWork *entity.DailyWork) dto.DailyWorkDetailR
 	return dto.DailyWorkDetailResponse{
 		Id:          dailyWork.Id,
 		Description: dailyWork.Description,
-		StartTime:   dailyWork.StartTime.Format("15:04"),
-		EndTime:     dailyWork.EndTime.Format("15:04"),
+		StartTime:   dailyWork.StartTime.Time.Format("15:04"),
+		EndTime:     dailyWork.EndTime.Time.Format("15:04"),
 	}
 }
 
@@ -52,8 +52,8 @@ func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkStaff) dto.DailyWo
 		DailyWork: dto.DailyWorkDetailResponse{
 			Id:          dailyWorkStaff.DailyWork.Id,
 			Description: dailyWorkStaff.DailyWork.Description,
-			StartTime:   dailyWorkStaff.DailyWork.StartTime.Format("15:04"),
-			EndTime:     dailyWorkStaff.DailyWork.EndTime.Format("15:04"),
+			StartTime:   dailyWorkStaff.DailyWork.StartTime.Time.Format("15:04"),
+			EndTime:     dailyWorkStaff.DailyWork.EndTime.Time.Format("15:04"),
 		},
 	}
 }

@@ -55,7 +55,7 @@ func (p *PresenceService) GetAllStaffPresences(staffId uuid.UUID, filter dto.Get
 	presenceResponses := make([]dto.PresenceListResponse, len(staffPresence))
 	for i, presence := range staffPresence {
 		presenceResponses[i] = mapper.PresenceToResponseList(&presence)
-		extraTime := presence.EndTime.Sub(time.Date(0, 0, 0, 5, 0, 0, 0, time.Local))
+		extraTime := presence.EndTime.Time.Sub(time.Date(0, 0, 0, 5, 0, 0, 0, time.Local))
 		if extraTime > 0 {
 			presenceResponses[i].ExtraTime = fmt.Sprintf("%02d Jam, %02d Menit", int(extraTime.Hours()), int(extraTime.Minutes())%60)
 		} else {
@@ -76,7 +76,7 @@ func (p *PresenceService) ArrivalPresence(id uint64, accountId uuid.UUID) (dto.P
 	}
 
 	staffPresence.IsPresent = true
-	staffPresence.StartTime = datatype.TimeOnly{time.Now()}
+	staffPresence.StartTime = datatype.TimeOnly{Time: time.Now()}
 
 	err = p.repository.UpdateStaffPresence(&staffPresence)
 	if err != nil {

@@ -32,7 +32,7 @@ func (c *CageService) GetCages() ([]dto.CageResponse, error) {
 		return nil, err
 	}
 
-	var cageResponses []dto.CageResponse
+	cageResponses := make([]dto.CageResponse, 0)
 	for _, cage := range cages {
 		cageResponses = append(cageResponses, mapper.CageToResponse(&cage))
 	}

@@ -11,7 +11,7 @@ import (
 )
 
 type TimeOnly struct {
-	time.Time
+	Time time.Time
 }
 
 func (TimeOnly) GormDataType() string {
@@ -23,7 +23,7 @@ func (TimeOnly) GormDBDataType(db *gorm.DB, field *schema.Field) string {
 }
 
 func (timeOnly TimeOnly) Value() (driver.Value, error) {
-	if !timeOnly.IsZero() {
+	if !timeOnly.Time.IsZero() {
 		return timeOnly.GetTime().Format("15:04"), nil
 	} else {
 		return nil, nil

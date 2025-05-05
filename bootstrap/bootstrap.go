@@ -13,6 +13,7 @@ import (
 	_logger "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/logger"
 	_persistence "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/persistence"
 	_router "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/router"
+	_scheduler "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/scheduler"
 	_validator "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/validator"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/handler/rest"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
@@ -28,6 +29,7 @@ type Bootstrap struct {
 	db        *gorm.DB
 	handlers  []Handler
 	email     *_email.Email
+	scheduler *_scheduler.Scheduler
 	validator *validator.Validate
 }
 
@@ -49,6 +51,7 @@ func New() *Bootstrap {
 	db := _persistence.New(logger)
 	validator := _validator.New()
 	email := _email.New()
+	scheduler := _scheduler.New(db, logger)
 
 	return &Bootstrap{
 		router:    router,
@@ -57,6 +60,7 @@ func New() *Bootstrap {
 		handlers:  []Handler{},
 		validator: validator,
 		email:     email,
+		scheduler: scheduler,
 	}
 }
 
@@ -122,6 +126,9 @@ func (b *Bootstrap) Run() {
 	b.DepedencyInjection()
 	b.Health()
 
+	b.scheduler.InitScheduler()
+	b.scheduler.Start()
+
 	_persistence.Migrate(b.db)
 	// _persistence.Rollback(b.db)
 
@@ -162,7 +169,9 @@ func (b *Bootstrap) Shutdown(ctx context.Context) {
 		b.log.Error("failed to sync logger", zap.Error(err))
 	}
 
-	b.log.Info("server shutdown gracefully")
+	b.scheduler.Stop()
+
+	b.log.Info("server shutdown gracefully...")
 }
 
 func (b *Bootstrap) Health() {

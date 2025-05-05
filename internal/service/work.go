@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -23,7 +25,7 @@ type IWorkService interface {
 	CreateAndUpdateDailyWorks(request dto.CreateDailyWorkRequest, accountId uuid.UUID) (dto.DailyWorkResponse, error)
 	GetDailyWorksBasedOnRole() ([]dto.DailyWorkListResponse, error)
 	GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkResponse, error)
-	UpdateDailyWorkStaff(id uint64, request dto.UpdateDailyWorkStaffRequest, accountId uuid.UUID) (dto.DailyWorkStaffResponse, error)
+	DeleteDailyWork(id uint64) error
 
 	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]dto.AdditionalWorkListResponse, error)
@@ -34,6 +36,7 @@ type IWorkService interface {
 	TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.AdditionalWorkStaffResponse, error)
 
 	GetStaffWorksByStaffId(staffId uuid.UUID) (dto.WorkStaffResponse, error)
+	UpdateDailyWorkStaff(id uint64, request dto.UpdateDailyWorkStaffRequest, accountId uuid.UUID) (dto.DailyWorkStaffResponse, error)
 }
 
 func NewWorkService(log *zap.Logger, repository repository.IWorkRepository, roleService IRoleService) IWorkService {
@@ -117,15 +120,15 @@ func (w *WorkService) GetDailyWorksBasedOnRole() ([]dto.DailyWorkListResponse, e
 	}
 
 	dailyWorkResponse := make([]dto.DailyWorkListResponse, len(dailyWorkSummaries))
-	for _, dailyWorkSummary := range dailyWorkSummaries {
-		dailyWorkResponse = append(dailyWorkResponse, dto.DailyWorkListResponse{
+	for i, dailyWorkSummary := range dailyWorkSummaries {
+		dailyWorkResponse[i] = dto.DailyWorkListResponse{
 			Role: dto.RoleResponse{
 				Id:   dailyWorkSummary.RoleID,
 				Name: dailyWorkSummary.RoleName,
 			},
 			TotalWork:  dailyWorkSummary.TotalWork,
 			TotalStaff: dailyWorkSummary.TotalStaff,
-		})
+		}
 	}
 
 	return dailyWorkResponse, nil
@@ -160,7 +163,7 @@ func (w *WorkService) GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkRespons
 
 // additional work & daily work staffs
 func (w *WorkService) GetStaffWorksByStaffId(staffId uuid.UUID) (dto.WorkStaffResponse, error) {
-	dailyWorkStaffs, err := w.repository.GetDailyWorkStaffsByStaffId(staffId)
+	dailyWorkStaffs, err := w.repository.GetDailyWorkStaffsByStaffId(staffId, time.Now())
 	if err != nil {
 		return dto.WorkStaffResponse{}, err
 	}
@@ -426,4 +429,13 @@ func (w *WorkService) TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.Addi
 	additionalWorkStaffResponse := mapper.AdditionalWorkStaffToResponse(&additionalWorkStaff)
 
 	return additionalWorkStaffResponse, nil
+}
+
+func (w *WorkService) DeleteDailyWork(id uint64) error {
+	if err := w.repository.DeleteDailyWork(id); err != nil {
+		w.log.Error("[DeleteDailyWork] failed to delete daily work", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

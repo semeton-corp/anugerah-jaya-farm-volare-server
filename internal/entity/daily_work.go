@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
+	"gorm.io/gorm"
 )
 
 type DailyWork struct {
@@ -18,6 +19,7 @@ type DailyWork struct {
 	CreatedAt   time.Time         `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy   uuid.UUID         `gorm:"type:varchar(255);not null"`
 	UpdatedAt   time.Time         `gorm:"type:timestamp;autoUpdateTime"`
+	DeletedAt   gorm.DeletedAt    `gorm:"type:timestamp;index"` // soft delete
 }
 
 type DailyWorkSummary struct {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"gorm.io/gorm"
 )
 
 type AdditionalWork struct {
@@ -17,4 +18,5 @@ type AdditionalWork struct {
 	CreatedAt           time.Time                 `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy           uuid.UUID                 `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time                 `gorm:"type:timestamp;autoUpdateTime"`
+	DeletedAt           gorm.DeletedAt            `gorm:"type:timestamp;index"` // soft delete
 }

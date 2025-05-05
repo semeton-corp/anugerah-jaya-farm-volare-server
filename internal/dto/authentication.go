@@ -3,10 +3,11 @@ package dto
 import "time"
 
 type SignUpRequest struct {
-	Email    string `json:"email" validate:"required,email"`
-	Name     string `json:"name" validate:"required"`
-	Password string `json:"password" validate:"required,min=8"`
-	RoleId   uint64 `json:"roleId" validate:"required"`
+	Email        string `json:"email" validate:"required,email"`
+	PhotoProfile string `json:"photoProfile"`
+	Name         string `json:"name" validate:"required"`
+	Password     string `json:"password" validate:"required,min=8"`
+	RoleId       uint64 `json:"roleId" validate:"required"`
 }
 
 type SignUpResponse struct {

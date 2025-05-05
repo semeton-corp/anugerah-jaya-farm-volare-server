@@ -65,10 +65,15 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid
 		CreatedBy:    accountId,
 	}
 
+	if request.PhotoProfile != "" {
+		account.PhotoProfile = request.PhotoProfile
+	}
+
 	staff := entity.Staff{
 		Id:        Id,
 		AccountId: Id,
 		Name:      request.Name,
+		CreatedBy: accountId,
 	}
 
 	if err = a.repository.CreateAccount(&account); err != nil {

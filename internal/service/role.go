@@ -33,7 +33,7 @@ func (r *RoleService) GetRoles() ([]dto.RoleResponse, error) {
 		return nil, err
 	}
 
-	var roleResponses []dto.RoleResponse
+	roleResponses := make([]dto.RoleResponse, 0)
 	for _, role := range roles {
 		roleResponses = append(roleResponses, mapper.RoleToResponse(&role))
 	}

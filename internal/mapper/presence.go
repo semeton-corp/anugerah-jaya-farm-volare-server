@@ -21,12 +21,12 @@ func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
 		IsPresent: presence.IsPresent,
 	}
 
-	if !presence.StartTime.IsZero() {
-		presenceDto.StartTime = presence.StartTime.Format("15:04")
+	if !presence.StartTime.Time.IsZero() {
+		presenceDto.StartTime = presence.StartTime.Time.Format("15:04")
 	}
 
-	if !presence.EndTime.IsZero() {
-		presenceDto.EndTime = presence.EndTime.Format("15:04")
+	if !presence.EndTime.Time.IsZero() {
+		presenceDto.EndTime = presence.EndTime.Time.Format("15:04")
 	}
 
 	return presenceDto
@@ -48,12 +48,12 @@ func PresenceToResponseList(presence *entity.StaffPresence) dto.PresenceListResp
 		IsPresent: presence.IsPresent,
 	}
 
-	if !presence.StartTime.IsZero() {
-		presenceDto.StartTime = presence.StartTime.Format("15:04")
+	if !presence.StartTime.Time.IsZero() {
+		presenceDto.StartTime = presence.StartTime.Time.Format("15:04")
 	}
 
-	if !presence.EndTime.IsZero() {
-		presenceDto.EndTime = presence.EndTime.Format("15:04")
+	if !presence.EndTime.Time.IsZero() {
+		presenceDto.EndTime = presence.EndTime.Time.Format("15:04")
 	}
 
 	return presenceDto

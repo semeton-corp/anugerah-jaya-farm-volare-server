@@ -27,6 +27,7 @@ func (a *WorkHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/dailies", middleware.Authentication(), a.GetDailyWorksBasedOnRole)
 	v1.Get("/dailies/:roleId", middleware.Authentication(), a.GetDailyWorksByRoleId)
 	v1.Put("/dailies/staffs/:id", middleware.Authentication(), a.UpdateDailyWorkStaff)
+	v1.Delete("/dailies/:id", middleware.Authentication(), a.DeleteDailyWork)
 
 	v1.Put("/additionals/staffs/:id", middleware.Authentication(), a.UpdateAdditionalWorkStaff)
 	v1.Post("/additionals", middleware.Authentication(), a.CreateAdditionalWork)
@@ -139,18 +140,18 @@ func (a *WorkHandler) GetAdditionalWorks(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) GetAdditionalWorkById(c *fiber.Ctx) error {
-	IdParam := c.Params("id")
-	if IdParam == "" {
+	idParam := c.Params("id")
+	if idParam == "" {
 		return errx.BadRequest(" id is required")
 	}
 
-	Id, err := strconv.ParseUint(IdParam, 10, 64)
+	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		a.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
 	}
 
-	res, err := a.service.GetAdditionalWorkById(Id)
+	res, err := a.service.GetAdditionalWorkById(id)
 	if err != nil {
 		a.log.Error("failed to get additional work by id", zap.Error(err))
 		return err
@@ -160,12 +161,12 @@ func (a *WorkHandler) GetAdditionalWorkById(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) UpdateAdditionalWork(c *fiber.Ctx) error {
-	IdParam := c.Params("id")
-	if IdParam == "" {
+	idParam := c.Params("id")
+	if idParam == "" {
 		return errx.BadRequest(" id is required")
 	}
 
-	Id, err := strconv.ParseUint(IdParam, 10, 64)
+	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		a.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
@@ -184,7 +185,7 @@ func (a *WorkHandler) UpdateAdditionalWork(c *fiber.Ctx) error {
 
 	idCtx := c.Locals("accountId").(string)
 
-	res, err := a.service.UpdateAdditionalWork(Id, request, uuid.MustParse(idCtx))
+	res, err := a.service.UpdateAdditionalWork(id, request, uuid.MustParse(idCtx))
 	if err != nil {
 		a.log.Error("failed to update additional work", zap.Error(err))
 		return err
@@ -194,18 +195,18 @@ func (a *WorkHandler) UpdateAdditionalWork(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) DeleteAdditionalWork(c *fiber.Ctx) error {
-	IdParam := c.Params("id")
-	if IdParam == "" {
+	idParam := c.Params("id")
+	if idParam == "" {
 		return errx.BadRequest(" id is required")
 	}
 
-	Id, err := strconv.ParseUint(IdParam, 10, 64)
+	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		a.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
 	}
 
-	err = a.service.DeleteAdditionalWork(Id)
+	err = a.service.DeleteAdditionalWork(id)
 	if err != nil {
 		a.log.Error("failed to delete additional work", zap.Error(err))
 		return err
@@ -215,9 +216,9 @@ func (a *WorkHandler) DeleteAdditionalWork(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) GetOwnStaffWork(c *fiber.Ctx) error {
-	IdCtx := c.Locals("accountId").(string)
+	idCtx := c.Locals("accountId").(string)
 
-	res, err := a.service.GetStaffWorksByStaffId(uuid.MustParse(IdCtx))
+	res, err := a.service.GetStaffWorksByStaffId(uuid.MustParse(idCtx))
 	if err != nil {
 		a.log.Error("failed to get own staff work", zap.Error(err))
 		return err
@@ -227,20 +228,20 @@ func (a *WorkHandler) GetOwnStaffWork(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) TakeAdditionalWork(c *fiber.Ctx) error {
-	AccountIdCtx := c.Locals("accountId").(string)
+	accountIdCtx := c.Locals("accountId").(string)
 
-	IdParam := c.Params("id")
-	if IdParam == "" {
-		return errx.BadRequest(" id is required")
+	idParam := c.Params("id")
+	if idParam == "" {
+		return errx.BadRequest("id is required")
 	}
 
-	Id, err := strconv.ParseUint(IdParam, 10, 64)
+	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		a.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
 	}
 
-	resp, err := a.service.TakeAdditionalWork(Id, uuid.MustParse(AccountIdCtx))
+	resp, err := a.service.TakeAdditionalWork(id, uuid.MustParse(accountIdCtx))
 	if err != nil {
 		a.log.Error("failed to take additional work", zap.Error(err))
 		return err
@@ -250,14 +251,14 @@ func (a *WorkHandler) TakeAdditionalWork(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
-	AccountIdCtx := c.Locals("accountId").(string)
+	accountIdCtx := c.Locals("accountId").(string)
 
-	IdParam := c.Params("id")
-	if IdParam == "" {
+	idParam := c.Params("id")
+	if idParam == "" {
 		return errx.BadRequest(" id is required")
 	}
 
-	Id, err := strconv.ParseUint(IdParam, 10, 64)
+	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		a.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
@@ -274,7 +275,7 @@ func (a *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := a.service.UpdateAdditionalWorkStaff(Id, request, uuid.MustParse(AccountIdCtx))
+	res, err := a.service.UpdateAdditionalWorkStaff(id, request, uuid.MustParse(accountIdCtx))
 	if err != nil {
 		a.log.Error("failed to update additional work staff", zap.Error(err))
 		return err
@@ -284,7 +285,7 @@ func (a *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) UpdateDailyWorkStaff(c *fiber.Ctx) error {
-	AccountIdCtx := c.Locals("accountId").(string)
+	accountIdCtx := c.Locals("accountId").(string)
 
 	IdParam := c.Params("id")
 	if IdParam == "" {
@@ -308,11 +309,32 @@ func (a *WorkHandler) UpdateDailyWorkStaff(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := a.service.UpdateDailyWorkStaff(Id, request, uuid.MustParse(AccountIdCtx))
+	res, err := a.service.UpdateDailyWorkStaff(Id, request, uuid.MustParse(accountIdCtx))
 	if err != nil {
 		a.log.Error("failed to update daily work staff", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update daily work staff")
+}
+
+func (a *WorkHandler) DeleteDailyWork(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		return errx.BadRequest(" id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("failed to parse work id", zap.Error(err))
+		return errx.BadRequest("work id must be a number")
+	}
+
+	err = a.service.DeleteDailyWork(id)
+	if err != nil {
+		a.log.Error("failed to delete daily work", zap.Error(err))
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
