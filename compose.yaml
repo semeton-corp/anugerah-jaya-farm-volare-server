@@ -1,5 +1,4 @@
 name: volare
-
 services:
   backend:
     build:
@@ -8,24 +7,30 @@ services:
     container_name: backend
     expose:
       - "${BACKEND_PORT}"
+    ports:
+      - "${BACKEND_PORT}:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - volare-network
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
-
+      start_period: 15s
   postgres:
     image: postgres:17
     container_name: postgres
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - compose.env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: $(POSTGRES_USER)
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
@@ -35,7 +40,7 @@ services:
     networks:
       - volare-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U volare"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -44,7 +49,9 @@ services:
   redis:
     image: redis:7
     container_name: redis
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - compose.env
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     ports:
@@ -80,6 +87,9 @@ services:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
     networks:
       - volare-network
+    restart: unless-stopped
+    env_file:
+      - compose.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/health"]
       interval: 20s

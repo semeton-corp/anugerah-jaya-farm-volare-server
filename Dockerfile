@@ -13,11 +13,13 @@ FROM alpine:3.21
 
 WORKDIR /app
 
+
 COPY --from=builder /app/app .
 COPY --from=builder /app/env.yaml .
 COPY --from=builder /app/templates/ templates/
 
-RUN apk --no-cache add dumb-init
+RUN apk add --no-cache tzdata
+RUN chmod +x ./app && apk --no-cache add dumb-init
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 
