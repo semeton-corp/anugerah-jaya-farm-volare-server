@@ -81,17 +81,21 @@ func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, e
 func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]entity.EggMonitoring, error) {
 	eggMonitorings := make([]entity.EggMonitoring, 0)
 
-	query := r.GetDB().Preload("Warehouse.Location").Preload("Cage.Location").Model(&entity.EggMonitoring{})
+	query := r.GetDB().
+		Preload("Warehouse.Location").
+		Preload("Cage.Location").
+		Model(&entity.EggMonitoring{})
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+		query = query.Where("DATE(egg_monitorings.created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Limit > 0 {
-		query = query.Limit(int(filter.Limit))
+	if filter.Location > 0 {
+		query = query.Joins("JOIN cages ON cages.id = egg_monitorings.cage_id").
+			Where("cages.location_id = ?", filter.Location)
 	}
 
-	if err := query.Find(&eggMonitorings).Order("created_at ASC").Error; err != nil {
+	if err := query.Order("egg_monitorings.created_at ASC").Find(&eggMonitorings).Error; err != nil {
 		return nil, err
 	}
 

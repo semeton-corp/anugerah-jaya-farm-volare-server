@@ -1,5 +1,11 @@
 package dto
 
+import (
+	"time"
+
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
+
 type WorkStaffResponse struct {
 	DailyWorks      []DailyWorkStaffResponse      `json:"dailyWorks"`
 	AdditionalWorks []AdditionalWorkStaffResponse `json:"additionalWorks"`
@@ -33,19 +39,22 @@ type CreateAdditionalWorkRequest struct {
 	Description string `json:"description" validate:"required"`
 	Location    string `json:"location" validate:"required"`
 	Slot        uint64 `json:"slot" validate:"required"`
+	Salary      string `json:"salary" validate:"required"`
 }
 
 type UpdateAdditionalWorkRequest struct {
 	Description string `json:"description" validate:"required"`
 	Location    string `json:"location" validate:"required"`
 	Slot        uint64 `json:"slot" validate:"required"`
+	Salary      string `json:"salary" validate:"required"`
 }
 
 type AdditionalWorkResponse struct {
 	Id                             uint64                                   `json:"id"`
-	Description                    string                                   `json:"description" validate:"required"`
-	Location                       string                                   `json:"location" validate:"required"`
-	Slot                           uint64                                   `json:"slot" validate:"required"`
+	Description                    string                                   `json:"description"`
+	Location                       string                                   `json:"location"`
+	Slot                           uint64                                   `json:"slot"`
+	Salary                         string                                   `json:"salary"`
 	AdditionalWorkStaffInformation []AdditionalWorkStaffInformationResponse `json:"additionalWorkStaffInformation"`
 }
 
@@ -62,18 +71,21 @@ type AdditionalWorkDetailResponse struct {
 	Description string `json:"description"`
 	Date        string `json:"date"`
 	Time        string `json:"time"`
+	Salary      string `json:"salary"`
 }
 
 type AdditionalWorkStaffResponse struct {
 	Id             uint64                       `json:"id"`
 	IsDone         bool                         `json:"isDone"`
 	AdditionalWork AdditionalWorkDetailResponse `json:"additionalWork"`
+	CreatedAt      time.Time                    `json:"-"`
 }
 
 type DailyWorkStaffResponse struct {
 	Id        uint64                  `json:"id"`
 	IsDone    bool                    `json:"isDone"`
 	DailyWork DailyWorkDetailResponse `json:"dailyWork"`
+	CreatedAt time.Time               `json:"-"`
 }
 
 type DailyWorkListResponse struct {
@@ -101,4 +113,21 @@ type UpdateAdditionalWorkStaffRequest struct {
 
 type UpdateDailyWorkStaffRequest struct {
 	IsDone bool `json:"isDone"`
+}
+
+type GetDailyWorkStaffFilter struct {
+	Date        param.DateParam  `query:"date"`
+	Month       param.MonthParam `query:"month"`
+	Year        uint64           `query:"year"`
+	WithDeleted bool             `query:"withDeleted"`
+}
+
+type GetAdditionalWorkStaffFilter struct {
+	Month       param.MonthParam `query:"month"`
+	Year        uint64           `query:"year"`
+	WithDeleted bool             `query:"withDeleted"`
+}
+
+type GetDailyWorkBasedOnRoleFilter struct {
+	RoleIds []uint64 `query:"roleIds"`
 }

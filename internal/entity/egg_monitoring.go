@@ -17,6 +17,9 @@ type EggMonitoring struct {
 	TotalBrokeEgg   uint64    `gorm:"type:bigint;not null"`
 	TotalRejectEgg  uint64    `gorm:"type:bigint;not null"`
 	Weight          float64   `gorm:"type:decimal;not null"`
+	IsArrive        bool      `gorm:"type:boolean;default:false"`
+	TakenBy         uuid.UUID `gorm:"type:varchar(255)"`
+	TakenAt         time.Time `gorm:"type:timestamp"`
 	CreatedBy       uuid.UUID `gorm:"type:varchar(255)"`
 	CreatedAt       time.Time `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy       uuid.UUID `gorm:"type:varchar(255)"`

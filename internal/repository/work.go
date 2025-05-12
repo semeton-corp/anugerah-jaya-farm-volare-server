@@ -2,11 +2,12 @@ package repository
 
 import (
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
 )
 
@@ -20,18 +21,18 @@ type IWorkRepository interface {
 	Commit() error
 	Rollback() error
 
-	GetDailyWorkStaffsByStaffId(staffId uuid.UUID, time time.Time) ([]entity.DailyWorkStaff, error)
-	GetAdditionalWorkStaffByStaffId(staffId uuid.UUID) ([]entity.AdditionalWorkStaff, error)
+	GetDailyWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetDailyWorkStaffFilter) ([]entity.DailyWorkStaff, error)
+	GetAdditionalWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetAdditionalWorkStaffFilter) ([]entity.AdditionalWorkStaff, error)
 
 	CreateDailyWork(dailyWork *entity.DailyWork) error
 	GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork, error)
-	GetDailyWorkBasedOnRole() ([]entity.DailyWorkSummary, error)
+	GetDailyWorkBasedOnRole(filter dto.GetDailyWorkBasedOnRoleFilter) ([]entity.DailyWorkSummary, error)
 	DeleteDailyWork(id uint64) error
 
 	CreateAdditionalWork(additionalWork *entity.AdditionalWork) error
 	GetAdditionalWorkById(id uint64) (entity.AdditionalWork, error)
 	DeleteAdditionalWork(id uint64) error
-	GetAdditionalWorks() ([]entity.AdditionalWork, error)
+	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error)
 	CreateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error
 	GetAdditionalWorkStaffById(id uint64) (entity.AdditionalWorkStaff, error)
 	UpdateAdditionalWorkStaff(additionalWorkStaff *entity.AdditionalWorkStaff) error
@@ -85,7 +86,7 @@ func (r *WorkRepository) GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork
 	var dailyWorks []entity.DailyWork
 	err := r.GetDB().
 		Preload("Role").
-		Where("role_id = ? AND deleted_at IS NULL", roleId).
+		Where("role_id = ?", roleId).
 		Find(&dailyWorks).Error
 
 	if err != nil {
@@ -111,26 +112,55 @@ func (r *WorkRepository) GetAdditionalWorkById(id uint64) (entity.AdditionalWork
 	return additionalWorks, nil
 }
 
-func (r *WorkRepository) GetDailyWorkStaffsByStaffId(staffId uuid.UUID, time time.Time) ([]entity.DailyWorkStaff, error) {
+func (r *WorkRepository) GetDailyWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetDailyWorkStaffFilter) ([]entity.DailyWorkStaff, error) {
 	var dailyWorkStaffs []entity.DailyWorkStaff
-	err := r.GetDB().
-		Preload("DailyWork").
+	query := r.GetDB()
+
+	if filter.Month.Value().IsValid() {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
+		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value().Format("2006-01-02"))
+	}
+
+	if filter.WithDeleted {
+		query = query.Preload("DailyWork")
+	} else {
+		query = query.Preload("DailyWork", "deleted_at IS NULL")
+	}
+
+	err := query.Preload("DailyWork").
 		Preload("Staff.Account", "id = ?", staffId).
-		Where("DATE(created_at) = ? AND deleted_at IS NULL", time.Format("2006-01-02")).
+		Order("created_at DESC").
 		Find(&dailyWorkStaffs).Error
 
 	if err != nil {
 		return nil, err
 	}
+
 	return dailyWorkStaffs, nil
 }
 
-func (r *WorkRepository) GetAdditionalWorkStaffByStaffId(staffId uuid.UUID) ([]entity.AdditionalWorkStaff, error) {
+func (r *WorkRepository) GetAdditionalWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetAdditionalWorkStaffFilter) ([]entity.AdditionalWorkStaff, error) {
 	var additionalWorks []entity.AdditionalWorkStaff
-	err := r.GetDB().
-		Preload("AdditionalWork").
+	query := r.GetDB()
+
+	if filter.Month.Value().IsValid() {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
+		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+	}
+
+	if filter.WithDeleted {
+		query = query.Preload("AdditionalWork")
+	} else {
+		query = query.Preload("AdditionalWork", "deleted_at IS NULL")
+	}
+
+	err := query.Preload("AdditionalWork").
 		Preload("Staff.Account", "id = ?", staffId).
-		Where("deleted_at IS NULL").
+		Order("created_at DESC").
 		Find(&additionalWorks).Error
 
 	if err != nil {
@@ -147,7 +177,7 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 	return nil
 }
 
-func (r *WorkRepository) GetAdditionalWorks() ([]entity.AdditionalWork, error) {
+func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
 	err := r.GetDB().
 		Preload("AdditionalWorkStaff.Staff").
@@ -160,19 +190,24 @@ func (r *WorkRepository) GetAdditionalWorks() ([]entity.AdditionalWork, error) {
 	return additionalWorks, nil
 }
 
-func (r *WorkRepository) GetDailyWorkBasedOnRole() ([]entity.DailyWorkSummary, error) {
+func (r *WorkRepository) GetDailyWorkBasedOnRole(filter dto.GetDailyWorkBasedOnRoleFilter) ([]entity.DailyWorkSummary, error) {
 	var dailyWorkSummaries []entity.DailyWorkSummary
 
-	err := r.GetDB().
+	query := r.GetDB().
 		Table("daily_works").
 		Select(`daily_works.role_id, roles.name AS role_name,
-		        COUNT(DISTINCT daily_works.id) AS total_work,
-		        COUNT(DISTINCT accounts.id) AS total_staff`).
+				COUNT(DISTINCT daily_works.id) AS total_work,
+				COUNT(DISTINCT accounts.id) AS total_staff`).
 		Joins("LEFT JOIN roles ON daily_works.role_id = roles.id").
 		Joins("LEFT JOIN accounts ON accounts.role_id = roles.id").
 		Group("daily_works.role_id, roles.name").
-		Where("daily_works.deleted_at IS NULL").
-		Scan(&dailyWorkSummaries).Error
+		Where("daily_works.deleted_at IS NULL")
+
+	if filter.RoleIds != nil {
+		query = query.Where("daily_works.role_id IN ?", filter.RoleIds)
+	}
+
+	err := query.Scan(&dailyWorkSummaries).Error
 
 	if err != nil {
 		return nil, err
@@ -187,10 +222,10 @@ func (r *WorkRepository) CreateAdditionalWorkStaff(additionalWorkStaff *entity.A
 func (r *WorkRepository) GetAdditionalWorkStaffById(id uint64) (entity.AdditionalWorkStaff, error) {
 	var additionalWorkStaff entity.AdditionalWorkStaff
 	err := r.GetDB().
-		Preload("AdditionalWork").
+		Model(&entity.AdditionalWorkStaff{}).
+		Preload("AdditionalWork", "deleted_at IS NULL").
 		Preload("Staff.Account").
 		Where("id = ?", id).
-		Where("deleted_at IS NULL").
 		First(&additionalWorkStaff).Error
 
 	if err != nil {
@@ -221,9 +256,9 @@ func (r *WorkRepository) UpdateDailyWorkStaff(dailyWorkStaff *entity.DailyWorkSt
 func (r *WorkRepository) GetDailyWorkStaffById(id uint64) (entity.DailyWorkStaff, error) {
 	var dailyWorkStaff entity.DailyWorkStaff
 	err := r.GetDB().
-		Preload("DailyWork").
+		Preload("DailyWork", "deleted_at IS NULL").
 		Preload("Staff.Account").
-		Where("id = ? AND deleted_at IS NULL", id).
+		Where("id = ?", id).
 		First(&dailyWorkStaff).Error
 
 	if err != nil {

@@ -25,6 +25,7 @@ type IStoreRepository interface {
 	GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error)
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]entity.StoreRequestItem, error)
 	UpdateStoreRequestItem(storeRequestItem *entity.StoreRequestItem) error
+	CountTotalStoreRequestItem(filter dto.GetStoreRequestItemFilter) (uint64, error)
 
 	FirstOrCreateStoreItem(storeItem *entity.StoreItem) error
 	UpdateStoreItem(storeItem *entity.StoreItem) error
@@ -34,6 +35,7 @@ type IStoreRepository interface {
 	GetStoreSaleById(id uint64) (entity.StoreSale, error)
 	GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
 	UpdateStoreSale(storeSale *entity.StoreSale) error
+	CountTotalStoreSale(filter dto.GetStoreSaleFilter) (uint64, error)
 
 	CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
@@ -223,4 +225,43 @@ func (r *StoreRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePa
 
 func (r *StoreRepository) UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error {
 	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", storeSalePayment.Id).Updates(storeSalePayment).Error
+}
+
+func (r *StoreRepository) CountTotalStoreRequestItem(filter dto.GetStoreRequestItemFilter) (uint64, error) {
+	var totalData int64
+	query := r.GetDB()
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	err := query.Model(&entity.StoreRequestItem{}).Count(&totalData).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(totalData), nil
+}
+
+func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (uint64, error) {
+	var totalData int64
+	query := r.GetDB()
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	if filter.PaymentMethod.Value().IsValid() {
+		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	}
+
+	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(totalData), nil
 }

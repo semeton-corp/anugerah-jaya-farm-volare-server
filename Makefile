@@ -25,5 +25,7 @@ build:
 	@echo "Building the application..."
 	go build -o app.exe cmd/app/main.go
 
-get-db:
-	@echo $(POSTGRES_DB)
+.PHONY: compose-dev
+compose-dev:
+	@echo "Starting Docker containers in development mode..."
+	docker compose -f compose.dev.yaml up --detach

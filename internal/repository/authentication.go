@@ -25,6 +25,8 @@ type IAuthenticationRepository interface {
 	UpdateAccount(account *entity.Account) error
 	CreateStaff(staff *entity.Staff) error
 	DeleteAccount(id uuid.UUID) error
+
+	GetStaffById(id uuid.UUID) (entity.Staff, error)
 }
 
 func NewAuthenticationRepository(db *gorm.DB) IAuthenticationRepository {
@@ -101,4 +103,12 @@ func (r *AuthenticationRepository) CreateStaff(staff *entity.Staff) error {
 
 func (r *AuthenticationRepository) DeleteAccount(id uuid.UUID) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Account{}).Error
+}
+
+func (r *AuthenticationRepository) GetStaffById(id uuid.UUID) (entity.Staff, error) {
+	var staff entity.Staff
+	if err := r.GetDB().Where(&entity.Staff{Id: id}).First(&staff).Error; err != nil {
+		return entity.Staff{}, err
+	}
+	return staff, nil
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -23,6 +24,8 @@ type IWarehouseRepository interface {
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
 	UpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error
 	GetWarehouseItemById(id uint64) (entity.WarehouseItem, error)
+	GetWarehouseItemByNameAndUnit(name string, unit string) (entity.WarehouseItem, error)
+	DeleteWarehouseItem(id uint64) error
 
 	CreateWarehouseStockItem(stockWarehouseItem *entity.WarehouseStockItem) error
 	GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]entity.WarehouseStockItem, error)
@@ -33,11 +36,13 @@ type IWarehouseRepository interface {
 
 	CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
 	GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error)
-	GetWarehouseOrderItems() ([]entity.WarehouseOrderItem, error)
+	GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]entity.WarehouseOrderItem, error)
 	DeleteWarehouseOrderItem(id uint64) error
 	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
 
 	GetWarehouses() ([]entity.Warehouse, error)
+
+	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.WarehouseItem, error)
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -121,12 +126,27 @@ func (r *WarehouseRepository) UpdateWarehouseItem(warehouseItem *entity.Warehous
 	return r.GetDB().Model(entity.WarehouseItem{}).Where("id = ?", warehouseItem.Id).Updates(warehouseItem).Error
 }
 
+func (r *WarehouseRepository) DeleteWarehouseItem(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItem{}).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseItemByNameAndUnit(name string, unit string) (entity.WarehouseItem, error) {
+	var warehouseItem entity.WarehouseItem
+	err := r.GetDB().Where("name = ? AND unit = ?", name, unit).First(&warehouseItem).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseItem{}, errx.NotFound("warehouse item not found")
+		}
+		return entity.WarehouseItem{}, err
+	}
+	return warehouseItem, nil
+}
+
 func (r *WarehouseRepository) CreateWarehouseStockItem(stockWarehouseItem *entity.WarehouseStockItem) error {
 	if err := r.GetDB().Create(stockWarehouseItem).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return errx.BadRequest("stock warehouse item already exists")
 		}
-
 		return err
 	}
 
@@ -193,9 +213,21 @@ func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.Wareh
 	return warehouseOrderItem, nil
 }
 
-func (r *WarehouseRepository) GetWarehouseOrderItems() ([]entity.WarehouseOrderItem, error) {
+func (r *WarehouseRepository) GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]entity.WarehouseOrderItem, error) {
 	var warehouseOrderItems []entity.WarehouseOrderItem
-	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier").Find(&warehouseOrderItems).Error
+	query := r.GetDB().Model(&entity.WarehouseOrderItem{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(taken_at) = ?", filter.Date.Value())
+	}
+
+	if filter.IsTaken {
+		query = query.Where("taken_at IS NOT NULL")
+	} else {
+		query = query.Where("taken_at IS NULL")
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier").Find(&warehouseOrderItems).Error
 	if err != nil {
 		return nil, err
 	}
@@ -209,4 +241,16 @@ func (r *WarehouseRepository) DeleteWarehouseOrderItem(id uint64) error {
 
 func (r *WarehouseRepository) UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error {
 	return r.GetDB().Model(entity.WarehouseOrderItem{}).Where("id = ?", warehouseOrderItem.Id).Updates(&warehouseOrderItem).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.WarehouseItem, error) {
+	var warehouseItem entity.WarehouseItem
+	err := r.GetDB().Where("name = ? AND unit = ? AND type = ?", name, unit, itemType).First(&warehouseItem).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseItem{}, errx.NotFound("warehouse item not found")
+		}
+		return entity.WarehouseItem{}, err
+	}
+	return warehouseItem, nil
 }

@@ -29,6 +29,7 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
 		Weight:          eggMonitoring.Weight,
+		IsArrive:        eggMonitoring.IsArrive,
 	}
 }
 
@@ -58,5 +59,6 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
 		TotalAll:        eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalBrokeEgg + eggMonitoring.TotalRejectEgg,
 		Weight:          eggMonitoring.Weight,
+		IsArrive:        eggMonitoring.IsArrive,
 	}
 }

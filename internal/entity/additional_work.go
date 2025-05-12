@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -13,7 +14,8 @@ type AdditionalWork struct {
 	Description         string                    `gorm:"type:text;not null"`
 	Slot                uint64                    `gorm:"type:bigint;not null"`
 	AdditionalWorkStaff []AdditionalWorkStaff     `gorm:"foreignKey:AdditionalWorkId;references:Id"`
-	Location            enum.LocationAddionalWork `gorm:"int:text;not null"`
+	Location            enum.LocationAddionalWork `gorm:"int;not null"`
+	Salary              decimal.Decimal           `gorm:"decimal;not null;default:0"`
 	CreatedBy           uuid.UUID                 `gorm:"type:varchar(255)"`
 	CreatedAt           time.Time                 `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy           uuid.UUID                 `gorm:"type:varchar(255)"`

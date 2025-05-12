@@ -133,14 +133,19 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Limit > 0 {
-		query = query.Limit(int(filter.Limit))
+	if filter.Location > 0 {
+		query = query.Preload("Cage.Location", "id = ?", filter.Location)
+	} else {
+		query = query.Preload("Cage.Location")
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("created_at >= ? AND created_at <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	err := query.
 		Preload("ChickenDiseaseMonitoring").
 		Preload("ChickenVaccineMonitoring").
-		Preload("Cage.Location").
 		Order("created_at desc").
 		Find(&chickenMonitorings).Error
 

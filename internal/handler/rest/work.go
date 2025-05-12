@@ -70,7 +70,18 @@ func (a *WorkHandler) CreateAndUpdateDailyWorks(c *fiber.Ctx) error {
 }
 
 func (a *WorkHandler) GetDailyWorksBasedOnRole(c *fiber.Ctx) error {
-	res, err := a.service.GetDailyWorksBasedOnRole()
+	var filter dto.GetDailyWorkBasedOnRoleFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(filter); err != nil {
+		a.log.Error("failed to validate request", zap.Error(err))
+		return err
+	}
+
+	res, err := a.service.GetDailyWorksBasedOnRole(filter)
 	if err != nil {
 		a.log.Error("failed to get daily works based on role", zap.Error(err))
 		return err

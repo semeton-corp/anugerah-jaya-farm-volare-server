@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
@@ -27,6 +28,7 @@ type IPresenceRepository interface {
 	GetStaffPresenceTodayByStaffId(staffId uuid.UUID) (entity.StaffPresence, error)
 	GetStaffPresenceByStaffId(staffId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.StaffPresence, error)
 	GetStaffPresenceInRoleIds(roleIds []uint64) ([]entity.StaffPresence, error)
+	CountTotalStaffPresenceByStaffId(staffId uuid.UUID, filter dto.GetPresenceFilter) (int64, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -83,9 +85,13 @@ func (r *PresenceRepository) GetStaffPresenceByStaffId(staffId uuid.UUID, filter
 	var staffPresences []entity.StaffPresence
 	query := r.GetDB().Preload("Staff.Account.Role").Where("staff_id = ?", staffId)
 
-	if filter.Status.Value().IsValid() {
-		startDate, endDate := util.GetStartDayAndEndDayByPresenceFilter(filter.Status.Value())
+	if filter.Month.Value().IsValid() {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
 		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	err := query.Find(&staffPresences).Order("created_at DESC").Error
@@ -117,4 +123,21 @@ func (r *PresenceRepository) GetStaffPresenceTodayByStaffId(staffId uuid.UUID) (
 		return staffPresence, err
 	}
 	return staffPresence, nil
+}
+
+func (r *PresenceRepository) CountTotalStaffPresenceByStaffId(staffId uuid.UUID, filter dto.GetPresenceFilter) (int64, error) {
+	var totalData int64
+	query := r.GetDB().Model(&entity.StaffPresence{}).Where("staff_id = ?", staffId)
+
+	if filter.Month.Value().IsValid() {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
+		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+	}
+
+	err := query.Model(&entity.StaffPresence{}).Count(&totalData).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return totalData, nil
 }

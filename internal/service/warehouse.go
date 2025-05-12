@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/cache"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
@@ -19,6 +20,7 @@ type WarehouseService struct {
 	log          *zap.Logger
 	repository   repository.IWarehouseRepository
 	storeService IStoreService
+	cacheService cache.ICache
 }
 
 type IWarehouseService interface {
@@ -26,6 +28,7 @@ type IWarehouseService interface {
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
 	UpdateWarehouseItem(warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
 	GetWarehouseItemById(id uint64) (dto.WarehouseItemResponse, error)
+	DeleteWarehouseItem(id uint64) error
 
 	GetWarehouses() ([]dto.WarehouseResponse, error)
 
@@ -37,16 +40,21 @@ type IWarehouseService interface {
 
 	CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
 	GetWarehouseOrderItemById(id uint64) (dto.WarehouseOrderItemResponse, error)
-	GetWarehouseOrderItems() ([]dto.WarehouseOrderItemResponse, error)
+	GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]dto.WarehouseOrderItemResponse, error)
 	DeleteWarehouseOrderItem(id uint64) error
 	TakeWarehouseOrderItem(id uint64, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
+
+	GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
+	GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
+	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
 }
 
-func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, storeService IStoreService) IWarehouseService {
+func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, storeService IStoreService, cacheService cache.ICache) IWarehouseService {
 	return &WarehouseService{
 		log:          log,
 		repository:   repository,
 		storeService: storeService,
+		cacheService: cacheService,
 	}
 }
 
@@ -191,6 +199,11 @@ func (w *WarehouseService) GetWarehouses() ([]dto.WarehouseResponse, error) {
 	return warehouseResponses, nil
 }
 
+func (w *WarehouseService) DeleteWarehouseItem(id uint64) error {
+	w.repository.UseTx(false)
+	return w.repository.DeleteWarehouseItem(id)
+}
+
 func (w *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
 	// Todo : create estimation run out date, based on average used per day from request item from request warhouse item.
 
@@ -321,6 +334,19 @@ func (w *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehous
 	return nil
 }
 
+func (w *WarehouseService) GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (dto.WarehouseItemResponse, error) {
+	w.repository.UseTx(false)
+
+	stockWarehouseItem, err := w.repository.GetWarehouseItemByNameAndUnitAndType(name, unit, itemType)
+	if err != nil {
+		w.log.Error("[GetStockWarehouseItemByNameAndUnit] failed to get stock warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
+	}
+
+	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&stockWarehouseItem)
+	return warehouseStockItemResponse, nil
+}
+
 func (w *WarehouseService) CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error) {
 	w.repository.UseTx(false)
 
@@ -361,13 +387,24 @@ func (w *WarehouseService) GetWarehouseOrderItemById(id uint64) (dto.WarehouseOr
 	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
 }
 
-func (w *WarehouseService) GetWarehouseOrderItems() ([]dto.WarehouseOrderItemResponse, error) {
+func (w *WarehouseService) GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]dto.WarehouseOrderItemResponse, error) {
 	w.repository.UseTx(false)
 
-	warehouseOrderItems, err := w.repository.GetWarehouseOrderItems()
+	filter.IsTaken = true
+	warehouseOrderItems, err := w.repository.GetWarehouseOrderItems(filter)
 	if err != nil {
 		w.log.Error("[GetWarehouseOrderItems] failed to get warehouse order items", zap.Error(err))
 		return nil, err
+	}
+
+	if filter.Date.Value().Equal(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)) {
+		untakenWarehouseOrderItems, err := w.repository.GetWarehouseOrderItems(dto.GetWarehouseOrderItemFilter{IsTaken: false})
+		if err != nil {
+			w.log.Error("[GetWarehouseOrderItems] failed to get warehouse order items", zap.Error(err))
+			return nil, err
+		}
+
+		warehouseOrderItems = append(warehouseOrderItems, untakenWarehouseOrderItems...)
 	}
 
 	warehouseOrderItemResponses := make([]dto.WarehouseOrderItemResponse, 0, len(warehouseOrderItems))
@@ -417,4 +454,196 @@ func (w *WarehouseService) TakeWarehouseOrderItem(id uint64, accountId uuid.UUID
 	}
 
 	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
+}
+
+func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+	e.repository.UseTx(true)
+	defer e.repository.Rollback()
+
+	goodEggButir, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitButir, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	goodEggIkat, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitIkat, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggButir, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggIkat, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity - request.TotalButir - (request.TotalKarpet * constant.TotalEggKarpet)
+
+	if warehouseStockItemEggButir.Quantity < 0 {
+		return nil, errx.BadRequest("stok butir tidak mencukupi")
+	}
+
+	warehouseStockItemEggIkat.Quantity = warehouseStockItemEggIkat.Quantity + request.TotalIkat
+
+	warehouseStockItemEggButir.UpdatedBy = accountId
+	warehouseStockItemEggIkat.UpdatedBy = accountId
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
+
+		return nil, err
+	}
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggIkat)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	if err := e.repository.Commit(); err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.WarehouseStockItemResponse, 0)
+
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggIkat))
+
+	return response, nil
+}
+
+func (e *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+	e.repository.UseTx(true)
+	defer e.repository.Rollback()
+
+	goodEggButir, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitButir, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	goodEggIkat, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitIkat, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggButir, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggIkat, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggIkat.Quantity = warehouseStockItemEggIkat.Quantity - request.TotalIkat
+
+	if warehouseStockItemEggIkat.Quantity < 0 {
+		return nil, errx.BadRequest("stok ikat tidak mencukupi")
+	}
+
+	warehouseStockItemEggIkat.UpdatedBy = accountId
+
+	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity + request.TotalButir + (request.TotalKarpet * constant.TotalEggKarpet)
+	warehouseStockItemEggButir.UpdatedBy = accountId
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
+
+		return nil, err
+	}
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggIkat)
+	if err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	if err := e.repository.Commit(); err != nil {
+		e.log.Error("[GoodEggConverterButirToIkat] failed to commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.WarehouseStockItemResponse, 0)
+
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggIkat))
+
+	return response, nil
+}
+
+func (e *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+	e.repository.UseTx(true)
+	defer e.repository.Rollback()
+
+	crackedEggButir, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitButir, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	crackedEggPack, err := e.repository.GetWarehouseItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitPack, enum.WarehouseItemCategoryEgg)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggButir, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggButir.Id)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggPack, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggPack.Id)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity - request.TotalButir
+	warehouseStockItemEggButir.UpdatedBy = accountId
+
+	if warehouseStockItemEggButir.Quantity < 0 {
+		return nil, errx.BadRequest("stok butir tidak mencukupi")
+	}
+
+	warehouseStockItemEggPack.Quantity = warehouseStockItemEggPack.Quantity + request.TotalPack
+	warehouseStockItemEggPack.UpdatedBy = accountId
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to update warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggPack)
+	if err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to update warehouse stock item", zap.Error(err))
+		return nil, err
+	}
+
+	if err := e.repository.Commit(); err != nil {
+		e.log.Error("[CrackedEggConverterButirToPacket] failed to commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.WarehouseStockItemResponse, 0)
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggPack))
+
+	return response, nil
 }

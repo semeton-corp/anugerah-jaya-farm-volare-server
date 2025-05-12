@@ -54,18 +54,34 @@ func (p PaymentMethodParam) Value() enum.PaymentMethod {
 	return enum.PaymentMethod(p)
 }
 
-type PresenceFilterParam enum.PresenceFilter
+type MonthParam enum.Month
 
-func (p *PresenceFilterParam) UnmarshalText(text []byte) error {
-	parsedFilter := enum.ValueOfPresenceFilter(string(text))
+func (p *MonthParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfMonth(string(text))
 	if !parsedFilter.IsValid() {
-		return errx.BadRequest("invalid presence filter")
+		return errx.BadRequest("invalid month filter")
 	}
 
-	*p = PresenceFilterParam(parsedFilter)
+	*p = MonthParam(parsedFilter)
 	return nil
 }
 
-func (p PresenceFilterParam) Value() enum.PresenceFilter {
-	return enum.PresenceFilter(p)
+func (p MonthParam) Value() enum.Month {
+	return enum.Month(p)
+}
+
+type OverviewGraphTimeParam enum.OverviewGraphTime
+
+func (p *OverviewGraphTimeParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfOverviewGraphFilter(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid overview graph filter")
+	}
+
+	*p = OverviewGraphTimeParam(parsedFilter)
+	return nil
+}
+
+func (p OverviewGraphTimeParam) Value() enum.OverviewGraphTime {
+	return enum.OverviewGraphTime(p)
 }

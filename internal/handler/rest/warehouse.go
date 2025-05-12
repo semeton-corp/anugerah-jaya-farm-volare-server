@@ -28,18 +28,23 @@ func (a *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items", middleware.Authentication(), a.GetWarehouseItem)
 	v1.Get("/items/:id", middleware.Authentication(), a.GetWarehouseItemById)
 	v1.Put("/items/:id", middleware.Authentication(), a.UpdateWarehouseItem)
+	v1.Delete("/items/:id", middleware.Authentication(), a.DeleteWarehouseItem)
 
-	v1.Post("/stock-items", middleware.Authentication(), a.CreateStockWarehouseItem)
-	v1.Get("/stock-items", middleware.Authentication(), a.GetStockWarehouseItems)
-	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.GetStockWarehouseItemByWarehouseIdAndWarehouseItemId)
-	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.UpdateStockWarehouseItem)
-	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.DeleteStockWarehouseItem)
+	v1.Post("/stock-items", middleware.Authentication(), a.CreateWarehouseStockItem)
+	v1.Get("/stock-items", middleware.Authentication(), a.GetWarehouseStockItems)
+	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId)
+	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.UpdateWarehouseStockItem)
+	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), a.DeleteWarehouseStockItem)
 
 	v1.Post("/order-items", middleware.Authentication(), a.CreateWarehouseOrderItem)
 	v1.Get("/order-items", middleware.Authentication(), a.GetWarehouseOrderItems)
 	v1.Get("/order-items/:id", middleware.Authentication(), a.GetWarehouseOrderItemById)
 	v1.Delete("/order-items/:id", middleware.Authentication(), a.DeleteWarehouseOrderItem)
 	v1.Patch("/order-items/:id/takes", middleware.Authentication(), a.TakeWarehouseOrderItem)
+
+	v1.Post("/items/convert/good-egg/butir-to-ikat", middleware.Authentication(), a.GoodEggConvertionButirToIkat)
+	v1.Post("/items/convert/good-egg/ikat-to-butir", middleware.Authentication(), a.GoodEggConvertionIkatToButir)
+	v1.Post("/items/convert/cracked-egg/butir-to-pack", middleware.Authentication(), a.CrackedEggConverterButirToPack)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -164,7 +169,29 @@ func (a *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "update warehouse item success")
 }
 
-func (a *WarehouseHandler) CreateStockWarehouseItem(c *fiber.Ctx) error {
+func (a *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[DeleteWarehouseItem] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[DeleteWarehouseItem] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	err = a.service.DeleteWarehouseItem(id)
+	if err != nil {
+		a.log.Error("[DeleteWarehouseItem] failed to delete warehouse item", zap.Error(err))
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (a *WarehouseHandler) CreateWarehouseStockItem(c *fiber.Ctx) error {
 	var request dto.CreateWarehouseStockItemRequest
 	if err := c.BodyParser(&request); err != nil {
 		a.log.Error("[CreateStockWarehouseItem] failed to parse request", zap.Error(err))
@@ -191,7 +218,7 @@ func (a *WarehouseHandler) CreateStockWarehouseItem(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusCreated, res, "create stock warehouse item success")
 }
 
-func (a *WarehouseHandler) GetStockWarehouseItems(c *fiber.Ctx) error {
+func (a *WarehouseHandler) GetWarehouseStockItems(c *fiber.Ctx) error {
 	var filter dto.GetWarehouseStockItemFilter
 	if err := c.QueryParser(&filter); err != nil {
 		a.log.Error("[GetStockWarehouseItems] failed to parse query", zap.Error(err))
@@ -207,7 +234,7 @@ func (a *WarehouseHandler) GetStockWarehouseItems(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, stockWarehouseItems, "get stock warehouse items success")
 }
 
-func (a *WarehouseHandler) GetStockWarehouseItemByWarehouseIdAndWarehouseItemId(c *fiber.Ctx) error {
+func (a *WarehouseHandler) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
 	warehouseItemIdParam := c.Params("warehouseItemId")
 
@@ -237,7 +264,7 @@ func (a *WarehouseHandler) GetStockWarehouseItemByWarehouseIdAndWarehouseItemId(
 	return response.SuccessResponse(c, fiber.StatusOK, res, "get stock warehouse item success")
 }
 
-func (a *WarehouseHandler) UpdateStockWarehouseItem(c *fiber.Ctx) error {
+func (a *WarehouseHandler) UpdateWarehouseStockItem(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
 	warehouseItemIdParam := c.Params("warehouseItemId")
 
@@ -284,7 +311,7 @@ func (a *WarehouseHandler) UpdateStockWarehouseItem(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "update stock warehouse item success")
 }
 
-func (a *WarehouseHandler) DeleteStockWarehouseItem(c *fiber.Ctx) error {
+func (a *WarehouseHandler) DeleteWarehouseStockItem(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
 	warehouseItemIdParam := c.Params("warehouseItemId")
 
@@ -364,7 +391,18 @@ func (a *WarehouseHandler) GetWarehouseOrderItemById(c *fiber.Ctx) error {
 }
 
 func (a *WarehouseHandler) GetWarehouseOrderItems(c *fiber.Ctx) error {
-	warehouseOrderItems, err := a.service.GetWarehouseOrderItems()
+	var filter dto.GetWarehouseOrderItemFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("[GetWarehouseOrderItems] failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(filter); err != nil {
+		a.log.Error("[GetWarehouseOrderItems] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	warehouseOrderItems, err := a.service.GetWarehouseOrderItems(filter)
 	if err != nil {
 		a.log.Error("[GetWarehouseOrderItems] failed to get store order items", zap.Error(err))
 		return err
@@ -421,4 +459,85 @@ func (a *WarehouseHandler) TakeWarehouseOrderItem(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "take store order item success")
+}
+
+func (a *WarehouseHandler) GoodEggConvertionButirToIkat(c *fiber.Ctx) error {
+	var request dto.GoodEggWarehouseConvertionRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[GoodEggConvertionButirToIkat] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[GoodEggConvertionButirToIkat] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[GoodEggConvertionButirToIkat] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	resp, err := a.service.GoodEggConvertionButirToIkat(request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[GoodEggConvertionButirToIkat] failed to good egg convertion butir to ikat", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "good egg convertion butir to ikat success")
+}
+
+func (a *WarehouseHandler) GoodEggConvertionIkatToButir(c *fiber.Ctx) error {
+	var request dto.GoodEggWarehouseConvertionRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[GoodEggConvertionIkatToButir] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[GoodEggConvertionIkatToButir] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[GoodEggConvertionIkatToButir] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	resp, err := a.service.GoodEggConvertionIkatToButir(request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[GoodEggConvertionIkatToButir] failed to good egg convertion ikat to butir", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "good egg convertion ikat to butir success")
+}
+
+func (a *WarehouseHandler) CrackedEggConverterButirToPack(c *fiber.Ctx) error {
+	var request dto.CrackedEggWarehouseConvertionRequest
+	if err := c.BodyParser(&request); err != nil {
+		a.log.Error("[CrackedEggConverterButirToPack] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(request); err != nil {
+		a.log.Error("[CrackedEggConverterButirToPack] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[CrackedEggConverterButirToPack] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	resp, err := a.service.CrackedEggConvertionButirToPack(request, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[CrackedEggConverterButirToPacket] failed to cracked egg converter butir to packet", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "cracked egg converter butir to packet success")
 }

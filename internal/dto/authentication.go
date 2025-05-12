@@ -5,6 +5,9 @@ import "time"
 type SignUpRequest struct {
 	Email        string `json:"email" validate:"required,email"`
 	PhotoProfile string `json:"photoProfile"`
+	PhoneNumber  string `json:"phoneNumber" validate:"required"`
+	Address      string `json:"address" validate:"required"`
+	Salary       string `json:"salary" validate:"required"`
 	Name         string `json:"name" validate:"required"`
 	Password     string `json:"password" validate:"required,min=8"`
 	RoleId       uint64 `json:"roleId" validate:"required"`
@@ -50,12 +53,18 @@ type UpdateAccountRequest struct {
 	Email        string `json:"email" validate:"required,email"`
 	RoleId       uint64 `json:"roleId" validate:"required"`
 	PhotoProfile string `json:"photoProfile" validate:"required"`
-	Name         string `json:"name" validate:"required"`
 }
 
 type ChangePasswordResponse struct {
 	Id           string       `json:"id"`
 	PhotoProfile string       `json:"photoProfile"`
 	Email        string       `json:"email"`
+	Role         RoleResponse `json:"role"`
+}
+
+type AccountResponse struct {
+	Id           string       `json:"id"`
+	Email        string       `json:"email"`
+	PhotoProfile string       `json:"photoProfile"`
 	Role         RoleResponse `json:"role"`
 }

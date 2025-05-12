@@ -61,6 +61,11 @@ func (a *PresenceHandler) GetAllStaffPresences(c *fiber.Ctx) error {
 	}
 
 	var filter dto.GetPresenceFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("[GetAllStaffPresences] failed to parsing query filter", zap.Error(err))
+		return err
+	}
+
 	if err := a.validator.Struct(filter); err != nil {
 		a.log.Error("[GetAllStaffPresences] failed to validate filter", zap.Error(err))
 		return err

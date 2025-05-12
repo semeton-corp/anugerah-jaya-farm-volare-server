@@ -25,7 +25,6 @@ func (a *AuthenticationHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Post("/signup", middleware.Authentication(), a.SignUp)
 	v1.Post("/change-password", middleware.Authentication(), a.ChangePassword)
-	v1.Put("/me", middleware.Authentication(), a.UpdateAccount)
 	v1.Delete("/:id", middleware.Authentication(), a.DeleteAccount)
 }
 
@@ -150,33 +149,6 @@ func (a *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
 		fiber.StatusOK,
 		res,
 		"success change password",
-	)
-}
-
-func (a *AuthenticationHandler) UpdateAccount(c *fiber.Ctx) error {
-	var request dto.UpdateAccountRequest
-	if err := c.BodyParser(&request); err != nil {
-		a.log.Error("[UpdateAccount] failed to parse request", zap.Error(err))
-		return err
-	}
-
-	accountId, ok := c.Locals("accountId").(string)
-	if !ok {
-		a.log.Error("[UpdateAccount] failed to get accountId from context")
-		return errx.Unauthorized("no accountId in context")
-	}
-
-	res, err := a.service.UpdateAccount(uuid.MustParse(accountId), request, uuid.MustParse(accountId))
-	if err != nil {
-		a.log.Error("[UpdateAccount] failed to update account", zap.Error(err))
-		return err
-	}
-
-	return response.SuccessResponse(
-		c,
-		fiber.StatusOK,
-		res,
-		"success update account",
 	)
 }
 

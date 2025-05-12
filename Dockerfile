@@ -13,7 +13,6 @@ FROM alpine:3.21
 
 WORKDIR /app
 
-
 COPY --from=builder /app/app .
 COPY --from=builder /app/env.yaml .
 COPY --from=builder /app/templates/ templates/

@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	_cache "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/cache"
 	_email "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/env"
 	_logger "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/logger"
@@ -28,8 +29,9 @@ type Bootstrap struct {
 	log       *zap.Logger
 	db        *gorm.DB
 	handlers  []Handler
-	email     *_email.Email
-	scheduler *_scheduler.Scheduler
+	email     _email.IEmail
+	scheduler _scheduler.IScheduler
+	cache     _cache.ICache
 	validator *validator.Validate
 }
 
@@ -52,6 +54,7 @@ func New() *Bootstrap {
 	validator := _validator.New()
 	email := _email.New()
 	scheduler := _scheduler.New(db, logger)
+	cache := _cache.New()
 
 	return &Bootstrap{
 		router:    router,
@@ -61,15 +64,13 @@ func New() *Bootstrap {
 		validator: validator,
 		email:     email,
 		scheduler: scheduler,
+		cache:     cache,
 	}
 }
 
 func (b *Bootstrap) DepedencyInjection() {
-	staffRepository := repository.NewStaffRepository(b.db)
-	staffService := service.NewStaffService(b.log, staffRepository)
-
 	authRepository := repository.NewAuthenticationRepository(b.db)
-	authService := service.NewAuthenticationService(b.log, authRepository, b.email, staffService)
+	authService := service.NewAuthenticationService(b.log, authRepository, b.email)
 	authenticationHandler := rest.NewAuthenticationHandler(b.log, authService, b.validator)
 
 	roleRepository := repository.NewRoleRepository(b.db)
@@ -80,21 +81,21 @@ func (b *Bootstrap) DepedencyInjection() {
 	cageService := service.NewCageService(b.log, cageRepository)
 	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
 
-	chickenRepository := repository.NewChickenRepository(b.db)
-	chickenService := service.NewChickenService(b.log, chickenRepository)
-	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
-
-	eggRepository := repository.NewEggRepository(b.db)
-	eggService := service.NewEggService(b.log, eggRepository)
-	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
-
 	storeRepository := repository.NewStoreRepository(b.db)
-	storeService := service.NewStoreService(b.log, storeRepository)
+	storeService := service.NewStoreService(b.log, storeRepository, b.cache)
 	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
 
 	warehouseRepository := repository.NewWarehouseRepository(b.db)
-	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, storeService)
+	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, storeService, b.cache)
 	warehouseHandler := rest.NewWarehouseHandler(b.log, warehouseService, b.validator)
+
+	eggRepository := repository.NewEggRepository(b.db)
+	eggService := service.NewEggService(b.log, eggRepository, warehouseService)
+	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
+
+	chickenRepository := repository.NewChickenRepository(b.db)
+	chickenService := service.NewChickenService(b.log, chickenRepository, eggService)
+	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
 
 	workRepository := repository.NewWorkRepository(b.db)
 	workService := service.NewWorkService(b.log, workRepository, roleService)
@@ -108,6 +109,14 @@ func (b *Bootstrap) DepedencyInjection() {
 	supplierService := service.NewSupplierService(b.log, supplierRepository)
 	supplierHandler := rest.NewSupplierHandler(b.log, supplierService, b.validator)
 
+	staffRepository := repository.NewStaffRepository(b.db)
+	staffService := service.NewStaffService(b.log, staffRepository, authService, workService, presenceService)
+	staffHandler := rest.NewStaffHandler(b.log, staffService, b.validator)
+
+	eggPriceRepository := repository.NewEggPriceRepository(b.db)
+	eggPriceService := service.NewEggPriceService(b.log, eggPriceRepository)
+	eggPriceHandler := rest.NewEggPriceHandler(b.log, eggPriceService, b.validator)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
@@ -119,6 +128,8 @@ func (b *Bootstrap) DepedencyInjection() {
 		workHandler,
 		presenceHandler,
 		supplierHandler,
+		staffHandler,
+		eggPriceHandler,
 	}
 }
 

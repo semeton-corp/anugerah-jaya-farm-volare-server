@@ -39,6 +39,12 @@ type StoreRequestItemResponse struct {
 	RequestDate   string                `json:"requestDate"`
 }
 
+type StoreRequestItemListPaginationResponse struct {
+	TotalPage         uint64                     `json:"totalPage"`
+	TotalData         uint64                     `json:"totalData"`
+	StoreRequestItems []StoreRequestItemResponse `json:"storeRequestItems"`
+}
+
 type GetStoreRequestItemFilter struct {
 	Date param.DateParam `query:"date"`
 	Page uint64          `query:"page"`
@@ -73,6 +79,12 @@ type StoreSaleResponse struct {
 	IsSend           bool                       `json:"isSend"`
 	Payments         []StoreSalePaymentResponse `json:"payments"`
 	RemainingPayment string                     `json:"remainingPayment"`
+}
+
+type StoreSaleListPaginationResponse struct {
+	TotalPage  uint64                  `json:"totalPage"`
+	TotalData  uint64                  `json:"totalData"`
+	StoreSales []StoreSaleListResponse `json:"storeSales"`
 }
 
 type CreateStoreSaleRequest struct {

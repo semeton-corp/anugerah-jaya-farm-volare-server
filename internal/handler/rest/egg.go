@@ -27,6 +27,9 @@ func (a *EggHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/monitorings/:id", middleware.Authentication(), a.GetEggMonitoringById)
 	v1.Put("/monitorings/:id", middleware.Authentication(), a.UpdateEggMonitoring)
 	v1.Delete("/monitorings/:id", middleware.Authentication(), a.DeleteEggMonitoring)
+	v1.Patch("/monitorings/:id/takes", middleware.Authentication(), a.TakeEggMonitoring)
+
+	v1.Get("/overview", middleware.Authentication(), a.GetEggOverview)
 }
 
 func NewEggHandler(log *zap.Logger, service service.IEggService, validator *validator.Validate) *EggHandler {
@@ -160,4 +163,53 @@ func (a *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (a *EggHandler) TakeEggMonitoring(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	if idParam == "" {
+		a.log.Error("[TakeEggMonitoring] id is required")
+		return errx.BadRequest("id is required")
+	}
+
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		a.log.Error("[TakeEggMonitoring] failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	accountId, ok := c.Locals("accountId").(string)
+	if !ok {
+		a.log.Error("[TakeEggMonitoring] failed to get accountId from context")
+		return errx.Unauthorized("no accountId in context")
+	}
+
+	res, err := a.service.TakeEggMonitoring(id, uuid.MustParse(accountId))
+	if err != nil {
+		a.log.Error("[TakeEggMonitoring] failed to take egg monitoring", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success take egg monitoring")
+}
+
+func (a *EggHandler) GetEggOverview(c *fiber.Ctx) error {
+	var filter dto.GetEggOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		a.log.Error("[GetEggOverview] failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(filter); err != nil {
+		a.log.Error("[GetEggOverview] failed to validate request", zap.Error(err))
+		return err
+	}
+
+	res, err := a.service.GetOverviewEggMonitoring(filter)
+	if err != nil {
+		a.log.Error("[GetEggOverview] failed to get egg overview", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get egg overview")
 }

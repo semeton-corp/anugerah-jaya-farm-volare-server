@@ -12,6 +12,8 @@ import (
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -23,9 +25,10 @@ type WorkService struct {
 
 type IWorkService interface {
 	CreateAndUpdateDailyWorks(request dto.CreateDailyWorkRequest, accountId uuid.UUID) (dto.DailyWorkResponse, error)
-	GetDailyWorksBasedOnRole() ([]dto.DailyWorkListResponse, error)
+	GetDailyWorksBasedOnRole(filter dto.GetDailyWorkBasedOnRoleFilter) ([]dto.DailyWorkListResponse, error)
 	GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkResponse, error)
 	DeleteDailyWork(id uint64) error
+	GetDailyWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetDailyWorkStaffFilter) ([]dto.DailyWorkStaffResponse, error)
 
 	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]dto.AdditionalWorkListResponse, error)
@@ -34,6 +37,7 @@ type IWorkService interface {
 	DeleteAdditionalWork(id uint64) error
 	UpdateAdditionalWorkStaff(id uint64, request dto.UpdateAdditionalWorkStaffRequest, accountId uuid.UUID) (dto.AdditionalWorkStaffResponse, error)
 	TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.AdditionalWorkStaffResponse, error)
+	GetAdditionalWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetAdditionalWorkStaffFilter) ([]dto.AdditionalWorkStaffResponse, error)
 
 	GetStaffWorksByStaffId(staffId uuid.UUID) (dto.WorkStaffResponse, error)
 	UpdateDailyWorkStaff(id uint64, request dto.UpdateDailyWorkStaffRequest, accountId uuid.UUID) (dto.DailyWorkStaffResponse, error)
@@ -112,8 +116,8 @@ func (w *WorkService) CreateAndUpdateDailyWorks(request dto.CreateDailyWorkReque
 	return dailyWorkResponse, nil
 }
 
-func (w *WorkService) GetDailyWorksBasedOnRole() ([]dto.DailyWorkListResponse, error) {
-	dailyWorkSummaries, err := w.repository.GetDailyWorkBasedOnRole()
+func (w *WorkService) GetDailyWorksBasedOnRole(filter dto.GetDailyWorkBasedOnRoleFilter) ([]dto.DailyWorkListResponse, error) {
+	dailyWorkSummaries, err := w.repository.GetDailyWorkBasedOnRole(filter)
 	if err != nil {
 		w.log.Error("[GetDailyWorkBasedOnRole] failed to get daily work based on role", zap.Error(err))
 		return nil, err
@@ -163,23 +167,31 @@ func (w *WorkService) GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkRespons
 
 // additional work & daily work staffs
 func (w *WorkService) GetStaffWorksByStaffId(staffId uuid.UUID) (dto.WorkStaffResponse, error) {
-	dailyWorkStaffs, err := w.repository.GetDailyWorkStaffsByStaffId(staffId, time.Now())
+	dailyWorkStaffs, err := w.repository.GetDailyWorkStaffByStaffId(staffId, dto.GetDailyWorkStaffFilter{
+		Date:        param.DateParam(time.Now()),
+		WithDeleted: false,
+	})
 	if err != nil {
+		w.log.Error("[GetStaffWorksByStaffId] failed to get additional work staff", zap.Error(err))
 		return dto.WorkStaffResponse{}, err
 	}
 
-	dailyWorkResponse := make([]dto.DailyWorkStaffResponse, 0, len(dailyWorkStaffs))
-	for _, dailyWorkStaff := range dailyWorkStaffs {
-		dailyWorkResponse = append(dailyWorkResponse, mapper.DailyWorkStaffToResponse(&dailyWorkStaff))
+	dailyWorkResponse := make([]dto.DailyWorkStaffResponse, len(dailyWorkStaffs))
+	for i, dailyWorkStaff := range dailyWorkStaffs {
+		dailyWorkResponse[i] = mapper.DailyWorkStaffToResponse(&dailyWorkStaff)
 	}
 
-	additonalWorkStaffs, err := w.repository.GetAdditionalWorkStaffByStaffId(staffId)
+	additionalWorkStaffs, err := w.repository.GetAdditionalWorkStaffByStaffId(staffId, dto.GetAdditionalWorkStaffFilter{
+		WithDeleted: false,
+	})
 	if err != nil {
+		w.log.Error("[GetStaffWorksByStaffId] failed to get daily work staff", zap.Error(err))
 		return dto.WorkStaffResponse{}, err
 	}
-	additionalWorkResponse := make([]dto.AdditionalWorkStaffResponse, 0, len(dailyWorkStaffs))
-	for _, additionalWork := range additonalWorkStaffs {
-		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkStaffToResponse(&additionalWork))
+
+	additionalWorkResponse := make([]dto.AdditionalWorkStaffResponse, len(additionalWorkStaffs))
+	for i, additionalWork := range additionalWorkStaffs {
+		additionalWorkResponse[i] = mapper.AdditionalWorkStaffToResponse(&additionalWork)
 	}
 
 	return dto.WorkStaffResponse{
@@ -195,10 +207,18 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
 	}
 
+	salary, err := decimal.NewFromString(request.Salary)
+	if err != nil {
+		w.log.Error("[CreateAdditonalWork] invalid salary", zap.String("salary", request.Salary))
+		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid salary")
+	}
+
 	additionalWork := entity.AdditionalWork{
 		Description: request.Description,
 		Slot:        request.Slot,
 		Location:    location,
+		Salary:      salary,
+		CreatedBy:   accountId,
 	}
 
 	if err := w.repository.CreateAdditionalWork(&additionalWork); err != nil {
@@ -206,7 +226,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		return dto.AdditionalWorkResponse{}, err
 	}
 
-	additionalWork, err := w.repository.GetAdditionalWorkById(additionalWork.Id)
+	additionalWork, err = w.repository.GetAdditionalWorkById(additionalWork.Id)
 	if err != nil {
 		w.log.Error("[CreateAdditonalWork] failed to get additional work by id", zap.Error(err))
 		return dto.AdditionalWorkResponse{}, err
@@ -285,7 +305,7 @@ func (w *WorkService) DeleteAdditionalWork(id uint64) error {
 }
 
 func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]dto.AdditionalWorkListResponse, error) {
-	additionalWorks, err := w.repository.GetAdditionalWorks()
+	additionalWorks, err := w.repository.GetAdditionalWorks(filter)
 	if err != nil {
 		w.log.Error("[GetAdditionalWorks] failed to get additional works", zap.Error(err))
 		return nil, err
@@ -438,4 +458,38 @@ func (w *WorkService) DeleteDailyWork(id uint64) error {
 	}
 
 	return nil
+}
+
+func (w *WorkService) GetAdditionalWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetAdditionalWorkStaffFilter) ([]dto.AdditionalWorkStaffResponse, error) {
+	w.repository.UseTx(false)
+
+	additionalWorkStaffs, err := w.repository.GetAdditionalWorkStaffByStaffId(staffId, filter)
+	if err != nil {
+		w.log.Error("[GetAdditionalWorkStaff] failed to get additional work staff", zap.Error(err))
+		return nil, err
+	}
+
+	additionalWorkResponse := make([]dto.AdditionalWorkStaffResponse, 0, len(additionalWorkStaffs))
+	for _, additionalWork := range additionalWorkStaffs {
+		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkStaffToResponse(&additionalWork))
+	}
+
+	return additionalWorkResponse, nil
+}
+
+func (w *WorkService) GetDailyWorkStaffByStaffId(staffId uuid.UUID, filter dto.GetDailyWorkStaffFilter) ([]dto.DailyWorkStaffResponse, error) {
+	w.repository.UseTx(false)
+
+	dailyWorkStaffs, err := w.repository.GetDailyWorkStaffByStaffId(staffId, filter)
+	if err != nil {
+		w.log.Error("[GetAdditionalWorkStaff] failed to get additional work staff", zap.Error(err))
+		return nil, err
+	}
+
+	dailyWorkResponse := make([]dto.DailyWorkStaffResponse, len(dailyWorkStaffs))
+	for i, dailyWorkStaff := range dailyWorkStaffs {
+		dailyWorkResponse[i] = mapper.DailyWorkStaffToResponse(&dailyWorkStaff)
+	}
+
+	return dailyWorkResponse, nil
 }

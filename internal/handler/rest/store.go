@@ -93,6 +93,11 @@ func (a *StoreHandler) GetStockRequestItems(c *fiber.Ctx) error {
 		return err
 	}
 
+	if err := a.validator.Struct(filter); err != nil {
+		a.log.Error("[GetStockRequestItems] failed to validate request", zap.Error(err))
+		return err
+	}
+
 	res, err := a.service.GetStoreRequestItems(filter)
 	if err != nil {
 		a.log.Error("[GetStockRequestItems] failed to get stock request items", zap.Error(err))
@@ -287,6 +292,11 @@ func (a *StoreHandler) GetStoreSales(c *fiber.Ctx) error {
 	var filter dto.GetStoreSaleFilter
 	if err := c.QueryParser(&filter); err != nil {
 		a.log.Error("[GetStoreSales] failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := a.validator.Struct(filter); err != nil {
+		a.log.Error("[GetStoreSales] failed to validate request", zap.Error(err))
 		return err
 	}
 

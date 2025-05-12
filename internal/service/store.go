@@ -1,13 +1,16 @@
 package service
 
 import (
+	"math"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/cache"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/shopspring/decimal"
@@ -15,8 +18,9 @@ import (
 )
 
 type StoreService struct {
-	log        *zap.Logger
-	repository repository.IStoreRepository
+	log          *zap.Logger
+	repository   repository.IStoreRepository
+	cacheService cache.ICache
 }
 
 type IStoreService interface {
@@ -24,14 +28,14 @@ type IStoreService interface {
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
-	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]dto.StoreRequestItemResponse, error)
+	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error)
 	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
 
 	CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
-	GetStoreSales(filter dto.GetStoreSaleFilter) ([]dto.StoreSaleListResponse, error)
+	GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error)
 	UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
@@ -40,10 +44,11 @@ type IStoreService interface {
 	SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
-func NewStoreService(log *zap.Logger, repository repository.IStoreRepository) IStoreService {
+func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache) IStoreService {
 	return &StoreService{
-		log:        log,
-		repository: repository,
+		log:          log,
+		repository:   repository,
+		cacheService: cacheService,
 	}
 }
 
@@ -99,11 +104,11 @@ func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemR
 	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
 }
 
-func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]dto.StoreRequestItemResponse, error) {
+func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error) {
 	storeRequestItems, err := s.repository.GetStoreRequestItems(filter)
 	if err != nil {
 		s.log.Error("[GetStoreRequestItems] failed to get store request items", zap.Error(err))
-		return nil, err
+		return dto.StoreRequestItemListPaginationResponse{}, err
 	}
 
 	storeRequestItemResponses := make([]dto.StoreRequestItemResponse, len(storeRequestItems))
@@ -111,7 +116,21 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 		storeRequestItemResponses[i] = mapper.StoreRequestItemToResponse(&storeRequestItem)
 	}
 
-	return storeRequestItemResponses, nil
+	totalData, err := s.repository.CountTotalStoreRequestItem(dto.GetStoreRequestItemFilter{
+		Date: filter.Date,
+	})
+	if err != nil {
+		s.log.Error("[GetStoreRequestItems] failed to count request items", zap.Error(err))
+		return dto.StoreRequestItemListPaginationResponse{}, err
+	}
+
+	resp := dto.StoreRequestItemListPaginationResponse{
+		TotalPage:         uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
+		TotalData:         totalData,
+		StoreRequestItems: storeRequestItemResponses,
+	}
+
+	return resp, nil
 }
 
 func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error) {
@@ -367,11 +386,11 @@ func (s *StoreService) GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error
 	return storeSaleResponse, nil
 }
 
-func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) ([]dto.StoreSaleListResponse, error) {
+func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error) {
 	storeSales, err := s.repository.GetStoreSales(filter)
 	if err != nil {
 		s.log.Error("[GetStoreSales] failed to get store sales", zap.Error(err))
-		return nil, err
+		return dto.StoreSaleListPaginationResponse{}, err
 	}
 
 	storeSaleResponses := make([]dto.StoreSaleListResponse, len(storeSales))
@@ -379,7 +398,24 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) ([]dto.Store
 		storeSaleResponses[i] = mapper.StoreSaleToListResponse(&storeSale)
 	}
 
-	return storeSaleResponses, nil
+	totalData, err := s.repository.CountTotalStoreSale(
+		dto.GetStoreSaleFilter{
+			Date:          filter.Date,
+			PaymentMethod: filter.PaymentMethod,
+		},
+	)
+	if err != nil {
+		s.log.Error("[GetStoreSales] failed to get store sales", zap.Error(err))
+		return dto.StoreSaleListPaginationResponse{}, err
+	}
+
+	resp := dto.StoreSaleListPaginationResponse{
+		TotalPage:  uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
+		TotalData:  totalData,
+		StoreSales: storeSaleResponses,
+	}
+
+	return resp, nil
 }
 
 func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {

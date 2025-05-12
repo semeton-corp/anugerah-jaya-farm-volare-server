@@ -1,6 +1,10 @@
 package service
 
 import (
+	"fmt"
+	"sort"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -8,12 +12,15 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"go.uber.org/zap"
 )
 
 type ChickenService struct {
 	log        *zap.Logger
 	repository repository.IChickenRepository
+	eggService IEggService
 }
 
 type IChickenService interface {
@@ -32,10 +39,11 @@ type IChickenService interface {
 	DeleteChickenVaccineMonitoring(id uint64) error
 }
 
-func NewChickenService(log *zap.Logger, repository repository.IChickenRepository) IChickenService {
+func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService) IChickenService {
 	return &ChickenService{
 		log:        log,
 		repository: repository,
+		eggService: eggService,
 	}
 }
 
@@ -523,4 +531,198 @@ func (c *ChickenService) DeleteChickenVaccineMonitoring(id uint64) error {
 	}
 
 	return nil
+}
+
+func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error) {
+	c.repository.UseTx(false)
+
+	currentChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+		Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
+		Location: filter.Location,
+	})
+	if err != nil {
+		c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
+		return dto.ChickenOverviewResponse{}, err
+	}
+
+	currentEggMonitoring, err := c.eggService.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
+		Location: filter.Location,
+	})
+	if err != nil {
+		c.log.Error("[GetChickenOverview] failed to get egg monitorings", zap.Error(err))
+		return dto.ChickenOverviewResponse{}, err
+	}
+
+	totalEgg := uint64(0)
+	for _, eggMonitoring := range currentEggMonitoring {
+		totalEgg += eggMonitoring.TotalAll
+	}
+
+	totalDOCChicken := uint64(0)
+	totalGrowerChicken := uint64(0)
+	totalPreLayerChicken := uint64(0)
+	totalLayerChicken := uint64(0)
+	totalAfkirChicken := uint64(0)
+
+	totalLiveChicken := uint64(0)
+	totalSickChicken := uint64(0)
+	totalDeathChicken := uint64(0)
+
+	chickenGraphs := make([]dto.ChickenGraphResponse, 0)
+
+	for _, chickenMonitoring := range currentChickenMonitorings {
+		totalLiveChicken += chickenMonitoring.TotalLiveChicken
+		totalSickChicken += chickenMonitoring.TotalSickChicken
+		totalDeathChicken += chickenMonitoring.TotalDeathChicken
+
+		if chickenMonitoring.ChickenCategory == enum.ChickenCategoryDOC {
+			totalDOCChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryGrower {
+			totalGrowerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryPreLayer {
+			totalPreLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryLayer {
+			totalLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryAfkir {
+			totalAfkirChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+		}
+	}
+
+	if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisWeek {
+		endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+		startDate := endDate.AddDate(0, 0, -7)
+
+		weekChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+			StartDate: param.DateParam(startDate),
+			EndDate:   param.DateParam(endDate),
+		})
+
+		if err != nil {
+			c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
+			return dto.ChickenOverviewResponse{}, err
+		}
+
+		for i := startDate; i.Before(endDate); i = i.AddDate(0, 0, 1) {
+			for _, chickenMonitoring := range weekChickenMonitorings {
+				if i.Equal(chickenMonitoring.CreatedAt) {
+					chickenGraphs = append(chickenGraphs, dto.ChickenGraphResponse{
+						Key:          i.Format("2006-01-02"),
+						SickChicken:  chickenMonitoring.TotalSickChicken,
+						DeathChicken: chickenMonitoring.TotalDeathChicken,
+					})
+				} else {
+					chickenGraphs = append(chickenGraphs, dto.ChickenGraphResponse{
+						Key:          i.Format("2006-01-02"),
+						SickChicken:  0,
+						DeathChicken: 0,
+					})
+				}
+			}
+		}
+	} else if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisMonth {
+		weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
+
+		totalSickChickenGraph := make(map[int]uint64)
+		totalDeathChickenGraph := make(map[int]uint64)
+
+		startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
+
+		monthChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+			StartDate: param.DateParam(startDate),
+			EndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
+			return dto.ChickenOverviewResponse{}, err
+		}
+
+		for _, chickenMonitoring := range monthChickenMonitorings {
+			i := util.FindWeek(chickenMonitoring.CreatedAt, weekMaps)
+
+			if i > 0 {
+				totalSickChickenGraph[i] += chickenMonitoring.TotalSickChicken
+				totalDeathChickenGraph[i] += chickenMonitoring.TotalDeathChicken
+			}
+		}
+
+		keys := make([]int, 0)
+		for k := range weekMaps {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
+		for _, key := range keys {
+			chickenGraphs = append(chickenGraphs, dto.ChickenGraphResponse{
+				Key:          fmt.Sprintf("Minggu %d", key),
+				SickChicken:  totalSickChickenGraph[key],
+				DeathChicken: totalDeathChickenGraph[key],
+			})
+		}
+
+	} else if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisYear {
+		monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
+
+		totalSickChickenGraph := make(map[int]uint64)
+		totalDeathChickenGraph := make(map[int]uint64)
+
+		startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
+
+		yearChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+			StartDate: param.DateParam(startDate),
+			EndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
+			return dto.ChickenOverviewResponse{}, err
+		}
+
+		for _, chickenMonitoring := range yearChickenMonitorings {
+			i := util.FindMonth(chickenMonitoring.CreatedAt, monthMaps)
+
+			if i > 0 {
+				totalSickChickenGraph[i] += chickenMonitoring.TotalSickChicken
+				totalDeathChickenGraph[i] += chickenMonitoring.TotalDeathChicken
+
+			}
+		}
+
+		keys := make([]int, 0)
+		for k := range monthMaps {
+			keys = append(keys, k)
+		}
+		sort.Ints(keys)
+
+		for _, key := range keys {
+			chickenGraphs = append(chickenGraphs, dto.ChickenGraphResponse{
+				Key:          time.Month(key).String(),
+				SickChicken:  totalSickChickenGraph[key],
+				DeathChicken: totalDeathChickenGraph[key],
+			})
+		}
+	}
+
+	mortalityRate := float64(totalDeathChicken) / float64(totalLiveChicken+totalDeathChicken+totalSickChicken)
+	hdpRate := float64(totalEgg) / float64(totalLiveChicken+totalDeathChicken+totalSickChicken)
+
+	chickenDetail := dto.ChickenDetailOverview{
+		TotalLiveChicken:    totalLiveChicken,
+		TotalSickChicken:    totalSickChicken,
+		TotalDeathChicken:   totalDeathChicken,
+		TotalKPIPerformance: (mortalityRate + hdpRate) / 2,
+	}
+
+	chickenPie := dto.ChickenPieResponse{
+		ChickenDOCType:       float64(totalDOCChicken) / float64(totalLiveChicken+totalSickChicken),
+		ChickenGrowerType:    float64(totalGrowerChicken) / float64(totalLiveChicken+totalSickChicken),
+		ChickentPreLayerType: float64(totalPreLayerChicken) / float64(totalLiveChicken+totalSickChicken),
+		ChickenLayer:         float64(totalLayerChicken) / float64(totalLiveChicken+totalSickChicken),
+		ChickenAfkir:         float64(totalAfkirChicken) / float64(totalLiveChicken+totalSickChicken),
+	}
+
+	return dto.ChickenOverviewResponse{
+		ChickenDetail: chickenDetail,
+		ChickenPie:    chickenPie,
+		ChickenGraphs: chickenGraphs,
+	}, nil
 }

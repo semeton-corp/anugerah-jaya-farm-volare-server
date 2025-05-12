@@ -14,13 +14,14 @@ func DailyWorkDetailToResponse(dailyWork *entity.DailyWork) dto.DailyWorkDetailR
 	}
 }
 
-// Note : Without additonal work staff
+// Note : Without additonal work staff information
 func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.AdditionalWorkResponse {
 	return dto.AdditionalWorkResponse{
 		Id:          additionalWork.Id,
 		Description: additionalWork.Description,
 		Location:    additionalWork.Location.String(),
 		Slot:        additionalWork.Slot,
+		Salary:      additionalWork.Salary.String(),
 	}
 }
 
@@ -55,18 +56,21 @@ func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkStaff) dto.DailyWo
 			StartTime:   dailyWorkStaff.DailyWork.StartTime.Time.Format("15:04"),
 			EndTime:     dailyWorkStaff.DailyWork.EndTime.Time.Format("15:04"),
 		},
+		CreatedAt: dailyWorkStaff.CreatedAt,
 	}
 }
 
-func AdditionalWorkStaffToResponse(dailyWorkStaff *entity.AdditionalWorkStaff) dto.AdditionalWorkStaffResponse {
+func AdditionalWorkStaffToResponse(additionalWorkStaff *entity.AdditionalWorkStaff) dto.AdditionalWorkStaffResponse {
 	return dto.AdditionalWorkStaffResponse{
-		Id:     dailyWorkStaff.Id,
-		IsDone: dailyWorkStaff.IsDone,
+		Id:     additionalWorkStaff.Id,
+		IsDone: additionalWorkStaff.IsDone,
 		AdditionalWork: dto.AdditionalWorkDetailResponse{
-			Id:          dailyWorkStaff.AdditionalWork.Id,
-			Description: dailyWorkStaff.AdditionalWork.Description,
-			Date:        dailyWorkStaff.AdditionalWork.CreatedAt.Format("2006-01-02"),
-			Time:        dailyWorkStaff.AdditionalWork.CreatedAt.Format("15:04"),
+			Id:          additionalWorkStaff.AdditionalWork.Id,
+			Description: additionalWorkStaff.AdditionalWork.Description,
+			Date:        additionalWorkStaff.AdditionalWork.CreatedAt.Format("2006-01-02"),
+			Time:        additionalWorkStaff.AdditionalWork.CreatedAt.Format("15:04"),
+			Salary:      additionalWorkStaff.AdditionalWork.Salary.String(),
 		},
+		CreatedAt: additionalWorkStaff.CreatedAt,
 	}
 }

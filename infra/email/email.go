@@ -9,13 +9,21 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
+type IEmail interface {
+	SetSender(sender string)
+	SetReciever(to ...string)
+	SetSubject(subject string)
+	SetBodyHTML(path string, data interface{}) error
+	Send() error
+}
+
 type Email struct {
 	message  *gomail.Message
 	dialer   *gomail.Dialer
 	htmlPath string
 }
 
-func New() *Email {
+func New() IEmail {
 	return &Email{
 		message: gomail.NewMessage(),
 		dialer: gomail.NewDialer(

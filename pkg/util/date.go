@@ -6,31 +6,123 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func GetStartDayAndEndDayInWeek(date time.Time) (time.Time, time.Time) {
-	startDate := date.AddDate(0, 0, -int(date.Weekday()))
-	endDate := date.AddDate(0, 0, 6-int(date.Weekday()))
-	return startDate, endDate
+func GetStartDayAndEndDayByMonthFilter(presenceStatus enum.Month, year int) (time.Time, time.Time) {
+	switch presenceStatus {
+	case enum.MonthJanuary:
+		return GetStartDateAndEndDateInMonth(year, time.January)
+	case enum.MonthFebruary:
+		return GetStartDateAndEndDateInMonth(year, time.February)
+	case enum.MonthMarch:
+		return GetStartDateAndEndDateInMonth(year, time.March)
+	case enum.MonthApril:
+		return GetStartDateAndEndDateInMonth(year, time.April)
+	case enum.MonthMay:
+		return GetStartDateAndEndDateInMonth(year, time.May)
+	case enum.MonthJune:
+		return GetStartDateAndEndDateInMonth(year, time.June)
+	case enum.MonthJuly:
+		return GetStartDateAndEndDateInMonth(year, time.July)
+	case enum.MonthAugust:
+		return GetStartDateAndEndDateInMonth(year, time.August)
+	case enum.MonthSeptember:
+		return GetStartDateAndEndDateInMonth(year, time.September)
+	case enum.MonthOctober:
+		return GetStartDateAndEndDateInMonth(year, time.October)
+	case enum.MonthNovember:
+		return GetStartDateAndEndDateInMonth(year, time.November)
+	case enum.MonthDecember:
+		return GetStartDateAndEndDateInMonth(year, time.December)
+	default:
+		return time.Time{}, time.Time{}
+	}
 }
 
-func GetStartDayAndEndDayInMonth(date time.Time) (time.Time, time.Time) {
-	startDate := date.AddDate(0, 0, -int(date.Day())+1)
-	endDate := date.AddDate(0, 1, -int(date.Day()))
-	return startDate, endDate
+type DateRange struct {
+	StartDate time.Time
+	EndDate   time.Time
+	TotalDays int
 }
 
-func GetStartedDayAndEndDayOfMonth(month time.Month, year int) (time.Time, time.Time) {
-	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+func GetFourWeekRanges(year int, month time.Month) map[int]DateRange {
+	weeks := make(map[int]DateRange)
+
+	startOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	nextMonth := startOfMonth.AddDate(0, 1, 0)
+	daysInMonth := int(nextMonth.Sub(startOfMonth).Hours() / 24)
+
+	baseDaysPerWeek := daysInMonth / 4
+	extraDays := daysInMonth % 4
+
+	currentDay := startOfMonth
+
+	for i := 1; i <= 4; i++ {
+		daysThisWeek := baseDaysPerWeek
+		if i <= extraDays {
+			daysThisWeek++
+		}
+
+		endDate := currentDay.AddDate(0, 0, daysThisWeek-1)
+
+		weeks[i] = DateRange{
+			StartDate: currentDay,
+			EndDate:   endDate,
+			TotalDays: daysThisWeek,
+		}
+
+		currentDay = endDate.AddDate(0, 0, 1)
+	}
+
+	return weeks
+}
+
+func GetTwelveMonthRanges(year int) map[int]DateRange {
+	months := make(map[int]DateRange)
+
+	for month := time.January; month <= time.December; month++ {
+		start := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		end := start.AddDate(0, 1, -1)
+
+		months[int(month)] = DateRange{
+			StartDate: start,
+			EndDate:   end,
+			TotalDays: end.Day(),
+		}
+	}
+
+	return months
+}
+
+func TotalDaysInMonth(year int, month time.Month) int {
+	daysInMonth := time.Date(year, month, 0, 0, 0, 0, 0, time.UTC).Day()
+	return daysInMonth
+}
+
+func FindWeek(t time.Time, weeks map[int]DateRange) int {
+	for i, week := range weeks {
+		if !t.Before(week.StartDate) && !t.After(week.EndDate) {
+			return i
+		}
+	}
+	return 0
+}
+
+func FindMonth(t time.Time, months map[int]DateRange) int {
+	for i, month := range months {
+		if !t.Before(month.StartDate) && !t.After(month.EndDate) {
+			return i
+		}
+	}
+	return 0
+}
+
+func GetStartDateAndEndDateInMonth(year int, month time.Month) (time.Time, time.Time) {
+	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(0, 1, -1)
 	return startDate, endDate
 }
 
-func GetStartDayAndEndDayByPresenceFilter(presenceStatus enum.PresenceFilter) (time.Time, time.Time) {
-	switch presenceStatus {
-	case enum.PresenceFilterThisWeek:
-		return GetStartDayAndEndDayInWeek(time.Now())
-	case enum.PresenceFilterJanuary:
-		return GetStartedDayAndEndDayOfMonth(time.January, time.Now().Year())
-	default:
-		return time.Time{}, time.Time{}
-	}
+func GetStartDateAndEndDateInYear(year int) (time.Time, time.Time) {
+	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
+	endDate := startDate.AddDate(1, 0, -1)
+	return startDate, endDate
 }

@@ -30,6 +30,7 @@ type EggMonitoringResponse struct {
 	Warehouse       WarehouseResponse `json:"warehouse"`
 	TotalGoodEgg    uint64            `json:"totalGoodEggs"`
 	Weight          float64           `json:"weight"`
+	IsArrive        bool              `json:"isArrive"`
 	TotalCrackedEgg uint64            `json:"totalCrackedEggs"`
 	TotalBrokeEgg   uint64            `json:"totalBrokeEggs"`
 	TotalRejectEgg  uint64            `json:"totalRejectEggs"`
@@ -47,9 +48,37 @@ type EggMonitoringListResponse struct {
 	AbnormalityRate float64           `json:"abnormalityRate"`
 	Weight          float64           `json:"weight"`
 	Description     string            `json:"description"`
+	IsArrive        bool              `json:"isArrive"`
 }
 
 type GetEggMonitoringFilter struct {
-	Date  param.DateParam `query:"date"`
-	Limit uint64
+	Date      param.DateParam `query:"date"`
+	Location  uint64          `query:"location"`
+	StartDate param.DateParam
+	EndDate   param.DateParam
+}
+
+type GetEggOverviewFilter struct {
+	Location          uint64                       `query:"location"`
+	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime"`
+}
+
+type EggOverviewDetailResponse struct {
+	TotalGoodEgg    uint64 `json:"totalGoodEgg"`
+	TotalCrackedEgg uint64 `json:"totalCrackedEgg"`
+	TotalBrokenEgg  uint64 `json:"totalBrokenEgg"`
+	TotalRejectEgg  uint64 `json:"totalRejectEgg"`
+}
+
+type EggGraphResponse struct {
+	Key        string `json:"key"`
+	GoodEgg    uint64 `json:"goodEgg"`
+	CrackedEgg uint64 `json:"crackedEgg"`
+	BrokenEgg  uint64 `json:"brokenEgg"`
+	RejectEgg  uint64 `json:"rejectEgg"`
+}
+
+type EggOverviewResponse struct {
+	EggOverviewDetail EggOverviewDetailResponse `json:"eggOverviewDetail"`
+	EggGraphs         []EggGraphResponse        `json:"eggGraphs"`
 }

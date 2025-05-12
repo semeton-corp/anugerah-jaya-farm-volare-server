@@ -5,11 +5,13 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/jwt"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
+	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -17,9 +19,8 @@ import (
 
 type AuthenticationService struct {
 	log          *zap.Logger
-	email        *email.Email
+	emailService email.IEmail
 	repository   repository.IAuthenticationRepository
-	staffService IStaffService
 }
 
 type IAuthenticationService interface {
@@ -29,14 +30,14 @@ type IAuthenticationService interface {
 	ChangePassword(request dto.ChangePasswordRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
 	UpdateAccount(id uuid.UUID, request dto.UpdateAccountRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error)
 	DeleteAccount(id uuid.UUID) error
+	GetAccountById(id uuid.UUID) (dto.AccountResponse, error)
 }
 
-func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, email *email.Email, staffService IStaffService) IAuthenticationService {
+func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, emailService email.IEmail) IAuthenticationService {
 	return &AuthenticationService{
 		log:          log,
 		repository:   repository,
-		email:        email,
-		staffService: staffService,
+		emailService: emailService,
 	}
 }
 
@@ -69,11 +70,20 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid
 		account.PhotoProfile = request.PhotoProfile
 	}
 
+	salary, err := decimal.NewFromString(request.Salary)
+	if err != nil {
+		a.log.Error("[SignUp] failed to parse salary from string")
+		return dto.SignUpResponse{}, err
+	}
+
 	staff := entity.Staff{
-		Id:        Id,
-		AccountId: Id,
-		Name:      request.Name,
-		CreatedBy: accountId,
+		Id:          Id,
+		AccountId:   Id,
+		Name:        request.Name,
+		PhoneNumber: request.PhoneNumber,
+		Address:     request.Address,
+		Salary:      salary,
+		CreatedBy:   accountId,
 	}
 
 	if err = a.repository.CreateAccount(&account); err != nil {
@@ -127,7 +137,7 @@ func (a *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 		return dto.SignInResponse{}, err
 	}
 
-	staff, err := a.staffService.GetStaffById(account.Id)
+	staff, err := a.repository.GetStaffById(account.Id)
 	if err != nil {
 		a.log.Error("[SignIn] failed to get staff by id", zap.Error(err))
 		return dto.SignInResponse{}, err
@@ -174,11 +184,11 @@ func (a *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 		return dto.ForgotPasswordResponse{}, nil
 	}
 
-	a.email.SetReciever(account.Email)
-	a.email.SetSubject("Forgot Password")
-	a.email.SetSender(viper.GetString("email.from"))
-	a.email.SetBodyHTML("forgot_password.html", tempPassord)
-	if err := a.email.Send(); err != nil {
+	a.emailService.SetReciever(account.Email)
+	a.emailService.SetSubject("Forgot Password")
+	a.emailService.SetSender(viper.GetString("email.from"))
+	a.emailService.SetBodyHTML("forgot_password.html", tempPassord)
+	if err := a.emailService.Send(); err != nil {
 		a.log.Error("[ForgotPassword] failed to send email", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
@@ -240,31 +250,11 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 }
 
 func (a *AuthenticationService) UpdateAccount(id uuid.UUID, request dto.UpdateAccountRequest, accountId uuid.UUID) (dto.ChangePasswordResponse, error) {
-	a.repository.UseTx(true)
-	defer a.repository.Rollback()
+	a.repository.UseTx(false)
 
 	account, err := a.repository.GetAccountById(id)
 	if err != nil {
 		a.log.Error("[UpdateAccount] failed to get account by id", zap.Error(err))
-		return dto.ChangePasswordResponse{}, nil
-	}
-
-	staff, err := a.staffService.GetStaffById(id)
-	if err != nil {
-		a.log.Error("[UpdateAccount] failed to get staff by id", zap.Error(err))
-		return dto.ChangePasswordResponse{}, nil
-	}
-
-	// Saga pattern
-	// Saga pattern is a design pattern that allows you to manage long-running transactions in a distributed system.
-	_, err = a.staffService.UpdateStaff(id, dto.UpdateStaffRequest{
-		Name: request.Name,
-	}, accountId)
-	if err != nil {
-		a.log.Error("[UpdateAccount] failed to update staff", zap.Error(err))
-		a.staffService.UpdateStaff(id, dto.UpdateStaffRequest{
-			Name: staff.Name,
-		}, accountId)
 		return dto.ChangePasswordResponse{}, nil
 	}
 
@@ -304,4 +294,16 @@ func (a *AuthenticationService) DeleteAccount(id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (a *AuthenticationService) GetAccountById(id uuid.UUID) (dto.AccountResponse, error) {
+	a.repository.UseTx(false)
+
+	account, err := a.repository.GetAccountById(id)
+	if err != nil {
+		a.log.Error("[GetAccountById] failed to get account by id")
+		return dto.AccountResponse{}, err
+	}
+
+	return mapper.AccountToResponse(&account), nil
 }

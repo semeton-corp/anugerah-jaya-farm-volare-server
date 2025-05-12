@@ -1,8 +1,12 @@
 package repository
 
 import (
+	"strings"
+
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"gorm.io/gorm"
 )
 
@@ -18,6 +22,8 @@ type IStaffRepository interface {
 
 	GetStaffById(id uuid.UUID) (entity.Staff, error)
 	UpdateStaff(staff *entity.Staff) error
+	GetStaffs(filter *dto.GetStaffFilter) ([]entity.Staff, error)
+	CountTotalStaff(filter *dto.GetStaffFilter) (uint64, error)
 }
 
 func NewStaffRepository(db *gorm.DB) IStaffRepository {
@@ -56,7 +62,7 @@ func (r *StaffRepository) GetDB() *gorm.DB {
 
 func (r *StaffRepository) GetStaffById(id uuid.UUID) (entity.Staff, error) {
 	var staff entity.Staff
-	if err := r.GetDB().Where(&entity.Staff{Id: id}).First(&staff).Error; err != nil {
+	if err := r.GetDB().Where(&entity.Staff{Id: id}).Preload("Account.Role").First(&staff).Error; err != nil {
 		return entity.Staff{}, err
 	}
 	return staff, nil
@@ -67,4 +73,54 @@ func (r *StaffRepository) UpdateStaff(staff *entity.Staff) error {
 		return err
 	}
 	return nil
+}
+
+func (r *StaffRepository) GetStaffs(filter *dto.GetStaffFilter) ([]entity.Staff, error) {
+	var staffs []entity.Staff
+	query := r.GetDB().Model(&entity.Staff{})
+
+	if filter.Keyword != "" {
+		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
+	}
+
+	if filter.RoleId != "" {
+		query = query.
+			Joins("JOIN accounts ON accounts.id = staffs.account_id").
+			Where("accounts.role_id = ?", filter.RoleId)
+	}
+
+	if filter.Page != 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	query = query.Preload("Account.Role")
+
+	if err := query.Find(&staffs).Error; err != nil {
+		return nil, err
+	}
+
+	return staffs, nil
+}
+
+func (r *StaffRepository) CountTotalStaff(filter *dto.GetStaffFilter) (uint64, error) {
+	var totalData int64
+
+	query := r.GetDB()
+
+	if filter.Keyword != "" {
+		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
+	}
+
+	if filter.RoleId != "" {
+		query = query.
+			Joins("JOIN accounts ON accounts.id = staffs.account_id").
+			Where("accounts.role_id = ?", filter.RoleId)
+	}
+
+	err := query.Model(&entity.Staff{}).Count(&totalData).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(totalData), err
 }

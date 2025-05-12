@@ -12,13 +12,19 @@ import (
 	"gorm.io/gorm"
 )
 
+type IScheduler interface {
+	Start()
+	InitScheduler()
+	Stop()
+}
+
 type Scheduler struct {
 	db   *gorm.DB
 	cron *cron.Cron
 	log  *zap.Logger
 }
 
-func New(db *gorm.DB, log *zap.Logger) *Scheduler {
+func New(db *gorm.DB, log *zap.Logger) IScheduler {
 	loc, err := time.LoadLocation("Asia/Jakarta")
 	if err != nil {
 		log.Fatal(fmt.Sprintf("failed to load timezone: %v", err))
@@ -34,7 +40,7 @@ func New(db *gorm.DB, log *zap.Logger) *Scheduler {
 func (s *Scheduler) InitScheduler() {
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.CreateDailyWorkStaff(tx)
+			err := s.createDailyWorkStaff(tx)
 			if err != nil {
 				s.log.Error("failed to create daily work staff", zap.Error(err))
 				return err
@@ -45,7 +51,7 @@ func (s *Scheduler) InitScheduler() {
 
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.CreateStaffPresence(tx)
+			err := s.createStaffPresence(tx)
 			if err != nil {
 				s.log.Error("failed to create staff presence", zap.Error(err))
 				return err
@@ -56,7 +62,7 @@ func (s *Scheduler) InitScheduler() {
 
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.CheckForgottenStaffPresence(tx)
+			err := s.checkForgottenStaffPresence(tx)
 			if err != nil {
 				s.log.Error("failed to check staff presence", zap.Error(err))
 				return err
@@ -66,7 +72,7 @@ func (s *Scheduler) InitScheduler() {
 	})
 }
 
-func (s *Scheduler) CreateDailyWorkStaff(tx *gorm.DB) error {
+func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
 	s.log.Info("Creating daily work staff...")
 
 	var dailyWorks []entity.DailyWork
@@ -81,11 +87,7 @@ func (s *Scheduler) CreateDailyWorkStaff(tx *gorm.DB) error {
 
 	var dailyWorkStaffs []entity.DailyWorkStaff
 	for _, dailyWork := range dailyWorks {
-		fmt.Println("Daily Work ID:", dailyWork.Id)
-		fmt.Println("Daily Work Role ID:", dailyWork.RoleId)
 		for _, staff := range staffs {
-			fmt.Println("Staff ID:", staff.Id)
-			fmt.Println("Staff Role ID:", staff.Account.RoleId)
 			if staff.Account.RoleId == dailyWork.RoleId {
 				dailyWorkStaff := entity.DailyWorkStaff{
 					DailyWorkId: dailyWork.Id,
@@ -102,7 +104,7 @@ func (s *Scheduler) CreateDailyWorkStaff(tx *gorm.DB) error {
 	return tx.CreateInBatches(dailyWorkStaffs, len(dailyWorkStaffs)).Error
 }
 
-func (s *Scheduler) CreateStaffPresence(tx *gorm.DB) error {
+func (s *Scheduler) createStaffPresence(tx *gorm.DB) error {
 	s.log.Info("Creating staff presence...")
 
 	var staffs []entity.Staff
@@ -125,7 +127,7 @@ func (s *Scheduler) CreateStaffPresence(tx *gorm.DB) error {
 	return nil
 }
 
-func (s *Scheduler) CheckForgottenStaffPresence(tx *gorm.DB) error {
+func (s *Scheduler) checkForgottenStaffPresence(tx *gorm.DB) error {
 	s.log.Info("Checking staff presence...")
 
 	var staffPresences []entity.StaffPresence
