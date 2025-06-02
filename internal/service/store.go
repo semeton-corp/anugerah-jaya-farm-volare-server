@@ -76,7 +76,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		StoreId:         request.StoreId,
 		Quantity:        request.Quantity,
 		Status:          enum.RequestItemStatusPending,
-		CreatedBy:       accountId,
+		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := s.repository.CreateStoreRequestItem(&storeRequestItem)
@@ -198,7 +198,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 	}
 
 	storeRequestItem.Status = status
-	storeRequestItem.UpdatedBy = accountId
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
@@ -278,7 +278,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 		IsSend:          false,
 		SaleUnit:        saleUnit,
 		PaymentType:     paymentType,
-		CreatedBy:       accountId,
+		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	nominal, err := decimal.NewFromString(request.StoreSalePayment.Nominal)
@@ -326,7 +326,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 			Nominal:       nominal,
 			PaymentProof:  request.StoreSalePayment.PaymentProof,
 			PaymentMethod: paymentMethod,
-			CreatedBy:     accountId,
+			CreatedBy:     uuid.NullUUID{UUID: accountId, Valid: true},
 		}
 
 		err = s.repository.CreateStoreSalePayment(&storeSalePayment)
@@ -446,7 +446,7 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 		PaymentMethod: paymentMethod,
 		Nominal:       nominal,
 		PaymentProof:  request.PaymentProof,
-		CreatedBy:     accountId,
+		CreatedBy:     uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
@@ -549,7 +549,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid send date format")
 	}
 
-	storeSale.UpdatedBy = accountId
+	storeSale.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
 	if err != nil {
@@ -636,7 +636,7 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 	storeSalePayment.Nominal = nominal
 	storeSalePayment.PaymentProof = request.PaymentProof
 	storeSalePayment.PaymentDate = paymentDate
-	storeSalePayment.UpdatedBy = accountId
+	storeSalePayment.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
 	if err != nil {
@@ -690,7 +690,7 @@ func (s *StoreService) SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreS
 	}
 
 	storeSale.IsSend = true
-	storeSale.UpdatedBy = accountId
+	storeSale.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
 	if err != nil {

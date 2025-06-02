@@ -63,7 +63,7 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid
 		Password:     string(hashedPassword),
 		RoleId:       request.RoleId,
 		PhotoProfile: "https://www.gravatar.com/avatar/?d=mp",
-		CreatedBy:    accountId,
+		CreatedBy:    uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	if request.PhotoProfile != "" {
@@ -83,7 +83,7 @@ func (a *AuthenticationService) SignUp(request dto.SignUpRequest, accountId uuid
 		PhoneNumber: request.PhoneNumber,
 		Address:     request.Address,
 		Salary:      salary,
-		CreatedBy:   accountId,
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	if err = a.repository.CreateAccount(&account); err != nil {
@@ -225,7 +225,7 @@ func (a *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	}
 
 	account.Password = string(hashedPassword)
-	account.UpdatedBy = accountId
+	account.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := a.repository.UpdateAccount(&account); err != nil {
 		a.log.Error("[ChangePassword] failed to update account", zap.Error(err))
@@ -261,7 +261,7 @@ func (a *AuthenticationService) UpdateAccount(id uuid.UUID, request dto.UpdateAc
 	account.Email = request.Email
 	account.RoleId = request.RoleId
 	account.PhotoProfile = request.PhotoProfile
-	account.UpdatedBy = accountId
+	account.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := a.repository.UpdateAccount(&account); err != nil {
 		a.log.Error("[UpdateAccount] failed to update account", zap.Error(err))

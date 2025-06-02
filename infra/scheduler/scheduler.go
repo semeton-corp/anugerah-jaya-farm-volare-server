@@ -93,7 +93,7 @@ func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
 					DailyWorkId: dailyWork.Id,
 					StaffId:     staff.Id,
 					IsDone:      false,
-					CreatedBy:   uuid.Nil,
+					CreatedBy:   uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 				}
 				dailyWorkStaffs = append(dailyWorkStaffs, dailyWorkStaff)
 			}
@@ -115,7 +115,7 @@ func (s *Scheduler) createStaffPresence(tx *gorm.DB) error {
 			staffPresence := entity.StaffPresence{
 				StaffId:   staff.Id,
 				IsPresent: false,
-				CreatedBy: uuid.Nil,
+				CreatedBy: uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 			}
 			if err := tx.Create(&staffPresence).Error; err != nil {
 				return err
@@ -135,7 +135,7 @@ func (s *Scheduler) checkForgottenStaffPresence(tx *gorm.DB) error {
 		return err
 	}
 
-	endTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 15, 0, 0, 0, time.UTC)
+	endTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.UTC)
 
 	for _, staffPresence := range staffPresences {
 		staffPresence.IsPresent = true

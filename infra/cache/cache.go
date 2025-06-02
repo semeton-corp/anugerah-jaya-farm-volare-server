@@ -15,7 +15,7 @@ type ICache interface {
 	Get(ctx context.Context, key string) (string, error)
 	Set(ctx context.Context, key string, value string) error
 	Delete(ctx context.Context, key string) error
-	Publish(ctx context.Context, topic string, value string) error
+	Publish(ctx context.Context, topic string, value any) error
 	Subscribe(ctx context.Context, topic string) *redis.PubSub
 }
 
@@ -49,7 +49,7 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, key).Err()
 }
 
-func (c *Cache) Publish(ctx context.Context, topic string, value string) error {
+func (c *Cache) Publish(ctx context.Context, topic string, value any) error {
 	return c.client.Publish(ctx, topic, value).Err()
 }
 

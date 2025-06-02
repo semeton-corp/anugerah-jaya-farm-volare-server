@@ -218,7 +218,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		Slot:        request.Slot,
 		Location:    location,
 		Salary:      salary,
-		CreatedBy:   accountId,
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	if err := w.repository.CreateAdditionalWork(&additionalWork); err != nil {
@@ -277,7 +277,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	additionalWork.Description = request.Description
 	additionalWork.Slot = request.Slot
 	additionalWork.Location = location
-	additionalWork.UpdatedBy = accountId
+	additionalWork.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := w.repository.CreateAdditionalWork(&additionalWork); err != nil {
 		w.log.Error("[UpdateAdditonalWork] failed to update additional work", zap.Error(err))
@@ -372,7 +372,7 @@ func (w *WorkService) UpdateAdditionalWorkStaff(id uint64, request dto.UpdateAdd
 	}
 
 	additionalWorkStaff.IsDone = request.IsDone
-	additionalWorkStaff.UpdatedBy = accountId
+	additionalWorkStaff.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := w.repository.UpdateAdditionalWorkStaff(&additionalWorkStaff); err != nil {
 		w.log.Error("[UpdateAdditionalWorkStaff] failed to update additional work staff", zap.Error(err))
@@ -397,7 +397,7 @@ func (w *WorkService) UpdateDailyWorkStaff(id uint64, request dto.UpdateDailyWor
 	}
 
 	dailyWorkStaff.IsDone = request.IsDone
-	dailyWorkStaff.UpdatedBy = accountId
+	dailyWorkStaff.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := w.repository.UpdateDailyWorkStaff(&dailyWorkStaff); err != nil {
 		w.log.Error("[UpdateDailyWorkStaff] failed to update daily work staff", zap.Error(err))

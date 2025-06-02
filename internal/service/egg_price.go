@@ -50,7 +50,7 @@ func (s *EggPriceService) CreateEggPrice(request dto.CreateEggPriceRequest, acco
 		Category:        request.Category,
 		WarehouseItemId: request.WarehouseItemId,
 		Price:           price,
-		CreatedBy:       accountId,
+		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err = s.repository.CreateEggPrice(&eggPrice)
@@ -114,7 +114,7 @@ func (s *EggPriceService) UpdateEggPrice(id uint64, request dto.UpdateEggPriceRe
 
 	eggPrice.Category = request.Category
 	eggPrice.WarehouseItemId = request.WarehouseItemId
-	eggPrice.UpdatedBy = accountId
+	eggPrice.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateEggPrice(&eggPrice)
 	if err != nil {
@@ -197,7 +197,7 @@ func (s *EggPriceService) UpdateEggPriceDiscount(id uint64, request dto.UpdateEg
 	eggPriceDiscount.Name = request.Name
 	eggPriceDiscount.MinimumTransactionUser = request.MinimumTransactionUser
 	eggPriceDiscount.TotalDiscount = request.TotalDiscount
-	eggPriceDiscount.UpdatedBy = accountId
+	eggPriceDiscount.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateEggPriceDiscount(&eggPriceDiscount)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
@@ -18,10 +19,10 @@ type WarehouseOrderItem struct {
 	Quantity        uint64                    `gorm:"type:bigint;not null"`
 	IsTaken         sql.NullBool              `gorm:"type:boolean;default:false"`
 	TakenAt         sql.NullTime              `gorm:"type:timestamp"`
-	TakenBy         sql.NullString            `gorm:"type:varchar(255)"`
+	TakenBy         uuid.NullUUID             `gorm:"type:varchar(255)"`
 	Status          enum.WarehouseOrderStatus `gorm:"type:int;not null"`
 	CreatedAt       time.Time                 `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy       sql.NullString            `gorm:"type:varchar(255)"`
+	CreatedBy       uuid.NullUUID             `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time                 `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy       sql.NullString            `gorm:"type:varchar(255)"`
+	UpdatedBy       uuid.NullUUID             `gorm:"type:varchar(255)"`
 }

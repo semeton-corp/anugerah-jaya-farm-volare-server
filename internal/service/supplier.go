@@ -37,7 +37,7 @@ func (s *SupplierService) CreateSupplier(requesst *dto.CreateSupplierRequest, ac
 		Name:            requesst.Name,
 		PhoneNumber:     requesst.PhoneNumber,
 		Address:         requesst.Address,
-		CreatedBy:       accountId,
+		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := s.repository.CreateSupplier(&supplier)
@@ -97,7 +97,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request *dto.UpdateSupplierR
 	supplier.Name = request.Name
 	supplier.PhoneNumber = request.PhoneNumber
 	supplier.Address = request.Address
-	supplier.UpdatedBy = accountId
+	supplier.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := s.repository.UpdateSupplier(&supplier); err != nil {
 		s.log.Error("[UpdateSupplier] failed to update supplier", zap.Error(err))

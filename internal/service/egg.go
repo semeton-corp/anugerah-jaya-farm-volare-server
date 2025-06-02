@@ -68,7 +68,7 @@ func (e *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		TotalBrokeEgg:   request.TotalBrokeEgg,
 		TotalRejectEgg:  request.TotalRejectEgg,
 		Weight:          request.Weight,
-		CreatedBy:       accountId,
+		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
 		IsArrive:        false,
 	}
 
@@ -139,7 +139,7 @@ func (e *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	eggMonitoring.TotalCrackedEgg = request.TotalCrackedEgg
 	eggMonitoring.TotalBrokeEgg = request.TotalBrokeEgg
 	eggMonitoring.TotalRejectEgg = request.TotalRejectEgg
-	eggMonitoring.UpdatedBy = accountId
+	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := e.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
 		e.log.Error("[UpdateEggMonitoring] failed to update egg monitoring", zap.Error(err))
@@ -186,8 +186,8 @@ func (e *EggService) TakeEggMonitoring(id uint64, accountId uuid.UUID) (dto.EggM
 
 	eggMonitoring.IsArrive = true
 	eggMonitoring.TakenAt = time.Now()
-	eggMonitoring.TakenBy = accountId
-	eggMonitoring.UpdatedBy = accountId
+	eggMonitoring.TakenBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	// Todo : add stock into warehouse stock item
 

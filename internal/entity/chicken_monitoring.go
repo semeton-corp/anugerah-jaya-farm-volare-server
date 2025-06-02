@@ -19,8 +19,8 @@ type ChickenMonitoring struct {
 	TotalFeed                float64                    `gorm:"type:decimal;not null"`
 	ChickenDiseaseMonitoring []ChickenDiseaseMonitoring `gorm:"foreignKey:ChickenMonitoringId;references:Id;constraint:OnDelete:CASCADE"`
 	ChickenVaccineMonitoring []ChickenVaccineMonitoring `gorm:"foreignKey:ChickenMonitoringId;references:Id;constraint:OnDelete:CASCADE"`
-	CreatedBy                uuid.UUID                  `gorm:"type:varchar(255)"`
+	CreatedBy                uuid.NullUUID              `gorm:"type:varchar(255)"`
 	CreatedAt                time.Time                  `gorm:"type:timestamp;autoCreateTime"`
-	UpdateBy                 uuid.UUID                  `gorm:"type:varchar(255)"`
+	UpdateBy                 uuid.NullUUID              `gorm:"type:varchar(255)"`
 	UpdatedAt                time.Time                  `gorm:"type:timestamp;autoUpdateTime"`
 }

@@ -13,8 +13,8 @@ type Supplier struct {
 	Name            string        `gorm:"type:varchar(255);not null"`
 	PhoneNumber     string        `gorm:"type:varchar(255);not null"`
 	Address         string        `gorm:"type:text;not null"`
-	CreatedBy       uuid.UUID     `gorm:"type:varchar(255)"`
+	CreatedBy       uuid.NullUUID `gorm:"type:varchar(255)"`
 	CreatedAt       time.Time     `gorm:"type:timestamp;autoCreateTime"`
-	UpdatedBy       uuid.UUID     `gorm:"type:varchar(255)"`
+	UpdatedBy       uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time     `gorm:"type:timestamp;autoUpdateTime"`
 }

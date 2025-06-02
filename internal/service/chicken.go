@@ -47,7 +47,7 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 	}
 }
 
-func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, accoundId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
+func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, accountId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
 	c.repository.UseTx(true)
 	defer c.repository.Rollback()
 
@@ -74,7 +74,7 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		TotalDeathChicken: request.TotalDeathChicken,
 		TotalSickChicken:  request.TotalSickChicken,
 		TotalFeed:         request.TotalFeed,
-		CreatedBy:         accoundId,
+		CreatedBy:         uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err = c.repository.CreateChickenMonitoring(&chickenMonitoring)
@@ -92,7 +92,7 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 				Medicine:            disease.Medicine,
 				Dose:                disease.Dose,
 				Unit:                disease.Unit,
-				CreatedBy:           accoundId,
+				CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
 			}
 		}
 
@@ -111,7 +111,7 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 				Vaccine:             vaccine.Vaccine,
 				Dose:                vaccine.Dose,
 				Unit:                vaccine.Unit,
-				CreatedBy:           accoundId,
+				CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
 			}
 		}
 
@@ -248,7 +248,7 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
-	chickenMonitoring.UpdateBy = accountId
+	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = c.repository.UpdateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
@@ -270,9 +270,9 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		}
 
 		if disease.Id == 0 {
-			chickenDisease.CreatedBy = accountId
+			chickenDisease.CreatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 		} else {
-			chickenDisease.UpdatedBy = accountId
+			chickenDisease.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 		}
 
 		err := c.repository.SaveChickenDiseaseMonitoring(&chickenDisease)
@@ -294,9 +294,9 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		}
 
 		if vaccine.Id == 0 {
-			chickenVaccine.CreatedBy = accountId
+			chickenVaccine.CreatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 		} else {
-			chickenVaccine.UpdatedBy = accountId
+			chickenVaccine.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 		}
 
 		err := c.repository.SaveChickenVaccineMonitoring(&chickenVaccine)
@@ -350,7 +350,7 @@ func (c *ChickenService) CreateChickenDiseaseMonitoring(chickenMonitoringId uint
 		Medicine:            request.Medicine,
 		Dose:                request.Dose,
 		Unit:                request.Unit,
-		CreatedBy:           accountId,
+		CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := c.repository.CreateChickenDiseaseMonitoring(&[]entity.ChickenDiseaseMonitoring{chickenDisease})
@@ -388,7 +388,7 @@ func (c *ChickenService) CreateChickenVaccineMonitoring(chickenMonitoringId uint
 		Vaccine:             request.Vaccine,
 		Dose:                request.Dose,
 		Unit:                request.Unit,
-		CreatedBy:           accountId,
+		CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := c.repository.CreateChickenVaccineMonitoring(&[]entity.ChickenVaccineMonitoring{chickenVaccine})
@@ -431,7 +431,7 @@ func (c *ChickenService) UpdateChickenDiseaseMonitoring(id uint64, request dto.U
 	chickenDisease.Medicine = request.Medicine
 	chickenDisease.Dose = request.Dose
 	chickenDisease.Unit = request.Unit
-	chickenDisease.UpdatedBy = accountId
+	chickenDisease.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = c.repository.UpdateChickenDiseaseMonitoring(&chickenDisease)
 	if err != nil {
@@ -472,7 +472,7 @@ func (c *ChickenService) UpdateChickenVaccineMonitoring(id uint64, request dto.U
 	chickenVaccine.Vaccine = request.Vaccine
 	chickenVaccine.Dose = request.Dose
 	chickenVaccine.Unit = request.Unit
-	chickenVaccine.UpdatedBy = accountId
+	chickenVaccine.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = c.repository.UpdateChickenVaccineMonitoring(&chickenVaccine)
 	if err != nil {

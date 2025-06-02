@@ -38,7 +38,7 @@ func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseStockItem)
 func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem) dto.WarehouseOrderItemResponse {
 	warehouseItemResponse := dto.WarehouseOrderItemResponse{
 		Id:            warehouseOrderItem.Id,
-		TakenBy:       warehouseOrderItem.TakenBy.String,
+		TakenBy:       warehouseOrderItem.TakenBy.UUID.String(),
 		IsTaken:       warehouseOrderItem.IsTaken.Bool,
 		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
 		WarehouseItem: WarehouseItemToResponse(&warehouseOrderItem.WarehouseItem),

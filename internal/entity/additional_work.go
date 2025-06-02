@@ -16,9 +16,9 @@ type AdditionalWork struct {
 	AdditionalWorkStaff []AdditionalWorkStaff     `gorm:"foreignKey:AdditionalWorkId;references:Id"`
 	Location            enum.LocationAddionalWork `gorm:"int;not null"`
 	Salary              decimal.Decimal           `gorm:"decimal;not null;default:0"`
-	CreatedBy           uuid.UUID                 `gorm:"type:varchar(255)"`
+	CreatedBy           uuid.NullUUID             `gorm:"type:varchar(255)"`
 	CreatedAt           time.Time                 `gorm:"type:timestamp;autoCreateTime"`
-	UpdatedBy           uuid.UUID                 `gorm:"type:varchar(255)"`
+	UpdatedBy           uuid.NullUUID             `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time                 `gorm:"type:timestamp;autoUpdateTime"`
 	DeletedAt           gorm.DeletedAt            `gorm:"type:timestamp;index"` // soft delete
 }
