@@ -76,7 +76,7 @@ func (r *AuthenticationRepository) GetUserByUsername(username string) (entity.Us
 	var user entity.User
 	if err := r.GetDB().Preload("Role").Where("username = ?", username).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.User{}, errx.BadRequest("password or email is incorrect")
+			return entity.User{}, errx.BadRequest("record not found")
 		}
 		return entity.User{}, err
 	}
@@ -87,7 +87,7 @@ func (r *AuthenticationRepository) GetUserByEmail(email string) (entity.User, er
 	var user entity.User
 	if err := r.GetDB().Preload("Role").Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.User{}, errx.BadRequest("password or email is incorrect")
+			return entity.User{}, errx.BadRequest("record not found")
 		}
 		return entity.User{}, err
 	}

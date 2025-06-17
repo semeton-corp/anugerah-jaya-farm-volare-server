@@ -54,8 +54,9 @@ type ChangePasswordRequest struct {
 }
 
 type ChangePasswordResponse struct {
-	Id           string       `json:"id"`
-	PhotoProfile string       `json:"photoProfile"`
-	Email        string       `json:"email"`
-	Role         RoleResponse `json:"role"`
+	Id           string           `json:"id"`
+	PhotoProfile string           `json:"photoProfile"`
+	Email        string           `json:"email"`
+	Location     LocationResponse `json:"location"`
+	Role         RoleResponse     `json:"role"`
 }

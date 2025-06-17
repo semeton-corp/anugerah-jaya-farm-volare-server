@@ -117,6 +117,10 @@ func (b *Bootstrap) DepedencyInjection() {
 	eggPriceService := service.NewEggPriceService(b.log, eggPriceRepository)
 	eggPriceHandler := rest.NewEggPriceHandler(b.log, eggPriceService, b.validator)
 
+	locationRepository := repository.NewLocationRepository(b.db)
+	locationService := service.NewLocationService(b.log, locationRepository)
+	locationHandler := rest.NewLocationHandler(b.log, locationService, b.validator)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
@@ -130,6 +134,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		supplierHandler,
 		userHandler,
 		eggPriceHandler,
+		locationHandler,
 	}
 }
 
