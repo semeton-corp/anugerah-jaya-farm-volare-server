@@ -109,9 +109,9 @@ func (b *Bootstrap) DepedencyInjection() {
 	supplierService := service.NewSupplierService(b.log, supplierRepository)
 	supplierHandler := rest.NewSupplierHandler(b.log, supplierService, b.validator)
 
-	staffRepository := repository.NewStaffRepository(b.db)
-	staffService := service.NewStaffService(b.log, staffRepository, authService, workService, presenceService)
-	staffHandler := rest.NewStaffHandler(b.log, staffService, b.validator)
+	userRepository := repository.NewUserRepository(b.db)
+	userService := service.NewUserService(b.log, userRepository, workService, presenceService)
+	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
 	eggPriceRepository := repository.NewEggPriceRepository(b.db)
 	eggPriceService := service.NewEggPriceService(b.log, eggPriceRepository)
@@ -128,7 +128,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		workHandler,
 		presenceHandler,
 		supplierHandler,
-		staffHandler,
+		userHandler,
 		eggPriceHandler,
 	}
 }

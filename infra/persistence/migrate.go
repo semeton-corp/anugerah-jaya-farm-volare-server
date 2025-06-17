@@ -8,8 +8,7 @@ import (
 func Migrate(db *gorm.DB) {
 	db.AutoMigrate(
 		&entity.Role{},
-		&entity.Staff{},
-		&entity.Account{},
+		&entity.User{},
 		&entity.Location{},
 		&entity.Cage{},
 		&entity.ChickenMonitoring{},
@@ -36,9 +35,8 @@ func Migrate(db *gorm.DB) {
 
 func Rollback(db *gorm.DB) {
 	db.Migrator().DropTable(
-		&entity.Account{},
+		&entity.User{},
 		&entity.Role{},
-		&entity.Staff{},
 		&entity.Location{},
 		&entity.Cage{},
 		&entity.ChickenMonitoring{},

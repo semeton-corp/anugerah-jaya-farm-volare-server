@@ -20,19 +20,19 @@ type EggPriceHandler struct {
 	service   service.IEggPriceService
 }
 
-func (a *EggPriceHandler) SetEndpoint(router *fiber.App) {
+func (h *EggPriceHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/egg-prices")
-	v1.Post("", middleware.Authentication(), a.CreateEggPrice)
-	v1.Get("", middleware.Authentication(), a.GetEggPrices)
-	v1.Get("/:id", middleware.Authentication(), a.GetEggPriceById)
-	v1.Put("/:id", middleware.Authentication(), a.UpdateEggPrice)
-	v1.Delete("/:id", middleware.Authentication(), a.DeleteEggPrice)
+	v1.Post("", middleware.Authentication(), h.CreateEggPrice)
+	v1.Get("", middleware.Authentication(), h.GetEggPrices)
+	v1.Get("/:id", middleware.Authentication(), h.GetEggPriceById)
+	v1.Put("/:id", middleware.Authentication(), h.UpdateEggPrice)
+	v1.Delete("/:id", middleware.Authentication(), h.DeleteEggPrice)
 
-	v1.Post("/discounts", middleware.Authentication(), a.CreateEggPriceDiscount)
-	v1.Get("/discounts", middleware.Authentication(), a.GetEggPriceDiscounts)
-	v1.Get("/discounts/:id", middleware.Authentication(), a.GetEggPriceDiscountById)
-	v1.Put("/discounts/:id", middleware.Authentication(), a.UpdateEggPriceDiscount)
-	v1.Delete("/discounts/:id", middleware.Authentication(), a.DeleteEggPriceDiscount)
+	v1.Post("/discounts", middleware.Authentication(), h.CreateEggPriceDiscount)
+	v1.Get("/discounts", middleware.Authentication(), h.GetEggPriceDiscounts)
+	v1.Get("/discounts/:id", middleware.Authentication(), h.GetEggPriceDiscountById)
+	v1.Put("/discounts/:id", middleware.Authentication(), h.UpdateEggPriceDiscount)
+	v1.Delete("/discounts/:id", middleware.Authentication(), h.DeleteEggPriceDiscount)
 }
 
 func NewEggPriceHandler(log *zap.Logger, service service.IEggPriceService, validator *validator.Validate) *EggPriceHandler {
@@ -55,13 +55,13 @@ func (h *EggPriceHandler) CreateEggPrice(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateEggPrice] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
+		h.log.Error("[CreateEggPrice] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
-	resp, err := h.service.CreateEggPrice(request, uuid.MustParse(accountIdContext))
+	resp, err := h.service.CreateEggPrice(request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[CreateEggPrice] failed to create egg price", zap.Error(err))
 		return err
@@ -129,13 +129,13 @@ func (h *EggPriceHandler) UpdateEggPrice(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateEggPrice] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
+		h.log.Error("[UpdateEggPrice] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
-	resp, err := h.service.UpdateEggPrice(id, request, uuid.MustParse(accountIdContext))
+	resp, err := h.service.UpdateEggPrice(id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[UpdateEggPrice] failed to update egg price", zap.Error(err))
 		return err
@@ -177,13 +177,13 @@ func (h *EggPriceHandler) CreateEggPriceDiscount(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateEggPriceDiscount] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
+		h.log.Error("[CreateEggPriceDiscount] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
-	resp, err := h.service.CreateEggPriceDiscount(filter, uuid.MustParse(accountIdContext))
+	resp, err := h.service.CreateEggPriceDiscount(filter, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[CreateEggPriceDiscount] failed to create egg price discount", zap.Error(err))
 		return err
@@ -251,13 +251,13 @@ func (h *EggPriceHandler) UpdateEggPriceDiscount(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdatePriceDiscount] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
+		h.log.Error("[UpdatePriceDiscount] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
-	resp, err := h.service.UpdateEggPriceDiscount(id, request, uuid.MustParse(accountIdContext))
+	resp, err := h.service.UpdateEggPriceDiscount(id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[UpdatePriceDiscount] failed to update egg price discount", zap.Error(err))
 		return err

@@ -9,8 +9,8 @@ import (
 
 type StaffPresence struct {
 	Id        uint64            `gorm:"primaryKey;autoIncrement"`
-	StaffId   uuid.UUID         `gorm:"type:bigint;not null"`
-	Staff     Staff             `gorm:"foreignKey:StaffId;references:Id;constraint:OnDelete:CASCADE"`
+	UserId    uuid.UUID         `gorm:"type:bigint;not null"`
+	User      User              `gorm:"foreignKey:UserId;references:Id;constraint:OnDelete:CASCADE"`
 	StartTime datatype.TimeOnly `gorm:"type:timestamp"`
 	EndTime   datatype.TimeOnly `gorm:"type:timestamp"`
 	IsPresent bool              `gorm:"type:bool;not null"`

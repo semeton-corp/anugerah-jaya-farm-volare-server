@@ -7,24 +7,24 @@ import (
 )
 
 type PresenceListResponse struct {
-	Id        uint64        `json:"id"`
-	Staff     StaffResponse `json:"staff"`
-	Date      string        `json:"date"`
-	StartTime string        `json:"startTime"`
-	EndTime   string        `json:"endTime"`
-	Overtime  float64       `json:"overTime"`
-	IsPresent bool          `json:"isPresent"`
+	Id        uint64       `json:"id"`
+	User      UserResponse `json:"user"`
+	Date      string       `json:"date"`
+	StartTime string       `json:"startTime"`
+	EndTime   string       `json:"endTime"`
+	Overtime  float64      `json:"overTime"`
+	IsPresent bool         `json:"isPresent"`
 }
 
 type PresenceResponse struct {
-	Id        uint64        `json:"id"`
-	Staff     StaffResponse `json:"staff"`
-	Date      string        `json:"date"`
-	StartTime string        `json:"startTime"`
-	EndTime   string        `json:"endTime"`
-	Overtime  float64       `json:"overTime"`
-	IsPresent bool          `json:"isPresent"`
-	CreatedAt time.Time     `json:"-"`
+	Id        uint64       `json:"id"`
+	User      UserResponse `json:"user"`
+	Date      string       `json:"date"`
+	StartTime string       `json:"startTime"`
+	EndTime   string       `json:"endTime"`
+	Overtime  float64      `json:"overTime"`
+	IsPresent bool         `json:"isPresent"`
+	CreatedAt time.Time    `json:"-"`
 }
 
 type GetPresenceFilter struct {

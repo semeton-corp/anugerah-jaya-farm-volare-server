@@ -15,126 +15,91 @@ import (
 	"go.uber.org/zap"
 )
 
-type StaffService struct {
+type UserService struct {
 	log             *zap.Logger
-	repository      repository.IStaffRepository
-	authService     IAuthenticationService
+	repository      repository.IUserRepository
 	workService     IWorkService
 	presenceService IPresenceService
 }
 
-type IStaffService interface {
-	GetStaffById(id uuid.UUID) (dto.StaffResponse, error)
-	UpdateStaff(id uuid.UUID, request dto.UpdateStaffRequest, accountId uuid.UUID) (dto.StaffResponse, error)
-	GetStaffs(filter dto.GetStaffFilter) (dto.StaffListPaginationResponse, error)
-	GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOverviewFilter) (dto.StaffOverviewResponse, error)
+type IUserService interface {
+	GetUserById(id uuid.UUID) (dto.UserResponse, error)
+	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error)
+	GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error)
+	GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 }
 
-func NewStaffService(log *zap.Logger, repository repository.IStaffRepository, authService IAuthenticationService, workService IWorkService, presenceService IPresenceService) IStaffService {
-	return &StaffService{
+func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService) IUserService {
+	return &UserService{
 		log:             log,
 		repository:      repository,
-		authService:     authService,
 		workService:     workService,
 		presenceService: presenceService,
 	}
 }
 
-func (s *StaffService) GetStaffById(id uuid.UUID) (dto.StaffResponse, error) {
+func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 	s.repository.UseTx(false)
 
-	staff, err := s.repository.GetStaffById(id)
+	staff, err := s.repository.GetUserById(id)
 	if err != nil {
 		s.log.Error("[GetStaffById] failed to get staff by id", zap.Error(err))
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
 	return mapper.StaffToResponse(&staff), nil
 }
 
-func (s *StaffService) UpdateStaff(id uuid.UUID, request dto.UpdateStaffRequest, accountId uuid.UUID) (dto.StaffResponse, error) {
-	var (
-		err error
-	)
-
-	account, err := s.authService.GetAccountById(id)
-	if err != nil {
-		s.log.Error("[UpdateStaff] failed to get account by id")
-		return dto.StaffResponse{}, err
-	}
-
+func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error) {
 	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
-	defer func() {
-		if err != nil {
-			s.repository.Rollback()
-
-			_, errS := s.authService.UpdateAccount(id, dto.UpdateAccountRequest{
-				Email:        account.Email,
-				RoleId:       account.Role.Id,
-				PhotoProfile: account.PhotoProfile,
-			}, accountId)
-
-			if err != nil {
-				s.log.Error("[UpdateStaff] failed to update account")
-				err = errS
-			}
-		}
-	}()
-
-	staff, err := s.repository.GetStaffById(id)
+	user, err := s.repository.GetUserById(id)
 	if err != nil {
 		s.log.Error("[UpdateStaff] failed to get staff by id", zap.Error(err))
-		return dto.StaffResponse{}, err
-	}
-
-	_, err = s.authService.UpdateAccount(id, dto.UpdateAccountRequest{
-		Email:        request.Email,
-		RoleId:       request.RoleId,
-		PhotoProfile: request.PhotoProfile,
-	}, accountId)
-	if err != nil {
-		s.log.Error("[UpdateStaff] failed to update account")
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
 		s.log.Error("[UpdateStaff] failed to parse salary", zap.Error(err))
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
-	staff.Name = request.Name
-	staff.PhoneNumber = request.PhoneNumber
-	staff.Address = request.Address
-	staff.Salary = salary
+	user.Email = request.Email
+	user.RoleId = request.RoleId
+	user.PhotoProfile = request.PhotoProfile
+	user.Name = request.Name
+	user.PhoneNumber = request.PhoneNumber
+	user.Address = request.Address
+	user.Salary = salary
 
-	if err := s.repository.UpdateStaff(&staff); err != nil {
+	if err := s.repository.UpdateUser(&user); err != nil {
 		s.log.Error("[UpdateStaff] failed to update staff", zap.Error(err))
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
 	if err := s.repository.Commit(); err != nil {
 		s.log.Error("[UpdateStaff] failed to commit transaction", zap.Error(err))
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
-	staff, err = s.repository.GetStaffById(id)
+	user, err = s.repository.GetUserById(id)
 	if err != nil {
 		s.log.Error("[UpdateStaff] failed to get staff by id", zap.Error(err))
-		return dto.StaffResponse{}, err
+		return dto.UserResponse{}, err
 	}
 
-	return mapper.StaffToResponse(&staff), nil
+	return mapper.StaffToResponse(&user), nil
 }
 
-func (s *StaffService) GetStaffs(filter dto.GetStaffFilter) (dto.StaffListPaginationResponse, error) {
+func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	staffs, err := s.repository.GetStaffs(&filter)
+	staffs, err := s.repository.GetUsers(&filter)
 	if err != nil {
 		s.log.Error("[GetStaffs] failed to get staffs", zap.Error(err))
-		return dto.StaffListPaginationResponse{}, err
+		return dto.UserListPaginationResponse{}, err
 	}
 
 	// Idea : get with diff method repository, and the get totalOvertime, salary for additional work, and cashbon (using join)
@@ -142,37 +107,37 @@ func (s *StaffService) GetStaffs(filter dto.GetStaffFilter) (dto.StaffListPagina
 	// Todo : get salary from additional work
 	// Todo : get salary cashbon
 
-	staffResponses := make([]dto.StaffListResponse, 0)
+	userResponses := make([]dto.UserListResponse, 0)
 	for _, staff := range staffs {
-		staffResponses = append(staffResponses, mapper.StaffToListResponse(&staff))
+		userResponses = append(userResponses, mapper.StaffToListResponse(&staff))
 	}
 
-	totalData, err := s.repository.CountTotalStaff(&dto.GetStaffFilter{
+	totalData, err := s.repository.CountTotalUser(&dto.GetUserFilter{
 		Keyword: filter.Keyword,
 		RoleId:  filter.RoleId,
 	})
 	if err != nil {
 		s.log.Error("[GetStaffs] failed to count total staffs")
-		return dto.StaffListPaginationResponse{}, err
+		return dto.UserListPaginationResponse{}, err
 	}
 
-	resp := dto.StaffListPaginationResponse{
+	resp := dto.UserListPaginationResponse{
 		TotalPage: uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
 		TotalData: totalData,
-		Staffs:    staffResponses,
+		Users:     userResponses,
 	}
 
 	return resp, nil
 }
 
-func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOverviewFilter) (dto.StaffOverviewResponse, error) {
+func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error) {
 	s.repository.UseTx(false)
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
 
-	staff, err := s.repository.GetStaffById(id)
+	staff, err := s.repository.GetUserById(id)
 	if err != nil {
-		return dto.StaffOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, nil
 	}
 
 	additionalWorkStaffs, err := s.workService.GetAdditionalWorkStaffByStaffId(id,
@@ -182,7 +147,7 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 			WithDeleted: true,
 		})
 	if err != nil {
-		return dto.StaffOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, nil
 	}
 
 	dailyWorkStaffs, err := s.workService.GetDailyWorkStaffByStaffId(id,
@@ -192,7 +157,7 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 			WithDeleted: true,
 		})
 	if err != nil {
-		return dto.StaffOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, nil
 	}
 
 	staffPresences, err := s.presenceService.GetAllStaffPresences(id,
@@ -201,7 +166,7 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 			Year:  filter.Year,
 		})
 	if err != nil {
-		return dto.StaffOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, nil
 	}
 
 	// TODO : get cashbon from cashflow tabel later
@@ -279,7 +244,7 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 
 			salary, err := decimal.NewFromString(additionalWorkStaff.AdditionalWork.Salary)
 			if err != nil {
-				return dto.StaffOverviewResponse{}, nil
+				return dto.UserOverviewResponse{}, nil
 			}
 
 			bonusSalary = bonusSalary.Add(salary)
@@ -297,23 +262,23 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 	workPresence := totalWorkHour / float64(8*util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month)))
 
 	totalSalary := staff.Salary.Add(overtimeSalary).Add(bonusSalary) // Todo : need cashbon
-	staffInformation := dto.StaffInformationResponse{
+	userInformation := dto.UserInformationResponse{
 		TotalWorkHour: totalWorkHour,
 		TotalSalary:   totalSalary.String(),
 		KPIScore:      (presenceScore + workPresence) / 2, // Todo : how about the overtime
 	}
 
-	staffPresenceInformation := dto.StaffPresenceInformationResponse{
+	userPresenceInformation := dto.UserPresenceInformationResponse{
 		TotalPresent:    totalPresent,
 		TotalNotPresent: uint64(len(staffPresences.Presences) - int(totalPresent)),
 	}
 
-	staffWorkInformation := dto.StaffWorkInformationResponse{
+	userWorkInformation := dto.UserWorkInformationResponse{
 		TotalWorkDone:    totalWorkDone,
 		TotalWorkNotDone: uint64(len(dailyWorkStaffs) + len(additionalWorkStaffs) - int(totalWorkDone)),
 	}
 
-	staffSalaryInformation := dto.StaffSalaryInformationResponse{
+	userSalaryInformation := dto.UserSalaryInformationResponse{
 		BaseSalary:     staff.Salary.String(),
 		OvertimeSalary: overtimeSalary.String(),
 		BonusSalary:    bonusSalary.String(),
@@ -335,12 +300,12 @@ func (s *StaffService) GetOverviewStaff(id uuid.UUID, filter dto.GetStaffOvervie
 		kpiPerformances = append(kpiPerformances, kpiPerformance)
 	}
 
-	overviewResponse := dto.StaffOverviewResponse{
-		StaffInformation:         staffInformation,
-		KPIPerformances:          kpiPerformances,
-		StaffPresenceInformation: staffPresenceInformation,
-		StaffSalaryInformation:   staffSalaryInformation,
-		StaffWorkInformation:     staffWorkInformation,
+	overviewResponse := dto.UserOverviewResponse{
+		UserInformation:         userInformation,
+		KPIPerformances:         kpiPerformances,
+		UserPresenceInformation: userPresenceInformation,
+		UserSalaryInformation:   userSalaryInformation,
+		UserWorkInformation:     userWorkInformation,
 	}
 
 	return overviewResponse, nil

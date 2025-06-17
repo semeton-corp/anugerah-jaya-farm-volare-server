@@ -30,7 +30,7 @@ func AdditionalWorkStaffInformationToResponse(additionalWorkStaff *entity.Additi
 		Id:        additionalWorkStaff.Id,
 		Date:      additionalWorkStaff.CreatedAt.Format("2006-01-02"),
 		Time:      additionalWorkStaff.CreatedAt.Format("15:04"),
-		StaffName: additionalWorkStaff.Staff.Name,
+		StaffName: additionalWorkStaff.User.Name,
 		IsDone:    additionalWorkStaff.IsDone,
 	}
 }

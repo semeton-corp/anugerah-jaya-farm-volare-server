@@ -20,15 +20,15 @@ type SupplierHandler struct {
 	service   service.ISupplierService
 }
 
-func (a *SupplierHandler) SetEndpoint(router *fiber.App) {
+func (h *SupplierHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/suppliers")
 
-	v1.Post("/", middleware.Authentication(), a.CreateSupplier)
-	v1.Get("/:id", middleware.Authentication(), a.GetSupplierById)
-	v1.Get("/", middleware.Authentication(), a.GetAllSuppliers)
-	v1.Get("", middleware.Authentication(), a.GetAllSuppliers)
-	v1.Put("/:id", middleware.Authentication(), a.UpdateSupplier)
-	v1.Delete("/:id", middleware.Authentication(), a.DeleteSupplier)
+	v1.Post("/", middleware.Authentication(), h.CreateSupplier)
+	v1.Get("/:id", middleware.Authentication(), h.GetSupplierById)
+	v1.Get("/", middleware.Authentication(), h.GetAllSuppliers)
+	v1.Get("", middleware.Authentication(), h.GetAllSuppliers)
+	v1.Put("/:id", middleware.Authentication(), h.UpdateSupplier)
+	v1.Delete("/:id", middleware.Authentication(), h.DeleteSupplier)
 }
 
 func NewSupplierHandler(log *zap.Logger, service service.ISupplierService, validator *validator.Validate) *SupplierHandler {
@@ -39,102 +39,101 @@ func NewSupplierHandler(log *zap.Logger, service service.ISupplierService, valid
 	}
 }
 
-func (a *SupplierHandler) CreateSupplier(c *fiber.Ctx) error {
+func (h *SupplierHandler) CreateSupplier(c *fiber.Ctx) error {
 	var request dto.CreateSupplierRequest
 	if err := c.BodyParser(&request); err != nil {
-		a.log.Error("[CreateSupplier] failed to parse request", zap.Error(err))
+		h.log.Error("[CreateSupplier] failed to parse request", zap.Error(err))
 		return err
 	}
 
-	if err := a.validator.Struct(request); err != nil {
-		a.log.Error("[CreateSupplier] failed to validate request", zap.Error(err))
+	if err := h.validator.Struct(request); err != nil {
+		h.log.Error("[CreateSupplier] failed to validate request", zap.Error(err))
 		return err
 	}
 
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[CreateSupplier] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+	userId := c.Locals("userId").(string)
+	if userId == "" {
+		h.log.Error("[CreateSupplier] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
-	resp, err := a.service.CreateSupplier(&request, uuid.MustParse(accountIdCtx))
+	resp, err := h.service.CreateSupplier(&request, uuid.MustParse(userId))
 	if err != nil {
-		a.log.Error("[CreateSupplier] failed to create supplier", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusCreated, resp, "success create supplier")
 }
 
-func (a *SupplierHandler) GetSupplierById(c *fiber.Ctx) error {
+func (h *SupplierHandler) GetSupplierById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		a.log.Error("[GetSupplierById] failed to parse id", zap.Error(err))
+		h.log.Error("[GetSupplierById] failed to parse id", zap.Error(err))
 		return err
 	}
 
-	supplier, err := a.service.GetSupplierById(id)
+	supplier, err := h.service.GetSupplierById(id)
 	if err != nil {
-		a.log.Error("[GetSupplierById] failed to get supplier", zap.Error(err))
+		h.log.Error("[GetSupplierById] failed to get supplier", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, supplier, "success get supplier by id")
 }
 
-func (a *SupplierHandler) GetAllSuppliers(c *fiber.Ctx) error {
-	suppliers, err := a.service.GetAllSuppliers()
+func (h *SupplierHandler) GetAllSuppliers(c *fiber.Ctx) error {
+	suppliers, err := h.service.GetAllSuppliers()
 	if err != nil {
-		a.log.Error("[GetAllSuppliers] failed to get all suppliers", zap.Error(err))
+		h.log.Error("[GetAllSuppliers] failed to get all suppliers", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, suppliers, "success get all suppliers")
 }
 
-func (a *SupplierHandler) UpdateSupplier(c *fiber.Ctx) error {
+func (h *SupplierHandler) UpdateSupplier(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		a.log.Error("[UpdateSupplier] failed to parse id", zap.Error(err))
+		h.log.Error("[UpdateSupplier] failed to parse id", zap.Error(err))
 		return err
 	}
 
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[UpdateSupplier] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+	userId := c.Locals("userId").(string)
+	if userId == "" {
+		h.log.Error("[UpdateSupplier] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
 	var request dto.UpdateSupplierRequest
 
 	if err := c.BodyParser(&request); err != nil {
-		a.log.Error("[UpdateSupplier] failed to parse request", zap.Error(err))
+		h.log.Error("[UpdateSupplier] failed to parse request", zap.Error(err))
 		return err
 	}
 
-	if err := a.validator.Struct(request); err != nil {
-		a.log.Error("[UpdateSupplier] failed to validate request", zap.Error(err))
+	if err := h.validator.Struct(request); err != nil {
+		h.log.Error("[UpdateSupplier] failed to validate request", zap.Error(err))
 		return err
 	}
 
-	resp, err := a.service.UpdateSupplier(id, &request, uuid.MustParse(accountIdCtx))
+	resp, err := h.service.UpdateSupplier(id, &request, uuid.MustParse(userId))
 	if err != nil {
-		a.log.Error("[UpdateSupplier] failed to update supplier", zap.Error(err))
+		h.log.Error("[UpdateSupplier] failed to update supplier", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success update supplier")
 }
 
-func (a *SupplierHandler) DeleteSupplier(c *fiber.Ctx) error {
+func (h *SupplierHandler) DeleteSupplier(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		a.log.Error("[DeleteSupplier] failed to parse id", zap.Error(err))
+		h.log.Error("[DeleteSupplier] failed to parse id", zap.Error(err))
 		return err
 	}
 
-	if err := a.service.DeleteSupplier(id); err != nil {
-		a.log.Error("[DeleteSupplier] failed to delete supplier", zap.Error(err))
+	if err := h.service.DeleteSupplier(id); err != nil {
+		h.log.Error("[DeleteSupplier] failed to delete supplier", zap.Error(err))
 		return err
 	}
 

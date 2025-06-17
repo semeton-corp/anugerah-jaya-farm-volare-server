@@ -54,10 +54,10 @@ func (h *ChickenHandler) CreateChickenMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateChickenMonitoring] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
+		h.log.Error("[CreateChickenMonitoring] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
 	if err := h.validator.Struct(request); err != nil {
@@ -65,18 +65,12 @@ func (h *ChickenHandler) CreateChickenMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.CreateChickenMonitoring(request, uuid.MustParse(accountIdContext))
+	res, err := h.service.CreateChickenMonitoring(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(
-		c,
-		fiber.StatusCreated,
-		res,
-		"success create chicken monitoring",
-	)
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create chicken monitoring")
 }
 
 func (h *ChickenHandler) GetChickenMonitorings(c *fiber.Ctx) error {
@@ -88,22 +82,16 @@ func (h *ChickenHandler) GetChickenMonitorings(c *fiber.Ctx) error {
 
 	res, err := h.service.GetChickenMonitorings(filter)
 	if err != nil {
-		h.log.Error("[GetChickens] failed to get chickens", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(
-		c,
-		fiber.StatusOK,
-		res,
-		"success get chickens",
-	)
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get chicken monitorings")
 }
 
 func (h *ChickenHandler) GetChickenMonitoringById(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Error("[GetChickenMonitoringById] id not found in params")
+		h.log.Warn("[GetChickenMonitoringById] id not found in params")
 		return errx.BadRequest("id not found in params")
 	}
 
@@ -115,7 +103,6 @@ func (h *ChickenHandler) GetChickenMonitoringById(c *fiber.Ctx) error {
 
 	res, err := h.service.GetChickenMonitoringById(id)
 	if err != nil {
-		h.log.Error("[GetChickenMonitoringById] failed to get chicken monitoring", zap.Error(err))
 		return err
 	}
 
@@ -140,10 +127,10 @@ func (h *ChickenHandler) UpdateChickenMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountId, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[ChangePassword] failed to get accountId from context")
-		return errx.Unauthorized("no accountId in context")
+		h.log.Error("[ChangePassword] failed to get userId from context")
+		return errx.Unauthorized("no userId in context")
 	}
 
 	var request dto.UpdateChickenMonitoringRequest
@@ -157,7 +144,7 @@ func (h *ChickenHandler) UpdateChickenMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.UpdateChickenMonitoring(id, request, uuid.MustParse(accountId))
+	res, err := h.service.UpdateChickenMonitoring(id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[UpdateChickenMonitoring] failed to update chicken monitoring", zap.Error(err))
 		return err
@@ -190,16 +177,10 @@ func (h *ChickenHandler) CreateChickenDiseaseMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateChickenDiseaseMonitoring] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
-	}
-
-	accountId, err := uuid.Parse(accountIdContext)
-	if err != nil {
-		h.log.Error("[CreateChickenDiseaseMonitoring] failed to parse accountId", zap.Error(err))
-		return err
+		h.log.Error("[CreateChickenDiseaseMonitoring] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
 	if err := h.validator.Struct(request); err != nil {
@@ -207,7 +188,7 @@ func (h *ChickenHandler) CreateChickenDiseaseMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.CreateChickenDiseaseMonitoring(chickenMonitoringId, request, accountId)
+	res, err := h.service.CreateChickenDiseaseMonitoring(chickenMonitoringId, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[CreateChickenDiseaseMonitoring] failed to create chicken disease monitoring", zap.Error(err))
 		return err
@@ -240,16 +221,10 @@ func (h *ChickenHandler) CreateChickenVacccineMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateChickenVaccineMonitoring] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
-	}
-
-	accountId, err := uuid.Parse(accountIdContext)
-	if err != nil {
-		h.log.Error("[CreateChickenVaccineMonitoring] failed to parse accountId", zap.Error(err))
-		return err
+		h.log.Error("[CreateChickenVaccineMonitoring] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
 	if err := h.validator.Struct(request); err != nil {
@@ -257,7 +232,7 @@ func (h *ChickenHandler) CreateChickenVacccineMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.CreateChickenVaccineMonitoring(chickenMonitoringId, request, accountId)
+	res, err := h.service.CreateChickenVaccineMonitoring(chickenMonitoringId, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[CreateChickenVaccineMonitoring] failed to create chicken vaccine monitoring", zap.Error(err))
 		return err
@@ -284,16 +259,10 @@ func (h *ChickenHandler) UpdateChickenDiseaseMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateChickenDiseaseMonitoring] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
-	}
-
-	accountId, err := uuid.Parse(accountIdContext)
-	if err != nil {
-		h.log.Error("[UpdateChickenDiseaseMonitoring] failed to parse accountId", zap.Error(err))
-		return err
+		h.log.Error("[UpdateChickenDiseaseMonitoring] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
 	var request dto.UpdateChickenDiseaseMonitoringRequest
@@ -307,7 +276,7 @@ func (h *ChickenHandler) UpdateChickenDiseaseMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.UpdateChickenDiseaseMonitoring(id, request, accountId)
+	res, err := h.service.UpdateChickenDiseaseMonitoring(id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[UpdateChickenDiseaseMonitoring] failed to update chicken disease monitoring", zap.Error(err))
 		return err
@@ -334,16 +303,10 @@ func (h *ChickenHandler) UpdateChickenVaccineMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	accountIdContext, ok := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateChickenVaccineMonitoring] accountId not found in locals")
-		return errx.Unauthorized("accountId not found in locals")
-	}
-
-	accountId, err := uuid.Parse(accountIdContext)
-	if err != nil {
-		h.log.Error("[UpdateChickenVaccineMonitoring] failed to parse accountId", zap.Error(err))
-		return err
+		h.log.Error("[UpdateChickenVaccineMonitoring] userId not found in locals")
+		return errx.Unauthorized("userId not found in locals")
 	}
 
 	var request dto.UpdateChickenVaccineMonitoringRequest
@@ -357,7 +320,7 @@ func (h *ChickenHandler) UpdateChickenVaccineMonitoring(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.UpdateChickenVaccineMonitoring(id, request, accountId)
+	res, err := h.service.UpdateChickenVaccineMonitoring(id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("[UpdateChickenVaccineMonitoring] failed to update chicken vaccine monitoring", zap.Error(err))
 		return err

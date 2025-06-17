@@ -20,13 +20,13 @@ type PresenceHandler struct {
 	service   service.IPresenceService
 }
 
-func (a *PresenceHandler) SetEndpoint(router *fiber.App) {
+func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/presences")
 
-	v1.Get("/current", middleware.Authentication(), a.GetCurrentStaffPresence)
-	v1.Get("/", middleware.Authentication(), a.GetAllStaffPresences)
-	v1.Patch("/arrival/:id", middleware.Authentication(), a.ArrivalPresence)
-	v1.Patch("/departure/:id", middleware.Authentication(), a.DeparturePresence)
+	v1.Get("/current", middleware.Authentication(), h.GetCurrentStaffPresence)
+	v1.Get("/", middleware.Authentication(), h.GetAllStaffPresences)
+	v1.Patch("/arrival/:id", middleware.Authentication(), h.ArrivalPresence)
+	v1.Patch("/departure/:id", middleware.Authentication(), h.DeparturePresence)
 }
 
 func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, validator *validator.Validate) *PresenceHandler {
@@ -37,99 +37,99 @@ func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, valid
 	}
 }
 
-func (a *PresenceHandler) GetCurrentStaffPresence(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[GetCurrentStaffPresence] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+func (h *PresenceHandler) GetCurrentStaffPresence(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[GetCurrentStaffPresence] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
-	staffPresence, err := a.service.GetCurrentStaffPresence(uuid.MustParse(accountIdCtx))
+	staffPresence, err := h.service.GetCurrentStaffPresence(uuid.MustParse(userId))
 	if err != nil {
-		a.log.Error("[GetCurrentStaffPresence] failed to get current staff presence", zap.Error(err))
+		h.log.Error("[GetCurrentStaffPresence] failed to get current staff presence", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success get current staff presence")
 }
 
-func (a *PresenceHandler) GetAllStaffPresences(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[GetAllStaffPresences] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+func (h *PresenceHandler) GetAllStaffPresences(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[GetAllStaffPresences] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
 	var filter dto.GetPresenceFilter
 	if err := c.QueryParser(&filter); err != nil {
-		a.log.Error("[GetAllStaffPresences] failed to parsing query filter", zap.Error(err))
+		h.log.Error("[GetAllStaffPresences] failed to parsing query filter", zap.Error(err))
 		return err
 	}
 
-	if err := a.validator.Struct(filter); err != nil {
-		a.log.Error("[GetAllStaffPresences] failed to validate filter", zap.Error(err))
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("[GetAllStaffPresences] failed to validate filter", zap.Error(err))
 		return err
 	}
 
-	staffPresences, err := a.service.GetAllStaffPresences(uuid.MustParse(accountIdCtx), filter)
+	staffPresences, err := h.service.GetAllStaffPresences(uuid.MustParse(userId), filter)
 	if err != nil {
-		a.log.Error("[GetAllStaffPresences] failed to get all staff presences", zap.Error(err))
+		h.log.Error("[GetAllStaffPresences] failed to get all staff presences", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, staffPresences, "success get all staff presences")
 }
 
-func (a *PresenceHandler) ArrivalPresence(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[ArrivalPresence] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+func (h *PresenceHandler) ArrivalPresence(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[ArrivalPresence] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
 	presenceIdStr := c.Params("id")
 	if presenceIdStr == "" {
-		a.log.Error("[ArrivalPresence] presenceId not found in param")
+		h.log.Error("[ArrivalPresence] presenceId not found in param")
 		return errx.NotFound("presenceId not found in param")
 	}
 
 	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
 	if err != nil {
-		a.log.Error("[ArrivalPresence] failed to parse presenceId", zap.Error(err))
+		h.log.Error("[ArrivalPresence] failed to parse presenceId", zap.Error(err))
 		return errx.BadRequest("presenceId not valid")
 	}
 
-	staffPresence, err := a.service.ArrivalPresence(presenceId, uuid.MustParse(accountIdCtx))
+	staffPresence, err := h.service.ArrivalPresence(presenceId, uuid.MustParse(userId))
 	if err != nil {
-		a.log.Error("[ArrivalPresence] failed to arrival presence", zap.Error(err))
+		h.log.Error("[ArrivalPresence] failed to arrival presence", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success arrival presence")
 }
 
-func (a *PresenceHandler) DeparturePresence(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-	if accountIdCtx == "" {
-		a.log.Error("[DeparturePresence] accountId not found in context")
-		return errx.NotFound("accountId not found in context")
+func (h *PresenceHandler) DeparturePresence(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[DeparturePresence] userId not found in context")
+		return errx.NotFound("userId not found in context")
 	}
 
 	presenceIdStr := c.Params("id")
 	if presenceIdStr == "" {
-		a.log.Error("[DeparturePresence] presenceId not found in param")
+		h.log.Error("[DeparturePresence] presenceId not found in param")
 		return errx.NotFound("presenceId not found in param")
 	}
 
 	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
 	if err != nil {
-		a.log.Error("[DeparturePresence] failed to parse presenceId", zap.Error(err))
+		h.log.Error("[DeparturePresence] failed to parse presenceId", zap.Error(err))
 		return errx.BadRequest("presenceId not valid")
 	}
 
-	staffPresence, err := a.service.DeparturePresence(presenceId, uuid.MustParse(accountIdCtx))
+	staffPresence, err := h.service.DeparturePresence(presenceId, uuid.MustParse(userId))
 	if err != nil {
-		a.log.Error("[DeparturePresence] failed to departure presence", zap.Error(err))
+		h.log.Error("[DeparturePresence] failed to departure presence", zap.Error(err))
 		return err
 	}
 

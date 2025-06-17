@@ -18,14 +18,14 @@ var (
 	ErrMalformedToken      = errx.BadRequest("malformed token")
 )
 
-func EncodeToken(account *entity.Account) (string, error) {
+func EncodeToken(user *entity.User) (string, error) {
 	claims := &JWTClaims{
-		Role: account.Role.Name,
-		ID:   account.Id.String(),
+		Role: user.Role.Name,
+		ID:   user.Id.String(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(viper.GetDuration("jwt.expiration"))),
 			Issuer:    viper.GetString("jwt.issuer"),
-			Subject:   account.Id.String(),
+			Subject:   user.Id.String(),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

@@ -10,12 +10,12 @@ import (
 func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
 	presenceDto := dto.PresenceResponse{
 		Id: presence.Id,
-		Staff: dto.StaffResponse{
-			Id:   presence.Staff.Id.String(),
-			Name: presence.Staff.Name,
+		User: dto.UserResponse{
+			Id:   presence.User.Id.String(),
+			Name: presence.User.Name,
 			Role: dto.RoleResponse{
-				Id:   presence.Staff.Account.Role.Id,
-				Name: presence.Staff.Account.Role.Name,
+				Id:   presence.User.Role.Id,
+				Name: presence.User.Role.Name,
 			},
 		},
 		Date:      presence.CreatedAt.Format("02 Januari 2006"),
@@ -50,12 +50,12 @@ func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
 func PresenceToResponseList(presence *entity.StaffPresence) dto.PresenceListResponse {
 	presenceDto := dto.PresenceListResponse{
 		Id: presence.Id,
-		Staff: dto.StaffResponse{
-			Id:   presence.Staff.Id.String(),
-			Name: presence.Staff.Name,
+		User: dto.UserResponse{
+			Id:   presence.User.Id.String(),
+			Name: presence.User.Name,
 			Role: dto.RoleResponse{
-				Id:   presence.Staff.Account.Role.Id,
-				Name: presence.Staff.Account.Role.Name,
+				Id:   presence.User.Role.Id,
+				Name: presence.User.Role.Name,
 			},
 		},
 		Date:      presence.CreatedAt.Format("02 Januari 2006"),

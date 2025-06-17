@@ -31,7 +31,7 @@ func Authentication() func(*fiber.Ctx) error {
 			return err
 		}
 
-		c.Locals("accountId", payload.ID)
+		c.Locals("userId", payload.ID)
 
 		return c.Next()
 	}

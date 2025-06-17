@@ -31,14 +31,8 @@ func NewCageHandler(log *zap.Logger, service service.ICageService, validator *va
 func (a *CageHandler) GetCages(c *fiber.Ctx) error {
 	res, err := a.service.GetCages()
 	if err != nil {
-		a.log.Error("[GetCages] failed to get cages", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(
-		c,
-		fiber.StatusOK,
-		res,
-		"success get cages",
-	)
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get cages")
 }

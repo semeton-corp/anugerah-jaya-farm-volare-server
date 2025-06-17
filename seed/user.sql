@@ -1,0 +1,33 @@
+INSERT INTO users (
+    id,
+    username,
+    email,
+    password,
+    location_id,
+    role_id,
+    photo_profile,
+    name,
+    phone_number,
+    address,
+    salary,
+    created_by,
+    created_at,
+    updated_by,
+    updated_at
+) VALUES (
+    'a3f1e85b-1d23-4f9a-9f7c-d9c17bd251f4',
+    'cupcakez',
+    'indrabrata599@example.com',
+    '$2a$10$LT2u6h67o0xylGTmBLFbjO0rSp9Gk/fLLhJfSEKoj6oXUdt5eFCbq',
+    1,
+    6,
+    'https://www.gravatar.com/avatar/?d=mp',
+    'John Doe',
+    '081234567890',
+    'Jl. Merpati No. 12, Sidodadi',
+    3500000.00,
+    NULL,
+    NOW(),
+    NULL,
+    NOW()
+);

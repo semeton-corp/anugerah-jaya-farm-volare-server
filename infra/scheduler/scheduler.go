@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	ownerRole = "Owner"
+)
+
 type IScheduler interface {
 	Start()
 	InitScheduler()
@@ -80,18 +84,18 @@ func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
 		return err
 	}
 
-	var staffs []entity.Staff
-	if err := tx.Preload("Account.Role").Find(&staffs).Error; err != nil {
+	var users []entity.User
+	if err := tx.Preload("Role").Find(&users).Error; err != nil {
 		return err
 	}
 
 	var dailyWorkStaffs []entity.DailyWorkStaff
 	for _, dailyWork := range dailyWorks {
-		for _, staff := range staffs {
-			if staff.Account.RoleId == dailyWork.RoleId {
+		for _, user := range users {
+			if user.RoleId == dailyWork.RoleId {
 				dailyWorkStaff := entity.DailyWorkStaff{
 					DailyWorkId: dailyWork.Id,
-					StaffId:     staff.Id,
+					UserId:      user.Id,
 					IsDone:      false,
 					CreatedBy:   uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 				}
@@ -107,13 +111,13 @@ func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
 func (s *Scheduler) createStaffPresence(tx *gorm.DB) error {
 	s.log.Info("Creating staff presence...")
 
-	var staffs []entity.Staff
-	tx.Model(&entity.Staff{}).Preload("Account.Role").Find(&staffs)
+	var users []entity.User
+	tx.Model(&entity.User{}).Preload("Role").Find(&users)
 
-	for _, staff := range staffs {
-		if staff.Account.Role.Name != "Owner" {
+	for _, user := range users {
+		if user.Role.Name != ownerRole {
 			staffPresence := entity.StaffPresence{
-				StaffId:   staff.Id,
+				UserId:    user.Id,
 				IsPresent: false,
 				CreatedBy: uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 			}
@@ -123,7 +127,7 @@ func (s *Scheduler) createStaffPresence(tx *gorm.DB) error {
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("Staff presence created: %d", len(staffs)))
+	s.log.Info(fmt.Sprintf("Staff presence created: %d", len(users)))
 	return nil
 }
 

@@ -345,7 +345,7 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]d
 func (w *WorkService) CreateAdditionalWorkStaff(id uint64, staffId uuid.UUID) (dto.AdditionalWorkStaffResponse, error) {
 	additionalWorkStaff := entity.AdditionalWorkStaff{
 		AdditionalWorkId: id,
-		StaffId:          staffId,
+		UserId:           staffId,
 		IsDone:           false,
 	}
 
@@ -423,7 +423,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.Addi
 
 	// Note : Can be improved by checking in the database directly
 	for _, staff := range additionalWork.AdditionalWorkStaff {
-		if staff.StaffId == staffId {
+		if staff.UserId == staffId {
 			w.log.Error("[TakeAdditionalWork] staff already taken additional work", zap.Error(errx.BadRequest("staff already taken additional work")))
 			return dto.AdditionalWorkStaffResponse{}, errx.BadRequest("staff already taken additional work")
 		}
@@ -431,7 +431,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.Addi
 
 	additionalWorkStaff := entity.AdditionalWorkStaff{
 		AdditionalWorkId: id,
-		StaffId:          staffId,
+		UserId:           staffId,
 		IsDone:           false,
 	}
 
