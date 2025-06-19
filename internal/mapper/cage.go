@@ -7,8 +7,9 @@ import (
 
 func CageToResponse(cage *entity.Cage) dto.CageResponse {
 	return dto.CageResponse{
-		Id:   cage.Id,
-		Name: cage.Name,
+		Id:       cage.Id,
+		Name:     cage.Name,
+		Capacity: cage.Capacity,
 		Location: dto.LocationResponse{
 			Id:   cage.Location.Id,
 			Name: cage.Location.Name,

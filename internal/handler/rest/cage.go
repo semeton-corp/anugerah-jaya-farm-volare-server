@@ -3,8 +3,11 @@ package rest
 import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
 	"go.uber.org/zap"
 )
@@ -15,9 +18,10 @@ type CageHandler struct {
 	service   service.ICageService
 }
 
-func (a *CageHandler) SetEndpoint(router *fiber.App) {
+func (h *CageHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/cages")
-	v1.Get("/", middleware.Authentication(), a.GetCages)
+	v1.Get("/", middleware.Authentication(), h.GetCages)
+	v1.Post("/", middleware.Authentication(), h.CreateCage)
 }
 
 func NewCageHandler(log *zap.Logger, service service.ICageService, validator *validator.Validate) *CageHandler {
@@ -28,11 +32,43 @@ func NewCageHandler(log *zap.Logger, service service.ICageService, validator *va
 	}
 }
 
-func (a *CageHandler) GetCages(c *fiber.Ctx) error {
-	res, err := a.service.GetCages()
+func (h *CageHandler) GetCages(c *fiber.Ctx) error {
+	var filter dto.GetCageFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("[GetCages] failed to parse query filter", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetCages(filter)
 	if err != nil {
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success get cages")
+}
+
+func (h *CageHandler) CreateCage(c *fiber.Ctx) error {
+	var request dto.CreateCageRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("[CreateCage] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("[CreateCage] validation failed", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[CreateCage] userId not found in context")
+		return errx.Unauthorized("userId not found in context")
+	}
+
+	data, err := h.service.CreateCage(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create cage")
 }

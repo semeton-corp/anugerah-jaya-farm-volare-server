@@ -1,6 +1,8 @@
 package service
 
 import (
+	"slices"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/email"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -20,6 +22,7 @@ type AuthenticationService struct {
 	log          *zap.Logger
 	emailService email.IEmail
 	repository   repository.IAuthenticationRepository
+	roleService  IRoleService
 }
 
 type IAuthenticationService interface {
@@ -30,11 +33,12 @@ type IAuthenticationService interface {
 	DeleteUser(id uuid.UUID) error
 }
 
-func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, emailService email.IEmail) IAuthenticationService {
+func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, emailService email.IEmail, roleService IRoleService) IAuthenticationService {
 	return &AuthenticationService{
 		log:          log,
 		repository:   repository,
 		emailService: emailService,
+		roleService:  roleService,
 	}
 }
 
@@ -60,6 +64,11 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		return dto.SignUpResponse{}, err
 	}
 
+	role, err := s.roleService.GetRoleById(request.RoleId)
+	if err != nil {
+		return dto.SignUpResponse{}, err
+	}
+
 	user := entity.User{
 		Id:           Id,
 		Email:        request.Email,
@@ -82,6 +91,35 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 	if err = s.repository.CreateUser(&user); err != nil {
 		s.log.Error("[SignUp] failed to create user", zap.Error(err))
 		return dto.SignUpResponse{}, err
+	}
+
+	if slices.Contains(entity.CageLocationTypeList, role.Name) {
+		cagePlacement := make([]entity.CagePlacement, 0)
+		for _, e := range request.PlacementIds {
+			cagePlacement = append(cagePlacement, entity.CagePlacement{
+				UserId:    Id,
+				CageId:    e,
+				CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
+			})
+		}
+	} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
+		warehousePlacement := make([]entity.WarehousePlacement, 0)
+		for _, e := range request.PlacementIds {
+			warehousePlacement = append(warehousePlacement, entity.WarehousePlacement{
+				UserId:     Id,
+				WarehousId: e,
+				CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
+			})
+		}
+	} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
+		storePlacement := make([]entity.StorePlacement, 0)
+		for _, e := range request.PlacementIds {
+			storePlacement = append(storePlacement, entity.StorePlacement{
+				UserId:    Id,
+				StoreId:   e,
+				CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
+			})
+		}
 	}
 
 	user, err = s.repository.GetUserById(Id)
@@ -136,6 +174,7 @@ func (s *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 	}
 
 	return dto.SignInResponse{
+		Id:           user.Id.String(),
 		TokenType:    constant.TokenType,
 		Name:         user.Name,
 		PhotoProfile: user.PhotoProfile,

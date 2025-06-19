@@ -1,7 +1,9 @@
 package service
 
 import (
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"go.uber.org/zap"
@@ -13,7 +15,8 @@ type CageService struct {
 }
 
 type ICageService interface {
-	GetCages() ([]dto.CageResponse, error)
+	GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, error)
+	CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
@@ -23,12 +26,12 @@ func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICag
 	}
 }
 
-func (c *CageService) GetCages() ([]dto.CageResponse, error) {
-	c.repository.UseTx(false)
+func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, error) {
+	s.repository.UseTx(false)
 
-	cages, err := c.repository.GetCages()
+	cages, err := s.repository.GetCages(filter)
 	if err != nil {
-		c.log.Error("[GetCages] failed to get cages", zap.Error(err))
+		s.log.Error("[GetCages] failed to get cages", zap.Error(err))
 		return nil, err
 	}
 
@@ -38,4 +41,29 @@ func (c *CageService) GetCages() ([]dto.CageResponse, error) {
 	}
 
 	return cageResponses, nil
+}
+
+func (s *CageService) CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error) {
+	s.repository.UseTx(false)
+
+	data := entity.Cage{
+		LocationId: request.LocationId,
+		Name:       request.Name,
+		Capacity:   request.Capacity,
+		CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	err := s.repository.CreateCage(&data)
+	if err != nil {
+		s.log.Error("[CreateCage] failed to create cage", zap.Error(err))
+		return dto.CageResponse{}, err
+	}
+
+	data, err = s.repository.GetCageById(data.Id)
+	if err != nil {
+		s.log.Error("[CreateCage] failed to get cage by id", zap.Error(err))
+		return dto.CageResponse{}, err
+	}
+
+	return mapper.CageToResponse(&data), nil
 }
