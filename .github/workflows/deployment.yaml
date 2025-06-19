@@ -19,6 +19,6 @@ jobs:
           script: |
             sudo su
             cd ./Anugerah-Jaya-Farm-Volare
-            git pull origin master --rebase
+            git pull origin master
             make compose-down
             make compose-up
