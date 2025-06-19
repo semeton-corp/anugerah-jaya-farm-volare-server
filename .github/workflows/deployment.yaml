@@ -17,6 +17,7 @@ jobs:
           key: "${{ secrets.VM_SSH_KEY }}"
           port: "${{ secrets.VM_SSH_PORT }}"
           script: |
+            sudo su
             cd ./Anugerah-Jaya-Farm-Volare
             git pull origin master --rebase
             make compose-down
