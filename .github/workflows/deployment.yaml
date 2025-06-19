@@ -16,7 +16,7 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: "${{ secrets.VM_USERNAME }}"
           key: "${{ secrets.VM_SSH_KEY }}"
-          port: ${{ secrets.VM_PASSWORD }}
+          port: "${{ secrets.VM_SSH_PORT }}"
           source: "./*"
           target: "./Anugerah-Jaya-Farm-Volare"
       - name: 🖥️ Deploy PMSxGUM Application to Remote VM
@@ -27,7 +27,6 @@ jobs:
           key: "${{ secrets.VM_SSH_KEY }}"
           port: "${{ secrets.VM_SSH_PORT }}"
           script: |
-            sudo su
             cd ./Anugerah-Jaya-Farm-Volare
             make compose-down
             make compose-up
