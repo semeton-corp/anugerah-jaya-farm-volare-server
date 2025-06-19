@@ -8,9 +8,6 @@ jobs:
     name: 🚢 Deploy AJF Application
     runs-on: ubuntu-latest
     steps:
-      - name: 📂 Checkout Source Code
-        uses: actions/checkout@v3
-
       - name: 🖥️ Deploy PMSxGUM Application to Remote VM
         uses: appleboy/ssh-action@master
         with:
