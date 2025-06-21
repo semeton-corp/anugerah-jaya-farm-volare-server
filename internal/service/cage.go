@@ -6,6 +6,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -46,11 +48,18 @@ func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, er
 func (s *CageService) CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error) {
 	s.repository.UseTx(false)
 
+	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
+	if !chickenCategory.IsValid() {
+		s.log.Warn("[CreateCage] invalid chicken category")
+		return dto.CageResponse{}, errx.BadRequest("invalid chicken category")
+	}
+
 	data := entity.Cage{
-		LocationId: request.LocationId,
-		Name:       request.Name,
-		Capacity:   request.Capacity,
-		CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
+		LocationId:      request.LocationId,
+		Name:            request.Name,
+		Capacity:        request.Capacity,
+		ChickenCategory: chickenCategory,
+		CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateCage(&data)
