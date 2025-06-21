@@ -47,7 +47,7 @@ func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 		return dto.UserResponse{}, err
 	}
 
-	return mapper.StaffToResponse(&staff), nil
+	return mapper.UserToResponse(&staff), nil
 }
 
 func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error) {
@@ -90,7 +90,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 		return dto.UserResponse{}, err
 	}
 
-	return mapper.StaffToResponse(&user), nil
+	return mapper.UserToResponse(&user), nil
 }
 
 func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error) {
@@ -109,7 +109,7 @@ func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPagination
 
 	userResponses := make([]dto.UserListResponse, 0)
 	for _, staff := range staffs {
-		userResponses = append(userResponses, mapper.StaffToListResponse(&staff))
+		userResponses = append(userResponses, mapper.UserToListResponse(&staff))
 	}
 
 	totalData, err := s.repository.CountTotalUser(&dto.GetUserFilter{

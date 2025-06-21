@@ -7,7 +7,7 @@ type SignUpRequest struct {
 	Username     string   `json:"username" validate:"required"`
 	LocationId   uint64   `json:"locationId" validate:"required"`
 	RoleId       uint64   `json:"roleId" validate:"required"`
-	PlacementIds []uint64 `json:"placementIds" validate:"required"`
+	PlacementIds []uint64 `json:"placementIds"`
 	PhotoProfile string   `json:"photoProfile"`
 	PhoneNumber  string   `json:"phoneNumber" validate:"required"`
 	Address      string   `json:"address" validate:"required"`

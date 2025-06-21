@@ -5,7 +5,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 )
 
-func StaffToResponse(user *entity.User) dto.UserResponse {
+func UserToResponse(user *entity.User) dto.UserResponse {
 	return dto.UserResponse{
 		Id:           user.Id.String(),
 		Name:         user.Name,
@@ -23,7 +23,7 @@ func StaffToResponse(user *entity.User) dto.UserResponse {
 }
 
 // Note : for salary without adding salary for the lembur, bonus, kasbon
-func StaffToListResponse(user *entity.User) dto.UserListResponse {
+func UserToListResponse(user *entity.User) dto.UserListResponse {
 	return dto.UserListResponse{
 		Id:           user.Id.String(),
 		Name:         user.Name,

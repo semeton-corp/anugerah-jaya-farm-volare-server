@@ -30,6 +30,9 @@ func Migrate(db *gorm.DB) {
 		&entity.StaffPresence{},
 		&entity.Supplier{},
 		&entity.WarehouseOrderItem{},
+		&entity.CagePlacement{},
+		&entity.WarehousePlacement{},
+		&entity.StorePlacement{},
 	)
 }
 
@@ -58,5 +61,8 @@ func Rollback(db *gorm.DB) {
 		&entity.StaffPresence{},
 		&entity.Supplier{},
 		&entity.WarehouseOrderItem{},
+		&entity.CagePlacement{},
+		&entity.WarehousePlacement{},
+		&entity.StorePlacement{},
 	)
 }

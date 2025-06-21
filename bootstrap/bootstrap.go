@@ -73,8 +73,12 @@ func (b *Bootstrap) DepedencyInjection() {
 	roleService := service.NewRoleService(b.log, roleRepository)
 	roleHandler := rest.NewRoleHandler(b.log, roleService, b.validator)
 
+	placementRepository := repository.NewPlacementRepository(b.db)
+	placementService := service.NewPlacementService(b.log, placementRepository)
+	// placementHandler := rest.NewPlacementHandler(b.log, placementService, b.validator)
+
 	authRepository := repository.NewAuthenticationRepository(b.db)
-	authService := service.NewAuthenticationService(b.log, authRepository, b.email, roleService)
+	authService := service.NewAuthenticationService(b.log, authRepository, b.email, roleService, placementService)
 	authenticationHandler := rest.NewAuthenticationHandler(b.log, authService, b.validator)
 
 	cageRepository := repository.NewCageRepository(b.db)

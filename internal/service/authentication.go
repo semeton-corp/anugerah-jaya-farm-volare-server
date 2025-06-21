@@ -19,10 +19,11 @@ import (
 )
 
 type AuthenticationService struct {
-	log          *zap.Logger
-	emailService email.IEmail
-	repository   repository.IAuthenticationRepository
-	roleService  IRoleService
+	log              *zap.Logger
+	emailService     email.IEmail
+	repository       repository.IAuthenticationRepository
+	roleService      IRoleService
+	placementService IPlacementService
 }
 
 type IAuthenticationService interface {
@@ -33,12 +34,13 @@ type IAuthenticationService interface {
 	DeleteUser(id uuid.UUID) error
 }
 
-func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, emailService email.IEmail, roleService IRoleService) IAuthenticationService {
+func NewAuthenticationService(log *zap.Logger, repository repository.IAuthenticationRepository, emailService email.IEmail, roleService IRoleService, placementService IPlacementService) IAuthenticationService {
 	return &AuthenticationService{
-		log:          log,
-		repository:   repository,
-		emailService: emailService,
-		roleService:  roleService,
+		log:              log,
+		repository:       repository,
+		emailService:     emailService,
+		roleService:      roleService,
+		placementService: placementService,
 	}
 }
 
@@ -61,11 +63,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
 		s.log.Error("[SignUp] failed to parse salary from string", zap.Error(err))
-		return dto.SignUpResponse{}, err
-	}
-
-	role, err := s.roleService.GetRoleById(request.RoleId)
-	if err != nil {
 		return dto.SignUpResponse{}, err
 	}
 
@@ -93,32 +90,46 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		return dto.SignUpResponse{}, err
 	}
 
-	if slices.Contains(entity.CageLocationTypeList, role.Name) {
-		cagePlacement := make([]entity.CagePlacement, 0)
-		for _, e := range request.PlacementIds {
-			cagePlacement = append(cagePlacement, entity.CagePlacement{
-				UserId:    Id,
-				CageId:    e,
-				CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
-			})
+	if err = s.repository.Commit(); err != nil {
+		s.log.Error("[SignUp] failed to commit transaction", zap.Error(err))
+	}
+
+	if request.PlacementIds != nil {
+		role, err := s.roleService.GetRoleById(request.RoleId)
+		if err != nil {
+			return dto.SignUpResponse{}, err
 		}
-	} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
-		warehousePlacement := make([]entity.WarehousePlacement, 0)
-		for _, e := range request.PlacementIds {
-			warehousePlacement = append(warehousePlacement, entity.WarehousePlacement{
-				UserId:     Id,
-				WarehousId: e,
-				CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
-			})
-		}
-	} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
-		storePlacement := make([]entity.StorePlacement, 0)
-		for _, e := range request.PlacementIds {
-			storePlacement = append(storePlacement, entity.StorePlacement{
-				UserId:    Id,
-				StoreId:   e,
-				CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
-			})
+
+		if slices.Contains(entity.CageLocationTypeList, role.Name) {
+			_, err := s.placementService.CreateCagePlacementBatch(dto.CreateCagePlacementRequest{
+				UserId:  Id.String(),
+				CageIds: request.PlacementIds,
+			}, userId)
+			if err != nil {
+				// Saga Pattern
+				s.repository.DeleteUser(Id)
+				return dto.SignUpResponse{}, err
+			}
+		} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
+			_, err := s.placementService.CreateStorePlacementBatch(dto.CreateStorePlacementRequest{
+				UserId:   Id.String(),
+				StoreIds: request.PlacementIds,
+			}, userId)
+			if err != nil {
+				// Saga Pattern
+				s.repository.DeleteUser(Id)
+				return dto.SignUpResponse{}, err
+			}
+		} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
+			_, err := s.placementService.CreateWarehousePlacementBatch(dto.CreateWarehousePlacementRequest{
+				UserId:       Id.String(),
+				WarehouseIds: request.PlacementIds,
+			}, userId)
+			if err != nil {
+				// Saga Pattern
+				s.repository.DeleteUser(Id)
+				return dto.SignUpResponse{}, err
+			}
 		}
 	}
 
@@ -126,10 +137,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 	if err != nil {
 		s.log.Error("[SignUp] failed to get user by id", zap.Error(err))
 		return dto.SignUpResponse{}, err
-	}
-
-	if err = s.repository.Commit(); err != nil {
-		s.log.Error("[SignUp] failed to commit transaction", zap.Error(err))
 	}
 
 	return dto.SignUpResponse{
