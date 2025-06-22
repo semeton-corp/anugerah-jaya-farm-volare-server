@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
@@ -22,6 +23,9 @@ type WarehouseHandler struct {
 
 func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/warehouses")
+	v1.Post("/", middleware.Authentication(), h.CreateWarehouse)
+	v1.Put("/:id", middleware.Authentication(), h.UpdateWarehouse)
+	v1.Delete("/:id", middleware.Authentication(), h.DeleteWarehouse)
 	v1.Get("/", middleware.Authentication(), h.GetWarehouses)
 
 	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
@@ -55,8 +59,85 @@ func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, val
 	}
 }
 
+func (h *WarehouseHandler) CreateWarehouse(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[CreateWarehouse] user if in context not found")
+	}
+
+	var request dto.CreateWarehouseRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("[CreateWarehouse] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("[CreateWarehouse] failed to validate struct", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.CreateWarehouse(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, http.StatusCreated, res, "success to create warehouse")
+}
+
+func (h *WarehouseHandler) UpdateWarehouse(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("[UpdateWarehouse] failed to parse warehouse id")
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[CreateWarehouse] user if in context not found")
+	}
+
+	var request dto.UpdateWarehouseRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("[CreateWarehouse] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("[CreateWarehouse] failed to validate struct", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.UpdateWarehouse(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, http.StatusCreated, res, "success to update warehouse")
+}
+
+func (h *WarehouseHandler) DeleteWarehouse(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("[DeleteWarehouse] failed to parse warehouse id")
+		return err
+	}
+
+	err = h.service.DeleteWarehouse(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
 func (h *WarehouseHandler) GetWarehouses(c *fiber.Ctx) error {
-	warehouses, err := h.service.GetWarehouses()
+	var filter dto.GetWarehouseFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("[GetWarehouses] failed to parse query request", zap.Error(err))
+		return err
+	}
+
+	warehouses, err := h.service.GetWarehouses(filter)
 	if err != nil {
 		h.log.Error("[GetWarehouses] failed to get warehouses", zap.Error(err))
 		return err

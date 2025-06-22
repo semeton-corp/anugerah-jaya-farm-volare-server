@@ -2,6 +2,20 @@ package dto
 
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
+type CreateWarehouseRequest struct {
+	Name       string `json:"name" validate:"required"`
+	LocationId uint64 `json:"locationId" validate:"required"`
+}
+
+type UpdateWarehouseRequest struct {
+	Name       string `json:"name" validate:"required"`
+	LocationId uint64 `json:"locationId" validate:"required"`
+}
+
+type GetWarehouseFilter struct {
+	LocationId uint64 `query:"locationId"`
+}
+
 type CreateWarehouseItemRequest struct {
 	Name     string `json:"name" validate:"required"`
 	Unit     string `json:"unit" validate:"required"`

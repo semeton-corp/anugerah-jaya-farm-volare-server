@@ -20,6 +20,12 @@ type IWarehouseRepository interface {
 	Commit() error
 	Rollback() error
 
+	CreateWarehouse(warehouse *entity.Warehouse) error
+	UpdateWarehouse(warehouse *entity.Warehouse) error
+	GetWarehouseById(id uint64) (entity.Warehouse, error)
+	DeleteWarehouse(id uint64) error
+	GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error)
+
 	CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
 	UpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error
@@ -39,8 +45,6 @@ type IWarehouseRepository interface {
 	GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]entity.WarehouseOrderItem, error)
 	DeleteWarehouseOrderItem(id uint64) error
 	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
-
-	GetWarehouses() ([]entity.Warehouse, error)
 
 	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.WarehouseItem, error)
 }
@@ -79,14 +83,42 @@ func (r *WarehouseRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *WarehouseRepository) GetWarehouses() ([]entity.Warehouse, error) {
+func (r *WarehouseRepository) GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error) {
 	var warehouses []entity.Warehouse
-	err := r.GetDB().Preload("Location").Find(&warehouses).Error
+	query := r.GetDB().Preload("Location").Find(&warehouses)
+
+	if filter.LocationId > 0 {
+		query.Where("location_id = ?", filter.LocationId)
+	}
+
+	err := query.Error
 	if err != nil {
 		return nil, err
 	}
 
 	return warehouses, nil
+}
+
+func (r *WarehouseRepository) CreateWarehouse(warehouse *entity.Warehouse) error {
+	return r.GetDB().Create(&warehouse).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseById(id uint64) (entity.Warehouse, error) {
+	var warehouse entity.Warehouse
+	err := r.GetDB().Model(&entity.Warehouse{}).Preload("Location").Where("id = ?", id).First(&warehouse).Error
+	if err != nil {
+		return entity.Warehouse{}, err
+	}
+
+	return warehouse, nil
+}
+
+func (r *WarehouseRepository) UpdateWarehouse(warehouse *entity.Warehouse) error {
+	return r.GetDB().Model(&entity.Warehouse{}).Where("id = ?", warehouse.Id).Updates(&warehouse).Error
+}
+
+func (r *WarehouseRepository) DeleteWarehouse(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.Warehouse{}).Error
 }
 
 func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
