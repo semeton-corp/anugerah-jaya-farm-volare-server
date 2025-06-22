@@ -61,15 +61,15 @@ func (e *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 	}
 
 	eggMonitoring := entity.EggMonitoring{
-		CageId:          request.CageId,
+		// CageId:          request.CageId,
 		WarehouseId:     request.WarehouseId,
 		TotalGoodEgg:    request.TotalGoodEgg,
 		TotalCrackedEgg: request.TotalCrackedEgg,
-		TotalBrokeEgg:   request.TotalBrokeEgg,
-		TotalRejectEgg:  request.TotalRejectEgg,
-		Weight:          request.Weight,
-		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
-		IsArrive:        false,
+		// TotalBrokeEgg:   request.TotalBrokeEgg,
+		TotalRejectEgg: request.TotalRejectEgg,
+		// Weight:          request.Weight,
+		CreatedBy: uuid.NullUUID{UUID: accountId, Valid: true},
+		// IsArrive:        false,
 	}
 
 	if err := e.repository.CreateEggMonitoring(&eggMonitoring); err != nil {
@@ -115,7 +115,7 @@ func (e *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 			eggMonitoringResponse.AbnormalityRate = 0
 			eggMonitoringResponse.Description = constant.EggMonitoringStatusSafety
 		} else {
-			eggMonitoringResponse.AbnormalityRate = float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalBrokeEgg+eggMonitoring.TotalRejectEgg) / float64(eggMonitoringResponse.TotalAll) * 100
+			// eggMonitoringResponse.AbnormalityRate = float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalBrokeEgg+eggMonitoring.TotalRejectEgg) / float64(eggMonitoringResponse.TotalAll) * 100
 			eggMonitoringResponse.Description = constant.EggMonitoringStatusSafety
 		}
 
@@ -132,12 +132,12 @@ func (e *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoring.Weight = request.Weight
-	eggMonitoring.CageId = request.CageId
+	// eggMonitoring.Weight = request.Weight
+	// eggMonitoring.CageId = request.CageId
 	eggMonitoring.WarehouseId = request.WarehouseId
 	eggMonitoring.TotalGoodEgg = request.TotalGoodEgg
 	eggMonitoring.TotalCrackedEgg = request.TotalCrackedEgg
-	eggMonitoring.TotalBrokeEgg = request.TotalBrokeEgg
+	// eggMonitoring.TotalBrokeEgg = request.TotalBrokeEgg
 	eggMonitoring.TotalRejectEgg = request.TotalRejectEgg
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
@@ -179,12 +179,12 @@ func (e *EggService) TakeEggMonitoring(id uint64, accountId uuid.UUID) (dto.EggM
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	if eggMonitoring.IsArrive {
+	if eggMonitoring.IsTaken {
 		e.log.Error("[TakeEggMonitoring] egg monitoring already taken", zap.Error(errx.BadRequest("egg monitoring already taken")))
 		return dto.EggMonitoringResponse{}, errx.BadRequest("egg monitoring already taken")
 	}
 
-	eggMonitoring.IsArrive = true
+	eggMonitoring.IsTaken = true
 	eggMonitoring.TakenAt = time.Now()
 	eggMonitoring.TakenBy = uuid.NullUUID{UUID: accountId, Valid: true}
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
@@ -223,7 +223,7 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 	for _, eggMonitoring := range currentEggMonitorings {
 		totalGoodEgg += eggMonitoring.TotalGoodEgg
 		totalCrackedEgg += eggMonitoring.TotalCrackedEgg
-		totalBrokenEgg += eggMonitoring.TotalBrokeEgg
+		// totalBrokenEgg += eggMonitoring.TotalBrokeEgg
 		totalRejectEgg += eggMonitoring.TotalRejectEgg
 	}
 
@@ -250,8 +250,8 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 						Key:        i.Format("2006-01-02"),
 						GoodEgg:    eggMonitoring.TotalGoodEgg,
 						CrackedEgg: eggMonitoring.TotalCrackedEgg,
-						BrokenEgg:  eggMonitoring.TotalBrokeEgg,
-						RejectEgg:  eggMonitoring.TotalRejectEgg,
+						// BrokenEgg:  eggMonitoring.TotalBrokeEgg,
+						RejectEgg: eggMonitoring.TotalRejectEgg,
 					})
 				} else {
 					eggGraphs = append(eggGraphs, dto.EggGraphResponse{
@@ -288,7 +288,7 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 			if i != 0 {
 				goodEggMaps[i] += eggMonitoring.TotalGoodEgg
 				crackedEggMaps[i] += eggMonitoring.TotalCrackedEgg
-				brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
+				// brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
 				rejectEggMaps[i] += eggMonitoring.TotalRejectEgg
 			}
 		}
@@ -333,7 +333,7 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 			if i != 0 {
 				goodEggMaps[i] += eggMonitoring.TotalGoodEgg
 				crackedEggMaps[i] += eggMonitoring.TotalCrackedEgg
-				brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
+				// brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
 				rejectEggMaps[i] += eggMonitoring.TotalRejectEgg
 			}
 		}

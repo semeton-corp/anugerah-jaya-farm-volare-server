@@ -5,13 +5,14 @@ import (
 )
 
 type CreateEggMonitoringRequest struct {
-	CageId          uint64  `json:"cageId" validate:"required,number"`
-	WarehouseId     uint64  `json:"warehouseId" validate:"required,number"`
-	TotalGoodEgg    uint64  `json:"totalGoodEgg" validate:"number,min=0"`
-	TotalCrackedEgg uint64  `json:"totalCrackedEgg" validate:"number,min=0"`
-	TotalBrokeEgg   uint64  `json:"totalBrokeEgg" validate:"number,min=0"`
-	TotalRejectEgg  uint64  `json:"totalRejectEgg" validate:"number,min=0"`
-	Weight          float64 `json:"weight" validate:"number,min=0"`
+	CageId             uint64  `json:"cageId" validate:"required,number"`
+	WarehouseId        uint64  `json:"warehouseId" validate:"required,number"`
+	TotalGoodEgg       uint64  `json:"totalGoodEgg" validate:"number,min=0"`
+	TotalWeightGoodEgg float64 `json:""`
+	TotalCrackedEgg    uint64  `json:"totalCrackedEgg" validate:"number,min=0"`
+	TotalWeightCrackedEgg float64 `json:""`
+	TotalRejectEgg     uint64  `json:"totalRejectEgg" validate:"number,min=0"`
+	Weight             float64 `json:"weight" validate:"number,min=0"`
 }
 
 type UpdateEggMonitoringRequest struct {

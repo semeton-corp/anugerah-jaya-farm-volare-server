@@ -9,11 +9,11 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 	return dto.EggMonitoringResponse{
 		Id: eggMonitoring.Id,
 		Cage: dto.CageResponse{
-			Id:   eggMonitoring.Cage.Id,
-			Name: eggMonitoring.Cage.Name,
+			Id:   eggMonitoring.ChickenCage.Cage.Id,
+			Name: eggMonitoring.ChickenCage.Cage.Name,
 			Location: dto.LocationResponse{
-				Id:   eggMonitoring.Cage.Location.Id,
-				Name: eggMonitoring.Cage.Location.Name,
+				Id:   eggMonitoring.ChickenCage.Cage.Location.Id,
+				Name: eggMonitoring.ChickenCage.Cage.Location.Name,
 			},
 		},
 		Warehouse: dto.WarehouseResponse{
@@ -26,10 +26,7 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 		},
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-		Weight:          eggMonitoring.Weight,
-		IsArrive:        eggMonitoring.IsArrive,
 	}
 }
 
@@ -38,11 +35,11 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 	return dto.EggMonitoringListResponse{
 		Id: eggMonitoring.Id,
 		Cage: dto.CageResponse{
-			Id:   eggMonitoring.Cage.Id,
-			Name: eggMonitoring.Cage.Name,
+			Id:   eggMonitoring.ChickenCage.Cage.Id,
+			Name: eggMonitoring.ChickenCage.Cage.Name,
 			Location: dto.LocationResponse{
-				Id:   eggMonitoring.Cage.Location.Id,
-				Name: eggMonitoring.Cage.Location.Name,
+				Id:   eggMonitoring.ChickenCage.Cage.Location.Id,
+				Name: eggMonitoring.ChickenCage.Cage.Location.Name,
 			},
 		},
 		Warehouse: dto.WarehouseResponse{
@@ -55,10 +52,6 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 		},
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalBrokeEgg:   eggMonitoring.TotalBrokeEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-		TotalAll:        eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalBrokeEgg + eggMonitoring.TotalRejectEgg,
-		Weight:          eggMonitoring.Weight,
-		IsArrive:        eggMonitoring.IsArrive,
 	}
 }
