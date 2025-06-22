@@ -22,6 +22,8 @@ type ICageRepository interface {
 	GetCages(filter dto.GetCageFilter) ([]entity.Cage, error)
 	CreateCage(data *entity.Cage) error
 	GetCageById(id uint64) (entity.Cage, error)
+	UpdateCage(cage *entity.Cage) error
+	DeleteCage(id uint64) error
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -74,8 +76,8 @@ func (r *CageRepository) GetCages(filter dto.GetCageFilter) ([]entity.Cage, erro
 	return cages, nil
 }
 
-func (r *CageRepository) CreateCage(data *entity.Cage) error {
-	return r.GetDB().Create(data).Error
+func (r *CageRepository) CreateCage(cage *entity.Cage) error {
+	return r.GetDB().Create(&cage).Error
 }
 
 func (r *CageRepository) GetCageById(id uint64) (entity.Cage, error) {
@@ -88,4 +90,12 @@ func (r *CageRepository) GetCageById(id uint64) (entity.Cage, error) {
 	}
 
 	return cage, nil
+}
+
+func (r *CageRepository) UpdateCage(cage *entity.Cage) error {
+	return r.GetDB().Model(&entity.Cage{}).Where("id = ?", cage.Id).Updates(&cage).Error
+}
+
+func (r *CageRepository) DeleteCage(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.Cage{}).Error
 }

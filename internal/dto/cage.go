@@ -15,6 +15,13 @@ type CreateCageRequest struct {
 	ChickenCategory string `json:"chickenCategory" validate:"required"`
 }
 
+type UpdateCageRequest struct {
+	Name            string `json:"name" validate:"required"`
+	Capacity        uint64 `json:"capacity" validate:"required"`
+	LocationId      uint64 `json:"locationId" validate:"required"`
+	ChickenCategory string `json:"chickenCategory" validate:"required"`
+}
+
 type GetCageFilter struct {
 	LocationId uint64 `query:"locationId"`
 }
