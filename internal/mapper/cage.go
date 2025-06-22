@@ -17,3 +17,10 @@ func CageToResponse(cage *entity.Cage) dto.CageResponse {
 		},
 	}
 }
+
+func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageResponse {
+	return dto.ChickenCageResponse{
+		Id:           chickenCage.Id,
+		TotalChicken: chickenCage.TotalChicken,
+	}
+}

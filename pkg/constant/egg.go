@@ -2,7 +2,8 @@ package constant
 
 const (
 	EggMonitoringStatusSafety string = "Aman"
-	EggMonitoringStatusDanger string = "Kritis"
+	EggMonitoringStatusCheck  string = "Periksa"
+	EggMonitoringStatusUrgent string = "Urgent"
 
 	EggUnitButir   string = "Butir"
 	EggUnitIkat    string = "Ikat"
@@ -14,5 +15,5 @@ const (
 	CrackedEgg string = "Telur Retak"  // display in store
 	BrokenEgg  string = "Telur Bonyok" // display in store
 
-	TotalEggKarpet int64 = 30
+	TotalEggKarpet uint64 = 30
 )

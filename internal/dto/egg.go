@@ -5,51 +5,60 @@ import (
 )
 
 type CreateEggMonitoringRequest struct {
-	CageId             uint64  `json:"cageId" validate:"required,number"`
-	WarehouseId        uint64  `json:"warehouseId" validate:"required,number"`
-	TotalGoodEgg       uint64  `json:"totalGoodEgg" validate:"number,min=0"`
-	TotalWeightGoodEgg float64 `json:""`
-	TotalCrackedEgg    uint64  `json:"totalCrackedEgg" validate:"number,min=0"`
-	TotalWeightCrackedEgg float64 `json:""`
-	TotalRejectEgg     uint64  `json:"totalRejectEgg" validate:"number,min=0"`
-	Weight             float64 `json:"weight" validate:"number,min=0"`
+	CageId                   uint64  `json:"cageId" validate:"required,number"`
+	WarehouseId              uint64  `json:"warehouseId" validate:"required,number"`
+	TotalKarpetGoodEgg       uint64  `json:"totalKarpetGoodEgg" validate:"required,number,min=0"`
+	TotalRemainingGoodEgg    uint64  `json:"totalRemainingGoodEgg" validate:"required,number,min=0"`
+	TotalWeightGoodEgg       float64 `json:"totalWeightGoodEgg" validate:"required,number,min=0"`
+	TotalKarpetCrackedEgg    uint64  `json:"totalKarpetCrackedEgg" validate:"required,number,min=0"`
+	TotalRemainingCrackedEgg uint64  `json:"totalRemainingCrackedEgg" validate:"required,number,min=0"`
+	TotalWeightCrackedEgg    float64 `json:"totalWeightCrackedEgg" validate:"required,number,min=0"`
+	TotalKarpetRejectEgg     uint64  `json:"totalKarpetRejectEgg" validate:"required,number,min=0"`
+	TotalRemainingRejectEgg  uint64  `json:"totalRemainingRejectEgg" validate:"required,number,min=0"`
 }
 
 type UpdateEggMonitoringRequest struct {
-	CageId          uint64  `json:"cageId" validate:"required,number"`
-	WarehouseId     uint64  `json:"warehouseId" validate:"required,number"`
-	TotalGoodEgg    uint64  `json:"totalGoodEgg" validate:"required,min=0"`
-	TotalCrackedEgg uint64  `json:"totalCrackedEgg" validate:"required,min=0"`
-	TotalBrokeEgg   uint64  `json:"totalBrokeEgg" validate:"required,min=0"`
-	TotalRejectEgg  uint64  `json:"totalRejectEgg" validate:"required,min=0"`
-	Weight          float64 `json:"weight" validate:"required,min=0"`
+	CageId                   uint64  `json:"cageId" validate:"required,number"`
+	WarehouseId              uint64  `json:"warehouseId" validate:"required,number"`
+	TotalKarpetGoodEgg       uint64  `json:"totalKarpetGoodEgg" validate:"required,number,min=0"`
+	TotalRemainingGoodEgg    uint64  `json:"totalRemainingGoodEgg" validate:"required,number,min=0"`
+	TotalWeightGoodEgg       float64 `json:"totalWeightGoodEgg" validate:"required,number,min=0"`
+	TotalKarpetCrackedEgg    uint64  `json:"totalKarpetCrackedEgg" validate:"required,number,min=0"`
+	TotalRemainingCrackedEgg uint64  `json:"totalRemainingCrackedEgg" validate:"required,number,min=0"`
+	TotalWeightCrackedEgg    float64 `json:"totalWeightCrackedEgg" validate:"required,number,min=0"`
+	TotalKarpetRejectEgg     uint64  `json:"totalKarpetRejectEgg" validate:"required,number,min=0"`
+	TotalRemainingRejectEgg  uint64  `json:"totalRemainingRejectEgg" validate:"required,number,min=0"`
 }
 
 type EggMonitoringResponse struct {
-	Id              uint64            `json:"id"`
-	Cage            CageResponse      `json:"cage"`
-	Warehouse       WarehouseResponse `json:"warehouse"`
-	TotalGoodEgg    uint64            `json:"totalGoodEggs"`
-	Weight          float64           `json:"weight"`
-	IsArrive        bool              `json:"isArrive"`
-	TotalCrackedEgg uint64            `json:"totalCrackedEggs"`
-	TotalBrokeEgg   uint64            `json:"totalBrokeEggs"`
-	TotalRejectEgg  uint64            `json:"totalRejectEggs"`
+	Id                       uint64            `json:"id"`
+	Cage                     CageResponse      `json:"cage"`
+	Warehouse                WarehouseResponse `json:"warehouse"`
+	TotalKarpetGoodEgg       uint64            `json:"totalKarpetGoodEgg"`
+	TotalRemainingGoodEgg    uint64            `json:"totalRemainingGoodEgg"`
+	TotalWeightGoodEgg       float64           `json:"totalWeightGoodEgg"`
+	TotalKarpetCrackedEgg    uint64            `json:"totalKarpetCrackedEgg"`
+	TotalRemainingCrackedEgg uint64            `json:"totalRemainingCrackedEgg"`
+	TotalWeightCrackedEgg    float64           `json:"totalWeightCrackedEgg"`
+	TotalKarpetRejectEgg     uint64            `json:"totalKarpetRejectEgg"`
+	TotalRemainingRejectEgg  uint64            `json:"totalRemainingRejectEgg"`
+	TotalWeightAllEgg        float64           `json:"totalWeightAllEgg"`
+	AverageWeight            float64           `json:"averageWeight"`
+	IsTaken                  bool              `json:"isTaken"`
 }
 
 type EggMonitoringListResponse struct {
 	Id              uint64            `json:"id"`
 	Cage            CageResponse      `json:"cage"`
 	Warehouse       WarehouseResponse `json:"warehouse"`
-	TotalAll        uint64            `json:"totalAllEgg"`
+	TotalAllEgg     uint64            `json:"totalAllEgg"`
 	TotalGoodEgg    uint64            `json:"totalGoodEgg"`
 	TotalCrackedEgg uint64            `json:"totalCrackedEgg"`
-	TotalBrokeEgg   uint64            `json:"totalBrokeEgg"`
 	TotalRejectEgg  uint64            `json:"totalRejectEgg"`
 	AbnormalityRate float64           `json:"abnormalityRate"`
-	Weight          float64           `json:"weight"`
-	Description     string            `json:"description"`
-	IsArrive        bool              `json:"isArrive"`
+	AverageWeight   float64           `json:"averageWeight"` // totalWeightGoodEgg / totalGoodEgg
+	Status          string            `json:"status"`
+	IsTaken         bool              `json:"isTaken"`
 }
 
 type GetEggMonitoringFilter struct {

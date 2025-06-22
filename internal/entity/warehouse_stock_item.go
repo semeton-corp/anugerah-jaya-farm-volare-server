@@ -11,7 +11,7 @@ type WarehouseStockItem struct {
 	WarehouseItem    WarehouseItem `gorm:"foreignKey:WarehouseItemId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId      uint64        `gorm:"primaryKey;type:bigint;not null"`
 	Warehouse        Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	Quantity         int64         `gorm:"type:bigint;not null"`
+	Quantity         uint64        `gorm:"type:bigint;not null"`
 	EstimationRunOut time.Time     `gorm:"type:date;not null"`
 	CreatedAt        time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy        uuid.NullUUID `gorm:"type:varchar(255)"`

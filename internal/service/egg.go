@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 	"time"
@@ -22,6 +23,7 @@ type EggService struct {
 	log              *zap.Logger
 	repository       repository.IEggRepository
 	warehouseService IWarehouseService
+	cageService      ICageService
 }
 
 type IEggService interface {
@@ -40,58 +42,58 @@ func NewEggService(
 	log *zap.Logger,
 	repository repository.IEggRepository,
 	warehouseService IWarehouseService,
+	cageService ICageService,
 ) IEggService {
 	return &EggService{
 		log:              log,
 		repository:       repository,
 		warehouseService: warehouseService,
+		cageService:      cageService,
 	}
 }
 
-func (e *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
-	count, err := e.repository.CountEggMonitoringByCageIdToday(request.CageId)
+func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
+	chickenCage, err := s.cageService.GetChickenCageByCageId(request.CageId)
 	if err != nil {
-		e.log.Error("[CreateEggMonitoring] failed to count egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	if chickenCage.TotalChicken == 0 {
+		s.log.Warn("[CreateEggMonitoring] cage is empty")
+		return dto.EggMonitoringResponse{}, errx.BadRequest("cage is empty or no chicken in there")
+	}
+
+	count, err := s.repository.CountEggMonitoringByChickenCageIdToday(chickenCage.Id)
+	if err != nil {
+		s.log.Error("[CreateEggMonitoring] failed to count egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
 	if count > 0 {
-		e.log.Error("[CreateEggMonitoring] egg monitoring already exists for today", zap.Error(errx.BadRequest("egg monitoring already exists for today")))
+		s.log.Error("[CreateEggMonitoring] egg monitoring already exists for today", zap.Error(errx.BadRequest("egg monitoring already exists for today")))
 		return dto.EggMonitoringResponse{}, errx.BadRequest("egg monitoring already exists for today")
 	}
 
 	eggMonitoring := entity.EggMonitoring{
-		// CageId:          request.CageId,
-		WarehouseId:     request.WarehouseId,
-		TotalGoodEgg:    request.TotalGoodEgg,
-		TotalCrackedEgg: request.TotalCrackedEgg,
-		// TotalBrokeEgg:   request.TotalBrokeEgg,
-		TotalRejectEgg: request.TotalRejectEgg,
-		// Weight:          request.Weight,
-		CreatedBy: uuid.NullUUID{UUID: accountId, Valid: true},
-		// IsArrive:        false,
+		ChickenCageId:         chickenCage.Id,
+		WarehouseId:           request.WarehouseId,
+		TotalWeightCrackedEgg: request.TotalWeightCrackedEgg,
+		TotalWeightGoodEgg:    request.TotalWeightGoodEgg,
+		TotalGoodEgg:          (request.TotalKarpetGoodEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingGoodEgg,
+		TotalCrackedEgg:       (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingCrackedEgg,
+		TotalRejectEgg:        (request.TotalKarpetRejectEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingRejectEgg,
+		IsTaken:               false,
+		CreatedBy:             uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	if err := e.repository.CreateEggMonitoring(&eggMonitoring); err != nil {
-		e.log.Error("[CreateEggMonitoring] failed to create egg monitoring", zap.Error(err))
+	if err := s.repository.CreateEggMonitoring(&eggMonitoring); err != nil {
+		s.log.Error("[CreateEggMonitoring] failed to create egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoring, err = e.repository.GetEggMonitoringById(eggMonitoring.Id)
+	eggMonitoring, err = s.repository.GetEggMonitoringById(eggMonitoring.Id)
 	if err != nil {
-		e.log.Error("[CreateEggMonitoring] failed to get egg monitoring", zap.Error(err))
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	eggMonitoringResponse := mapper.EggMonitoringToResponse(&eggMonitoring)
-
-	return eggMonitoringResponse, nil
-}
-
-func (e *EggService) GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error) {
-	eggMonitoring, err := e.repository.GetEggMonitoringById(id)
-	if err != nil {
-		e.log.Error("[GetEggMonitoringById] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[CreateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
@@ -100,55 +102,63 @@ func (e *EggService) GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse,
 	return eggMonitoringResponse, nil
 }
 
-func (e *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error) {
-	eggMonitorings, err := e.repository.GetEggMonitorings(filter)
+func (s *EggService) GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error) {
+	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {
-		e.log.Error("[GetEggMonitorings] failed to get egg monitorings", zap.Error(err))
+		s.log.Error("[GetEggMonitoringById] failed to get egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	eggMonitoringResponse := mapper.EggMonitoringToResponse(&eggMonitoring)
+
+	return eggMonitoringResponse, nil
+}
+
+func (s *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error) {
+	eggMonitorings, err := s.repository.GetEggMonitorings(filter)
+	if err != nil {
+		s.log.Error("[GetEggMonitorings] failed to get egg monitorings", zap.Error(err))
 		return nil, err
 	}
 
 	eggMonitoringResponses := make([]dto.EggMonitoringListResponse, 0, len(eggMonitorings))
 	for _, eggMonitoring := range eggMonitorings {
-		eggMonitoringResponse := mapper.EggMonitoringToListResponse(&eggMonitoring)
-
-		if eggMonitoringResponse.TotalAll == 0 {
-			eggMonitoringResponse.AbnormalityRate = 0
-			eggMonitoringResponse.Description = constant.EggMonitoringStatusSafety
-		} else {
-			// eggMonitoringResponse.AbnormalityRate = float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalBrokeEgg+eggMonitoring.TotalRejectEgg) / float64(eggMonitoringResponse.TotalAll) * 100
-			eggMonitoringResponse.Description = constant.EggMonitoringStatusSafety
-		}
-
-		eggMonitoringResponses = append(eggMonitoringResponses, eggMonitoringResponse)
+		// Todo : create notification (?)
+		eggMonitoringResponses = append(eggMonitoringResponses, mapper.EggMonitoringToListResponse(&eggMonitoring))
 	}
 
 	return eggMonitoringResponses, nil
 }
 
-func (e *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
-	eggMonitoring, err := e.repository.GetEggMonitoringById(id)
+func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error) {
+	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {
-		e.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	// eggMonitoring.Weight = request.Weight
-	// eggMonitoring.CageId = request.CageId
+	chickenCage, err := s.cageService.GetChickenCageByCageId(request.CageId)
+	if err != nil {
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	eggMonitoring.ChickenCageId = chickenCage.Id
 	eggMonitoring.WarehouseId = request.WarehouseId
-	eggMonitoring.TotalGoodEgg = request.TotalGoodEgg
-	eggMonitoring.TotalCrackedEgg = request.TotalCrackedEgg
-	// eggMonitoring.TotalBrokeEgg = request.TotalBrokeEgg
-	eggMonitoring.TotalRejectEgg = request.TotalRejectEgg
-	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	eggMonitoring.TotalGoodEgg = (request.TotalKarpetGoodEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingGoodEgg
+	eggMonitoring.TotalCrackedEgg = (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingCrackedEgg
+	eggMonitoring.TotalRejectEgg = (request.TotalKarpetRejectEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingRejectEgg
+	eggMonitoring.TotalWeightCrackedEgg = request.TotalWeightCrackedEgg
+	eggMonitoring.TotalWeightGoodEgg = request.TotalWeightGoodEgg
+	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 
-	if err := e.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
-		e.log.Error("[UpdateEggMonitoring] failed to update egg monitoring", zap.Error(err))
+	if err := s.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
+		s.log.Error("[UpdateEggMonitoring] failed to update egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoring, err = e.repository.GetEggMonitoringById(eggMonitoring.Id)
+	eggMonitoring, err = s.repository.GetEggMonitoringById(eggMonitoring.Id)
 	if err != nil {
-		e.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[UpdateEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
@@ -157,61 +167,61 @@ func (e *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	return eggMonitoringResponse, nil
 }
 
-func (e *EggService) DeleteEggMonitoring(id uint64) error {
-	eggMonitoring, err := e.repository.GetEggMonitoringById(id)
+func (s *EggService) DeleteEggMonitoring(id uint64) error {
+	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {
-		e.log.Error("[DeleteEggMonitoring] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[DeleteEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return err
 	}
 
-	if err := e.repository.DeleteEggMonitoring(eggMonitoring.Id); err != nil {
-		e.log.Error("[DeleteEggMonitoring] failed to delete egg monitoring", zap.Error(err))
+	if err := s.repository.DeleteEggMonitoring(eggMonitoring.Id); err != nil {
+		s.log.Error("[DeleteEggMonitoring] failed to delete egg monitoring", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-func (e *EggService) TakeEggMonitoring(id uint64, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
-	eggMonitoring, err := e.repository.GetEggMonitoringById(id)
+func (s *EggService) TakeEggMonitoring(id uint64, accountId uuid.UUID) (dto.EggMonitoringResponse, error) {
+	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {
-		e.log.Error("[TakeEggMonitoring] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[TakeEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
 	if eggMonitoring.IsTaken {
-		e.log.Error("[TakeEggMonitoring] egg monitoring already taken", zap.Error(errx.BadRequest("egg monitoring already taken")))
+		s.log.Error("[TakeEggMonitoring] egg monitoring already taken", zap.Error(errx.BadRequest("egg monitoring already taken")))
 		return dto.EggMonitoringResponse{}, errx.BadRequest("egg monitoring already taken")
 	}
 
 	eggMonitoring.IsTaken = true
-	eggMonitoring.TakenAt = time.Now()
+	eggMonitoring.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	eggMonitoring.TakenBy = uuid.NullUUID{UUID: accountId, Valid: true}
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	// Todo : add stock into warehouse stock item
 
-	if err := e.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
-		e.log.Error("[TakeEggMonitoring] failed to update egg monitoring", zap.Error(err))
+	if err := s.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
+		s.log.Error("[TakeEggMonitoring] failed to update egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	eggMonitoring, err = e.repository.GetEggMonitoringById(eggMonitoring.Id)
+	eggMonitoring, err = s.repository.GetEggMonitoringById(eggMonitoring.Id)
 	if err != nil {
-		e.log.Error("[TakeEggMonitoring] failed to get egg monitoring", zap.Error(err))
+		s.log.Error("[TakeEggMonitoring] failed to get egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
 	return mapper.EggMonitoringToResponse(&eggMonitoring), nil
 }
 
-func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error) {
-	currentEggMonitorings, err := e.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+func (s *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error) {
+	currentEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		Location: filter.Location,
 		Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
 	})
 	if err != nil {
-		e.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
+		s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
 		return dto.EggOverviewResponse{}, err
 	}
 
@@ -233,13 +243,13 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 		endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 		startDate := endDate.AddDate(0, 0, -7)
 
-		weekEggMonitorings, err := e.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		weekEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 			Location:  filter.Location,
 			StartDate: param.DateParam(startDate),
 			EndDate:   param.DateParam(endDate),
 		})
 		if err != nil {
-			e.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
+			s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
 			return dto.EggOverviewResponse{}, err
 		}
 
@@ -268,13 +278,13 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 		weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
 		startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
 
-		monthEggMonitorings, err := e.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		monthEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 			Location:  filter.Location,
 			StartDate: param.DateParam(startDate),
 			EndDate:   param.DateParam(endDate),
 		})
 		if err != nil {
-			e.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
+			s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
 			return dto.EggOverviewResponse{}, err
 		}
 
@@ -313,13 +323,13 @@ func (e *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (
 		monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
 		startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
 
-		yearEggMonitorings, err := e.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		yearEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 			Location:  filter.Location,
 			StartDate: param.DateParam(startDate),
 			EndDate:   param.DateParam(endDate),
 		})
 		if err != nil {
-			e.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
+			s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
 			return dto.EggOverviewResponse{}, err
 		}
 

@@ -10,7 +10,7 @@ type ChickenCage struct {
 	Id                   uint64             `gorm:"primaryKey;autoIncrement"`
 	CageId               uint64             `gorm:"bigint;not null"`
 	Cage                 Cage               `gorm:"foreingKey:CageId;references:Id"`
-	ChickenProcurementId uint64             `gorm:"bigint;not null"`
+	ChickenProcurementId uint64             `gorm:"bigint"`
 	ChickenProcurement   ChickenProcurement `gorm:"foreignKey:ChickenProcurementId;references:Id"`
 	TotalChicken         uint64             `gorm:"int;not null"`
 	CreatedAt            time.Time          `gorm:"type:timestamp;autoCreateTime"`

@@ -24,6 +24,8 @@ type ICageRepository interface {
 	GetCageById(id uint64) (entity.Cage, error)
 	UpdateCage(cage *entity.Cage) error
 	DeleteCage(id uint64) error
+
+	GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error)
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -98,4 +100,16 @@ func (r *CageRepository) UpdateCage(cage *entity.Cage) error {
 
 func (r *CageRepository) DeleteCage(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Cage{}).Error
+}
+
+func (r *CageRepository) GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error) {
+	var chickenCage entity.ChickenCage
+	// Find the newest chicken in the cage
+	err := r.GetDB().Model(&entity.ChickenCage{}).Where("cage_id = ?", cageId).Order("created_at  DESC").First(&chickenCage).Error
+
+	if err != nil {
+		return entity.ChickenCage{}, err
+	}
+
+	return chickenCage, nil
 }

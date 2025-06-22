@@ -556,7 +556,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 
 	totalEgg := uint64(0)
 	for _, eggMonitoring := range currentEggMonitoring {
-		totalEgg += eggMonitoring.TotalAll
+		totalEgg += eggMonitoring.TotalAllEgg
 	}
 
 	totalDOCChicken := uint64(0)

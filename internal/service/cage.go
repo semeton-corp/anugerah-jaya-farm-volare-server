@@ -21,6 +21,7 @@ type ICageService interface {
 	CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error)
 	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
+	GetChickenCageByCageId(cageId uint64) (dto.ChickenCageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
@@ -125,4 +126,16 @@ func (s *CageService) DeleteCage(id uint64) error {
 	}
 
 	return nil
+}
+
+func (s *CageService) GetChickenCageByCageId(cageId uint64) (dto.ChickenCageResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCage, err := s.repository.GetChickenCageByCageId(cageId)
+	if err != nil {
+		s.log.Error("[GetChickenCageByCageId] failed to get chicken cage by cage id", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	return mapper.ChickenCageToResponse(&chickenCage), nil
 }

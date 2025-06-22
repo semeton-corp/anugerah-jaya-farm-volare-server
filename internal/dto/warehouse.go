@@ -55,17 +55,17 @@ type WarehouseResponse struct {
 type CreateWarehouseStockItemRequest struct {
 	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
 	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required"`
-	Quantity        int64  `json:"quantity" validate:"required"`
+	Quantity        uint64 `json:"quantity" validate:"required"`
 }
 
 type UpdateWarehouseStockItemRequest struct {
-	Quantity int64 `json:"quantity" validate:"required"`
+	Quantity uint64 `json:"quantity" validate:"required"`
 }
 
 type WarehouseStockItemResponse struct {
 	Warehouse        WarehouseResponse     `json:"warehouse"`
 	WarehouseItem    WarehouseItemResponse `json:"warehouseItem"`
-	Quantity         int64                 `json:"quantity"`
+	Quantity         uint64                `json:"quantity"`
 	EstimationRunOut string                `json:"estimationRunOut"`
 	Description      string                `json:"description"`
 }
@@ -90,15 +90,15 @@ type WarehouseOrderItemResponse struct {
 
 type GoodEggWarehouseConvertionRequest struct {
 	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
-	TotalKarpet int64  `json:"totalKarpet" validate:"required,number,min=0"`
-	TotalButir  int64  `json:"totalButir" validate:"required,number,min=0"`
-	TotalIkat   int64  `json:"totalIkat" validate:"required,number,min=0"`
+	TotalKarpet uint64 `json:"totalKarpet" validate:"required,number,min=0"`
+	TotalButir  uint64 `json:"totalButir" validate:"required,number,min=0"`
+	TotalIkat   uint64 `json:"totalIkat" validate:"required,number,min=0"`
 }
 
 type CrackedEggWarehouseConvertionRequest struct {
 	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
-	TotalButir  int64  `json:"totalButir" validate:"required,number,min=0"`
-	TotalPack   int64  `json:"totalPack" validate:"required,number,min=0"`
+	TotalButir  uint64 `json:"totalButir" validate:"required,number,min=0"`
+	TotalPack   uint64 `json:"totalPack" validate:"required,number,min=0"`
 }
 
 type GetWarehouseOrderItemFilter struct {

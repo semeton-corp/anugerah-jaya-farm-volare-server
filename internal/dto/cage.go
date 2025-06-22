@@ -25,3 +25,8 @@ type UpdateCageRequest struct {
 type GetCageFilter struct {
 	LocationId uint64 `query:"locationId"`
 }
+
+type ChickenCageResponse struct {
+	Id           uint64 `json:"id"`
+	TotalChicken uint64 `json:"totalChicken"`
+}

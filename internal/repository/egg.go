@@ -25,7 +25,7 @@ type IEggRepository interface {
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]entity.EggMonitoring, error)
 	UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring) error
 	DeleteEggMonitoring(id uint64) error
-	CountEggMonitoringByCageIdToday(cageId uint64) (int64, error)
+	CountEggMonitoringByChickenCageIdToday(chickenCageId uint64) (int64, error)
 }
 
 func NewEggRepository(db *gorm.DB) IEggRepository {
@@ -63,12 +63,12 @@ func (r *EggRepository) GetDB() *gorm.DB {
 }
 
 func (r *EggRepository) CreateEggMonitoring(eggMonitoring *entity.EggMonitoring) error {
-	return r.GetDB().Create(eggMonitoring).Error
+	return r.GetDB().Model(&entity.EggMonitoring{}).Create(eggMonitoring).Error
 }
 
 func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, error) {
 	var eggMonitoring entity.EggMonitoring
-	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Warehouse.Location").Preload("Cage.Location").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Warehouse.Location").Preload("ChickenCage.Cage.Location").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.EggMonitoring{}, errx.NotFound("egg monitoring not found")
 		}
@@ -83,7 +83,7 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 
 	query := r.GetDB().
 		Preload("Warehouse.Location").
-		Preload("Cage.Location").
+		Preload("ChickenCage.Cage.Location").
 		Model(&entity.EggMonitoring{})
 
 	if !filter.Date.Value().IsZero() {
@@ -110,9 +110,9 @@ func (r *EggRepository) DeleteEggMonitoring(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.EggMonitoring{}).Error
 }
 
-func (r *EggRepository) CountEggMonitoringByCageIdToday(cageId uint64) (int64, error) {
+func (r *EggRepository) CountEggMonitoringByChickenCageIdToday(chickenCageId uint64) (int64, error) {
 	var count int64
-	if err := r.GetDB().Model(entity.EggMonitoring{}).Where("cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, time.Now()).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,7 +20,7 @@ type EggMonitoring struct {
 	TotalWeightCrackedEgg float64       `gorm:"decimal;not null"`
 	IsTaken               bool          `gorm:"type:boolean;default:false"`
 	TakenBy               uuid.NullUUID `gorm:"type:varchar(255)"`
-	TakenAt               time.Time     `gorm:"type:timestamp"`
+	TakenAt               sql.NullTime  `gorm:"type:timestamp"`
 	CreatedBy             uuid.NullUUID `gorm:"type:varchar(255)"`
 	CreatedAt             time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy             uuid.NullUUID `gorm:"type:varchar(255)"`
