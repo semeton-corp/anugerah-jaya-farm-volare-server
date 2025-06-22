@@ -23,6 +23,9 @@ type StoreHandler struct {
 func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/stores")
 	v1.Get("/", middleware.Authentication(), h.GetStores)
+	v1.Post("/", middleware.Authentication(), h.CreateStore)
+	v1.Put("/:id", middleware.Authentication(), h.UpdateStore)
+	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
 
 	v1.Post("/request-items", middleware.Authentication(), h.CreateStoreRequestItem)
 	v1.Get("/request-items", middleware.Authentication(), h.GetStockRequestItems)
@@ -49,8 +52,90 @@ func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *
 	}
 }
 
+func (h *StoreHandler) CreateStore(c *fiber.Ctx) error {
+	var request dto.CreateStoreRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("[CreateStore] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("[CreateStore] validation failed", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[CreateStore] user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateStore(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create store")
+}
+
+func (h *StoreHandler) UpdateStore(c *fiber.Ctx) error {
+	var request dto.UpdateStoreRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("[UpdateStore] failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("[UpdateStore] validation failed", zap.Error(err))
+		return err
+
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("[UpdateStore] failed to parse id param", zap.Error(err))
+		return err
+
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("[UpdateStore] user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.UpdateStore(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success update store")
+}
+
+func (h *StoreHandler) DeleteStore(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("[UpdateStore] failed to parse id param", zap.Error(err))
+		return err
+	}
+
+	err = h.service.DeleteStore(id)
+	if err != nil {
+		h.log.Error("[DeleteStore] failed to delete store")
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
 func (h *StoreHandler) GetStores(c *fiber.Ctx) error {
-	stores, err := h.service.GetStores()
+	var filter dto.GetStoreFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("[GetStores] failed to parse query request")
+		return err
+	}
+
+	stores, err := h.service.GetStores(filter)
 	if err != nil {
 		return err
 	}

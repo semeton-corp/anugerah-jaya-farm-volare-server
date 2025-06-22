@@ -24,7 +24,10 @@ type StoreService struct {
 }
 
 type IStoreService interface {
-	GetStores() ([]dto.StoreResponse, error)
+	CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error)
+	UpdateStore(id uint64, request dto.UpdateStoreRequest, updatedBy uuid.UUID) (dto.StoreResponse, error)
+	DeleteStore(id uint64) error
+	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
@@ -52,8 +55,74 @@ func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, ca
 	}
 }
 
-func (s *StoreService) GetStores() ([]dto.StoreResponse, error) {
-	stores, err := s.repository.GetStores()
+func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
+	s.repository.UseTx(false)
+
+	store := entity.Store{
+		Name:       request.Name,
+		LocationId: request.LocationId,
+		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
+	}
+
+	err := s.repository.CreateStore(&store)
+	if err != nil {
+		s.log.Error("[CreateStore] failed to create store", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	store, err = s.repository.GetStoreById(store.Id)
+	if err != nil {
+		s.log.Error("[CreateStore] failed to get store by id", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	return mapper.StoreToResponse(&store), nil
+}
+
+func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, updatedBy uuid.UUID) (dto.StoreResponse, error) {
+	s.repository.UseTx(false)
+
+	store, err := s.repository.GetStoreById(id)
+	if err != nil {
+		s.log.Error("[UpdateStore] failed to get store by id", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	store.Name = request.Name
+	store.LocationId = request.LocationId
+	store.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	err = s.repository.UpdateStore(&store)
+	if err != nil {
+		s.log.Error("[UpdateStore] failed to update store", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	store, err = s.repository.GetStoreById(id)
+	if err != nil {
+		s.log.Error("[UpdateStore] failed to get store by id", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	return mapper.StoreToResponse(&store), nil
+}
+
+func (s *StoreService) DeleteStore(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteStore(id)
+	if err != nil {
+		s.log.Error("[DeleteStore] failed to delete store", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error) {
+	s.repository.UseTx(false)
+
+	stores, err := s.repository.GetStores(filter)
 	if err != nil {
 		s.log.Error("[GetStores] failed to get stores", zap.Error(err))
 		return nil, err

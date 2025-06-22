@@ -14,5 +14,5 @@ type Store struct {
 	CreatedAt  time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy  uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt  time.Time     `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy  uuid.NullUUID `gorm:"type:varchar(255);not null"`
+	UpdatedBy  uuid.NullUUID `gorm:"type:varchar(255)"`
 }

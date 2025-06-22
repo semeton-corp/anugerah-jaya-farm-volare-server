@@ -2,6 +2,20 @@ package dto
 
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
+type CreateStoreRequest struct {
+	Name       string `json:"name"`
+	LocationId uint64 `json:"locationId"`
+}
+
+type UpdateStoreRequest struct {
+	Name       string `json:"name"`
+	LocationId uint64 `json:"locationId"`
+}
+
+type GetStoreFilter struct {
+	LocationId uint64 `query:"locationId"`
+}
+
 type StoreResponse struct {
 	Id       uint64           `json:"id"`
 	Name     string           `json:"name"`

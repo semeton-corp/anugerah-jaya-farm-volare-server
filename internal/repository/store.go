@@ -20,7 +20,12 @@ type IStoreRepository interface {
 	Commit() error
 	Rollback() error
 
-	GetStores() ([]entity.Store, error)
+	CreateStore(store *entity.Store) error
+	UpdateStore(store *entity.Store) error
+	DeleteStore(id uint64) error
+	GetStoreById(id uint64) (entity.Store, error)
+	GetStores(filter dto.GetStoreFilter) ([]entity.Store, error)
+
 	CreateStoreRequestItem(storeRequestItem *entity.StoreRequestItem) error
 	GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error)
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]entity.StoreRequestItem, error)
@@ -76,12 +81,41 @@ func (r *StoreRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *StoreRepository) GetStores() ([]entity.Store, error) {
-	var stores []entity.Store
-	err := r.GetDB().Preload("Location").Find(&stores).Error
+func (r *StoreRepository) CreateStore(store *entity.Store) error {
+	return r.GetDB().Model(&entity.Store{}).Create(&store).Error
+}
+
+func (r *StoreRepository) UpdateStore(store *entity.Store) error {
+	return r.GetDB().Model(&entity.Store{}).Where("id = ?", store.Id).Updates(&store).Error
+}
+
+func (r *StoreRepository) DeleteStore(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.Store{}).Error
+}
+
+func (r *StoreRepository) GetStoreById(id uint64) (entity.Store, error) {
+	var data entity.Store
+	err := r.GetDB().Model(&entity.Store{}).Preload("Location").Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.Store{}, err
+	}
+
+	return data, nil
+}
+
+func (r *StoreRepository) GetStores(filter dto.GetStoreFilter) ([]entity.Store, error) {
+	stores := make([]entity.Store, 0)
+	query := r.GetDB()
+
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
+	err := query.Preload("Location").Find(&stores).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return stores, nil
 }
 
