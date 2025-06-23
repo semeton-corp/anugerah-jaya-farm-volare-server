@@ -13,6 +13,7 @@ type ChickenCage struct {
 	ChickenProcurementId uint64             `gorm:"bigint"`
 	ChickenProcurement   ChickenProcurement `gorm:"foreignKey:ChickenProcurementId;references:Id"`
 	TotalChicken         uint64             `gorm:"int;not null"`
+	TotalDeathChicken    uint64             `gorm:"int;not null"`
 	CreatedAt            time.Time          `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID      `gorm:"type:varchar(255)"`
 	UpdatedAt            time.Time          `gorm:"type:timestamp;autoUpdateTime"`

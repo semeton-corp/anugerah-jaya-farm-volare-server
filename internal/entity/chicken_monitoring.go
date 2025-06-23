@@ -4,23 +4,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 type ChickenMonitoring struct {
-	Id                       uint64                     `gorm:"primaryKey;autoIncrement"`
-	CageId                   uint64                     `gorm:"type:bigint;not null"`
-	Cage                     Cage                       `gorm:"foreignKey:CageId;references:Id"`
-	Age                      uint64                     `gorm:"type:bigint;not null"`
-	ChickenCategory          enum.ChickenCategory       `gorm:"type:int;not null"`
-	TotalLiveChicken         uint64                     `gorm:"type:bigint;not null"`
-	TotalDeathChicken        uint64                     `gorm:"type:bigint;not null"`
-	TotalSickChicken         uint64                     `gorm:"type:bigint;not null"`
-	TotalFeed                float64                    `gorm:"type:decimal;not null"`
-	ChickenDiseaseMonitoring []ChickenDiseaseMonitoring `gorm:"foreignKey:ChickenMonitoringId;references:Id;constraint:OnDelete:CASCADE"`
-	ChickenVaccineMonitoring []ChickenVaccineMonitoring `gorm:"foreignKey:ChickenMonitoringId;references:Id;constraint:OnDelete:CASCADE"`
-	CreatedBy                uuid.NullUUID              `gorm:"type:varchar(255)"`
-	CreatedAt                time.Time                  `gorm:"type:timestamp;autoCreateTime"`
-	UpdateBy                 uuid.NullUUID              `gorm:"type:varchar(255)"`
-	UpdatedAt                time.Time                  `gorm:"type:timestamp;autoUpdateTime"`
+	Id                uint64        `gorm:"primaryKey;autoIncrement"`
+	ChickenCageId     uint64        `gorm:"bigint;not null"`
+	ChickenCage       ChickenCage   `gorm:"foreignKey:ChickenCageId;references:Id"`
+	TotalDeathChicken uint64        `gorm:"type:bigint;not null"`
+	TotalSickChicken  uint64        `gorm:"type:bigint;not null"`
+	TotalFeed         float64       `gorm:"type:decimal;not null"`
+	Note              string        `gorm:"type:text"`
+	CreatedBy         uuid.NullUUID `gorm:"type:varchar(255)"`
+	CreatedAt         time.Time     `gorm:"type:timestamp;autoCreateTime"`
+	UpdateBy          uuid.NullUUID `gorm:"type:varchar(255)"`
+	UpdatedAt         time.Time     `gorm:"type:timestamp;autoUpdateTime"`
 }

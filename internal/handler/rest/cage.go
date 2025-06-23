@@ -26,6 +26,9 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/", middleware.Authentication(), h.CreateCage)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateCage)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteCage)
+
+	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
+	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
 }
 
 func NewCageHandler(log *zap.Logger, service service.ICageService, validator *validator.Validate) *CageHandler {
@@ -122,4 +125,34 @@ func (h *CageHandler) DeleteCage(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *CageHandler) GetChickenCages(c *fiber.Ctx) error {
+	var filter dto.GetChickenCageFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("[GetChickenCage] failed to parse query filter", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetChickenCages(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get chicken cages")
+}
+
+func (h *CageHandler) GetChickenCageById(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Warn("GetChickenCageById] failed to parse id param")
+		return errx.BadRequest("failed to parse id param")
+	}
+
+	res, err := h.service.GetChickenCageById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get chicken cage by id")
 }

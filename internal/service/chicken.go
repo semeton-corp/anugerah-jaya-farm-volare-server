@@ -51,129 +51,69 @@ func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 	c.repository.UseTx(true)
 	defer c.repository.Rollback()
 
-	count, err := c.repository.CountChickenMonitoringByCageIdToday(request.CageId)
-	if err != nil {
-		c.log.Error("[CreateChickenMonitoring] failed to count chicken monitoring by cage id", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
+	// count, err := c.repository.CountChickenMonitoringByCageIdToday(request.CageId)
+	// if err != nil {
+	// 	c.log.Error("[CreateChickenMonitoring] failed to count chicken monitoring by cage id", zap.Error(err))
+	// 	return dto.ChickenMonitoringResponse{}, err
+	// }
 
-	if count > 0 {
-		return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken monitoring already exists for today")
-	}
+	// if count > 0 {
+	// 	return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken monitoring already exists for today")
+	// }
 
-	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
-	if !chickenCategory.IsValid() {
-		return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
-	}
+	// chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
+	// if !chickenCategory.IsValid() {
+	// 	return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
+	// }
 
-	chickenMonitoring := entity.ChickenMonitoring{
-		CageId:            request.CageId,
-		Age:               request.Age,
-		ChickenCategory:   chickenCategory,
-		TotalLiveChicken:  request.TotalLiveChicken,
-		TotalDeathChicken: request.TotalDeathChicken,
-		TotalSickChicken:  request.TotalSickChicken,
-		TotalFeed:         request.TotalFeed,
-		CreatedBy:         uuid.NullUUID{UUID: accountId, Valid: true},
-	}
+	// chickenMonitoring := entity.ChickenMonitoring{
+	// 	// CageId:            request.CageId,
+	// 	// Age:               request.Age,
+	// 	// ChickenCategory:   chickenCategory,
+	// 	// TotalLiveChicken:  request.TotalLiveChicken,
+	// 	TotalDeathChicken: request.TotalDeathChicken,
+	// 	TotalSickChicken:  request.TotalSickChicken,
+	// 	TotalFeed:         request.TotalFeed,
+	// 	CreatedBy:         uuid.NullUUID{UUID: accountId, Valid: true},
+	// }
 
-	err = c.repository.CreateChickenMonitoring(&chickenMonitoring)
-	if err != nil {
-		c.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
+	// err = c.repository.CreateChickenMonitoring(&chickenMonitoring)
+	// if err != nil {
+	// 	c.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
+	// 	return dto.ChickenMonitoringResponse{}, err
+	// }
 
-	if request.ChickenDiseases != nil {
-		chickenDiseases := make([]entity.ChickenDiseaseMonitoring, len(request.ChickenDiseases))
-		for i, disease := range request.ChickenDiseases {
-			chickenDiseases[i] = entity.ChickenDiseaseMonitoring{
-				ChickenMonitoringId: chickenMonitoring.Id,
-				Disease:             disease.Disease,
-				Medicine:            disease.Medicine,
-				Dose:                disease.Dose,
-				Unit:                disease.Unit,
-				CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
-			}
-		}
+	// err = c.repository.Commit()
+	// if err != nil {
+	// 	c.log.Error("[CreateChickenMonitoring] failed to commit transaction", zap.Error(err))
+	// 	return dto.ChickenMonitoringResponse{}, err
+	// }
 
-		err = c.repository.CreateChickenDiseaseMonitoring(&chickenDiseases)
-		if err != nil {
-			c.log.Error("[CreateChickenMonitoring] failed to create chicken diseases", zap.Error(err))
-			return dto.ChickenMonitoringResponse{}, err
-		}
-	}
+	// chickenMonitoring, err = c.repository.GetChickenMonitoringById(chickenMonitoring.Id)
+	// if err != nil {
+	// 	c.log.Error("[CreateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
+	// 	return dto.ChickenMonitoringResponse{}, err
+	// }
 
-	if request.ChickenVaccines != nil {
-		chickenVaccine := make([]entity.ChickenVaccineMonitoring, len(request.ChickenVaccines))
-		for i, vaccine := range request.ChickenVaccines {
-			chickenVaccine[i] = entity.ChickenVaccineMonitoring{
-				ChickenMonitoringId: chickenMonitoring.Id,
-				Vaccine:             vaccine.Vaccine,
-				Dose:                vaccine.Dose,
-				Unit:                vaccine.Unit,
-				CreatedBy:           uuid.NullUUID{UUID: accountId, Valid: true},
-			}
-		}
+	// return dto.ChickenMonitoringResponse{
+	// 	Id:              chickenMonitoring.Id,
+	// 	ChickenCategory: chickenCategory.String(),
+	// 	Cage: dto.CageResponse{
+	// 		// Id:   chickenMonitoring.Cage.Id,
+	// 		// Name: chickenMonitoring.Cage.Name,
+	// 		Location: dto.LocationResponse{
+	// 			// Id:   chickenMonitoring.Cage.Location.Id,
+	// 			// Name: chickenMonitoring.Cage.Location.Name,
+	// 		},
+	// 	},
+	// 	// Age:               chickenMonitoring.Age,
+	// 	// TotalLiveChicken:  chickenMonitoring.TotalLiveChicken,
+	// 	TotalSickChicken:  chickenMonitoring.TotalSickChicken,
+	// 	TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
+	// 	TotalFeed:         chickenMonitoring.TotalFeed,
+	// }, nil
 
-		err = c.repository.CreateChickenVaccineMonitoring(&chickenVaccine)
-		if err != nil {
-			c.log.Error("[CreateChickenMonitoring] failed to create chicken vaccines", zap.Error(err))
-			return dto.ChickenMonitoringResponse{}, err
-		}
-	}
-
-	err = c.repository.Commit()
-	if err != nil {
-		c.log.Error("[CreateChickenMonitoring] failed to commit transaction", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
-
-	chickenMonitoring, err = c.repository.GetChickenMonitoringById(chickenMonitoring.Id)
-	if err != nil {
-		c.log.Error("[CreateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
-
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = dto.ChickenDiseaseMonitoringResponse{
-			Id:       disease.Id,
-			Disease:  disease.Disease,
-			Medicine: disease.Medicine,
-			Dose:     disease.Dose,
-			Unit:     disease.Unit,
-		}
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = dto.ChickenVaccineMonitoringResponse{
-			Id:      vaccine.Id,
-			Vaccine: vaccine.Vaccine,
-			Dose:    vaccine.Dose,
-			Unit:    vaccine.Unit,
-		}
-	}
-
-	return dto.ChickenMonitoringResponse{
-		Id:              chickenMonitoring.Id,
-		ChickenCategory: chickenCategory.String(),
-		Cage: dto.CageResponse{
-			Id:   chickenMonitoring.Cage.Id,
-			Name: chickenMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				Id:   chickenMonitoring.Cage.Location.Id,
-				Name: chickenMonitoring.Cage.Location.Name,
-			},
-		},
-		Age:               chickenMonitoring.Age,
-		TotalLiveChicken:  chickenMonitoring.TotalLiveChicken,
-		TotalSickChicken:  chickenMonitoring.TotalSickChicken,
-		TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
-		TotalFeed:         chickenMonitoring.TotalFeed,
-		ChickenDiseases:   chickenDiseasesResponse,
-		ChickenVaccines:   chickenVaccinesResponse,
-	}, nil
+	return dto.ChickenMonitoringResponse{}, nil
 }
 
 func (c *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitoringResponse, error) {
@@ -183,19 +123,7 @@ func (c *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitor
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -210,19 +138,6 @@ func (c *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 	chickenMonitoringsResponse := make([]dto.ChickenMonitoringListResponse, len(chickenMonitorings))
 	for i, chickenMonitoring := range chickenMonitorings {
 		chickenMonitoringsResponse[i] = mapper.ChickenMonitoringToListResponse(&chickenMonitoring)
-
-		chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-		for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-			chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-		}
-
-		chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-		for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-			chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-		}
-
-		chickenMonitoringsResponse[i].ChickenDiseases = chickenDiseasesResponse
-		chickenMonitoringsResponse[i].ChickenVaccines = chickenVaccinesResponse
 	}
 
 	return chickenMonitoringsResponse, nil
@@ -241,10 +156,10 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
 	}
 
-	chickenMonitoring.ChickenCategory = chickenCategory
-	chickenMonitoring.CageId = request.CageId
-	chickenMonitoring.Age = request.Age
-	chickenMonitoring.TotalLiveChicken = request.TotalLiveChicken
+	// chickenMonitoring.ChickenCategory = chickenCategory
+	// chickenMonitoring.CageId = request.CageId
+	// chickenMonitoring.Age = request.Age
+	// chickenMonitoring.TotalLiveChicken = request.TotalLiveChicken
 	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
@@ -326,19 +241,7 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -365,19 +268,7 @@ func (c *ChickenService) CreateChickenDiseaseMonitoring(chickenMonitoringId uint
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -403,19 +294,7 @@ func (c *ChickenService) CreateChickenVaccineMonitoring(chickenMonitoringId uint
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -445,19 +324,7 @@ func (c *ChickenService) UpdateChickenDiseaseMonitoring(id uint64, request dto.U
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -486,19 +353,7 @@ func (c *ChickenService) UpdateChickenVaccineMonitoring(id uint64, request dto.U
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenDiseasesResponse := make([]dto.ChickenDiseaseMonitoringResponse, len(chickenMonitoring.ChickenDiseaseMonitoring))
-	for i, disease := range chickenMonitoring.ChickenDiseaseMonitoring {
-		chickenDiseasesResponse[i] = mapper.ChickenDiseaseMonitoringToResponse(&disease)
-	}
-
-	chickenVaccinesResponse := make([]dto.ChickenVaccineMonitoringResponse, len(chickenMonitoring.ChickenVaccineMonitoring))
-	for i, vaccine := range chickenMonitoring.ChickenVaccineMonitoring {
-		chickenVaccinesResponse[i] = mapper.ChickenVaccineMonitoringToResponse(&vaccine)
-	}
-
 	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-	chickenMonitoringResponse.ChickenDiseases = chickenDiseasesResponse
-	chickenMonitoringResponse.ChickenVaccines = chickenVaccinesResponse
 
 	return chickenMonitoringResponse, nil
 }
@@ -536,14 +391,14 @@ func (c *ChickenService) DeleteChickenVaccineMonitoring(id uint64) error {
 func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error) {
 	c.repository.UseTx(false)
 
-	currentChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
-		Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
-		Location: filter.Location,
-	})
-	if err != nil {
-		c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
-		return dto.ChickenOverviewResponse{}, err
-	}
+	// currentChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+	// 	Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
+	// 	Location: filter.Location,
+	// })
+	// if err != nil {
+	// 	c.log.Error("[GetChickenOverview] failed to get chicken monitorings", zap.Error(err))
+	// 	return dto.ChickenOverviewResponse{}, err
+	// }
 
 	currentEggMonitoring, err := c.eggService.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		Date:     param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
@@ -571,23 +426,23 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 
 	chickenGraphs := make([]dto.ChickenGraphResponse, 0)
 
-	for _, chickenMonitoring := range currentChickenMonitorings {
-		totalLiveChicken += chickenMonitoring.TotalLiveChicken
-		totalSickChicken += chickenMonitoring.TotalSickChicken
-		totalDeathChicken += chickenMonitoring.TotalDeathChicken
+	// for _, chickenMonitoring := range currentChickenMonitorings {
+	// 	totalLiveChicken += chickenMonitoring.TotalLiveChicken
+	// 	totalSickChicken += chickenMonitoring.TotalSickChicken
+	// 	totalDeathChicken += chickenMonitoring.TotalDeathChicken
 
-		if chickenMonitoring.ChickenCategory == enum.ChickenCategoryDOC {
-			totalDOCChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
-		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryGrower {
-			totalGrowerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
-		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryPreLayer {
-			totalPreLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
-		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryLayer {
-			totalLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
-		} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryAfkir {
-			totalAfkirChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
-		}
-	}
+	// 	if chickenMonitoring.ChickenCategory == enum.ChickenCategoryDOC {
+	// 		totalDOCChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+	// 	} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryGrower {
+	// 		totalGrowerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+	// 	} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryPreLayer {
+	// 		totalPreLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+	// 	} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryLayer {
+	// 		totalLayerChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+	// 	} else if chickenMonitoring.ChickenCategory == enum.ChickenCategoryAfkir {
+	// 		totalAfkirChicken += chickenMonitoring.TotalSickChicken + chickenMonitoring.TotalLiveChicken
+	// 	}
+	// }
 
 	if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisWeek {
 		endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)

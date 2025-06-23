@@ -13,6 +13,7 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 			Id:   warehouse.Location.Id,
 			Name: warehouse.Location.Name,
 		},
+		TotalEmployee: uint64(len(warehouse.WarehousePlacement)),
 	}
 }
 

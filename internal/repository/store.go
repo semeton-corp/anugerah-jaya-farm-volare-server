@@ -111,7 +111,7 @@ func (r *StoreRepository) GetStores(filter dto.GetStoreFilter) ([]entity.Store, 
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
-	err := query.Preload("Location").Find(&stores).Error
+	err := query.Preload("StorePlacement").Preload("Location").Find(&stores).Error
 	if err != nil {
 		return nil, err
 	}

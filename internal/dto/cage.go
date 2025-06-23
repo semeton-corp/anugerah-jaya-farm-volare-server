@@ -27,6 +27,16 @@ type GetCageFilter struct {
 }
 
 type ChickenCageResponse struct {
-	Id           uint64 `json:"id"`
-	TotalChicken uint64 `json:"totalChicken"`
+	Cage            CageResponse `json:"cage"`
+	Id              uint64       `json:"id"`
+	BatchId         string       `json:"batchId"`
+	ChickenCategory string       `json:"chickenCategory"`
+	ChickenAge      uint64       `json:"chickenAge"`
+	TotalChicken    uint64       `json:"totalChicken"`
+	ChickenPic      string       `json:"chickenPic"`
+	EggPic          string       `json:"eggPic"`
+}
+
+type GetChickenCageFilter struct {
+	LocationId uint64 `query:"locationid"`
 }

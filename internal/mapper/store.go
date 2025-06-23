@@ -14,6 +14,7 @@ func StoreToResponse(store *entity.Store) dto.StoreResponse {
 			Id:   store.Location.Id,
 			Name: store.Location.Name,
 		},
+		TotalEmployee: uint64(len(store.StorePlacement)),
 	}
 }
 

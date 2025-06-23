@@ -85,7 +85,7 @@ func (r *WarehouseRepository) GetDB() *gorm.DB {
 
 func (r *WarehouseRepository) GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error) {
 	var warehouses []entity.Warehouse
-	query := r.GetDB().Preload("Location").Find(&warehouses)
+	query := r.GetDB().Preload("WarehousePlacement").Preload("Location").Find(&warehouses)
 
 	if filter.LocationId > 0 {
 		query.Where("location_id = ?", filter.LocationId)

@@ -34,8 +34,9 @@ func (s *PlacementService) CreateCagePlacementBatch(request dto.CreateCagePlacem
 	userId := uuid.MustParse(request.UserId)
 	for _, cageId := range request.CageIds {
 		data = append(data, entity.CagePlacement{
-			UserId: userId,
-			CageId: cageId,
+			UserId:    userId,
+			CageId:    cageId,
+			CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
 		})
 	}
 
@@ -101,6 +102,7 @@ func (s *PlacementService) CreateWarehousePlacementBatch(request dto.CreateWareh
 		data = append(data, entity.WarehousePlacement{
 			UserId:      userId,
 			WarehouseId: WarehouseId,
+			CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
 		})
 	}
 
