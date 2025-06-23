@@ -20,7 +20,7 @@ type StoreResponse struct {
 	Id            uint64           `json:"id"`
 	Name          string           `json:"name"`
 	Location      LocationResponse `json:"location"`
-	TotalEmployee uint64           `json:"totalEmployee`
+	TotalEmployee uint64           `json:"totalEmployee"`
 }
 
 type CreateStoreRequestItemRequest struct {
