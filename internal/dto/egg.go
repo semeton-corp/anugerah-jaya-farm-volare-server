@@ -5,7 +5,7 @@ import (
 )
 
 type CreateEggMonitoringRequest struct {
-	CageId                   uint64  `json:"cageId" validate:"required,number"`
+	ChickenCageId            uint64  `json:"chickenCageId" validate:"required,number"`
 	WarehouseId              uint64  `json:"warehouseId" validate:"required,number"`
 	TotalKarpetGoodEgg       uint64  `json:"totalKarpetGoodEgg" validate:"required,number,min=0"`
 	TotalRemainingGoodEgg    uint64  `json:"totalRemainingGoodEgg" validate:"required,number,min=0"`
@@ -18,7 +18,7 @@ type CreateEggMonitoringRequest struct {
 }
 
 type UpdateEggMonitoringRequest struct {
-	CageId                   uint64  `json:"cageId" validate:"required,number"`
+	ChickenCageId            uint64  `json:"chickenCageId" validate:"required,number"`
 	WarehouseId              uint64  `json:"warehouseId" validate:"required,number"`
 	TotalKarpetGoodEgg       uint64  `json:"totalKarpetGoodEgg" validate:"required,number,min=0"`
 	TotalRemainingGoodEgg    uint64  `json:"totalRemainingGoodEgg" validate:"required,number,min=0"`

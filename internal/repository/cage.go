@@ -25,7 +25,7 @@ type ICageRepository interface {
 	UpdateCage(cage *entity.Cage) error
 	DeleteCage(id uint64) error
 
-	GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error)
+	CreateChickenCage(chickenCage *entity.ChickenCage) error
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error)
 	GetChickenCageById(id uint64) (entity.ChickenCage, error)
 }
@@ -116,15 +116,33 @@ func (r *CageRepository) GetChickenCageByCageId(cageId uint64) (entity.ChickenCa
 	return chickenCage, nil
 }
 
+func (r *CageRepository) CreateChickenCage(chickenCage *entity.ChickenCage) error {
+	return r.GetDB().Model(&entity.ChickenCage{}).Create(&chickenCage).Error
+}
+
 func (r *CageRepository) GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error) {
-	chickenCages := make([]entity.ChickenCage, 0)
-	query := r.GetDB()
+	var chickenCages []entity.ChickenCage
+	query := r.GetDB().Model(&entity.ChickenCage{})
 
 	if filter.LocationId > 0 {
-		query = query.Preload("Cage.Location", "location_id = ?", filter.LocationId)
+		query = query.Joins("JOIN cages ON cages.id = chicken_cages.cage_id").
+			Where("cages.location_id = ?", filter.LocationId)
 	}
 
-	err := query.Distinct("cage_id").Preload("ChickenProcurement").Preload("Cage.ChickenPlacement.User").Find(&chickenCages).Order("created_at DESC").Error
+	// Subquery to get the newest chicken_cage per cage_id
+	subQuery := r.GetDB().Model(&entity.ChickenCage{}).
+		Select("MAX(id)").
+		Group("cage_id")
+
+	query = query.Where("chicken_cages.id IN (?)", subQuery)
+
+	err := query.
+		Preload("Cage.Location").
+		Preload("ChickenProcurement").
+		Preload("Cage.CagePlacement.User.Role").
+		Order("chicken_cages.created_at DESC").
+		Find(&chickenCages).Error
+
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +152,7 @@ func (r *CageRepository) GetChickenCages(filter dto.GetChickenCageFilter) ([]ent
 
 func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, error) {
 	var chickenCage entity.ChickenCage
-	err := r.GetDB().Preload("ChickenProcurement").Preload("Cage.ChickenPlacement.User").Where("id = ?", id).First(&chickenCage).Error
+	err := r.GetDB().Preload("Cage.Location").Preload("ChickenProcurement").Preload("Cage.CagePlacement.User.Role").Where("id = ?", id).First(&chickenCage).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.ChickenCage{}, errx.NotFound("chicken cage not found")

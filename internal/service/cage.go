@@ -22,7 +22,6 @@ type ICageService interface {
 	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
 
-	GetChickenCageByCageId(cageId uint64) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 }
@@ -71,6 +70,17 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 	err := s.repository.CreateCage(&cage)
 	if err != nil {
 		s.log.Error("[CreateCage] failed to create cage", zap.Error(err))
+		return dto.CageResponse{}, err
+	}
+
+	chickenCage := entity.ChickenCage{
+		CageId:    cage.Id,
+		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+	}
+
+	err = s.repository.CreateChickenCage(&chickenCage)
+	if err != nil {
+		s.log.Error("[CreateCage] failed to create chicken cage", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
@@ -129,18 +139,6 @@ func (s *CageService) DeleteCage(id uint64) error {
 	}
 
 	return nil
-}
-
-func (s *CageService) GetChickenCageByCageId(cageId uint64) (dto.ChickenCageResponse, error) {
-	s.repository.UseTx(false)
-
-	chickenCage, err := s.repository.GetChickenCageByCageId(cageId)
-	if err != nil {
-		s.log.Error("[GetChickenCageByCageId] failed to get chicken cage by cage id", zap.Error(err))
-		return dto.ChickenCageResponse{}, err
-	}
-
-	return mapper.ChickenCageToResponse(&chickenCage), nil
 }
 
 func (s *CageService) GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error) {

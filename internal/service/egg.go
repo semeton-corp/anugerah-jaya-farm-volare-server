@@ -53,17 +53,7 @@ func NewEggService(
 }
 
 func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
-	chickenCage, err := s.cageService.GetChickenCageByCageId(request.CageId)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	if chickenCage.TotalChicken == 0 {
-		s.log.Warn("[CreateEggMonitoring] cage is empty")
-		return dto.EggMonitoringResponse{}, errx.BadRequest("cage is empty or no chicken in there")
-	}
-
-	count, err := s.repository.CountEggMonitoringByChickenCageIdToday(chickenCage.Id)
+	count, err := s.repository.CountEggMonitoringByChickenCageIdToday(request.ChickenCageId)
 	if err != nil {
 		s.log.Error("[CreateEggMonitoring] failed to count egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
@@ -75,7 +65,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 	}
 
 	eggMonitoring := entity.EggMonitoring{
-		ChickenCageId:         chickenCage.Id,
+		ChickenCageId:         request.ChickenCageId,
 		WarehouseId:           request.WarehouseId,
 		TotalWeightCrackedEgg: request.TotalWeightCrackedEgg,
 		TotalWeightGoodEgg:    request.TotalWeightGoodEgg,
@@ -137,12 +127,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	chickenCage, err := s.cageService.GetChickenCageByCageId(request.CageId)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	eggMonitoring.ChickenCageId = chickenCage.Id
+	eggMonitoring.ChickenCageId = request.ChickenCageId
 	eggMonitoring.WarehouseId = request.WarehouseId
 	eggMonitoring.TotalGoodEgg = (request.TotalKarpetGoodEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingGoodEgg
 	eggMonitoring.TotalCrackedEgg = (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingCrackedEgg

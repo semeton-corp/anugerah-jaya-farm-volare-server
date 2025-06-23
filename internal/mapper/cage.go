@@ -24,32 +24,37 @@ func CageToResponse(cage *entity.Cage) dto.CageResponse {
 }
 
 func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageResponse {
-	var chickenAgeInWeek uint64
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Now().Sub(chickenCage.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
-	}
+	var (
+		chickenAgeInWeek uint64
+		chickenCategory  enum.ChickenCategory
+		batchId          string = ""
+	)
 
-	var chickenCategory enum.ChickenCategory
-	if chickenAgeInWeek >= 0 {
-		chickenCategory = enum.ChickenCategoryAfkir
+	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
+		batchId = fmt.Sprintf("%s%d", chickenCage.ChickenProcurement.CreatedAt.Format("02012005"), chickenCage.Id)
+		chickenAge := time.Since(chickenCage.CreatedAt)
+		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
+
+		if chickenAgeInWeek >= 0 {
+			chickenCategory = enum.ChickenCategoryAfkir
+		}
 	}
 
 	var chickenPic, eggPic string
 	for _, cagePlacement := range chickenCage.Cage.CagePlacement {
-		if strings.Contains(cagePlacement.User.Name, "Kandang") {
+		if strings.Contains(cagePlacement.User.Role.Name, "Kandang") {
 			chickenPic = cagePlacement.User.Name
 		}
 
-		if strings.Contains(cagePlacement.User.Name, "Telur") {
-			chickenPic = cagePlacement.User.Name
+		if strings.Contains(cagePlacement.User.Role.Name, "Telur") {
+			eggPic = cagePlacement.User.Name
 		}
 	}
 
 	response := dto.ChickenCageResponse{
 		Cage:            CageToResponse(&chickenCage.Cage),
 		Id:              chickenCage.Id,
-		BatchId:         fmt.Sprintf("%s%d", chickenCage.CreatedAt.Format("02012006"), chickenCage.Id),
+		BatchId:         batchId,
 		ChickenAge:      chickenAgeInWeek,
 		ChickenCategory: chickenCategory.String(),
 		TotalChicken:    chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
