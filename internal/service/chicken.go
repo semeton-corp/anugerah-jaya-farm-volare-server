@@ -18,9 +18,10 @@ import (
 )
 
 type ChickenService struct {
-	log        *zap.Logger
-	repository repository.IChickenRepository
-	eggService IEggService
+	log         *zap.Logger
+	repository  repository.IChickenRepository
+	eggService  IEggService
+	cageService ICageService
 }
 
 type IChickenService interface {
@@ -47,79 +48,48 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 	}
 }
 
-func (c *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, accountId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
-	c.repository.UseTx(true)
-	defer c.repository.Rollback()
+func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, createdBy uuid.UUID) (dto.ChickenMonitoringResponse, error) {
+	s.repository.UseTx(false)
 
-	// count, err := c.repository.CountChickenMonitoringByCageIdToday(request.CageId)
-	// if err != nil {
-	// 	c.log.Error("[CreateChickenMonitoring] failed to count chicken monitoring by cage id", zap.Error(err))
-	// 	return dto.ChickenMonitoringResponse{}, err
-	// }
+	count, err := s.repository.CountChickenMonitoringByCageIdToday(request.ChickenCageId)
+	if err != nil {
+		s.log.Error("[CreateChickenMonitoring] failed to count chicken monitoring by cage id", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
 
-	// if count > 0 {
-	// 	return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken monitoring already exists for today")
-	// }
+	if count > 0 {
+		return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken monitoring already exists for today")
+	}
 
-	// chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
-	// if !chickenCategory.IsValid() {
-	// 	return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
-	// }
+	chickenMonitoring := entity.ChickenMonitoring{
+		ChickenCageId:     request.ChickenCageId,
+		TotalDeathChicken: request.TotalDeathChicken,
+		TotalSickChicken:  request.TotalSickChicken,
+		TotalFeed:         request.TotalFeed,
+		Note:              request.Note,
+		CreatedBy:         uuid.NullUUID{UUID: createdBy, Valid: true},
+	}
 
-	// chickenMonitoring := entity.ChickenMonitoring{
-	// 	// CageId:            request.CageId,
-	// 	// Age:               request.Age,
-	// 	// ChickenCategory:   chickenCategory,
-	// 	// TotalLiveChicken:  request.TotalLiveChicken,
-	// 	TotalDeathChicken: request.TotalDeathChicken,
-	// 	TotalSickChicken:  request.TotalSickChicken,
-	// 	TotalFeed:         request.TotalFeed,
-	// 	CreatedBy:         uuid.NullUUID{UUID: accountId, Valid: true},
-	// }
+	// Todo : create if there are sick chicken in policy
+	err = s.repository.CreateChickenMonitoring(&chickenMonitoring)
+	if err != nil {
+		s.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
 
-	// err = c.repository.CreateChickenMonitoring(&chickenMonitoring)
-	// if err != nil {
-	// 	c.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
-	// 	return dto.ChickenMonitoringResponse{}, err
-	// }
-
-	// err = c.repository.Commit()
-	// if err != nil {
-	// 	c.log.Error("[CreateChickenMonitoring] failed to commit transaction", zap.Error(err))
-	// 	return dto.ChickenMonitoringResponse{}, err
-	// }
-
-	// chickenMonitoring, err = c.repository.GetChickenMonitoringById(chickenMonitoring.Id)
-	// if err != nil {
-	// 	c.log.Error("[CreateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
-	// 	return dto.ChickenMonitoringResponse{}, err
-	// }
-
-	// return dto.ChickenMonitoringResponse{
-	// 	Id:              chickenMonitoring.Id,
-	// 	ChickenCategory: chickenCategory.String(),
-	// 	Cage: dto.CageResponse{
-	// 		// Id:   chickenMonitoring.Cage.Id,
-	// 		// Name: chickenMonitoring.Cage.Name,
-	// 		Location: dto.LocationResponse{
-	// 			// Id:   chickenMonitoring.Cage.Location.Id,
-	// 			// Name: chickenMonitoring.Cage.Location.Name,
-	// 		},
-	// 	},
-	// 	// Age:               chickenMonitoring.Age,
-	// 	// TotalLiveChicken:  chickenMonitoring.TotalLiveChicken,
-	// 	TotalSickChicken:  chickenMonitoring.TotalSickChicken,
-	// 	TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
-	// 	TotalFeed:         chickenMonitoring.TotalFeed,
-	// }, nil
+	chickenMonitoring, err = s.repository.GetChickenMonitoringById(chickenMonitoring.Id)
+	if err != nil {
+		s.log.Error("[CreateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
 
 	return dto.ChickenMonitoringResponse{}, nil
 }
 
-func (c *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitoringResponse, error) {
-	chickenMonitoring, err := c.repository.GetChickenMonitoringById(id)
+func (s *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitoringResponse, error) {
+	chickenMonitoring, err := s.repository.GetChickenMonitoringById(id)
 	if err != nil {
-		c.log.Error("[GetChickenMonitoringById] failed to get chicken monitoring by id", zap.Error(err))
+		s.log.Error("[GetChickenMonitoringById] failed to get chicken monitoring by id", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
@@ -151,15 +121,6 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
-	if !chickenCategory.IsValid() {
-		return dto.ChickenMonitoringResponse{}, errx.BadRequest("invalid chicken category")
-	}
-
-	// chickenMonitoring.ChickenCategory = chickenCategory
-	// chickenMonitoring.CageId = request.CageId
-	// chickenMonitoring.Age = request.Age
-	// chickenMonitoring.TotalLiveChicken = request.TotalLiveChicken
 	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
@@ -168,70 +129,6 @@ func (c *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	err = c.repository.UpdateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
 		c.log.Error("[UpdateChickenMonitoring] failed to update chicken monitoring", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
-
-	chickenDiseaseMonitoringIds := make([]uint64, len(request.ChickenDiseases))
-	chickenVaccineMonitoringIds := make([]uint64, len(request.ChickenVaccines))
-
-	for _, disease := range request.ChickenDiseases {
-		chickenDisease := entity.ChickenDiseaseMonitoring{
-			ChickenMonitoringId: chickenMonitoring.Id,
-			Id:                  disease.Id,
-			Disease:             disease.Disease,
-			Medicine:            disease.Medicine,
-			Dose:                disease.Dose,
-			Unit:                disease.Unit,
-		}
-
-		if disease.Id == 0 {
-			chickenDisease.CreatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
-		} else {
-			chickenDisease.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
-		}
-
-		err := c.repository.SaveChickenDiseaseMonitoring(&chickenDisease)
-		if err != nil {
-			c.log.Error("[UpdateChickenMonitoring] failed to first or create chicken disease monitoring", zap.Error(err))
-			return dto.ChickenMonitoringResponse{}, err
-		}
-
-		chickenDiseaseMonitoringIds = append(chickenDiseaseMonitoringIds, chickenDisease.Id)
-	}
-
-	for _, vaccine := range request.ChickenVaccines {
-		chickenVaccine := entity.ChickenVaccineMonitoring{
-			ChickenMonitoringId: chickenMonitoring.Id,
-			Id:                  vaccine.Id,
-			Vaccine:             vaccine.Vaccine,
-			Dose:                vaccine.Dose,
-			Unit:                vaccine.Unit,
-		}
-
-		if vaccine.Id == 0 {
-			chickenVaccine.CreatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
-		} else {
-			chickenVaccine.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
-		}
-
-		err := c.repository.SaveChickenVaccineMonitoring(&chickenVaccine)
-		if err != nil {
-			c.log.Error("[UpdateChickenMonitoring] failed to first or create chicken vaccine monitoring", zap.Error(err))
-			return dto.ChickenMonitoringResponse{}, err
-		}
-
-		chickenVaccineMonitoringIds = append(chickenVaccineMonitoringIds, chickenVaccine.Id)
-	}
-
-	err = c.repository.DeleteChickenDiseaseMonitoringNotInIds(chickenMonitoring.Id, chickenDiseaseMonitoringIds)
-	if err != nil {
-		c.log.Error("[UpdateChickenMonitoring] failed to delete chicken disease monitoring", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
-
-	err = c.repository.DeleteChickenVaccineMonitoringNotInIds(chickenMonitoring.Id, chickenVaccineMonitoringIds)
-	if err != nil {
-		c.log.Error("[UpdateChickenMonitoring] failed to delete chicken vaccine monitoring", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
 	}
 

@@ -5,7 +5,7 @@ import (
 )
 
 type CreateChickenMonitoringRequest struct {
-	ChickenCageId     uint64  `json:"cageId" validate:"required"`
+	ChickenCageId     uint64  `json:"chickenCageId" validate:"required"`
 	TotalSickChicken  uint64  `json:"totalSickChicken" validate:"required,number,min=0"`
 	TotalDeathChicken uint64  `json:"totalDeathChicken" validate:"required,number,min=0"`
 	TotalFeed         float64 `json:"totalFeed" validate:"required,number,min=0"`
@@ -13,15 +13,11 @@ type CreateChickenMonitoringRequest struct {
 }
 
 type UpdateChickenMonitoringRequest struct {
-	CageId            uint64                                  `json:"cageId" validate:"required"`
-	ChickenCategory   string                                  `json:"chickenCategory" validate:"required,chicken_category"`
-	Age               uint64                                  `json:"age" validate:"required,number"`
-	TotalLiveChicken  uint64                                  `json:"totalLiveChicken" validate:"required,number,min=0"`
-	TotalSickChicken  uint64                                  `json:"totalSickChicken" validate:"required,number,min=0"`
-	TotalDeathChicken uint64                                  `json:"totalDeathChicken" validate:"required,number,min=0"`
-	TotalFeed         float64                                 `json:"totalFeed" validate:"required,number,min=0"`
-	ChickenDiseases   []UpdateChickenDiseaseMonitoringRequest `json:"chickenDiseases" validate:"required"`
-	ChickenVaccines   []UpdateChickenVaccineMonitoringRequest `json:"chickenVaccines" validate:"required"`
+	ChickenCageId     uint64  `json:"cageId" validate:"required"`
+	TotalSickChicken  uint64  `json:"totalSickChicken" validate:"required,number,min=0"`
+	TotalDeathChicken uint64  `json:"totalDeathChicken" validate:"required,number,min=0"`
+	TotalFeed         float64 `json:"totalFeed" validate:"required,number,min=0"`
+	Note              string  `json:"note"`
 }
 
 type UpdateChickenDiseaseMonitoringRequest struct {

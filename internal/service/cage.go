@@ -167,3 +167,7 @@ func (s *CageService) GetChickenCageById(id uint64) (dto.ChickenCageResponse, er
 
 	return mapper.ChickenCageToResponse(&chickenCage), nil
 }
+
+func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateCageChickenRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error) {
+	return dto.ChickenCageResponse{}, nil
+}
