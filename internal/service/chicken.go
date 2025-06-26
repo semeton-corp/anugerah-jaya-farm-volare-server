@@ -70,7 +70,8 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		CreatedBy:         uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	// Todo : create if there are sick chicken in policy
+	// Todo : create if there are death chicken
+
 	err = s.repository.CreateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
 		s.log.Error("[CreateChickenMonitoring] failed to create chicken monitoring", zap.Error(err))
@@ -83,7 +84,7 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	return dto.ChickenMonitoringResponse{}, nil
+	return mapper.ChickenMonitoringToResponse(&chickenMonitoring), nil
 }
 
 func (s *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitoringResponse, error) {
@@ -93,9 +94,7 @@ func (s *ChickenService) GetChickenMonitoringById(id uint64) (dto.ChickenMonitor
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenMonitoringResponse := mapper.ChickenMonitoringToResponse(&chickenMonitoring)
-
-	return chickenMonitoringResponse, nil
+	return mapper.ChickenMonitoringToResponse(&chickenMonitoring), nil
 }
 
 func (c *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFilter) ([]dto.ChickenMonitoringListResponse, error) {

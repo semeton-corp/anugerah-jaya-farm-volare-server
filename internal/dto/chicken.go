@@ -20,6 +20,16 @@ type UpdateChickenMonitoringRequest struct {
 	Note              string  `json:"note"`
 }
 
+type ChickenMonitoringResponse struct {
+	Id                 uint64              `json:"id"`
+	ChickenCage        ChickenCageResponse `json:"chickenCage"`
+	TotalLiveChicken   uint64              `json:"totalLiveChicken"`
+	TotalSickChicken   uint64              `json:"totalSickChicken"`
+	TotalDeatchChicken uint64              `json:"totalDeathChicken"`
+	TotalFeed          float64             `json:"totalFeed"`
+	Note               string              `json:"note"`
+}
+
 type UpdateChickenDiseaseMonitoringRequest struct {
 	Id       uint64  `json:"id"`
 	Disease  string  `json:"disease" validate:"required"`
@@ -47,20 +57,6 @@ type CreateChickenVaccineMonitoringRequest struct {
 	Dose    float64 `json:"dose" validate:"required"`
 	Unit    string  `json:"unit" validate:"required"`
 }
-
-type ChickenMonitoringResponse struct {
-	Id                uint64                             `json:"id"`
-	Cage              CageResponse                       `json:"cage"`
-	Age               uint64                             `json:"age"`
-	ChickenCategory   string                             `json:"chickenCategory"`
-	TotalLiveChicken  uint64                             `json:"totalLiveChicken"`
-	TotalSickChicken  uint64                             `json:"totalSickChicken"`
-	TotalDeathChicken uint64                             `json:"totalDeathChicken"`
-	TotalFeed         float64                            `json:"totalFeed"`
-	ChickenDiseases   []ChickenDiseaseMonitoringResponse `json:"chickenDiseases"`
-	ChickenVaccines   []ChickenVaccineMonitoringResponse `json:"chickenVaccines"`
-}
-
 type ChickenDiseaseMonitoringResponse struct {
 	Id       uint64  `json:"id"`
 	Disease  string  `json:"disease"`
@@ -77,17 +73,13 @@ type ChickenVaccineMonitoringResponse struct {
 }
 
 type ChickenMonitoringListResponse struct {
-	Id                uint64                             `json:"id"`
-	Cage              CageResponse                       `json:"cage"`
-	ChickenCategory   string                             `json:"chickenCategory"`
-	Age               uint64                             `json:"age"`
-	TotalLiveChicken  uint64                             `json:"totalLiveChicken"`
-	TotalSickChicken  uint64                             `json:"totalSickChicken"`
-	TotalDeathChicken uint64                             `json:"totalDeathChicken"`
-	TotalFeed         float64                            `json:"totalFeed"`
-	MortalityRate     float64                            `json:"mortalityRate"`
-	ChickenDiseases   []ChickenDiseaseMonitoringResponse `json:"chickenDiseases"`
-	ChickenVaccines   []ChickenVaccineMonitoringResponse `json:"chickenVaccines"`
+	Id                uint64              `json:"id"`
+	ChickenCage       ChickenCageResponse `json:"chickenCage"`
+	TotalLiveChicken  uint64              `json:"totalLiveChicken"`
+	TotalSickChicken  uint64              `json:"totalSickChicken"`
+	TotalDeathChicken uint64              `json:"totalDeathChicken"`
+	TotalFeed         float64             `json:"totalFeed"`
+	MortalityRate     float64             `json:"mortalityRate"`
 }
 
 type GetChickenMonitoringFilter struct {

@@ -82,7 +82,7 @@ func (r *ChickenRepository) GetDB() *gorm.DB {
 
 func (r *ChickenRepository) CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error) {
 	var count int64
-	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
+	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
@@ -103,13 +103,7 @@ func (r *ChickenRepository) CreateChickenVaccineMonitoring(chickenVaccine *[]ent
 func (r *ChickenRepository) GetChickenMonitoringById(id uint64) (entity.ChickenMonitoring, error) {
 	var chickenMonitoring entity.ChickenMonitoring
 	err := r.GetDB().
-		Preload("Cage.Location").
-		Preload("ChickenDiseaseMonitoring", func(db *gorm.DB) *gorm.DB {
-			return db.Order("id ASC")
-		}).
-		Preload("ChickenVaccineMonitoring", func(db *gorm.DB) *gorm.DB {
-			return db.Order("id ASC")
-		}).
+		Preload("ChickenCage.Cage.Location").
 		Where("id = ?", id).First(&chickenMonitoring).Error
 
 	if err != nil {
@@ -134,9 +128,9 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	}
 
 	if filter.Location > 0 {
-		query = query.Preload("Cage.Location", "id = ?", filter.Location)
+		query = query.Preload("ChickenCage.Cage.Location", "id = ?", filter.Location)
 	} else {
-		query = query.Preload("Cage.Location")
+		query = query.Preload("ChickenCage.Cage.Location")
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {

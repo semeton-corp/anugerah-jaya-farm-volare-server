@@ -27,41 +27,24 @@ func ChickenVaccineMonitoringToResponse(chickenVaccine *entity.ChickenVaccineMon
 // Note : without chickenDiseasesResponse and chickenVaccinesResponse
 func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringResponse {
 	return dto.ChickenMonitoringResponse{
-		Id: chickenMonitoring.Id,
-		// ChickenCategory: chickenMonitoring.ChickenCategory.String(),
-		Cage: dto.CageResponse{
-			// Id:   chickenMonitoring.Cage.Id,
-			// Name: chickenMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				// Id:   chickenMonitoring.Cage.Location.Id,
-				// Name: chickenMonitoring.Cage.Location.Name,
-			},
-		},
-		// Age:               chickenMonitoring.Age,
-		// TotalLiveChicken:  chickenMonitoring.TotalLiveChicken,
-		TotalSickChicken:  chickenMonitoring.TotalSickChicken,
-		TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
-		TotalFeed:         chickenMonitoring.TotalFeed,
+		Id:                 chickenMonitoring.Id,
+		ChickenCage:        ChickenCageToResponse(&chickenMonitoring.ChickenCage),
+		TotalLiveChicken:   chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken,
+		TotalSickChicken:   chickenMonitoring.TotalSickChicken,
+		TotalDeatchChicken: chickenMonitoring.TotalSickChicken,
+		TotalFeed:          chickenMonitoring.TotalFeed,
+		Note:               chickenMonitoring.Note,
 	}
 }
 
 func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringListResponse {
 	return dto.ChickenMonitoringListResponse{
-		Id: chickenMonitoring.Id,
-		// ChickenCategory: chickenMonitoring.ChickenCategory.String(),
-		Cage: dto.CageResponse{
-			// Id:   chickenMonitoring.Cage.Id,
-			// Name: chickenMonitoring.Cage.Name,
-			Location: dto.LocationResponse{
-				// Id:   chickenMonitoring.Cage.Location.Id,
-				// Name: chickenMonitoring.Cage.Location.Name,
-			},
-		},
-		// Age:               chickenMonitoring.Age,
-		// TotalLiveChicken:  chickenMonitoring.TotalLiveChicken,
+		Id:                chickenMonitoring.Id,
+		ChickenCage:       ChickenCageToResponse(&chickenMonitoring.ChickenCage),
+		TotalLiveChicken:  chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken,
 		TotalSickChicken:  chickenMonitoring.TotalSickChicken,
 		TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:         chickenMonitoring.TotalFeed,
-		// MortalityRate:     float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.TotalLiveChicken + chickenMonitoring.TotalSickChicken)) * 100.0), // Todo : fix this calculation
+		MortalityRate:     float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.ChickenCage.TotalChicken + chickenMonitoring.ChickenCage.TotalDeathChicken + chickenMonitoring.TotalDeathChicken)) * 100.0),
 	}
 }
