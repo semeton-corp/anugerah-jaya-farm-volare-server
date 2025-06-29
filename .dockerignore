@@ -3,3 +3,4 @@ Makefile
 nginx.conf
 compose.dev.yaml
 compose.yaml
+.git

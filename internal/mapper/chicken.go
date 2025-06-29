@@ -22,6 +22,23 @@ func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dt
 	return response
 }
 
+func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHealthMonitoring) dto.ChickenHealthMonitoringResponse {
+	response := dto.ChickenHealthMonitoringResponse{
+		Id:                chickenHealthMonitoring.Id,
+		ChickenHealthItem: ChickenHealthItemToResponse(&chickenHealthMonitoring.ChickenHealthItem),
+		Dose:              chickenHealthMonitoring.Dose,
+		Unit:              chickenHealthMonitoring.Unit,
+	}
+
+	if chickenHealthMonitoring.Disease.Valid {
+		response.Disease = chickenHealthMonitoring.Disease.String
+	} else {
+		response.Disease = "-"
+	}
+
+	return response
+}
+
 func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringResponse {
 	return dto.ChickenMonitoringResponse{
 		Id:                 chickenMonitoring.Id,

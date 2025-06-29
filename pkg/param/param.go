@@ -89,7 +89,7 @@ func (p OverviewGraphTimeParam) Value() enum.OverviewGraphTime {
 type ChickenHealthProductTypeParam enum.ChickenHealthItemType
 
 func (p *ChickenHealthProductTypeParam) UnmarshalText(text []byte) error {
-	parsedFilter := enum.ValueOfOverviewGraphFilter(string(text))
+	parsedFilter := enum.ValueOfChickenHealthItemType(string(text))
 	if !parsedFilter.IsValid() {
 		return errx.BadRequest("invalid chicken health product type")
 	}

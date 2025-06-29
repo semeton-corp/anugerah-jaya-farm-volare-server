@@ -96,7 +96,7 @@ func (h *PresenceHandler) ArrivalPresence(c *fiber.Ctx) error {
 	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
 	if err != nil {
 		h.log.Error("[ArrivalPresence] failed to parse presenceId", zap.Error(err))
-		return errx.BadRequest("presenceId not valid")
+		return errx.BadRequest("invalid presence id param")
 	}
 
 	staffPresence, err := h.service.ArrivalPresence(presenceId, uuid.MustParse(userId))
@@ -124,7 +124,7 @@ func (h *PresenceHandler) DeparturePresence(c *fiber.Ctx) error {
 	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
 	if err != nil {
 		h.log.Error("[DeparturePresence] failed to parse presenceId", zap.Error(err))
-		return errx.BadRequest("presenceId not valid")
+		return errx.BadRequest("invalid presence id param")
 	}
 
 	staffPresence, err := h.service.DeparturePresence(presenceId, uuid.MustParse(userId))

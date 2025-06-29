@@ -93,7 +93,7 @@ func (h *EggHandler) GetEggMonitoringById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return errx.BadRequest("failed to parse id")
+		return errx.BadRequest("invalid id param")
 	}
 
 	res, err := h.service.GetEggMonitoringById(id)
@@ -115,7 +115,7 @@ func (h *EggHandler) UpdateEggMonitoring(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return errx.BadRequest("failed to parse id")
+		return errx.BadRequest("invalid id param")
 	}
 
 	var request dto.UpdateEggMonitoringRequest
@@ -153,7 +153,7 @@ func (h *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return errx.BadRequest("failed to parse id")
+		return errx.BadRequest("invalid id param")
 	}
 
 	if err := h.service.DeleteEggMonitoring(id); err != nil {
@@ -174,7 +174,7 @@ func (h *EggHandler) TakeEggMonitoring(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return errx.BadRequest("failed to parse id")
+		return errx.BadRequest("invalid id param")
 	}
 
 	userId, ok := c.Locals("userId").(string)

@@ -95,7 +95,7 @@ func (h *CageHandler) UpdateCage(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed parse id param")
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	userId, ok := c.Locals("userId").(string)
@@ -116,7 +116,7 @@ func (h *CageHandler) DeleteCage(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed parse id param")
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	err = h.service.DeleteCage(id)
@@ -146,7 +146,7 @@ func (h *CageHandler) GetChickenCageById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Warn("failed to parse id param")
-		return errx.BadRequest("failed to parse id param")
+		return errx.BadRequest("invalid id param")
 	}
 
 	res, err := h.service.GetChickenCageById(id)

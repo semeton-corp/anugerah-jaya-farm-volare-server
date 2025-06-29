@@ -457,3 +457,68 @@ func (s *ChickenService) DeleteChickenHealthItem(id uint64) error {
 
 	return nil
 }
+
+func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, createdBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
+	s.repository.UseTx(false)
+
+	data := entity.ChickenHealthMonitoring{
+		ChickenCageId:       request.ChickenCageId,
+		ChickenHealthItemId: request.ChickenHealthItemId,
+		Dose:                request.Dose,
+		Unit:                request.Unit,
+		CreatedBy:           uuid.NullUUID{UUID: createdBy, Valid: true},
+	}
+
+	if request.Disease != nil {
+		data.Disease = sql.NullString{String: *request.Disease, Valid: true}
+	}
+
+	err := s.repository.CreateChickenHealthMonitoring(&data)
+	if err != nil {
+		s.log.Error("failed to create chicken health monitoring", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	data, err = s.repository.GetChickenHealthMonitoringById(data.Id)
+	if err != nil {
+		s.log.Error("failed to get chicken monitoring by id", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	return mapper.ChickenHealthMonitoringToResponse(&data), nil
+}
+
+func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, updatedBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenHealthMonitoring, err := s.repository.GetChickenHealthMonitoringById(id)
+	if err != nil {
+		s.log.Error("failed to get chicken monitoring by id", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	chickenHealthMonitoring.ChickenCageId = request.ChickenCageId
+	chickenHealthMonitoring.ChickenHealthItemId = request.ChickenHealthItemId
+	chickenHealthMonitoring.Dose = request.Dose
+	chickenHealthMonitoring.Unit = request.Unit
+
+	if request.Disease != nil {
+		chickenHealthMonitoring.Disease = sql.NullString{String: *request.Disease, Valid: true}
+	} else {
+		chickenHealthMonitoring.Disease = sql.NullString{}
+	}
+
+	err = s.repository.UpdateChickenHealthMonitoring(&chickenHealthMonitoring)
+	if err != nil {
+		s.log.Error("failed to update chicken monitoring", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	chickenHealthMonitoring, err = s.repository.GetChickenHealthMonitoringById(id)
+	if err != nil {
+		s.log.Error("failed to get chicken monitoring by id", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	return mapper.ChickenHealthMonitoringToResponse(&chickenHealthMonitoring), nil
+}

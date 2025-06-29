@@ -85,16 +85,10 @@ func (h *ChickenHandler) GetChickenMonitorings(c *fiber.Ctx) error {
 }
 
 func (h *ChickenHandler) GetChickenMonitoringById(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		h.log.Warn("id not found in params")
-		return errx.BadRequest("id not found in params")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	res, err := h.service.GetChickenMonitoringById(id)
@@ -111,16 +105,10 @@ func (h *ChickenHandler) GetChickenMonitoringById(c *fiber.Ctx) error {
 }
 
 func (h *ChickenHandler) UpdateChickenMonitoring(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		h.log.Error("id not found in params")
-		return errx.BadRequest("id not found in params")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	userId, ok := c.Locals("userId").(string)
@@ -154,16 +142,10 @@ func (h *ChickenHandler) UpdateChickenMonitoring(c *fiber.Ctx) error {
 }
 
 func (h *ChickenHandler) DeleteChickenMonitoring(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		h.log.Error("id not found in params")
-		return errx.BadRequest("id not found in params")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	err = h.service.DeleteChickenMonitoring(id)
@@ -205,7 +187,7 @@ func (h *ChickenHandler) GetChickenHealthItemById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id param", zap.Error(err))
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	data, err := h.service.GetChickenHealthItemById(id)
@@ -235,11 +217,11 @@ func (h *ChickenHandler) UpdateChickenHealthItem(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id param", zap.Error(err))
-		return err
+		return errx.BadRequest("invalid id param")
 	}
 
 	var request dto.UpdateChickenHealthItemRequest
-	if err := c.QueryParser(&request); err != nil {
+	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}

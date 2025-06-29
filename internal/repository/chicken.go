@@ -35,6 +35,7 @@ type IChickenRepository interface {
 	CreateChickenHealthMonitoring(chickenHealthMonitoring *entity.ChickenHealthMonitoring) error
 	UpdateChickenHealthMonitoring(chickenHealthMonitoring *entity.ChickenHealthMonitoring) error
 	GetChickenHealthMonitoringById(id uint64) (entity.ChickenHealthMonitoring, error)
+	GetChickenHealthMonitoringByChickenCageId(chickenCageId uint64) ([]entity.ChickenHealthMonitoring, error)
 
 	CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error)
 }
@@ -190,9 +191,22 @@ func (r *ChickenRepository) UpdateChickenHealthMonitoring(chickenHealthMonitorin
 func (r *ChickenRepository) GetChickenHealthMonitoringById(id uint64) (entity.ChickenHealthMonitoring, error) {
 	var chickenHealthMonitoring entity.ChickenHealthMonitoring
 
-	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", id).First(&chickenHealthMonitoring).Error
+	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", id).Preload("ChickenHealthItem").First(&chickenHealthMonitoring).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenHealthMonitoring{}, errx.NotFound("chicken health monitoring not found")
+		}
 		return entity.ChickenHealthMonitoring{}, err
+	}
+
+	return chickenHealthMonitoring, nil
+}
+
+func (r *ChickenRepository) GetChickenHealthMonitoringByChickenCageId(chickenCageId uint64) ([]entity.ChickenHealthMonitoring, error) {
+	chickenHealthMonitoring := make([]entity.ChickenHealthMonitoring, 0)
+	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Find(&chickenHealthMonitoring).Error
+	if err != nil {
+		return chickenHealthMonitoring, err
 	}
 
 	return chickenHealthMonitoring, nil
