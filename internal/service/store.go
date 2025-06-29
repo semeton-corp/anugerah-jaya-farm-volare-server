@@ -140,12 +140,12 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 	// Todo : Check if warehouse is have warehouse item
 
 	storeRequestItem := entity.StoreRequestItem{
-		WarehouseId:     request.WarehouseId,
-		WarehouseItemId: request.WarehouseItemId,
-		StoreId:         request.StoreId,
-		Quantity:        request.Quantity,
-		Status:          enum.RequestItemStatusPending,
-		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
+		WarehouseId: request.WarehouseId,
+		ItemId:      request.WarehouseItemId,
+		StoreId:     request.StoreId,
+		Quantity:    request.Quantity,
+		Status:      enum.RequestItemStatusPending,
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := s.repository.CreateStoreRequestItem(&storeRequestItem)
@@ -241,8 +241,8 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 	if status == enum.RequestItemStatusAccepted {
 		// Todo : Create store activity
 		storeItem := entity.StoreItem{
-			WarehouseItemId: storeRequestItem.WarehouseItemId,
-			StoreId:         storeRequestItem.StoreId,
+			ItemId:  storeRequestItem.ItemId,
+			StoreId: storeRequestItem.StoreId,
 		}
 
 		err = s.repository.FirstOrCreateStoreItem(&storeItem)
@@ -336,18 +336,18 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accou
 	}
 
 	storeSale := entity.StoreSale{
-		Customer:        request.Customer,
-		Phone:           request.Phone,
-		StoreId:         request.StoreId,
-		WarehouseItemId: request.WarehouseItemId,
-		Quantity:        request.Quantity,
-		Price:           price,
-		TotalPrice:      totalPrice,
-		SendDate:        sendDate,
-		IsSend:          false,
-		SaleUnit:        saleUnit,
-		PaymentType:     paymentType,
-		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
+		Customer:    request.Customer,
+		Phone:       request.Phone,
+		StoreId:     request.StoreId,
+		ItemId:      request.WarehouseItemId,
+		Quantity:    request.Quantity,
+		Price:       price,
+		TotalPrice:  totalPrice,
+		SendDate:    sendDate,
+		IsSend:      false,
+		SaleUnit:    saleUnit,
+		PaymentType: paymentType,
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	nominal, err := decimal.NewFromString(request.StoreSalePayment.Nominal)
@@ -590,7 +590,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	storeSale.Customer = request.Customer
 	storeSale.Phone = request.Phone
 	storeSale.StoreId = request.StoreId
-	storeSale.WarehouseItemId = request.WarehouseItemId
+	storeSale.ItemId = request.WarehouseItemId
 	storeSale.Quantity = request.Quantity
 	storeSale.Price, err = decimal.NewFromString(request.Price)
 	if err != nil {

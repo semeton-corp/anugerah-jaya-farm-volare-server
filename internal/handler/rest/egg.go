@@ -43,24 +43,24 @@ func NewEggHandler(log *zap.Logger, service service.IEggService, validator *vali
 func (h *EggHandler) CreateEggMonitoring(c *fiber.Ctx) error {
 	var request dto.CreateEggMonitoringRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateEggMonitoring] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[CreateEggMonitoring] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateEggMonitoring] failed to get userId from context")
+		h.log.Error("failed to get userId from context")
 		return errx.Unauthorized("no userId in context")
 	}
 
 	res, err := h.service.CreateEggMonitoring(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[CreateEggMonitoring] failed to create egg monitoring", zap.Error(err))
+		h.log.Error("failed to create egg monitoring", zap.Error(err))
 		return err
 	}
 
@@ -70,13 +70,13 @@ func (h *EggHandler) CreateEggMonitoring(c *fiber.Ctx) error {
 func (h *EggHandler) GetEggMonitorings(c *fiber.Ctx) error {
 	var filter dto.GetEggMonitoringFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetEggMonitorings] failed to parse query", zap.Error(err))
+		h.log.Error("failed to parse query", zap.Error(err))
 		return err
 	}
 
 	res, err := h.service.GetEggMonitorings(filter)
 	if err != nil {
-		h.log.Error("[GetEggMonitorings] failed to get egg monitorings", zap.Error(err))
+		h.log.Error("failed to get egg monitorings", zap.Error(err))
 		return err
 	}
 
@@ -86,19 +86,19 @@ func (h *EggHandler) GetEggMonitorings(c *fiber.Ctx) error {
 func (h *EggHandler) GetEggMonitoringById(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Error("[GetEggMonitoringById] id is required")
+		h.log.Error("id is required")
 		return errx.BadRequest("id is required")
 	}
 
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		h.log.Error("[GetEggMonitoringById] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return errx.BadRequest("failed to parse id")
 	}
 
 	res, err := h.service.GetEggMonitoringById(id)
 	if err != nil {
-		h.log.Error("[GetEggMonitoringById] failed to get egg monitoring by id", zap.Error(err))
+		h.log.Error("failed to get egg monitoring by id", zap.Error(err))
 		return err
 	}
 
@@ -108,36 +108,35 @@ func (h *EggHandler) GetEggMonitoringById(c *fiber.Ctx) error {
 func (h *EggHandler) UpdateEggMonitoring(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Error("[UpdateEggMonitoring] id is required")
+		h.log.Error("id is required")
 		return errx.BadRequest("id is required")
 	}
 
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateEggMonitoring] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return errx.BadRequest("failed to parse id")
 	}
 
 	var request dto.UpdateEggMonitoringRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[UpdateEggMonitoring] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[UpdateEggMonitoring] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateEggMonitoring] failed to get userId from context")
+		h.log.Error("failed to get userId from context")
 		return errx.Unauthorized("no userId in context")
 	}
 
 	res, err := h.service.UpdateEggMonitoring(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[UpdateEggMonitoring] failed to update egg monitoring", zap.Error(err))
 		return err
 	}
 
@@ -147,18 +146,18 @@ func (h *EggHandler) UpdateEggMonitoring(c *fiber.Ctx) error {
 func (h *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Error("[DeleteEggMonitoring] id is required")
+		h.log.Error("id is required")
 		return errx.BadRequest("id is required")
 	}
 
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteEggMonitoring] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return errx.BadRequest("failed to parse id")
 	}
 
 	if err := h.service.DeleteEggMonitoring(id); err != nil {
-		h.log.Error("[DeleteEggMonitoring] failed to delete egg monitoring", zap.Error(err))
+		h.log.Error("failed to delete egg monitoring", zap.Error(err))
 		return err
 	}
 
@@ -168,25 +167,25 @@ func (h *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 func (h *EggHandler) TakeEggMonitoring(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Error("[TakeEggMonitoring] id is required")
+		h.log.Error("id is required")
 		return errx.BadRequest("id is required")
 	}
 
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		h.log.Error("[TakeEggMonitoring] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return errx.BadRequest("failed to parse id")
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[TakeEggMonitoring] failed to get userId from context")
+		h.log.Error("failed to get userId from context")
 		return errx.Unauthorized("no userId in context")
 	}
 
 	res, err := h.service.TakeEggMonitoring(id, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[TakeEggMonitoring] failed to take egg monitoring", zap.Error(err))
+		h.log.Error("failed to take egg monitoring", zap.Error(err))
 		return err
 	}
 
@@ -196,18 +195,18 @@ func (h *EggHandler) TakeEggMonitoring(c *fiber.Ctx) error {
 func (h *EggHandler) GetEggOverview(c *fiber.Ctx) error {
 	var filter dto.GetEggOverviewFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetEggOverview] failed to parse query", zap.Error(err))
+		h.log.Error("failed to parse query", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(filter); err != nil {
-		h.log.Error("[GetEggOverview] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	res, err := h.service.GetOverviewEggMonitoring(filter)
 	if err != nil {
-		h.log.Error("[GetEggOverview] failed to get egg overview", zap.Error(err))
+		h.log.Error("failed to get egg overview", zap.Error(err))
 		return err
 	}
 

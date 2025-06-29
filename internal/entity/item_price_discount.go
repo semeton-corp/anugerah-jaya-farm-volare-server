@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type EggPriceDiscount struct {
+type ItemPriceDiscount struct {
 	Id                     uint64        `gorm:"primaryKey;autoIncrement"`
 	Name                   string        `gorm:"type:varchar(255);not null;unique"`
 	MinimumTransactionUser uint64        `gorm:"type:bigint;not null"`

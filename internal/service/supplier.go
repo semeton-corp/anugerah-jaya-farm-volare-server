@@ -33,11 +33,11 @@ func (s *SupplierService) CreateSupplier(requesst *dto.CreateSupplierRequest, ac
 	s.repository.UseTx(false)
 
 	supplier := entity.Supplier{
-		WarehouseItemId: requesst.WarehouseItemId,
-		Name:            requesst.Name,
-		PhoneNumber:     requesst.PhoneNumber,
-		Address:         requesst.Address,
-		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
+		ItemId:      requesst.WarehouseItemId,
+		Name:        requesst.Name,
+		PhoneNumber: requesst.PhoneNumber,
+		Address:     requesst.Address,
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := s.repository.CreateSupplier(&supplier)
@@ -93,7 +93,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request *dto.UpdateSupplierR
 		return dto.SupplierResponse{}, err
 	}
 
-	supplier.WarehouseItemId = request.WarehouseItemId
+	supplier.ItemId = request.WarehouseItemId
 	supplier.Name = request.Name
 	supplier.PhoneNumber = request.PhoneNumber
 	supplier.Address = request.Address

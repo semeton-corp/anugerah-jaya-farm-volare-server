@@ -29,11 +29,11 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 				Name: storeRequestItem.Warehouse.Location.Name,
 			},
 		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeRequestItem.WarehouseItem.Id,
-			Name:     storeRequestItem.WarehouseItem.Name,
-			Category: storeRequestItem.WarehouseItem.Category.String(),
-			Unit:     storeRequestItem.WarehouseItem.Unit,
+		WarehouseItem: dto.ItemResponse{
+			Id:       storeRequestItem.Item.Id,
+			Name:     storeRequestItem.Item.Name,
+			Category: storeRequestItem.Item.Category.String(),
+			Unit:     storeRequestItem.Item.Unit,
 		},
 		Store: dto.StoreResponse{
 			Id:   storeRequestItem.Store.Id,
@@ -59,11 +59,11 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 				Name: storeItem.Store.Location.Name,
 			},
 		},
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeItem.WarehouseItem.Id,
-			Name:     storeItem.WarehouseItem.Name,
-			Category: storeItem.WarehouseItem.Category.String(),
-			Unit:     storeItem.WarehouseItem.Unit,
+		WarehouseItem: dto.ItemResponse{
+			Id:       storeItem.Item.Id,
+			Name:     storeItem.Item.Name,
+			Category: storeItem.Item.Category.String(),
+			Unit:     storeItem.Item.Unit,
 		},
 		Quantity:    storeItem.Quantity,
 		Description: constant.StoreItemDescriptionDanger, // Todo : give formula for description
@@ -79,11 +79,11 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 		Phone:      storeSale.Phone,
 		Price:      storeSale.Price.String(),
 		TotalPrice: storeSale.TotalPrice.String(),
-		WarehouseItem: dto.WarehouseItemResponse{
-			Id:       storeSale.WarehouseItem.Id,
-			Name:     storeSale.WarehouseItem.Name,
-			Unit:     storeSale.WarehouseItem.Unit,
-			Category: storeSale.WarehouseItem.Category.String(),
+		WarehouseItem: dto.ItemResponse{
+			Id:       storeSale.Item.Id,
+			Name:     storeSale.Item.Name,
+			Unit:     storeSale.Item.Unit,
+			Category: storeSale.Item.Category.String(),
 		},
 		Store: dto.StoreResponse{
 			Id:   storeSale.Store.Id,
@@ -118,7 +118,7 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		SendDate:      storeSale.SendDate.Format("02-01-2006"),
 		Customer:      storeSale.Customer,
 		Phone:         storeSale.Phone,
-		WarehouseItem: WarehouseItemToResponse(&storeSale.WarehouseItem),
+		WarehouseItem: ItemToResponse(&storeSale.Item),
 		Store:         StoreToResponse(&storeSale.Store),
 		Quantity:      storeSale.Quantity,
 		SaleUnit:      storeSale.SaleUnit.String(),

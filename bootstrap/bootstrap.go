@@ -98,7 +98,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
 
 	chickenRepository := repository.NewChickenRepository(b.db)
-	chickenService := service.NewChickenService(b.log, chickenRepository, eggService)
+	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService)
 	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
 
 	workRepository := repository.NewWorkRepository(b.db)
@@ -117,9 +117,9 @@ func (b *Bootstrap) DepedencyInjection() {
 	userService := service.NewUserService(b.log, userRepository, workService, presenceService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
-	eggPriceRepository := repository.NewEggPriceRepository(b.db)
-	eggPriceService := service.NewEggPriceService(b.log, eggPriceRepository)
-	eggPriceHandler := rest.NewEggPriceHandler(b.log, eggPriceService, b.validator)
+	itemRepository := repository.NewItemRepository(b.db)
+	itemService := service.NewItemPriceService(b.log, itemRepository, storeService, warehouseService)
+	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
 
 	locationRepository := repository.NewLocationRepository(b.db)
 	locationService := service.NewLocationService(b.log, locationRepository)
@@ -137,7 +137,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		presenceHandler,
 		supplierHandler,
 		userHandler,
-		eggPriceHandler,
+		itemHandler,
 		locationHandler,
 	}
 }

@@ -12,12 +12,10 @@ func Migrate(db *gorm.DB) {
 		&entity.Location{},
 		&entity.Cage{},
 		&entity.ChickenMonitoring{},
-		&entity.ChickenDiseaseMonitoring{},
-		&entity.ChickenVaccineMonitoring{},
 		&entity.EggMonitoring{},
 		&entity.Warehouse{},
+		&entity.Item{},
 		&entity.WarehouseItem{},
-		&entity.WarehouseStockItem{},
 		&entity.Store{},
 		&entity.StoreRequestItem{},
 		&entity.StoreItem{},
@@ -35,6 +33,9 @@ func Migrate(db *gorm.DB) {
 		&entity.StorePlacement{},
 		&entity.ChickenCage{},
 		&entity.ChickenProcurement{},
+		&entity.ItemPrice{},
+		&entity.ItemPriceDiscount{},
+		&entity.ChickenHealthItem{},
 	)
 }
 
@@ -45,12 +46,10 @@ func Rollback(db *gorm.DB) {
 		&entity.Location{},
 		&entity.Cage{},
 		&entity.ChickenMonitoring{},
-		&entity.ChickenDiseaseMonitoring{},
-		&entity.ChickenVaccineMonitoring{},
 		&entity.EggMonitoring{},
 		&entity.Warehouse{},
+		&entity.Item{},
 		&entity.WarehouseItem{},
-		&entity.WarehouseStockItem{},
 		&entity.Store{},
 		&entity.StoreRequestItem{},
 		&entity.StoreItem{},
@@ -68,5 +67,8 @@ func Rollback(db *gorm.DB) {
 		&entity.StorePlacement{},
 		&entity.ChickenCage{},
 		&entity.ChickenProcurement{},
+		&entity.ItemPrice{},
+		&entity.ItemPriceDiscount{},
+		&entity.ChickenHealthItem{},
 	)
 }

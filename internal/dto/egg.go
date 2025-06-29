@@ -62,10 +62,10 @@ type EggMonitoringListResponse struct {
 }
 
 type GetEggMonitoringFilter struct {
-	Date      param.DateParam `query:"date"`
-	Location  uint64          `query:"location"`
-	StartDate param.DateParam
-	EndDate   param.DateParam
+	Date       param.DateParam `query:"date"`
+	LocationId uint64          `query:"locationId"`
+	StartDate  param.DateParam
+	EndDate    param.DateParam
 }
 
 type GetEggOverviewFilter struct {

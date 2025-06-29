@@ -35,7 +35,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
 
-		if chickenAgeInWeek >= 0 {
+		if chickenAgeInWeek > 0 {
 			chickenCategory = enum.ChickenCategoryAfkir
 		}
 	}

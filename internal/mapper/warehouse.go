@@ -17,20 +17,11 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	}
 }
 
-func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseItemResponse {
-	return dto.WarehouseItemResponse{
-		Id:       warehouseItem.Id,
-		Name:     warehouseItem.Name,
-		Category: warehouseItem.Category.String(),
-		Unit:     warehouseItem.Unit,
-	}
-}
-
 // Note : without description
-func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseStockItem) dto.WarehouseStockItemResponse {
+func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseItem) dto.WarehouseStockItemResponse {
 	return dto.WarehouseStockItemResponse{
 		Warehouse:        WarehouseToResponse(&warehouseStockItem.Warehouse),
-		WarehouseItem:    WarehouseItemToResponse(&warehouseStockItem.WarehouseItem),
+		WarehouseItem:    ItemToResponse(&warehouseStockItem.Item),
 		Quantity:         warehouseStockItem.Quantity,
 		EstimationRunOut: warehouseStockItem.EstimationRunOut.Format("02-Jan-2006"),
 	}
@@ -42,7 +33,7 @@ func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem)
 		TakenBy:       warehouseOrderItem.TakenBy.UUID.String(),
 		IsTaken:       warehouseOrderItem.IsTaken.Bool,
 		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
-		WarehouseItem: WarehouseItemToResponse(&warehouseOrderItem.WarehouseItem),
+		WarehouseItem: ItemToResponse(&warehouseOrderItem.Item),
 		Supplier: dto.SupplierWithoutWarehouseItemResponse{
 			Id:          warehouseOrderItem.Supplier.Id,
 			Name:        warehouseOrderItem.Supplier.Name,

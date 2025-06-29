@@ -90,9 +90,10 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 		query = query.Where("DATE(egg_monitorings.created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Location > 0 {
-		query = query.Joins("JOIN cages ON cages.id = egg_monitorings.cage_id").
-			Where("cages.location_id = ?", filter.Location)
+	if filter.LocationId > 0 {
+		query = query.
+			Joins("JOIN chicken_cages ON chicken_cages.id = egg_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id").
+			Where("cages.location_id = ?", filter.LocationId)
 	}
 
 	if err := query.Order("egg_monitorings.created_at ASC").Find(&eggMonitorings).Error; err != nil {

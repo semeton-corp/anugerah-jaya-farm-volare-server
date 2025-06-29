@@ -28,7 +28,7 @@ func (s *LocationService) GetLocations() ([]dto.LocationResponse, error) {
 
 	locations, err := s.repository.GetLocations()
 	if err != nil {
-		s.log.Error("[GetLocations] failed to get locations", zap.Error(err))
+		s.log.Error("failed to get locations", zap.Error(err))
 		return nil, err
 	}
 

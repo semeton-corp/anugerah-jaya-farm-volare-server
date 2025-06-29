@@ -30,7 +30,7 @@ func NewLocationHandler(log *zap.Logger, service service.ILocationService, valid
 func (h *LocationHandler) GetLocations(c *fiber.Ctx) error {
 	data, err := h.service.GetLocations()
 	if err != nil {
-		h.log.Error("[GetLocations] failed to get locations", zap.Error(err))
+		h.log.Error("failed to get locations", zap.Error(err))
 		return err
 	}
 

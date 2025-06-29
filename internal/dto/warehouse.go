@@ -16,30 +16,6 @@ type GetWarehouseFilter struct {
 	LocationId uint64 `query:"locationId"`
 }
 
-type CreateWarehouseItemRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Unit     string `json:"unit" validate:"required"`
-	Category string `json:"category" validate:"required,warehouseItemCategory"`
-}
-
-type UpdateWarehouseItemRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Unit     string `json:"unit" validate:"required"`
-	Category string `json:"category" validate:"required,warehouseItemCategory"`
-}
-
-type GetWarehouseItemFilter struct {
-	Category    param.WarehouseItemCategoryParam `query:"category"`
-	StoreId     uint64                           `query:"storeId"`
-	WarehouseId uint64                           `query:"warehouseId"`
-}
-
-type WarehouseItemResponse struct {
-	Id       uint64 `json:"id"`
-	Name     string `json:"name"`
-	Unit     string `json:"unit"`
-	Category string `json:"category"`
-}
 
 type GetWarehouseStockItemFilter struct {
 	WarehouseId uint64                           `query:"warehouseId"`
@@ -64,11 +40,11 @@ type UpdateWarehouseStockItemRequest struct {
 }
 
 type WarehouseStockItemResponse struct {
-	Warehouse        WarehouseResponse     `json:"warehouse"`
-	WarehouseItem    WarehouseItemResponse `json:"warehouseItem"`
-	Quantity         uint64                `json:"quantity"`
-	EstimationRunOut string                `json:"estimationRunOut"`
-	Description      string                `json:"description"`
+	Warehouse        WarehouseResponse `json:"warehouse"`
+	WarehouseItem    ItemResponse      `json:"warehouseItem"`
+	Quantity         uint64            `json:"quantity"`
+	EstimationRunOut string            `json:"estimationRunOut"`
+	Description      string            `json:"description"`
 }
 
 type CreateWarehouseOrderItemRequest struct {
@@ -81,7 +57,7 @@ type CreateWarehouseOrderItemRequest struct {
 type WarehouseOrderItemResponse struct {
 	Id            uint64                               `json:"id"`
 	Warehouse     WarehouseResponse                    `json:"warehouse"`
-	WarehouseItem WarehouseItemResponse                `json:"warehouseItem"`
+	WarehouseItem ItemResponse                         `json:"warehouseItem"`
 	Supplier      SupplierWithoutWarehouseItemResponse `json:"supplier"`
 	TakenBy       string                               `json:"takenBy"`
 	TakenAt       string                               `json:"takenAt"`

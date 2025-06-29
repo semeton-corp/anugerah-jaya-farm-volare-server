@@ -160,13 +160,13 @@ func (r *StoreRepository) UpdateStoreRequestItem(storeRequestItem *entity.StoreR
 
 func (r *StoreRepository) FirstOrCreateStoreItem(storeItem *entity.StoreItem) error {
 	return r.GetDB().FirstOrCreate(storeItem, entity.StoreItem{
-		WarehouseItemId: storeItem.WarehouseItemId,
-		StoreId:         storeItem.StoreId,
+		ItemId:  storeItem.ItemId,
+		StoreId: storeItem.StoreId,
 	}).Error
 }
 
 func (r *StoreRepository) UpdateStoreItem(storeItem *entity.StoreItem) error {
-	return r.GetDB().Model(entity.StoreItem{}).Where("store_id = ? AND warehouse_item_id = ?", storeItem.StoreId, storeItem.WarehouseItemId).Updates(storeItem).Error
+	return r.GetDB().Model(entity.StoreItem{}).Where("store_id = ? AND warehouse_item_id = ?", storeItem.StoreId, storeItem.ItemId).Updates(storeItem).Error
 }
 
 func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error) {
@@ -178,9 +178,9 @@ func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity
 	}
 
 	if filter.Category.Value().IsValid() {
-		query = query.Preload("WarehouseItem", "category = ?", filter.Category)
+		query = query.Preload("Item", "category = ?", filter.Category)
 	} else {
-		query = query.Preload("WarehouseItem")
+		query = query.Preload("Item")
 	}
 
 	err := query.Preload("Store.Location").Find(&storeItems).Error

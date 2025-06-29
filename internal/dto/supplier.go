@@ -15,11 +15,11 @@ type UpdateSupplierRequest struct {
 }
 
 type SupplierResponse struct {
-	Id            uint64                `json:"id"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem,omitempty"`
-	Name          string                `json:"name"`
-	PhoneNumber   string                `json:"phoneNumber"`
-	Address       string                `json:"address"`
+	Id            uint64       `json:"id"`
+	WarehouseItem ItemResponse `json:"warehouseItem,omitempty"`
+	Name          string       `json:"name"`
+	PhoneNumber   string       `json:"phoneNumber"`
+	Address       string       `json:"address"`
 }
 
 type SupplierWithoutWarehouseItemResponse struct {
@@ -30,9 +30,9 @@ type SupplierWithoutWarehouseItemResponse struct {
 }
 
 type SupplierListResponse struct {
-	Id            uint64                `json:"id"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
-	Name          string                `json:"name"`
-	PhoneNumber   string                `json:"phoneNumber"`
-	Address       string                `json:"address"`
+	Id            uint64       `json:"id"`
+	WarehouseItem ItemResponse `json:"warehouseItem"`
+	Name          string       `json:"name"`
+	PhoneNumber   string       `json:"phoneNumber"`
+	Address       string       `json:"address"`
 }

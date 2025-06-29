@@ -7,13 +7,13 @@ import (
 )
 
 type StoreItem struct {
-	StoreId         uint64        `gorm:"primaryKey;not null"`
-	Store           Store         `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
-	WarehouseItemId uint64        `gorm:"primaryKey;not null"`
-	WarehouseItem   WarehouseItem `gorm:"foreignKey:WarehouseItemId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
-	Quantity        uint64        `gorm:"type:bigint;not null"`
-	CreatedAt       time.Time     `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy       uuid.NullUUID `gorm:"type:varchar(255)"`
-	UpdatedAt       time.Time     `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy       uuid.NullUUID `gorm:"type:varchar(255)"`
+	StoreId   uint64        `gorm:"primaryKey;not null"`
+	Store     Store         `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	ItemId    uint64        `gorm:"primaryKey;not null"`
+	Item      Item          `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	Quantity  uint64        `gorm:"type:bigint;not null"`
+	CreatedAt time.Time     `gorm:"type:timestamp;autoCreateTime"`
+	CreatedBy uuid.NullUUID `gorm:"type:varchar(255)"`
+	UpdatedAt time.Time     `gorm:"type:timestamp;autoUpdateTime"`
+	UpdatedBy uuid.NullUUID `gorm:"type:varchar(255)"`
 }

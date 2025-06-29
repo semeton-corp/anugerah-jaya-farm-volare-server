@@ -4,16 +4,17 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 type WarehouseItem struct {
-	Id        uint64                     `gorm:"primaryKey;autoIncrement"`
-	Name      string                     `gorm:"type:varchar(255);not null;uniqueIndex:idx_name_category_unit"`
-	Category  enum.WarehouseItemCategory `gorm:"type:int;not null;uniqueIndex:idx_name_category_unit"`
-	Unit      string                     `gorm:"type:varchar(255);not null;uniqueIndex:idx_name_category_unit"`
-	CreatedAt time.Time                  `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy uuid.NullUUID              `gorm:"type:varchar(255)"`
-	UpdatedAt time.Time                  `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy uuid.NullUUID              `gorm:"type:varchar(255)"`
+	ItemId           uint64        `gorm:"primaryKey;type:bigint;not null"`
+	Item             Item          `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
+	WarehouseId      uint64        `gorm:"primaryKey;type:bigint;not null"`
+	Warehouse        Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
+	Quantity         uint64        `gorm:"type:bigint;not null"`
+	EstimationRunOut time.Time     `gorm:"type:date;not null"`
+	CreatedAt        time.Time     `gorm:"type:timestamp;autoCreateTime"`
+	CreatedBy        uuid.NullUUID `gorm:"type:varchar(255)"`
+	UpdatedAt        time.Time     `gorm:"type:timestamp;autoUpdateTime"`
+	UpdatedBy        uuid.NullUUID `gorm:"type:varchar(255)"`
 }

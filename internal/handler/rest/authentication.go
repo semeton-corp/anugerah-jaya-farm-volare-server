@@ -39,18 +39,18 @@ func NewAuthenticationHandler(log *zap.Logger, service service.IAuthenticationSe
 func (h *AuthenticationHandler) SignUp(c *fiber.Ctx) error {
 	var request dto.SignUpRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[SignUp] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[SignUp] validation failed", zap.Error(err))
+		h.log.Error("validation failed", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[SignUp] userId not found in context")
+		h.log.Error("userId not found in context")
 		return errx.Unauthorized("no userId in context")
 	}
 
@@ -65,7 +65,7 @@ func (h *AuthenticationHandler) SignUp(c *fiber.Ctx) error {
 func (h *AuthenticationHandler) SignIn(c *fiber.Ctx) error {
 	var request dto.SignInRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[SignUp] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
@@ -85,12 +85,12 @@ func (h *AuthenticationHandler) SignIn(c *fiber.Ctx) error {
 func (h *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
 	var request dto.ForgotPasswordRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[ForgotPassword] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[ForgotPassword] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
@@ -105,18 +105,18 @@ func (h *AuthenticationHandler) ForgotPassword(c *fiber.Ctx) error {
 func (h *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
 	var request dto.ChangePasswordRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[ChangePassword] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[ChangePassword] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[ChangePassword] failed to get userId from context")
+		h.log.Error("failed to get userId from context")
 		return errx.Unauthorized("no userId in context")
 	}
 
@@ -131,7 +131,7 @@ func (h *AuthenticationHandler) ChangePassword(c *fiber.Ctx) error {
 func (h *AuthenticationHandler) DeleteUser(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	if idParam == "" {
-		h.log.Warn("[DeleteUser] id in param is required")
+		h.log.Warn("id in param is required")
 		return errx.BadRequest("id is required")
 	}
 

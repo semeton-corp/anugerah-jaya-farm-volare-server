@@ -38,7 +38,7 @@ func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, er
 
 	cages, err := s.repository.GetCages(filter)
 	if err != nil {
-		s.log.Error("[GetCages] failed to get cages", zap.Error(err))
+		s.log.Error("failed to get cages", zap.Error(err))
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
-		s.log.Warn("[CreateCage] invalid chicken category")
+		s.log.Warn("invalid chicken category")
 		return dto.CageResponse{}, errx.BadRequest("invalid chicken category")
 	}
 
@@ -69,7 +69,7 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 
 	err := s.repository.CreateCage(&cage)
 	if err != nil {
-		s.log.Error("[CreateCage] failed to create cage", zap.Error(err))
+		s.log.Error("failed to create cage", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
@@ -80,13 +80,13 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 
 	err = s.repository.CreateChickenCage(&chickenCage)
 	if err != nil {
-		s.log.Error("[CreateCage] failed to create chicken cage", zap.Error(err))
+		s.log.Error("failed to create chicken cage", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
 	cage, err = s.repository.GetCageById(cage.Id)
 	if err != nil {
-		s.log.Error("[CreateCage] failed to get cage by id", zap.Error(err))
+		s.log.Error("failed to get cage by id", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
@@ -98,13 +98,13 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, updat
 
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
-		s.log.Warn("[UpdateCage] invalid chicken category")
+		s.log.Warn("invalid chicken category")
 		return dto.CageResponse{}, errx.BadRequest("invalid chicken category")
 	}
 
 	cage, err := s.repository.GetCageById(id)
 	if err != nil {
-		s.log.Error("[UpdateCage] failed to get cage by id", zap.Error(err))
+		s.log.Error("failed to get cage by id", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
@@ -116,13 +116,13 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, updat
 
 	err = s.repository.UpdateCage(&cage)
 	if err != nil {
-		s.log.Error("[UpdateCage] failed to update cage", zap.Error(err))
+		s.log.Error("failed to update cage", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
 	cage, err = s.repository.GetCageById(id)
 	if err != nil {
-		s.log.Error("[UpdateCage] failed to get cage by id", zap.Error(err))
+		s.log.Error("failed to get cage by id", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
@@ -134,7 +134,7 @@ func (s *CageService) DeleteCage(id uint64) error {
 
 	err := s.repository.DeleteCage(id)
 	if err != nil {
-		s.log.Error("[DeleteCage] failed to delete cage", zap.Error(err))
+		s.log.Error("failed to delete cage", zap.Error(err))
 		return err
 	}
 

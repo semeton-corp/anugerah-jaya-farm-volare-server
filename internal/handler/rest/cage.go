@@ -42,7 +42,7 @@ func NewCageHandler(log *zap.Logger, service service.ICageService, validator *va
 func (h *CageHandler) GetCages(c *fiber.Ctx) error {
 	var filter dto.GetCageFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetCages] failed to parse query filter", zap.Error(err))
+		h.log.Error("failed to parse query filter", zap.Error(err))
 		return err
 	}
 
@@ -57,18 +57,18 @@ func (h *CageHandler) GetCages(c *fiber.Ctx) error {
 func (h *CageHandler) CreateCage(c *fiber.Ctx) error {
 	var request dto.CreateCageRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateCage] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[CreateCage] validation failed", zap.Error(err))
+		h.log.Error("validation failed", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateCage] userId not found in context")
+		h.log.Error("userId not found in context")
 		return errx.Unauthorized("userId not found in context")
 	}
 
@@ -83,24 +83,24 @@ func (h *CageHandler) CreateCage(c *fiber.Ctx) error {
 func (h *CageHandler) UpdateCage(c *fiber.Ctx) error {
 	var request dto.UpdateCageRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[UpdateCage] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[UpdateCage] validation failed", zap.Error(err))
+		h.log.Error("validation failed", zap.Error(err))
 		return err
 	}
 
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateCage] failed parse id param")
+		h.log.Error("failed parse id param")
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateCage] userId not found in context")
+		h.log.Error("userId not found in context")
 		return errx.Unauthorized("userId not found in context")
 	}
 
@@ -115,7 +115,7 @@ func (h *CageHandler) UpdateCage(c *fiber.Ctx) error {
 func (h *CageHandler) DeleteCage(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteCage] failed parse id param")
+		h.log.Error("failed parse id param")
 		return err
 	}
 
@@ -130,7 +130,7 @@ func (h *CageHandler) DeleteCage(c *fiber.Ctx) error {
 func (h *CageHandler) GetChickenCages(c *fiber.Ctx) error {
 	var filter dto.GetChickenCageFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetChickenCage] failed to parse query filter", zap.Error(err))
+		h.log.Error("failed to parse query filter", zap.Error(err))
 		return err
 	}
 
@@ -145,7 +145,7 @@ func (h *CageHandler) GetChickenCages(c *fiber.Ctx) error {
 func (h *CageHandler) GetChickenCageById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Warn("GetChickenCageById] failed to parse id param")
+		h.log.Warn("failed to parse id param")
 		return errx.BadRequest("failed to parse id param")
 	}
 

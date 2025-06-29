@@ -85,3 +85,19 @@ func (p *OverviewGraphTimeParam) UnmarshalText(text []byte) error {
 func (p OverviewGraphTimeParam) Value() enum.OverviewGraphTime {
 	return enum.OverviewGraphTime(p)
 }
+
+type ChickenHealthProductTypeParam enum.ChickenHealthItemType
+
+func (p *ChickenHealthProductTypeParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfOverviewGraphFilter(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid chicken health product type")
+	}
+
+	*p = ChickenHealthProductTypeParam(parsedFilter)
+	return nil
+}
+
+func (p ChickenHealthProductTypeParam) Value() enum.ChickenHealthItemType {
+	return enum.ChickenHealthItemType(p)
+}

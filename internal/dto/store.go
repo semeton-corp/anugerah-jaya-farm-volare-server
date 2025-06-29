@@ -45,13 +45,13 @@ type UpdateStoreRequestItemRequest struct {
 }
 
 type StoreRequestItemResponse struct {
-	Id            uint64                `json:"id"`
-	Warehouse     WarehouseResponse     `json:"warehouse"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
-	Store         StoreResponse         `json:"store"`
-	Quantity      uint64                `json:"quantity"`
-	Status        string                `json:"status"`
-	RequestDate   string                `json:"requestDate"`
+	Id            uint64            `json:"id"`
+	Warehouse     WarehouseResponse `json:"warehouse"`
+	WarehouseItem ItemResponse      `json:"warehouseItem"`
+	Store         StoreResponse     `json:"store"`
+	Quantity      uint64            `json:"quantity"`
+	Status        string            `json:"status"`
+	RequestDate   string            `json:"requestDate"`
 }
 
 type StoreRequestItemListPaginationResponse struct {
@@ -66,10 +66,10 @@ type GetStoreRequestItemFilter struct {
 }
 
 type StoreItemResponse struct {
-	Store         StoreResponse         `json:"store"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
-	Quantity      uint64                `json:"quantity"`
-	Description   string                `json:"description"`
+	Store         StoreResponse `json:"store"`
+	WarehouseItem ItemResponse  `json:"warehouseItem"`
+	Quantity      uint64        `json:"quantity"`
+	Description   string        `json:"description"`
 }
 
 type GetStoreSaleFilter struct {
@@ -83,7 +83,7 @@ type StoreSaleResponse struct {
 	SendDate         string                     `json:"sentDate"`
 	Customer         string                     `json:"customer"`
 	Phone            string                     `json:"phone"`
-	WarehouseItem    WarehouseItemResponse      `json:"warehouseItem"`
+	WarehouseItem    ItemResponse               `json:"warehouseItem"`
 	Store            StoreResponse              `json:"store"`
 	Quantity         uint64                     `json:"quantity"`
 	SaleUnit         string                     `json:"saleUnit"`
@@ -141,17 +141,17 @@ type UpdateStoreSalePaymentRequest struct {
 }
 
 type StoreSaleListResponse struct {
-	Id            uint64                `json:"id"`
-	SendDate      string                `json:"sentDate"`
-	Customer      string                `json:"customer"`
-	Phone         string                `json:"phone"`
-	WarehouseItem WarehouseItemResponse `json:"warehouseItem"`
-	Store         StoreResponse         `json:"store"`
-	Quantity      uint64                `json:"quantity"`
-	SaleUnit      string                `json:"saleUnit"`
-	PaymentType   string                `json:"paymentType"`
-	PaymentStatus string                `json:"paymentStatus"`
-	IsSend        bool                  `json:"isSend"`
+	Id            uint64        `json:"id"`
+	SendDate      string        `json:"sentDate"`
+	Customer      string        `json:"customer"`
+	Phone         string        `json:"phone"`
+	WarehouseItem ItemResponse  `json:"warehouseItem"`
+	Store         StoreResponse `json:"store"`
+	Quantity      uint64        `json:"quantity"`
+	SaleUnit      string        `json:"saleUnit"`
+	PaymentType   string        `json:"paymentType"`
+	PaymentStatus string        `json:"paymentStatus"`
+	IsSend        bool          `json:"isSend"`
 }
 
 type StoreSalePaymentResponse struct {

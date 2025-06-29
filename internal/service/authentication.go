@@ -50,19 +50,19 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 
 	Id, err := uuid.NewUUID()
 	if err != nil {
-		s.log.Error("[SignUp] failed to generate UUID", zap.Error(err))
+		s.log.Error("failed to generate UUID", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
-		s.log.Error("[SignUp] failed to hash password", zap.Error(err))
+		s.log.Error("failed to hash password", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
-		s.log.Error("[SignUp] failed to parse salary from string", zap.Error(err))
+		s.log.Error("failed to parse salary from string", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
@@ -86,12 +86,12 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 	}
 
 	if err = s.repository.CreateUser(&user); err != nil {
-		s.log.Error("[SignUp] failed to create user", zap.Error(err))
+		s.log.Error("failed to create user", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
 	if err = s.repository.Commit(); err != nil {
-		s.log.Error("[SignUp] failed to commit transaction", zap.Error(err))
+		s.log.Error("failed to commit transaction", zap.Error(err))
 	}
 
 	if request.PlacementIds != nil {
@@ -135,7 +135,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 
 	user, err = s.repository.GetUserById(Id)
 	if err != nil {
-		s.log.Error("[SignUp] failed to get user by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 
@@ -203,26 +203,26 @@ func (s *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 
 	user, err := s.repository.GetUserByEmail(request.Email)
 	if err != nil {
-		s.log.Error("[ForgotPassword] failed to get user by email", zap.Error(err))
+		s.log.Error("failed to get user by email", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
 
 	tempPassword, err := util.RandomString(8)
 	if err != nil {
-		s.log.Error("[ForgotPassword] failed to generate random string", zap.Error(err))
+		s.log.Error("failed to generate random string", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(tempPassword), bcrypt.DefaultCost)
 	if err != nil {
-		s.log.Error("[ForgotPassword] failed to hash password", zap.Error(err))
+		s.log.Error("failed to hash password", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
 
 	user.Password = string(hashedPassword)
 
 	if err := s.repository.UpdateUser(&user); err != nil {
-		s.log.Error("[ForgotPassword] failed to update user", zap.Error(err))
+		s.log.Error("failed to update user", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
 
@@ -235,7 +235,7 @@ func (s *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 		TempPassword: tempPassword,
 	})
 	if err := s.emailService.Send(); err != nil {
-		s.log.Error("[ForgotPassword] failed to send email", zap.Error(err))
+		s.log.Error("failed to send email", zap.Error(err))
 		return dto.ForgotPasswordResponse{}, err
 	}
 
@@ -250,23 +250,23 @@ func (s *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 
 	user, err := s.repository.GetUserById(userId)
 	if err != nil {
-		s.log.Error("[ChangePassword] failed to get user by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.ChangePasswordResponse{}, nil
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)) != nil {
-		s.log.Error("[ChangePassword] password is incorrect")
+		s.log.Error("password is incorrect")
 		return dto.ChangePasswordResponse{}, errx.BadRequest("old password is incorrect")
 	}
 
 	if request.NewPassword != request.ConfirmPassword {
-		s.log.Error("[ChangePassword] new password and confirm password not match")
+		s.log.Error("new password and confirm password not match")
 		return dto.ChangePasswordResponse{}, errx.BadRequest("new password and confirm password not match")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		s.log.Error("[ChangePassword] failed to hash password", zap.Error(err))
+		s.log.Error("failed to hash password", zap.Error(err))
 		return dto.ChangePasswordResponse{}, nil
 	}
 
@@ -274,13 +274,13 @@ func (s *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	user.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if err := s.repository.UpdateUser(&user); err != nil {
-		s.log.Error("[ChangePassword] failed to update user", zap.Error(err))
+		s.log.Error("failed to update user", zap.Error(err))
 		return dto.ChangePasswordResponse{}, nil
 	}
 
 	user, err = s.repository.GetUserById(userId)
 	if err != nil {
-		s.log.Error("[SignUp] failed to get user by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.ChangePasswordResponse{}, err
 	}
 
@@ -303,7 +303,7 @@ func (s *AuthenticationService) DeleteUser(id uuid.UUID) error {
 	s.repository.UseTx(false)
 
 	if err := s.repository.DeleteUser(id); err != nil {
-		s.log.Error("[DeleteUser] failed to delete user", zap.Error(err))
+		s.log.Error("failed to delete user", zap.Error(err))
 		return nil
 	}
 

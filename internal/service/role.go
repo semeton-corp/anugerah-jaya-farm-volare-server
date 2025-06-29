@@ -29,7 +29,7 @@ func (r *RoleService) GetRoles() ([]dto.RoleResponse, error) {
 
 	roles, err := r.repository.GetRoles()
 	if err != nil {
-		r.log.Error("[GetRoles] failed to get roles", zap.Error(err))
+		r.log.Error("failed to get roles", zap.Error(err))
 		return nil, err
 	}
 

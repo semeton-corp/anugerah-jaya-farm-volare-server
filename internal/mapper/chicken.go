@@ -5,26 +5,23 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 )
 
-func ChickenDiseaseMonitoringToResponse(chickenDisease *entity.ChickenDiseaseMonitoring) dto.ChickenDiseaseMonitoringResponse {
-	return dto.ChickenDiseaseMonitoringResponse{
-		Id:       chickenDisease.Id,
-		Disease:  chickenDisease.Disease,
-		Medicine: chickenDisease.Medicine,
-		Dose:     chickenDisease.Dose,
-		Unit:     chickenDisease.Unit,
+func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dto.ChickenHealthItemResponse {
+	response := dto.ChickenHealthItemResponse{
+		Id:   chickenHealthItem.Id,
+		Name: chickenHealthItem.Name,
+		Type: chickenHealthItem.Type.String(),
 	}
+
+	if chickenHealthItem.ChickenAge.Valid {
+		valUint64 := uint64(chickenHealthItem.ChickenAge.Int64)
+		response.ChickenAge = &valUint64
+	} else {
+		response.ChickenAge = nil
+	}
+
+	return response
 }
 
-func ChickenVaccineMonitoringToResponse(chickenVaccine *entity.ChickenVaccineMonitoring) dto.ChickenVaccineMonitoringResponse {
-	return dto.ChickenVaccineMonitoringResponse{
-		Id:      chickenVaccine.Id,
-		Vaccine: chickenVaccine.Vaccine,
-		Dose:    chickenVaccine.Dose,
-		Unit:    chickenVaccine.Unit,
-	}
-}
-
-// Note : without chickenDiseasesResponse and chickenVaccinesResponse
 func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringResponse {
 	return dto.ChickenMonitoringResponse{
 		Id:                 chickenMonitoring.Id,

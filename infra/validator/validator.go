@@ -4,12 +4,13 @@ import "github.com/go-playground/validator/v10"
 
 func New() *validator.Validate {
 	validate := validator.New()
-	validate.RegisterValidation("chicken_category", ValidateChickenCategory)
+	validate.RegisterValidation("chickenCategory", ValidateChickenCategory)
 	validate.RegisterValidation("requestItemStatus", ValidationRequestItemStatus)
 	validate.RegisterValidation("paymentMethod", ValidationPaymentMethod)
-	validate.RegisterValidation("warehouseItemCategory", ValidationWarehouseItemCategory)
+	validate.RegisterValidation("itemCategory", ValidationItemCategory)
 	validate.RegisterValidation("paymentType", ValidationPaymentType)
 	validate.RegisterValidation("saleUnit", ValidationSaleUnit)
+	validate.RegisterValidation("chickenHealthItemType", ValidationChickenHealthItemType)
 
 	return validate
 }
@@ -44,7 +45,7 @@ func ValidationPaymentMethod(fl validator.FieldLevel) bool {
 	}
 }
 
-func ValidationWarehouseItemCategory(fl validator.FieldLevel) bool {
+func ValidationItemCategory(fl validator.FieldLevel) bool {
 	warehouseItemCategory := fl.Field().String()
 	switch warehouseItemCategory {
 	case "Pakan", "Barang", "Telur", "Bahan Baku":
@@ -68,6 +69,16 @@ func ValidationSaleUnit(fl validator.FieldLevel) bool {
 	saleUnit := fl.Field().String()
 	switch saleUnit {
 	case "Butir", "Ikat", "Karpet":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationChickenHealthItemType(fl validator.FieldLevel) bool {
+	chickenHealthItemType := fl.Field().String()
+	switch chickenHealthItemType {
+	case "Obat", "Vaksin Kondisional", "Vaksin Rutin":
 		return true
 	default:
 		return false

@@ -31,7 +31,7 @@ func NewRoleHandler(log *zap.Logger, service service.IRoleService, validator *va
 func (h *RoleHandler) GetRoles(c *fiber.Ctx) error {
 	roles, err := h.service.GetRoles()
 	if err != nil {
-		h.log.Error("[GetRoles] failed to get roles", zap.Error(err))
+		h.log.Error("failed to get roles", zap.Error(err))
 		return err
 	}
 

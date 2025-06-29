@@ -8,7 +8,7 @@ import (
 func SupplierToResponse(supplier *entity.Supplier) dto.SupplierResponse {
 	return dto.SupplierResponse{
 		Id:            supplier.Id,
-		WarehouseItem: WarehouseItemToResponse(&supplier.WarehouseItem),
+		WarehouseItem: ItemToResponse(&supplier.Item),
 		Name:          supplier.Name,
 		PhoneNumber:   supplier.PhoneNumber,
 		Address:       supplier.Address,

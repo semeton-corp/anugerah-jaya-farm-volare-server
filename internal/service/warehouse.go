@@ -25,12 +25,6 @@ type WarehouseService struct {
 }
 
 type IWarehouseService interface {
-	CreateWarehouseItem(request dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
-	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
-	UpdateWarehouseItem(warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
-	GetWarehouseItemById(id uint64) (dto.WarehouseItemResponse, error)
-	DeleteWarehouseItem(id uint64) error
-
 	GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseResponse, error)
 	CreateWarehouse(request dto.CreateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
 	DeleteWarehouse(id uint64) error
@@ -143,153 +137,14 @@ func (s *WarehouseService) DeleteWarehouse(id uint64) error {
 	return nil
 }
 
-func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRequest, createdBy uuid.UUID) (dto.WarehouseItemResponse, error) {
-	s.repository.UseTx(false)
-
-	warehouseItemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
-	if !warehouseItemCategory.IsValid() {
-		s.log.Error("[CreateWarehouseItem] invalid warehouse item category", zap.String("category", request.Category))
-		return dto.WarehouseItemResponse{}, errx.BadRequest("invalid warehouse item category")
-	}
-
-	if !warehouseItemCategory.IsValid() {
-		s.log.Error("[CreateWarehouseItem] invalid warehouse item category", zap.String("category", request.Category))
-		return dto.WarehouseItemResponse{}, errx.BadRequest("invalid warehouse item category")
-	}
-
-	warehouseItem := entity.WarehouseItem{
-		Name:      request.Name,
-		Unit:      request.Unit,
-		Category:  warehouseItemCategory,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
-	}
-
-	err := s.repository.CreateWarehouseItem(&warehouseItem)
-	if err != nil {
-		s.log.Error("[CreateWarehouseItem] failed to create warehouse item", zap.Error(err))
-		return dto.WarehouseItemResponse{}, err
-	}
-
-	return mapper.WarehouseItemToResponse(&warehouseItem), nil
-}
-
-func (s *WarehouseService) GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error) {
-	s.repository.UseTx(false)
-
-	if filter.StoreId > 0 && filter.WarehouseId > 0 {
-		s.log.Error("[GetWarehouseItems] storeId and warehouseId cannot be used at the same time")
-		return nil, errx.BadRequest("storeId and warehouseId cannot be used at the same time")
-	}
-
-	if filter.StoreId > 0 {
-		storeItems, err := s.storeService.GetStoreItems(
-			dto.GetStoreItemFilter{
-				StoreId:  filter.StoreId,
-				Category: filter.Category,
-			},
-		)
-		if err != nil {
-			s.log.Error("[GetWarehouseItems] failed to get store items", zap.Error(err))
-			return nil, err
-		}
-
-		storeItemResponses := make([]dto.WarehouseItemResponse, 0, len(storeItems))
-		for _, item := range storeItems {
-			storeItemResponses = append(storeItemResponses, item.WarehouseItem)
-		}
-
-		return storeItemResponses, nil
-	}
-
-	if filter.WarehouseId > 0 {
-		warehouseStockItems, err := s.repository.GetWarehouseStockItems(
-			dto.GetWarehouseStockItemFilter{
-				WarehouseId: filter.WarehouseId,
-				Category:    filter.Category,
-			},
-		)
-		if err != nil {
-			s.log.Error("[GetWarehouseItems] failed to get warehouse stock items", zap.Error(err))
-			return nil, err
-		}
-
-		warehouseStockItemResponses := make([]dto.WarehouseItemResponse, 0, len(warehouseStockItems))
-		for _, item := range warehouseStockItems {
-			warehouseStockItemResponses = append(warehouseStockItemResponses, mapper.WarehouseItemToResponse(&item.WarehouseItem))
-		}
-
-		return warehouseStockItemResponses, nil
-	}
-
-	warehouseItems, err := s.repository.GetWarehouseItems(filter)
-	if err != nil {
-		s.log.Error("[GetWarehouseItems] failed to get warehouse items", zap.Error(err))
-		return nil, err
-	}
-
-	warehouseItemResponses := make([]dto.WarehouseItemResponse, 0, len(warehouseItems))
-	for _, item := range warehouseItems {
-		warehouseItemResponses = append(warehouseItemResponses, mapper.WarehouseItemToResponse(&item))
-	}
-
-	return warehouseItemResponses, nil
-}
-
-func (s *WarehouseService) UpdateWarehouseItem(warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error) {
-	s.repository.UseTx(false)
-
-	warehouseItemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
-	if !warehouseItemCategory.IsValid() {
-		s.log.Error("[UpdateWarehouseItem] invalid warehouse item category", zap.String("category", request.Category))
-		return dto.WarehouseItemResponse{}, errx.BadRequest("invalid warehouse item category")
-	}
-
-	warehouseItem, err := s.repository.GetWarehouseItemById(warehouseItemId)
-	if err != nil {
-		s.log.Error("[UpdateWarehouseItem] failed to get warehouse item", zap.Error(err))
-		return dto.WarehouseItemResponse{}, err
-	}
-
-	warehouseItem.Name = request.Name
-	warehouseItem.Unit = request.Unit
-	warehouseItem.Category = warehouseItemCategory
-	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
-
-	err = s.repository.UpdateWarehouseItem(&warehouseItem)
-	if err != nil {
-		s.log.Error("[UpdateWarehouseItem] failed to update warehouse item", zap.Error(err))
-		return dto.WarehouseItemResponse{}, err
-	}
-
-	return mapper.WarehouseItemToResponse(&warehouseItem), nil
-}
-
-func (s *WarehouseService) GetWarehouseItemById(id uint64) (dto.WarehouseItemResponse, error) {
-	s.repository.UseTx(false)
-
-	warehouseItem, err := s.repository.GetWarehouseItemById(id)
-	if err != nil {
-		s.log.Error("[GetWarehouseItemById] failed to get warehouse item", zap.Error(err))
-		return dto.WarehouseItemResponse{}, err
-	}
-
-	warehouseItemResponse := mapper.WarehouseItemToResponse(&warehouseItem)
-	return warehouseItemResponse, nil
-}
-
-func (s *WarehouseService) DeleteWarehouseItem(id uint64) error {
-	s.repository.UseTx(false)
-	return s.repository.DeleteWarehouseItem(id)
-}
-
 func (s *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
 	s.repository.UseTx(false)
 
 	// Todo : create estimation run out date, based on average used per day from request item from request warhouse item.
 
-	stockWarehouseItem := entity.WarehouseStockItem{
+	stockWarehouseItem := entity.WarehouseItem{
 		WarehouseId:      request.WarehouseId,
-		WarehouseItemId:  request.WarehouseItemId,
+		ItemId:           request.WarehouseItemId,
 		Quantity:         request.Quantity,
 		EstimationRunOut: time.Now(),
 		CreatedBy:        uuid.NullUUID{UUID: accountId, Valid: true},
@@ -303,7 +158,7 @@ func (s *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouse
 
 	stockWarehouseItem, err = s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(
 		stockWarehouseItem.WarehouseId,
-		stockWarehouseItem.WarehouseItemId,
+		stockWarehouseItem.ItemId,
 	)
 	if err != nil {
 		s.log.Error("[CreateStockWarehouseItem] failed to get stock warehouse item", zap.Error(err))
@@ -415,30 +270,17 @@ func (s *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehous
 	return nil
 }
 
-func (s *WarehouseService) GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (dto.WarehouseItemResponse, error) {
-	s.repository.UseTx(false)
-
-	stockWarehouseItem, err := s.repository.GetWarehouseItemByNameAndUnitAndType(name, unit, itemType)
-	if err != nil {
-		s.log.Error("[GetStockWarehouseItemByNameAndUnit] failed to get stock warehouse item", zap.Error(err))
-		return dto.WarehouseItemResponse{}, err
-	}
-
-	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&stockWarehouseItem)
-	return warehouseStockItemResponse, nil
-}
-
 func (s *WarehouseService) CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error) {
 	s.repository.UseTx(false)
 
 	warehouseOrderItem := entity.WarehouseOrderItem{
-		WarehouseId:     request.WarehouseId,
-		SupplierId:      request.SupplierId,
-		WarehouseItemId: request.WarehouseItemId,
-		Quantity:        request.Quantity,
-		Status:          enum.WarehouseOrderStatusInSend,
-		TakenAt:         sql.NullTime{},
-		CreatedBy:       uuid.NullUUID{UUID: accountId, Valid: true},
+		WarehouseId: request.WarehouseId,
+		SupplierId:  request.SupplierId,
+		ItemId:      request.WarehouseItemId,
+		Quantity:    request.Quantity,
+		Status:      enum.WarehouseOrderStatusInSend,
+		TakenAt:     sql.NullTime{},
+		CreatedBy:   uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
 	err := s.repository.CreateWarehouseOrderItem(&warehouseOrderItem)
