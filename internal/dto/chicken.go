@@ -64,27 +64,35 @@ type GetChickenHealthItemFilter struct {
 }
 
 type CreateChickenHealthMonitoringRequest struct {
-	ChickenCageId       uint64  `json:"chickenCageId" validate:"required"`
-	ChickenHealthItemId uint64  `json:"chickenHealthItemId" validate:"required"`
-	Dose                float64 `json:"dose" validate:"required"`
-	Unit                string  `json:"unit" validate:"required"`
-	Disease             *string `json:"disease"`
+	ChickenCageId  uint64  `json:"chickenCageId" validate:"required"`
+	HealthItemName string  `json:"healthItemName" validate:"required"`
+	Type           string  `json:"type" validate:"required,chickenHealthItemType"`
+	Dose           float64 `json:"dose" validate:"required"`
+	Unit           string  `json:"unit" validate:"required"`
+	Disease        *string `json:"disease"`
 }
 
 type UpdateChickenHealthMonitoringRequest struct {
-	ChickenCageId       uint64  `json:"chickenCageId" validate:"required"`
-	ChickenHealthItemId uint64  `json:"chickenHealthItemId" validate:"required"`
-	Dose                float64 `json:"dose" validate:"required"`
-	Unit                string  `json:"unit" validate:"required"`
-	Disease             *string `json:"disease"`
+	ChickenCageId  uint64  `json:"chickenCageId" validate:"required"`
+	HealthItemName string  `json:"healthItemName" validate:"required"`
+	Type           string  `json:"type" validate:"required,chickenHealthItemType"`
+	Dose           float64 `json:"dose" validate:"required"`
+	Unit           string  `json:"unit" validate:"required"`
+	Disease        *string `json:"disease"`
 }
 
 type ChickenHealthMonitoringResponse struct {
-	Id                uint64                    `json:"id"`
-	ChickenHealthItem ChickenHealthItemResponse `json:"chickenHealthItem"`
-	Dose              float64                   `json:"dose"`
-	Unit              string                    `json:"unit"`
-	Disease           string                    `json:"disease"`
+	Id             uint64  `json:"id"`
+	HealthItemName string  `json:"healthItemName"`
+	Type           string  `json:"type"`
+	Dose           float64 `json:"dose"`
+	Unit           string  `json:"unit"`
+	Disease        string  `json:"disease"`
+}
+
+type ChickenHealthMonitoringDetailResponse struct {
+	ChickenCage              ChickenCageResponse               `json:"chickenCage"`
+	ChickenHealthMonitorings []ChickenHealthMonitoringResponse `json:"chickenHealthMonitorings"`
 }
 
 type GetChickenMonitoringFilter struct {

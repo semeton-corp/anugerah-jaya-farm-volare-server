@@ -38,6 +38,12 @@ type IChickenService interface {
 	UpdateChickenHealthItem(id uint64, request dto.UpdateChickenHealthItemRequest, updatedBy uuid.UUID) (dto.ChickenHealthItemResponse, error)
 	DeleteChickenHealthItem(id uint64) error
 
+	CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, createdBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
+	UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, updatedBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
+	DeleteChickenHealthMonitoring(id uint64) error
+	GetChickenHealthMonitoringDetails(chickenCageId uint64) (dto.ChickenHealthMonitoringDetailResponse, error)
+	GetChickenHealthMonitoringById(id uint64) (dto.ChickenHealthMonitoringResponse, error)
+
 	GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error)
 }
 
@@ -461,12 +467,23 @@ func (s *ChickenService) DeleteChickenHealthItem(id uint64) error {
 func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, createdBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
+	chickenHealthMonitoringType := enum.ValueOfChickenHealthItemType(request.Type)
+	if !chickenHealthMonitoringType.IsValid() {
+		s.log.Warn("invalid chicken health monitoring type")
+		return dto.ChickenHealthMonitoringResponse{}, errx.BadRequest("invalid chicken health monitoring type")
+	}
+
+	if chickenHealthMonitoringType == enum.ChickenHealthItemTypeMedicine && request.Disease == nil {
+		return dto.ChickenHealthMonitoringResponse{}, errx.BadRequest("disease is required, since you choose medicine type")
+	}
+
 	data := entity.ChickenHealthMonitoring{
-		ChickenCageId:       request.ChickenCageId,
-		ChickenHealthItemId: request.ChickenHealthItemId,
-		Dose:                request.Dose,
-		Unit:                request.Unit,
-		CreatedBy:           uuid.NullUUID{UUID: createdBy, Valid: true},
+		ChickenCageId:  request.ChickenCageId,
+		HealthItemName: request.HealthItemName,
+		Type:           chickenHealthMonitoringType,
+		Dose:           request.Dose,
+		Unit:           request.Unit,
+		CreatedBy:      uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
 	if request.Disease != nil {
@@ -497,10 +514,21 @@ func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.Up
 		return dto.ChickenHealthMonitoringResponse{}, err
 	}
 
+	chickenHealthMonitoringType := enum.ValueOfChickenHealthItemType(request.Type)
+	if !chickenHealthMonitoringType.IsValid() {
+		s.log.Warn("invalid chicken health monitoring type")
+		return dto.ChickenHealthMonitoringResponse{}, errx.BadRequest("invalid chicken health monitoring type")
+	}
+
+	if chickenHealthMonitoringType == enum.ChickenHealthItemTypeMedicine && request.Disease == nil {
+		return dto.ChickenHealthMonitoringResponse{}, errx.BadRequest("disease is required, since you choose medicine type")
+	}
+
 	chickenHealthMonitoring.ChickenCageId = request.ChickenCageId
-	chickenHealthMonitoring.ChickenHealthItemId = request.ChickenHealthItemId
+	chickenHealthMonitoring.HealthItemName = request.HealthItemName
 	chickenHealthMonitoring.Dose = request.Dose
 	chickenHealthMonitoring.Unit = request.Unit
+	chickenHealthMonitoring.Type = chickenHealthMonitoringType
 
 	if request.Disease != nil {
 		chickenHealthMonitoring.Disease = sql.NullString{String: *request.Disease, Valid: true}
@@ -521,4 +549,54 @@ func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.Up
 	}
 
 	return mapper.ChickenHealthMonitoringToResponse(&chickenHealthMonitoring), nil
+}
+
+func (s *ChickenService) DeleteChickenHealthMonitoring(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteChickenHealthMonitoring(id)
+	if err != nil {
+		s.log.Error("failed to delete chicken health monitoring")
+		return err
+	}
+
+	return nil
+}
+
+func (s *ChickenService) GetChickenHealthMonitoringDetails(chickenCageId uint64) (dto.ChickenHealthMonitoringDetailResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCage, err := s.cageService.GetChickenCageById(chickenCageId)
+	if err != nil {
+		s.log.Error("failed to get chicken cage by id", zap.Error(err))
+		return dto.ChickenHealthMonitoringDetailResponse{}, err
+	}
+
+	chickenHealthMonitorings, err := s.repository.GetChickenHealthMonitoringByChickenCageId(chickenCageId)
+	if err != nil {
+		s.log.Error("failed to get chicken health monitoring by chicken cage id")
+		return dto.ChickenHealthMonitoringDetailResponse{}, err
+	}
+
+	chickenHealthMonitoringResponses := make([]dto.ChickenHealthMonitoringResponse, 0)
+	for _, e := range chickenHealthMonitorings {
+		chickenHealthMonitoringResponses = append(chickenHealthMonitoringResponses, mapper.ChickenHealthMonitoringToResponse(&e))
+	}
+
+	return dto.ChickenHealthMonitoringDetailResponse{
+		ChickenCage:              chickenCage,
+		ChickenHealthMonitorings: chickenHealthMonitoringResponses,
+	}, nil
+}
+
+func (s *ChickenService) GetChickenHealthMonitoringById(id uint64) (dto.ChickenHealthMonitoringResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetChickenHealthMonitoringById(id)
+	if err != nil {
+		s.log.Error("failed to get chicken health monitoring by id", zap.Error(err))
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
+	return mapper.ChickenHealthMonitoringToResponse(&data), nil
 }

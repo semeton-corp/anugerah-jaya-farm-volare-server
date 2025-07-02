@@ -52,14 +52,15 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 	}
 
 	response := dto.ChickenCageResponse{
-		Cage:            CageToResponse(&chickenCage.Cage),
-		Id:              chickenCage.Id,
-		BatchId:         batchId,
-		ChickenAge:      chickenAgeInWeek,
-		ChickenCategory: chickenCategory.String(),
-		TotalChicken:    chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
-		ChickenPic:      chickenPic,
-		EggPic:          eggPic,
+		Cage:                 CageToResponse(&chickenCage.Cage),
+		Id:                   chickenCage.Id,
+		BatchId:              batchId,
+		ChickenAge:           chickenAgeInWeek,
+		ChickenCategory:      chickenCategory.String(),
+		TotalChicken:         chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		ChickenPic:           chickenPic,
+		EggPic:               eggPic,
+		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}
 
 	return response

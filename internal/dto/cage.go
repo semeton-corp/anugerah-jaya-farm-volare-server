@@ -29,14 +29,15 @@ type GetCageFilter struct {
 type UpdateCageChickenRequest struct {
 }
 type ChickenCageResponse struct {
-	Cage            CageResponse `json:"cage"`
-	Id              uint64       `json:"id"`
-	BatchId         string       `json:"batchId"`
-	ChickenCategory string       `json:"chickenCategory"`
-	ChickenAge      uint64       `json:"chickenAge"`
-	TotalChicken    uint64       `json:"totalChicken"`
-	ChickenPic      string       `json:"chickenPic"`
-	EggPic          string       `json:"eggPic"`
+	Cage                 CageResponse `json:"cage"`
+	Id                   uint64       `json:"id"`
+	BatchId              string       `json:"batchId"`
+	ChickenCategory      string       `json:"chickenCategory"`
+	ChickenAge           uint64       `json:"chickenAge"`
+	TotalChicken         uint64       `json:"totalChicken"`
+	ChickenPic           string       `json:"chickenPic"`
+	EggPic               string       `json:"eggPic"`
+	IsNeedRoutineVaccine bool         `json:"isNeedRoutineVaccine"`
 }
 
 type GetChickenCageFilter struct {

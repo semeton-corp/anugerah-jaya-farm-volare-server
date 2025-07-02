@@ -33,6 +33,12 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/healths/items/:id", middleware.Authentication(), h.GetChickenHealthItemById)
 	v1.Put("/healths/items/:id", middleware.Authentication(), h.UpdateChickenHealthItem)
 	v1.Delete("/healths/items/:id", middleware.Authentication(), h.DeleteChickenHealthItem)
+
+	v1.Post("/healths/monitorings", middleware.Authentication(), h.CreateChickenHealthMonitoring)
+	v1.Get("/healths/monitorings/details/:chicken_cage_id", middleware.Authentication(), h.GetChickenHealthMonitoringDetails)
+	v1.Get("/healths/monitorings/:id", middleware.Authentication(), h.GetChickenHealthMonitoringById)
+	v1.Put("/healths/monitorings/:id", middleware.Authentication(), h.UpdateChickenHealthMonitoring)
+	v1.Delete("/healths/monitorings/:id", middleware.Authentication(), h.DeleteChickenHealthMonitoring)
 }
 
 func NewChickenHandler(log *zap.Logger, service service.IChickenService, validator *validator.Validate) *ChickenHandler {
@@ -253,6 +259,109 @@ func (h *ChickenHandler) DeleteChickenHealthItem(c *fiber.Ctx) error {
 	}
 
 	err = h.service.DeleteChickenHealthItem(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) CreateChickenHealthMonitoring(c *fiber.Ctx) error {
+	var request dto.CreateChickenHealthMonitoringRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateChickenHealthMonitoring(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create chicken health monitoring")
+}
+
+func (h *ChickenHandler) GetChickenHealthMonitoringDetails(c *fiber.Ctx) error {
+	chickenCageId, err := strconv.ParseUint(c.Params("chicken_cage_id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid chicken cage id param", zap.Error(err))
+		return errx.BadRequest("invalid chicken cage id param")
+	}
+
+	data, err := h.service.GetChickenHealthMonitoringDetails(chickenCageId)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken health monitoring details")
+}
+
+func (h *ChickenHandler) GetChickenHealthMonitoringById(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	data, err := h.service.GetChickenHealthMonitoringById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken health monitoring by id")
+}
+
+func (h *ChickenHandler) UpdateChickenHealthMonitoring(c *fiber.Ctx) error {
+	var request dto.UpdateChickenHealthMonitoringRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation failed", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.UpdateChickenHealthMonitoring(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success chicken health monitoring")
+}
+
+func (h *ChickenHandler) DeleteChickenHealthMonitoring(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	err = h.service.DeleteChickenHealthMonitoring(id)
 	if err != nil {
 		return err
 	}

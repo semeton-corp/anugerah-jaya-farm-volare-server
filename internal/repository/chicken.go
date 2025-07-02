@@ -36,6 +36,7 @@ type IChickenRepository interface {
 	UpdateChickenHealthMonitoring(chickenHealthMonitoring *entity.ChickenHealthMonitoring) error
 	GetChickenHealthMonitoringById(id uint64) (entity.ChickenHealthMonitoring, error)
 	GetChickenHealthMonitoringByChickenCageId(chickenCageId uint64) ([]entity.ChickenHealthMonitoring, error)
+	DeleteChickenHealthMonitoring(id uint64) error
 
 	CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error)
 }
@@ -191,7 +192,7 @@ func (r *ChickenRepository) UpdateChickenHealthMonitoring(chickenHealthMonitorin
 func (r *ChickenRepository) GetChickenHealthMonitoringById(id uint64) (entity.ChickenHealthMonitoring, error) {
 	var chickenHealthMonitoring entity.ChickenHealthMonitoring
 
-	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", id).Preload("ChickenHealthItem").First(&chickenHealthMonitoring).Error
+	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", id).First(&chickenHealthMonitoring).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.ChickenHealthMonitoring{}, errx.NotFound("chicken health monitoring not found")
@@ -210,4 +211,8 @@ func (r *ChickenRepository) GetChickenHealthMonitoringByChickenCageId(chickenCag
 	}
 
 	return chickenHealthMonitoring, nil
+}
+
+func (r *ChickenRepository) DeleteChickenHealthMonitoring(id uint64) error {
+	return r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", id).Delete(&entity.ChickenHealthMonitoring{}).Error
 }

@@ -10,25 +10,17 @@ jobs:
     steps:
       - name: 🛒Checkout code
         uses: actions/checkout@v4
-      - name: 📂Copy files via SSH
-        uses: appleboy/scp-action@v1
+      - name: 🖥️ Deploy PMSxGUM Application to Remote VM
+        uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.VM_HOST }}
+          host: "${{ secrets.VM_HOST }}"
           username: "${{ secrets.VM_USERNAME }}"
           key: "${{ secrets.VM_SSH_KEY }}"
           port: "${{ secrets.VM_SSH_PORT }}"
-          source: "./*"
-          target: "./Anugerah-Jaya-Farm-Volare"
-      # - name: 🖥️ Deploy PMSxGUM Application to Remote VM
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: "${{ secrets.VM_HOST }}"
-      #     username: "${{ secrets.VM_USERNAME }}"
-      #     key: "${{ secrets.VM_SSH_KEY }}"
-      #     port: "${{ secrets.VM_SSH_PORT }}"
-      #     timeout: 40m
-      #     command_timeout: 40m
-      #     script: |
-      #       cd ./Anugerah-Jaya-Farm-Volare
-      #       make compose-down
-      #       make compose-up
+          timeout: 60m
+          command_timeout: 60m
+          script: |
+            cd ./Anugerah-Jaya-Farm-Volare
+            git pull origin master
+            make compose-down
+            make compose-up

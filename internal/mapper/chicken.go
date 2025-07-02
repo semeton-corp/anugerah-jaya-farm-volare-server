@@ -24,10 +24,11 @@ func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dt
 
 func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHealthMonitoring) dto.ChickenHealthMonitoringResponse {
 	response := dto.ChickenHealthMonitoringResponse{
-		Id:                chickenHealthMonitoring.Id,
-		ChickenHealthItem: ChickenHealthItemToResponse(&chickenHealthMonitoring.ChickenHealthItem),
-		Dose:              chickenHealthMonitoring.Dose,
-		Unit:              chickenHealthMonitoring.Unit,
+		Id:             chickenHealthMonitoring.Id,
+		HealthItemName: chickenHealthMonitoring.HealthItemName,
+		Type:           chickenHealthMonitoring.Type.String(),
+		Dose:           chickenHealthMonitoring.Dose,
+		Unit:           chickenHealthMonitoring.Unit,
 	}
 
 	if chickenHealthMonitoring.Disease.Valid {
