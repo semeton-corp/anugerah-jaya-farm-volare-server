@@ -3,19 +3,23 @@ package enum
 type RequestItemStatus uint8
 
 const (
-	RequestItemStatusUnknown  RequestItemStatus = 0
-	RequestItemStatusSentOff  RequestItemStatus = 1
-	RequestItemStatusPending  RequestItemStatus = 2
-	RequestItemStatusAccepted RequestItemStatus = 3
-	RequestItemStatusRejected RequestItemStatus = 4
+	RequestItemStatusUnknown      RequestItemStatus = 0
+	RequestItemStatusSentOff      RequestItemStatus = 1
+	RequestItemStatusPending      RequestItemStatus = 2
+	RequestItemStatusRejected     RequestItemStatus = 3
+	RequestItemStatusCanceled     RequestItemStatus = 4
+	RequestItemStatusArrivedOk    RequestItemStatus = 5
+	RequestItemStatusArrivedNotOk RequestItemStatus = 6
 )
 
 var (
 	RequestItemStatusMap = map[RequestItemStatus]string{
-		RequestItemStatusSentOff:  "Dikirim",
-		RequestItemStatusAccepted: "Diterima",
-		RequestItemStatusPending:  "Menunggu",
-		RequestItemStatusRejected: "Ditolak",
+		RequestItemStatusSentOff:      "Sedang Dikirim",
+		RequestItemStatusPending:      "Menunggu",
+		RequestItemStatusRejected:     "Ditolak",
+		RequestItemStatusCanceled:     "Dibatalkan",
+		RequestItemStatusArrivedOk:    "Sampai - Sesuai",
+		RequestItemStatusArrivedNotOk: "Sampai - Tidak Sesuai",
 	}
 )
 

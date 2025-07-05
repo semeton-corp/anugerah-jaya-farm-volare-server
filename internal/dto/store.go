@@ -24,9 +24,9 @@ type StoreResponse struct {
 }
 
 type CreateStoreRequestItemRequest struct {
-	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required,number"`
-	WarehouseId     uint64 `json:"warehouseId" validate:"required,number"`
-	Quantity        uint64 `json:"quantity" validate:"required,number"`
+	ItemId      uint64 `json:"itemID" validate:"required,number"`
+	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
+	Quantity    uint64 `json:"quantity" validate:"required,number"` // ikat
 }
 
 type UpdateStoreRequestItemByWarehouseRequest struct {

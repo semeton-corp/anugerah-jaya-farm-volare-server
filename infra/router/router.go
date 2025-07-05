@@ -2,7 +2,6 @@ package router
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
@@ -36,8 +35,6 @@ func New() *fiber.App {
 
 func GlobalErrorHandler() fiber.ErrorHandler {
 	return func(c *fiber.Ctx, err error) error {
-		fmt.Println(err.Error())
-
 		if je, ok := err.(*json.UnmarshalTypeError); ok {
 			return response.ErrorResponse(
 				c,

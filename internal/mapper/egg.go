@@ -7,14 +7,14 @@ import (
 )
 
 func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitoringResponse {
-	totalKarpetGoodEgg := eggMonitoring.TotalGoodEgg / constant.TotalEggKarpet
-	totalRemainingGoodEgg := eggMonitoring.TotalGoodEgg % constant.TotalEggKarpet
+	totalKarpetGoodEgg := eggMonitoring.TotalGoodEgg / constant.TotalEggPerKarpet
+	totalRemainingGoodEgg := eggMonitoring.TotalGoodEgg % constant.TotalEggPerKarpet
 
-	totalKarpetCrackedEgg := eggMonitoring.TotalCrackedEgg / constant.TotalEggKarpet
-	totalRemainingCrackedEgg := eggMonitoring.TotalCrackedEgg % constant.TotalEggKarpet
+	totalKarpetCrackedEgg := eggMonitoring.TotalCrackedEgg / constant.TotalEggPerKarpet
+	totalRemainingCrackedEgg := eggMonitoring.TotalCrackedEgg % constant.TotalEggPerKarpet
 
-	totalKarpetRejectEgg := eggMonitoring.TotalRejectEgg / constant.TotalEggKarpet
-	totalRemainingRejectEgg := eggMonitoring.TotalRejectEgg % constant.TotalEggKarpet
+	totalKarpetRejectEgg := eggMonitoring.TotalRejectEgg / constant.TotalEggPerKarpet
+	totalRemainingRejectEgg := eggMonitoring.TotalRejectEgg % constant.TotalEggPerKarpet
 
 	response := dto.EggMonitoringResponse{
 		Id:                       eggMonitoring.Id,

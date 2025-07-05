@@ -113,10 +113,12 @@ func (r *WarehouseRepository) DeleteWarehouse(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Warehouse{}).Error
 }
 
-func (r *WarehouseRepository) CreateWarehouseItem(stockWarehouseItem *entity.WarehouseItem) error {
-	if err := r.GetDB().Create(stockWarehouseItem).Error; err != nil {
+func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
+	if err := r.GetDB().Create(warehouseItem).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return errx.BadRequest("stock warehouse item already exists")
+		} else if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.BadRequest("invalid warehouse or item")
 		}
 		return err
 	}
@@ -138,6 +140,10 @@ func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilte
 
 	if filter.ItemNames != nil {
 		query = query.Where("items.name IN ?", filter.ItemNames)
+	}
+
+	if filter.Unit != nil {
+		query = query.Where("items.unit IN ?", filter.Unit)
 	}
 
 	err := query.Preload("Item").Preload("Warehouse.Location").Find(&warehouseItems).Error

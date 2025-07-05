@@ -20,7 +20,6 @@ import (
 type WarehouseService struct {
 	log          *zap.Logger
 	repository   repository.IWarehouseRepository
-	storeService IStoreService
 	cacheService cache.ICache
 }
 
@@ -47,11 +46,10 @@ type IWarehouseService interface {
 	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
 }
 
-func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, storeService IStoreService, cacheService cache.ICache) IWarehouseService {
+func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache) IWarehouseService {
 	return &WarehouseService{
 		log:          log,
 		repository:   repository,
-		storeService: storeService,
 		cacheService: cacheService,
 	}
 }
@@ -145,7 +143,7 @@ func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRe
 
 	stockWarehouseItem := entity.WarehouseItem{
 		WarehouseId:      request.WarehouseId,
-		ItemId:           request.WarehouseItemId,
+		ItemId:           request.ItemId,
 		Quantity:         request.Quantity,
 		EstimationRunOut: time.Now().Add(time.Hour * 24 * time.Duration(request.RunOutCountDown)),
 		CreatedBy:        uuid.NullUUID{UUID: accountId, Valid: true},
@@ -398,7 +396,7 @@ func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWareh
 		return nil, err
 	}
 
-	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity - request.TotalButir - (request.TotalKarpet * constant.TotalEggKarpet)
+	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity - request.TotalButir - (request.TotalKarpet * constant.TotalEggPerKarpet)
 
 	if warehouseStockItemEggButir.Quantity < 0 {
 		return nil, errx.BadRequest("stok butir tidak mencukupi")
@@ -472,7 +470,7 @@ func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWareh
 
 	warehouseStockItemEggIkat.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity + request.TotalButir + (request.TotalKarpet * constant.TotalEggKarpet)
+	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity + request.TotalButir + (request.TotalKarpet * constant.TotalEggPerKarpet)
 	warehouseStockItemEggButir.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseStockItemEggButir)

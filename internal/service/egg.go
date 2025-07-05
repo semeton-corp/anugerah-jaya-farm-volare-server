@@ -70,9 +70,9 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		WarehouseId:           request.WarehouseId,
 		TotalWeightCrackedEgg: request.TotalWeightCrackedEgg,
 		TotalWeightGoodEgg:    request.TotalWeightGoodEgg,
-		TotalGoodEgg:          (request.TotalKarpetGoodEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingGoodEgg,
-		TotalCrackedEgg:       (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingCrackedEgg,
-		TotalRejectEgg:        (request.TotalKarpetRejectEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingRejectEgg,
+		TotalGoodEgg:          (request.TotalKarpetGoodEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingGoodEgg,
+		TotalCrackedEgg:       (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingCrackedEgg,
+		TotalRejectEgg:        (request.TotalKarpetRejectEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingRejectEgg,
 		IsTaken:               false,
 		CreatedBy:             uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
@@ -130,9 +130,9 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 
 	eggMonitoring.ChickenCageId = request.ChickenCageId
 	eggMonitoring.WarehouseId = request.WarehouseId
-	eggMonitoring.TotalGoodEgg = (request.TotalKarpetGoodEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingGoodEgg
-	eggMonitoring.TotalCrackedEgg = (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingCrackedEgg
-	eggMonitoring.TotalRejectEgg = (request.TotalKarpetRejectEgg * uint64(constant.TotalEggKarpet)) + request.TotalRemainingRejectEgg
+	eggMonitoring.TotalGoodEgg = (request.TotalKarpetGoodEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingGoodEgg
+	eggMonitoring.TotalCrackedEgg = (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingCrackedEgg
+	eggMonitoring.TotalRejectEgg = (request.TotalKarpetRejectEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingRejectEgg
 	eggMonitoring.TotalWeightCrackedEgg = request.TotalWeightCrackedEgg
 	eggMonitoring.TotalWeightGoodEgg = request.TotalWeightGoodEgg
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}

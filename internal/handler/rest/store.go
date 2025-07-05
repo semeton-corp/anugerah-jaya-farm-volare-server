@@ -146,19 +146,19 @@ func (h *StoreHandler) GetStores(c *fiber.Ctx) error {
 func (h *StoreHandler) CreateStoreRequestItem(c *fiber.Ctx) error {
 	var request dto.CreateStoreRequestItemRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateStoreRequestItem] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[CreateStoreRequestItem] failed to validate request", zap.Error(err))
+		h.log.Error("validation error", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateStoreRequestItem] failed to get userId from context")
-		return errx.Unauthorized("no userId in context")
+		h.log.Error("failed to get user id from context")
+		return errx.Unauthorized("no user id in context")
 	}
 
 	res, err := h.service.CreateStoreRequestItem(request, uuid.MustParse(userId))

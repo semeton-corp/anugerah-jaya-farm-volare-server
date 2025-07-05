@@ -22,6 +22,7 @@ type StoreService struct {
 	repository       repository.IStoreRepository
 	cacheService     cache.ICache
 	placementService IPlacementService
+	warehouseService IWarehouseService
 }
 
 type IStoreService interface {
@@ -48,12 +49,13 @@ type IStoreService interface {
 	SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
-func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService) IStoreService {
+func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService) IStoreService {
 	return &StoreService{
 		log:              log,
 		repository:       repository,
 		cacheService:     cacheService,
 		placementService: placementService,
+		warehouseService: warehouseService,
 	}
 }
 
@@ -68,13 +70,13 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uui
 
 	err := s.repository.CreateStore(&store)
 	if err != nil {
-		s.log.Error("[CreateStore] failed to create store", zap.Error(err))
+		s.log.Error("failed to create store", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 
 	store, err = s.repository.GetStoreById(store.Id)
 	if err != nil {
-		s.log.Error("[CreateStore] failed to get store by id", zap.Error(err))
+		s.log.Error("failed to get store by id", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 
@@ -86,7 +88,7 @@ func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, up
 
 	store, err := s.repository.GetStoreById(id)
 	if err != nil {
-		s.log.Error("[UpdateStore] failed to get store by id", zap.Error(err))
+		s.log.Error("failed to get store by id", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 
@@ -96,13 +98,13 @@ func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, up
 
 	err = s.repository.UpdateStore(&store)
 	if err != nil {
-		s.log.Error("[UpdateStore] failed to update store", zap.Error(err))
+		s.log.Error("failed to update store", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 
 	store, err = s.repository.GetStoreById(id)
 	if err != nil {
-		s.log.Error("[UpdateStore] failed to get store by id", zap.Error(err))
+		s.log.Error("failed to get store by id", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 
@@ -114,7 +116,7 @@ func (s *StoreService) DeleteStore(id uint64) error {
 
 	err := s.repository.DeleteStore(id)
 	if err != nil {
-		s.log.Error("[DeleteStore] failed to delete store", zap.Error(err))
+		s.log.Error("failed to delete store", zap.Error(err))
 		return err
 	}
 
@@ -126,7 +128,7 @@ func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse
 
 	stores, err := s.repository.GetStores(filter)
 	if err != nil {
-		s.log.Error("[GetStores] failed to get stores", zap.Error(err))
+		s.log.Error("failed to get stores", zap.Error(err))
 		return nil, err
 	}
 
@@ -141,15 +143,25 @@ func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
-	storaPlacement, err := s.placementService.GetStorePlacementByUserId(createdBy)
+	storePlacement, err := s.placementService.GetStorePlacementByUserId(createdBy)
 	if err != nil {
 		return dto.StoreRequestItemResponse{}, err
 	}
 
+	warehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(request.WarehouseId, request.ItemId)
+	if err != nil {
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	// Note : the stock must be in Kg
+	if warehouseItem.Quantity < request.Quantity*constant.TotalEggPerIkat && warehouseItem.Item.Unit == "Kg" {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
+	}
+
 	storeRequestItem := entity.StoreRequestItem{
 		WarehouseId: request.WarehouseId,
-		ItemId:      request.WarehouseItemId,
-		StoreId:     storaPlacement.Store.Id,
+		ItemId:      request.ItemId,
+		StoreId:     storePlacement.Store.Id,
 		Quantity:    request.Quantity,
 		Status:      enum.RequestItemStatusPending,
 		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
@@ -227,12 +239,12 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("invalid status")
 	}
 
-	if storeRequestItem.Status == enum.RequestItemStatusAccepted || storeRequestItem.Status == enum.RequestItemStatusRejected {
+	if storeRequestItem.Status == enum.RequestItemStatusArrivedOk || storeRequestItem.Status == enum.RequestItemStatusRejected {
 		s.log.Error("store request item is already accepted or rejected", zap.Uint64("id", id))
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is already accepted or rejected")
 	}
 
-	if status == enum.RequestItemStatusAccepted && storeRequestItem.Status != enum.RequestItemStatusSentOff {
+	if status == enum.RequestItemStatusArrivedOk && storeRequestItem.Status != enum.RequestItemStatusSentOff {
 		s.log.Error("store request item is not sent off", zap.Uint64("id", id))
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is not sent off")
 	}
@@ -247,7 +259,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is not pending")
 	}
 
-	if status == enum.RequestItemStatusAccepted {
+	if status == enum.RequestItemStatusArrivedOk {
 		// Todo : Create store activity
 		storeItem := entity.StoreItem{
 			ItemId:  storeRequestItem.ItemId,
@@ -270,7 +282,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 
 	if storeRequestItem.Status == enum.RequestItemStatusPending {
 		storeRequestItem.Quantity = request.Quantity
-	} else if status != enum.RequestItemStatusAccepted {
+	} else if status != enum.RequestItemStatusArrivedOk {
 		s.log.Error("[UpdateStoreRequestItem] can't update quantity when status is not pending", zap.Uint64("id", id))
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("can't update quantity when status is not pending")
 	}

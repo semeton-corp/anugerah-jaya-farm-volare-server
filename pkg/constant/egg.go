@@ -15,5 +15,6 @@ const (
 	CrackedEgg string = "Telur Retak"  // display in store
 	BrokenEgg  string = "Telur Bonyok" // display in store
 
-	TotalEggKarpet uint64 = 30
+	TotalEggPerKarpet uint64 = 30 // butir
+	TotalEggPerIkat   uint64 = 15 // kg
 )

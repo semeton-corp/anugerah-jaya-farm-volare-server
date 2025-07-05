@@ -80,7 +80,7 @@ func (r *PlacementRepository) CreateCagePlacementBatch(data []entity.CagePlaceme
 
 func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]entity.CagePlacement, error) {
 	data := make([]entity.CagePlacement, 0)
-	err := r.GetDB().Model(&entity.CagePlacement{}).Where("user_id = ?", userId).Find(&data).Error
+	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User").Preload("Cage").Where("user_id = ?", userId).Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -90,7 +90,7 @@ func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]enti
 
 func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error) {
 	data := new(entity.StorePlacement)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Where("user_id = ?", userId).First(&data).Error
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User").Preload("Store").Where("user_id = ?", userId).First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StorePlacement{}, errx.NotFound("user not have have placement in store")
@@ -103,7 +103,7 @@ func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) (entit
 
 func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error) {
 	data := new(entity.WarehousePlacement)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Where("user_id = ?", userId).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User").Preload("Warehouse").Where("user_id = ?", userId).First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.WarehousePlacement{}, errx.NotFound("user not have have placement in warehouse")

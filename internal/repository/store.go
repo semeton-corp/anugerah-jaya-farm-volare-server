@@ -120,12 +120,19 @@ func (r *StoreRepository) GetStores(filter dto.GetStoreFilter) ([]entity.Store, 
 }
 
 func (r *StoreRepository) CreateStoreRequestItem(storeRequestItem *entity.StoreRequestItem) error {
-	return r.GetDB().Create(storeRequestItem).Error
+	err := r.GetDB().Create(storeRequestItem).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *StoreRepository) GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error) {
 	var storeRequestItem entity.StoreRequestItem
-	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Store.Location").First(&storeRequestItem, id).Error
+	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").Preload("Store.Location").First(&storeRequestItem, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StoreRequestItem{}, errx.NotFound("store request item not found")

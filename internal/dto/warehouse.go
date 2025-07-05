@@ -20,6 +20,7 @@ type GetWarehouseItemFilter struct {
 	WarehouseId uint64                           `query:"warehouseId"`
 	Category    param.WarehouseItemCategoryParam `query:"category"`
 	ItemNames   []string                         `query:"itemNames"`
+	Unit        []string                         `query:"unit"`
 }
 
 type WarehouseResponse struct {
@@ -31,7 +32,7 @@ type WarehouseResponse struct {
 
 type CreateWarehouseItemRequest struct {
 	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
-	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required"`
+	ItemId          uint64 `json:"itemId" validate:"required"`
 	Quantity        uint64 `json:"quantity" validate:"required"`
 	RunOutCountDown uint64 `json:"runOutCountDown" validate:"required"`
 }

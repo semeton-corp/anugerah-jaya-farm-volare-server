@@ -85,13 +85,13 @@ func (b *Bootstrap) DepedencyInjection() {
 	cageService := service.NewCageService(b.log, cageRepository)
 	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
 
-	storeRepository := repository.NewStoreRepository(b.db)
-	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService)
-	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
-
 	warehouseRepository := repository.NewWarehouseRepository(b.db)
-	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, storeService, b.cache)
+	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, b.cache)
 	warehouseHandler := rest.NewWarehouseHandler(b.log, warehouseService, b.validator)
+
+	storeRepository := repository.NewStoreRepository(b.db)
+	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService)
+	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
 
 	eggRepository := repository.NewEggRepository(b.db)
 	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService)
