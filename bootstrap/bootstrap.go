@@ -75,7 +75,7 @@ func (b *Bootstrap) DepedencyInjection() {
 
 	placementRepository := repository.NewPlacementRepository(b.db)
 	placementService := service.NewPlacementService(b.log, placementRepository)
-	// placementHandler := rest.NewPlacementHandler(b.log, placementService, b.validator)
+	placementHandler := rest.NewPlacementHandler(b.log, placementService, b.validator)
 
 	authRepository := repository.NewAuthenticationRepository(b.db)
 	authService := service.NewAuthenticationService(b.log, authRepository, b.email, roleService, placementService)
@@ -139,6 +139,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		userHandler,
 		itemHandler,
 		locationHandler,
+		placementHandler,
 	}
 }
 

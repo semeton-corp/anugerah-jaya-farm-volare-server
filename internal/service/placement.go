@@ -6,6 +6,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -20,6 +21,8 @@ type IPlacementService interface {
 	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) (dto.WarehousePlacementResponse, error)
 
 	GetStorePlacementByUserId(userId uuid.UUID) (dto.StorePlacementResponse, error)
+	GetWarehousePlacementByUserId(userId uuid.UUID) (dto.WarehousePlacementResponse, error)
+	GetCagePlacementByUserId(userId uuid.UUID) ([]dto.CagePlacementResponse, error)
 }
 
 func NewPlacementService(log *zap.Logger, repository repository.IPlacementRepository) IPlacementService {
@@ -44,14 +47,14 @@ func (s *PlacementService) CreateCagePlacementBatch(request dto.CreateCagePlacem
 
 	err := s.repository.CreateCagePlacementBatch(data)
 	if err != nil {
-		s.log.Error("[CreateCagePlacementBatch] failed to create cage placement in batch", zap.Error(err))
+		s.log.Error("failed to create cage placement in batch", zap.Error(err))
 		return nil, err
 	}
 
 	dataResponse := make([]dto.CagePlacementResponse, 0)
 	data, err = s.repository.GetCagePlacementByUserId(userId)
 	if err != nil {
-		s.log.Error("[CreateCagePlacementBatch] failed to get cage placement by user id", zap.Error(err))
+		s.log.Error("failed to get cage placement by user id", zap.Error(err))
 		return nil, err
 	}
 
@@ -136,5 +139,38 @@ func (s *PlacementService) GetStorePlacementByUserId(userId uuid.UUID) (dto.Stor
 		return dto.StorePlacementResponse{}, err
 	}
 
-	return mapper.StorePlacementToResponse(&storePlacement), err
+	return mapper.StorePlacementToResponse(&storePlacement), nil
+}
+
+func (s *PlacementService) GetWarehousePlacementByUserId(userId uuid.UUID) (dto.WarehousePlacementResponse, error) {
+	s.repository.UseTx(false)
+
+	warehousePlacement, err := s.repository.GetWarehousePlacementByUserId(userId)
+	if err != nil {
+		s.log.Error("failed to get warehouse placement by user id", zap.Error(err))
+		return dto.WarehousePlacementResponse{}, err
+	}
+
+	return mapper.WarehousePlacementToResponse(&warehousePlacement), nil
+}
+
+func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
+	s.repository.UseTx(false)
+
+	dataResponse := make([]dto.CagePlacementResponse, 0)
+	data, err := s.repository.GetCagePlacementByUserId(userId)
+	if err != nil {
+		s.log.Error("failed to get cage placement by user id", zap.Error(err))
+		return nil, err
+	}
+
+	if len(data) <= 0 {
+		return nil, errx.NotFound("user cage placement not found")
+	}
+
+	for _, d := range data {
+		dataResponse = append(dataResponse, mapper.CagePlacementToResponse(&d))
+	}
+
+	return dataResponse, nil
 }
