@@ -26,7 +26,6 @@ type StoreResponse struct {
 type CreateStoreRequestItemRequest struct {
 	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required,number"`
 	WarehouseId     uint64 `json:"warehouseId" validate:"required,number"`
-	StoreId         uint64 `json:"storeId" validate:"required,number"`
 	Quantity        uint64 `json:"quantity" validate:"required,number"`
 }
 
@@ -61,8 +60,9 @@ type StoreRequestItemListPaginationResponse struct {
 }
 
 type GetStoreRequestItemFilter struct {
-	Date param.DateParam `query:"date"`
-	Page uint64          `query:"page"`
+	Date    param.DateParam `query:"date"`
+	Page    uint64          `query:"page"`
+	StoreId uint64
 }
 
 type StoreItemResponse struct {

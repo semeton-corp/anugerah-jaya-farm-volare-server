@@ -16,8 +16,10 @@ type PlacementService struct {
 
 type IPlacementService interface {
 	CreateCagePlacementBatch(request dto.CreateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error)
-	CreateStorePlacementBatch(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
-	CreateWarehousePlacementBatch(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
+	CreateStorePlacement(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) (dto.StorePlacementResponse, error)
+	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) (dto.WarehousePlacementResponse, error)
+
+	GetStorePlacementByUserId(userId uuid.UUID) (dto.StorePlacementResponse, error)
 }
 
 func NewPlacementService(log *zap.Logger, repository repository.IPlacementRepository) IPlacementService {
@@ -60,70 +62,54 @@ func (s *PlacementService) CreateCagePlacementBatch(request dto.CreateCagePlacem
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateStorePlacementBatch(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error) {
+func (s *PlacementService) CreateStorePlacement(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) (dto.StorePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	data := make([]entity.StorePlacement, 0)
 	userId := uuid.MustParse(request.UserId)
-	for _, storeId := range request.StoreIds {
-		data = append(data, entity.StorePlacement{
-			UserId:    userId,
-			StoreId:   storeId,
-			CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
-		})
+	data := entity.StorePlacement{
+		UserId:    userId,
+		StoreId:   request.StoreId,
+		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	err := s.repository.CreateStorePlacementBatch(data)
+	err := s.repository.CreateStorePlacement(&data)
 	if err != nil {
-		s.log.Error("[CreateStorePlacementBatch] failed to create store placement in batch", zap.Error(err))
-		return nil, err
+		s.log.Error("failed to create store placement in batch", zap.Error(err))
+		return dto.StorePlacementResponse{}, err
 	}
 
-	dataResponse := make([]dto.StorePlacementResponse, 0)
 	data, err = s.repository.GetStorePlacementByUserId(userId)
 	if err != nil {
-		s.log.Error("[CreateStorePlacementBatch] failed to get store placement by user id", zap.Error(err))
-		return nil, err
+		s.log.Error("failed to get store placement by user id", zap.Error(err))
+		return dto.StorePlacementResponse{}, err
 	}
 
-	for _, d := range data {
-		dataResponse = append(dataResponse, mapper.StorePlacementToResponse(&d))
-	}
-
-	return dataResponse, nil
+	return mapper.StorePlacementToResponse(&data), nil
 }
 
-func (s *PlacementService) CreateWarehousePlacementBatch(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
+func (s *PlacementService) CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) (dto.WarehousePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	data := make([]entity.WarehousePlacement, 0)
 	userId := uuid.MustParse(request.UserId)
-	for _, WarehouseId := range request.WarehouseIds {
-		data = append(data, entity.WarehousePlacement{
-			UserId:      userId,
-			WarehouseId: WarehouseId,
-			CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
-		})
+	data := entity.WarehousePlacement{
+		UserId:      userId,
+		WarehouseId: request.WarehouseId,
+		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	err := s.repository.CreateWarehousePlacementBatch(data)
+	err := s.repository.CreateWarehousePlacement(&data)
 	if err != nil {
-		s.log.Error("[CreateWarehousePlacementBatch] failed to create warehouse placement in batch", zap.Error(err))
-		return nil, err
+		s.log.Error("failed to create warehouse placement in batch", zap.Error(err))
+		return dto.WarehousePlacementResponse{}, err
 	}
 
-	dataResponse := make([]dto.WarehousePlacementResponse, 0)
 	data, err = s.repository.GetWarehousePlacementByUserId(userId)
 	if err != nil {
-		s.log.Error("[CreateWarehousePlacementBatch] failed to get warehouse placement by user id", zap.Error(err))
-		return nil, err
+		s.log.Error("failed to get warehouse placement by user id", zap.Error(err))
+		return dto.WarehousePlacementResponse{}, err
 	}
 
-	for _, d := range data {
-		dataResponse = append(dataResponse, mapper.WarehousePlacementToResponse(&d))
-	}
-
-	return dataResponse, nil
+	return mapper.WarehousePlacementToResponse(&data), nil
 }
 
 func (s *PlacementService) DeleteCagePlacementByUserId(userId uuid.UUID) error {
@@ -139,4 +125,16 @@ func (s *PlacementService) DeleteStorePlacementByUserId(userId uuid.UUID) error 
 func (s *PlacementService) DeleteWarehousePlacementByUserId(userId uuid.UUID) error {
 	s.repository.UseTx(false)
 	return s.repository.DeleteWarehousePlacementByUserId(userId)
+}
+
+func (s *PlacementService) GetStorePlacementByUserId(userId uuid.UUID) (dto.StorePlacementResponse, error) {
+	s.repository.UseTx(false)
+
+	storePlacement, err := s.repository.GetStorePlacementByUserId(userId)
+	if err != nil {
+		s.log.Error("failed to get store placement by user id", zap.Error(err))
+		return dto.StorePlacementResponse{}, err
+	}
+
+	return mapper.StorePlacementToResponse(&storePlacement), err
 }

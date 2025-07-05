@@ -111,9 +111,13 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				return dto.SignUpResponse{}, err
 			}
 		} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
-			_, err := s.placementService.CreateStorePlacementBatch(dto.CreateStorePlacementRequest{
-				UserId:   Id.String(),
-				StoreIds: request.PlacementIds,
+			if len(request.PlacementIds) > 1 {
+				return dto.SignUpResponse{}, errx.BadRequest("store type must be only 1 placement")
+			}
+
+			_, err := s.placementService.CreateStorePlacement(dto.CreateStorePlacementRequest{
+				UserId:  Id.String(),
+				StoreId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
 				// Saga Pattern
@@ -121,9 +125,13 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				return dto.SignUpResponse{}, err
 			}
 		} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
-			_, err := s.placementService.CreateWarehousePlacementBatch(dto.CreateWarehousePlacementRequest{
-				UserId:       Id.String(),
-				WarehouseIds: request.PlacementIds,
+			if len(request.PlacementIds) > 1 {
+				return dto.SignUpResponse{}, errx.BadRequest("warehouse type must be only 1 placement")
+			}
+
+			_, err := s.placementService.CreateWarehousePlacement(dto.CreateWarehousePlacementRequest{
+				UserId:      Id.String(),
+				WarehouseId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
 				// Saga Pattern

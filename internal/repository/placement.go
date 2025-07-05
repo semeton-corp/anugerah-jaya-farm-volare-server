@@ -1,8 +1,11 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -16,13 +19,13 @@ type IPlacementRepository interface {
 	Commit() error
 	Rollback() error
 
-	CreateStorePlacementBatch(data []entity.StorePlacement) error
-	CreateWarehousePlacementBatch(data []entity.WarehousePlacement) error
+	CreateStorePlacement(data *entity.StorePlacement) error
+	CreateWarehousePlacement(data *entity.WarehousePlacement) error
 	CreateCagePlacementBatch(data []entity.CagePlacement) error
 
 	GetCagePlacementByUserId(userId uuid.UUID) ([]entity.CagePlacement, error)
-	GetStorePlacementByUserId(userId uuid.UUID) ([]entity.StorePlacement, error)
-	GetWarehousePlacementByUserId(userId uuid.UUID) ([]entity.WarehousePlacement, error)
+	GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error)
+	GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error)
 
 	DeleteCagePlacementByUserId(userId uuid.UUID) error
 	DeleteStorePlacementByUserId(userId uuid.UUID) error
@@ -63,12 +66,12 @@ func (r *PlacementRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *PlacementRepository) CreateStorePlacementBatch(data []entity.StorePlacement) error {
-	return r.GetDB().Model(&entity.StorePlacement{}).CreateInBatches(data, len(data)).Error
+func (r *PlacementRepository) CreateStorePlacement(data *entity.StorePlacement) error {
+	return r.GetDB().Model(&entity.StorePlacement{}).Create(data).Error
 }
 
-func (r *PlacementRepository) CreateWarehousePlacementBatch(data []entity.WarehousePlacement) error {
-	return r.GetDB().Model(&entity.WarehousePlacement{}).CreateInBatches(data, len(data)).Error
+func (r *PlacementRepository) CreateWarehousePlacement(data *entity.WarehousePlacement) error {
+	return r.GetDB().Model(&entity.WarehousePlacement{}).Create(data).Error
 }
 
 func (r *PlacementRepository) CreateCagePlacementBatch(data []entity.CagePlacement) error {
@@ -85,24 +88,30 @@ func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]enti
 	return data, nil
 }
 
-func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) ([]entity.StorePlacement, error) {
-	data := make([]entity.StorePlacement, 0)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Where("user_id = ?", userId).Find(&data).Error
+func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error) {
+	data := new(entity.StorePlacement)
+	err := r.GetDB().Model(&entity.StorePlacement{}).Where("user_id = ?", userId).First(&data).Error
 	if err != nil {
-		return data, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StorePlacement{}, errx.NotFound("user not have have placement in store")
+		}
+		return *data, err
 	}
 
-	return data, nil
+	return *data, nil
 }
 
-func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) ([]entity.WarehousePlacement, error) {
-	data := make([]entity.WarehousePlacement, 0)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Where("user_id = ?", userId).Find(&data).Error
+func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error) {
+	data := new(entity.WarehousePlacement)
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Where("user_id = ?", userId).First(&data).Error
 	if err != nil {
-		return data, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehousePlacement{}, errx.NotFound("user not have have placement in warehouse")
+		}
+		return *data, err
 	}
 
-	return data, nil
+	return *data, nil
 }
 
 func (r *PlacementRepository) DeleteCagePlacementByUserId(userId uuid.UUID) error {

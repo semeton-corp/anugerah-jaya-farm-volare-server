@@ -298,8 +298,8 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 	}
 
 	if filter.WarehouseId > 0 {
-		warehouseStockItems, err := s.warehouseService.GetWarehouseStockItems(
-			dto.GetWarehouseStockItemFilter{
+		warehouseStockItems, err := s.warehouseService.GetWarehouseItems(
+			dto.GetWarehouseItemFilter{
 				WarehouseId: filter.WarehouseId,
 				Category:    filter.Category,
 			},
@@ -311,7 +311,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 
 		warehouseStockItemResponses := make([]dto.ItemResponse, 0, len(warehouseStockItems))
 		for _, item := range warehouseStockItems {
-			warehouseStockItemResponses = append(warehouseStockItemResponses, item.WarehouseItem)
+			warehouseStockItemResponses = append(warehouseStockItemResponses, item.Item)
 		}
 
 		return warehouseStockItemResponses, nil

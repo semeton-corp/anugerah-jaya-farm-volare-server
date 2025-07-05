@@ -15,7 +15,7 @@ type StoreRequestItem struct {
 	Item        Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
 	StoreId     uint64                 `gorm:"bigint;not null"`
 	Store       Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
-	Quantity    uint64                 `gorm:"bigint;not null"`
+	Quantity    uint64                 `gorm:"bigint;not null"` // Note : this one in ikat (always)
 	Status      enum.RequestItemStatus `gorm:"int;not null"`
 	CreatedAt   time.Time              `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy   uuid.NullUUID          `gorm:"type:varchar(255)"`

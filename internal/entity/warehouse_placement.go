@@ -7,7 +7,7 @@ import (
 )
 
 type WarehousePlacement struct {
-	UserId      uuid.UUID     `gorm:"type:varchar(255);not null"`
+	UserId      uuid.UUID     `gorm:"primaryKey;type:varchar(255);not null"`
 	User        User          `gorm:"foreignKey:UserId;references:Id;primaryKey"`
 	WarehouseId uint64        `gorm:"type:bigint;not null"`
 	Warehouse   Warehouse     `gorm:"foreignKey:WarehouseId;refereces:Id;primaryKey"`

@@ -30,11 +30,11 @@ type IWarehouseService interface {
 	DeleteWarehouse(id uint64) error
 	UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
 
-	CreateWarehouseStockItem(request *dto.CreateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error)
-	GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]dto.WarehouseStockItemResponse, error)
-	GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseStockItemResponse, error)
-	UpdateWarehouseStockItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error)
-	DeleteWarehouseStockItem(warehouseId uint64, warehouseItemId uint64) error
+	CreateWarehouseItem(request dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
+	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
+	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseItemResponse, error)
+	UpdateWarehouseItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
+	DeleteWarehouseItem(warehouseId uint64, warehouseItemId uint64) error
 
 	CreateWarehouseOrderItem(request dto.CreateWarehouseOrderItemRequest, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
 	GetWarehouseOrderItemById(id uint64) (dto.WarehouseOrderItemResponse, error)
@@ -42,9 +42,9 @@ type IWarehouseService interface {
 	DeleteWarehouseOrderItem(id uint64) error
 	TakeWarehouseOrderItem(id uint64, accountId uuid.UUID) (dto.WarehouseOrderItemResponse, error)
 
-	GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
-	GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
-	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error)
+	GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
+	GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
+	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, storeService IStoreService, cacheService cache.ICache) IWarehouseService {
@@ -61,7 +61,7 @@ func (s *WarehouseService) UpdateWarehouse(id uint64, request dto.UpdateWarehous
 
 	warehouse, err := s.repository.GetWarehouseById(id)
 	if err != nil {
-		s.log.Error("[UpdateWarehouse] failed to get warehouse by id", zap.Error(err))
+		s.log.Error("failed to get warehouse by id", zap.Error(err))
 		return dto.WarehouseResponse{}, err
 	}
 
@@ -71,13 +71,13 @@ func (s *WarehouseService) UpdateWarehouse(id uint64, request dto.UpdateWarehous
 
 	err = s.repository.UpdateWarehouse(&warehouse)
 	if err != nil {
-		s.log.Error("[UpdateWarehouse] failed to get udpate warehouse", zap.Error(err))
+		s.log.Error("failed to get udpate warehouse", zap.Error(err))
 		return dto.WarehouseResponse{}, err
 	}
 
 	warehouse, err = s.repository.GetWarehouseById(warehouse.Id)
 	if err != nil {
-		s.log.Error("[UpdateWarehouse] failed to get warehouse by id", zap.Error(err))
+		s.log.Error("failed to get warehouse by id", zap.Error(err))
 		return dto.WarehouseResponse{}, err
 	}
 
@@ -95,13 +95,13 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 
 	err := s.repository.CreateWarehouse(&warehouse)
 	if err != nil {
-		s.log.Error("[CreateWarehouse] failed to create warehouse", zap.Error(err))
+		s.log.Error("failed to create warehouse", zap.Error(err))
 		return dto.WarehouseResponse{}, err
 	}
 
 	warehouse, err = s.repository.GetWarehouseById(warehouse.Id)
 	if err != nil {
-		s.log.Error("[CreateWarehouse] failed to get warehouse by id", zap.Error(err))
+		s.log.Error("failed to get warehouse by id", zap.Error(err))
 		return dto.WarehouseResponse{}, err
 	}
 
@@ -113,7 +113,7 @@ func (s *WarehouseService) GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.W
 
 	warehouses, err := s.repository.GetWarehouses(filter)
 	if err != nil {
-		s.log.Error("[GetWarehouses] failed to get warehouses", zap.Error(err))
+		s.log.Error("failed to get warehouses", zap.Error(err))
 		return nil, err
 	}
 
@@ -130,88 +130,69 @@ func (s *WarehouseService) DeleteWarehouse(id uint64) error {
 
 	err := s.repository.DeleteWarehouse(id)
 	if err != nil {
-		s.log.Error("[DeleteWarehouse] failed to delete warehouse", zap.Error(err))
+		s.log.Error("failed to delete warehouse", zap.Error(err))
 		return err
 	}
 
 	return nil
 }
 
-func (s *WarehouseService) CreateWarehouseStockItem(request *dto.CreateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(false)
 
 	// Todo : create estimation run out date, based on average used per day from request item from request warhouse item.
+	// Todo : fix run out item
 
 	stockWarehouseItem := entity.WarehouseItem{
 		WarehouseId:      request.WarehouseId,
 		ItemId:           request.WarehouseItemId,
 		Quantity:         request.Quantity,
-		EstimationRunOut: time.Now(),
+		EstimationRunOut: time.Now().Add(time.Hour * 24 * time.Duration(request.RunOutCountDown)),
 		CreatedBy:        uuid.NullUUID{UUID: accountId, Valid: true},
 	}
 
-	err := s.repository.CreateWarehouseStockItem(&stockWarehouseItem)
+	err := s.repository.CreateWarehouseItem(&stockWarehouseItem)
 	if err != nil {
-		s.log.Error("[CreateStockWarehouseItem] failed to create stock warehouse item", zap.Error(err))
-		return dto.WarehouseStockItemResponse{}, err
+		s.log.Error("failed to create stock warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
 	}
 
-	stockWarehouseItem, err = s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(
+	stockWarehouseItem, err = s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(
 		stockWarehouseItem.WarehouseId,
 		stockWarehouseItem.ItemId,
 	)
 	if err != nil {
-		s.log.Error("[CreateStockWarehouseItem] failed to get stock warehouse item", zap.Error(err))
-		return dto.WarehouseStockItemResponse{}, err
+		s.log.Error("failed to get stock warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
 	}
 
-	var description string
-	if time.Now().Add(time.Hour * 24 * 7).After(stockWarehouseItem.EstimationRunOut) {
-		description = constant.StockWarehouseItemDanger
-	} else {
-		description = constant.StockWarehouseItemSafe
-	}
-
-	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
-	warehouseStockItemResponse.Description = description
-
-	return warehouseStockItemResponse, nil
+	return mapper.WarehouseItemToResponse(&stockWarehouseItem), nil
 }
 
-func (s *WarehouseService) GetWarehouseStockItems(filter dto.GetWarehouseStockItemFilter) ([]dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(false)
 
-	stockWarehouseItems, err := s.repository.GetWarehouseStockItems(filter)
+	stockWarehouseItems, err := s.repository.GetWarehouseItems(filter)
 	if err != nil {
-		s.log.Error("[GetStockWarehouseItem] failed to get stock warehouse items", zap.Error(err))
+		s.log.Error("failed to get warehouse items", zap.Error(err))
 		return nil, err
 	}
 
-	stockWarehouseItemResponses := make([]dto.WarehouseStockItemResponse, 0, len(stockWarehouseItems))
+	stockWarehouseItemResponses := make([]dto.WarehouseItemResponse, 0, len(stockWarehouseItems))
 	for _, item := range stockWarehouseItems {
-		var description string
-		if time.Now().Add(time.Hour * 24 * 7).After(item.EstimationRunOut) {
-			description = constant.StockWarehouseItemDanger
-		} else {
-			description = constant.StockWarehouseItemSafe
-		}
-
-		warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&item)
-		warehouseStockItemResponse.Description = description
-
-		stockWarehouseItemResponses = append(stockWarehouseItemResponses, warehouseStockItemResponse)
+		stockWarehouseItemResponses = append(stockWarehouseItemResponses, mapper.WarehouseItemToResponse(&item))
 	}
 
 	return stockWarehouseItemResponses, nil
 }
 
-func (s *WarehouseService) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(false)
 
-	stockWarehouseItem, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
+	stockWarehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		s.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to get stock warehouse item", zap.Error(err))
-		return dto.WarehouseStockItemResponse{}, err
+		s.log.Error("failed to get stock warehouse item by warehouse id and item id", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
 	}
 
 	var description string
@@ -221,49 +202,51 @@ func (s *WarehouseService) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(
 		description = constant.StockWarehouseItemSafe
 	}
 
-	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
+	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&stockWarehouseItem)
 	warehouseStockItemResponse.Description = description
 
 	return warehouseStockItemResponse, nil
 }
 
-func (s *WarehouseService) UpdateWarehouseStockItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseStockItemRequest, accountId uuid.UUID) (dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(false)
 
-	stockWarehouseItem, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
+	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		s.log.Error("[UpdateStockWarehouseItem] failed to get stock warehouse item", zap.Error(err))
-		return dto.WarehouseStockItemResponse{}, err
+		s.log.Error("failed to get warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
 	}
 
-	stockWarehouseItem.Quantity = request.Quantity
-	stockWarehouseItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	warehouseItem.Quantity = request.Quantity
+	// Fix this run out time
+	warehouseItem.EstimationRunOut = warehouseItem.EstimationRunOut.Truncate(time.Duration(warehouseItem.CreatedAt.Day())).Add(time.Hour * 24 * time.Duration(request.RunOutCountDown))
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	err = s.repository.UpdateWarehouseStockItem(&stockWarehouseItem)
+	err = s.repository.UpdateWarehouseItem(&warehouseItem)
 	if err != nil {
-		s.log.Error("[UpdateStockWarehouseItem] failed to update stock warehouse item", zap.Error(err))
-		return dto.WarehouseStockItemResponse{}, err
+		s.log.Error("failed to update warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
 	}
 
 	var description string
-	if time.Now().Add(time.Hour * 24 * 7).After(stockWarehouseItem.EstimationRunOut) {
+	if time.Now().Add(time.Hour * 24 * 7).After(warehouseItem.EstimationRunOut) {
 		description = constant.StockWarehouseItemDanger
 	} else {
 		description = constant.StockWarehouseItemSafe
 	}
 
-	warehouseStockItemResponse := mapper.WarehouseStockItemToResponse(&stockWarehouseItem)
+	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&warehouseItem)
 	warehouseStockItemResponse.Description = description
 
 	return warehouseStockItemResponse, nil
 }
 
-func (s *WarehouseService) DeleteWarehouseStockItem(warehouseId uint64, warehouseItemId uint64) error {
+func (s *WarehouseService) DeleteWarehouseItem(warehouseId uint64, warehouseItemId uint64) error {
 	s.repository.UseTx(false)
 
-	err := s.repository.DeleteWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
+	err := s.repository.DeleteWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		s.log.Error("[DeleteStockWarehouseItem] failed to delete stock warehouse item", zap.Error(err))
+		s.log.Error("failed to delete stock warehouse item", zap.Error(err))
 		return err
 	}
 
@@ -387,7 +370,7 @@ func (s *WarehouseService) TakeWarehouseOrderItem(id uint64, accountId uuid.UUID
 	return mapper.WarehouseOrderItemToResponse(&warehouseOrderItem), nil
 }
 
-func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error) {
 	e.repository.UseTx(true)
 	defer e.repository.Rollback()
 
@@ -403,13 +386,13 @@ func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWareh
 		return nil, err
 	}
 
-	warehouseStockItemEggButir, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
+	warehouseStockItemEggButir, err := e.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
 	if err != nil {
 		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
 	}
 
-	warehouseStockItemEggIkat, err := e.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
+	warehouseStockItemEggIkat, err := e.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
 	if err != nil {
 		e.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
@@ -426,14 +409,14 @@ func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWareh
 	warehouseStockItemEggButir.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 	warehouseStockItemEggIkat.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	err = e.repository.UpdateWarehouseItem(&warehouseStockItemEggButir)
 	if err != nil {
 		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
 
 		return nil, err
 	}
 
-	err = e.repository.UpdateWarehouseStockItem(&warehouseStockItemEggIkat)
+	err = e.repository.UpdateWarehouseItem(&warehouseStockItemEggIkat)
 	if err != nil {
 		e.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
 		return nil, err
@@ -444,15 +427,15 @@ func (e *WarehouseService) GoodEggConvertionButirToIkat(request dto.GoodEggWareh
 		return nil, err
 	}
 
-	response := make([]dto.WarehouseStockItemResponse, 0)
+	response := make([]dto.WarehouseItemResponse, 0)
 
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggIkat))
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggIkat))
 
 	return response, nil
 }
 
-func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -469,13 +452,13 @@ func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWareh
 		return nil, err
 	}
 
-	warehouseStockItemEggButir, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
+	warehouseStockItemEggButir, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggButir.Id)
 	if err != nil {
 		s.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
 	}
 
-	warehouseStockItemEggIkat, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
+	warehouseStockItemEggIkat, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, goodEggIkat.Id)
 	if err != nil {
 		s.log.Error("[GoodEggConverterButirToIkat] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
@@ -492,14 +475,14 @@ func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWareh
 	warehouseStockItemEggButir.Quantity = warehouseStockItemEggButir.Quantity + request.TotalButir + (request.TotalKarpet * constant.TotalEggKarpet)
 	warehouseStockItemEggButir.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	err = s.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	err = s.repository.UpdateWarehouseItem(&warehouseStockItemEggButir)
 	if err != nil {
 		s.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
 
 		return nil, err
 	}
 
-	err = s.repository.UpdateWarehouseStockItem(&warehouseStockItemEggIkat)
+	err = s.repository.UpdateWarehouseItem(&warehouseStockItemEggIkat)
 	if err != nil {
 		s.log.Error("[GoodEggConverterButirToIkat] failed to update warehouse stock item", zap.Error(err))
 		return nil, err
@@ -510,15 +493,15 @@ func (s *WarehouseService) GoodEggConvertionIkatToButir(request dto.GoodEggWareh
 		return nil, err
 	}
 
-	response := make([]dto.WarehouseStockItemResponse, 0)
+	response := make([]dto.WarehouseItemResponse, 0)
 
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggIkat))
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggIkat))
 
 	return response, nil
 }
 
-func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseStockItemResponse, error) {
+func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -535,13 +518,13 @@ func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEg
 	}
 
 	// Todo : change it into GetWarehouseItemByFilter
-	warehouseStockItemEggButir, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggButir.Id)
+	warehouseStockItemEggButir, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggButir.Id)
 	if err != nil {
 		s.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
 	}
 
-	warehouseStockItemEggPack, err := s.repository.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggPack.Id)
+	warehouseStockItemEggPack, err := s.repository.GetWarehouseItemByWarehouseIdAndWarehouseItemId(request.WarehouseId, crackedEggPack.Id)
 	if err != nil {
 		s.log.Error("[CrackedEggConverterButirToPacket] failed to get warehouse stock item", zap.Error(err))
 		return nil, err
@@ -557,13 +540,13 @@ func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEg
 	warehouseStockItemEggPack.Quantity = warehouseStockItemEggPack.Quantity + request.TotalPack
 	warehouseStockItemEggPack.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	err = s.repository.UpdateWarehouseStockItem(&warehouseStockItemEggButir)
+	err = s.repository.UpdateWarehouseItem(&warehouseStockItemEggButir)
 	if err != nil {
 		s.log.Error("[CrackedEggConverterButirToPacket] failed to update warehouse stock item", zap.Error(err))
 		return nil, err
 	}
 
-	err = s.repository.UpdateWarehouseStockItem(&warehouseStockItemEggPack)
+	err = s.repository.UpdateWarehouseItem(&warehouseStockItemEggPack)
 	if err != nil {
 		s.log.Error("[CrackedEggConverterButirToPacket] failed to update warehouse stock item", zap.Error(err))
 		return nil, err
@@ -574,9 +557,9 @@ func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEg
 		return nil, err
 	}
 
-	response := make([]dto.WarehouseStockItemResponse, 0)
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggButir))
-	response = append(response, mapper.WarehouseStockItemToResponse(&warehouseStockItemEggPack))
+	response := make([]dto.WarehouseItemResponse, 0)
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggButir))
+	response = append(response, mapper.WarehouseItemToResponse(&warehouseStockItemEggPack))
 
 	return response, nil
 }

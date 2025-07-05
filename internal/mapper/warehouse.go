@@ -1,8 +1,11 @@
 package mapper
 
 import (
+	"time"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 )
 
 func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
@@ -17,14 +20,23 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	}
 }
 
-// Note : without description
-func WarehouseStockItemToResponse(warehouseStockItem *entity.WarehouseItem) dto.WarehouseStockItemResponse {
-	return dto.WarehouseStockItemResponse{
-		Warehouse:        WarehouseToResponse(&warehouseStockItem.Warehouse),
-		WarehouseItem:    ItemToResponse(&warehouseStockItem.Item),
-		Quantity:         warehouseStockItem.Quantity,
-		EstimationRunOut: warehouseStockItem.EstimationRunOut.Format("02-Jan-2006"),
+func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseItemResponse {
+	var description string
+	if time.Now().Add(time.Hour * 24 * 7).After(warehouseItem.EstimationRunOut) {
+		description = constant.StockWarehouseItemDanger
+	} else {
+		description = constant.StockWarehouseItemSafe
 	}
+
+	response := dto.WarehouseItemResponse{
+		Warehouse:        WarehouseToResponse(&warehouseItem.Warehouse),
+		Item:             ItemToResponse(&warehouseItem.Item),
+		Quantity:         warehouseItem.Quantity,
+		EstimationRunOut: warehouseItem.EstimationRunOut.Format("02-Jan-2006"),
+		Description:      description,
+	}
+
+	return response
 }
 
 func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem) dto.WarehouseOrderItemResponse {

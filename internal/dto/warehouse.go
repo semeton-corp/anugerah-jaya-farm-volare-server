@@ -16,10 +16,10 @@ type GetWarehouseFilter struct {
 	LocationId uint64 `query:"locationId"`
 }
 
-
-type GetWarehouseStockItemFilter struct {
+type GetWarehouseItemFilter struct {
 	WarehouseId uint64                           `query:"warehouseId"`
 	Category    param.WarehouseItemCategoryParam `query:"category"`
+	ItemNames   []string                         `query:"itemNames"`
 }
 
 type WarehouseResponse struct {
@@ -29,19 +29,21 @@ type WarehouseResponse struct {
 	TotalEmployee uint64           `json:"totalEmployee"`
 }
 
-type CreateWarehouseStockItemRequest struct {
+type CreateWarehouseItemRequest struct {
 	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
 	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required"`
 	Quantity        uint64 `json:"quantity" validate:"required"`
+	RunOutCountDown uint64 `json:"runOutCountDown" validate:"required"`
 }
 
-type UpdateWarehouseStockItemRequest struct {
-	Quantity uint64 `json:"quantity" validate:"required"`
+type UpdateWarehouseItemRequest struct {
+	Quantity        uint64 `json:"quantity" validate:"required"`
+	RunOutCountDown uint64 `json:"runOutCountDown" validate:"required"`
 }
 
-type WarehouseStockItemResponse struct {
+type WarehouseItemResponse struct {
 	Warehouse        WarehouseResponse `json:"warehouse"`
-	WarehouseItem    ItemResponse      `json:"warehouseItem"`
+	Item             ItemResponse      `json:"item"`
 	Quantity         uint64            `json:"quantity"`
 	EstimationRunOut string            `json:"estimationRunOut"`
 	Description      string            `json:"description"`

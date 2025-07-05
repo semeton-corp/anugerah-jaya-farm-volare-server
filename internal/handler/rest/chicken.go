@@ -35,7 +35,7 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/healths/items/:id", middleware.Authentication(), h.DeleteChickenHealthItem)
 
 	v1.Post("/healths/monitorings", middleware.Authentication(), h.CreateChickenHealthMonitoring)
-	v1.Get("/healths/monitorings/details/:chicken_cage_id", middleware.Authentication(), h.GetChickenHealthMonitoringDetails)
+	v1.Get("/healths/monitorings/details/:chickenCageId", middleware.Authentication(), h.GetChickenHealthMonitoringDetails)
 	v1.Get("/healths/monitorings/:id", middleware.Authentication(), h.GetChickenHealthMonitoringById)
 	v1.Put("/healths/monitorings/:id", middleware.Authentication(), h.UpdateChickenHealthMonitoring)
 	v1.Delete("/healths/monitorings/:id", middleware.Authentication(), h.DeleteChickenHealthMonitoring)
@@ -293,7 +293,7 @@ func (h *ChickenHandler) CreateChickenHealthMonitoring(c *fiber.Ctx) error {
 }
 
 func (h *ChickenHandler) GetChickenHealthMonitoringDetails(c *fiber.Ctx) error {
-	chickenCageId, err := strconv.ParseUint(c.Params("chicken_cage_id"), 10, 64)
+	chickenCageId, err := strconv.ParseUint(c.Params("chickenCageId"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid chicken cage id param", zap.Error(err))
 		return errx.BadRequest("invalid chicken cage id param")

@@ -28,18 +28,17 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteWarehouse)
 	v1.Get("/", middleware.Authentication(), h.GetWarehouses)
 
+	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
+	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
+	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
+	v1.Put("/:warehouseId/items/:itemId", middleware.Authentication(), h.UpdateWarehouseItem)
+	v1.Delete("/:warehouseId/items/:itemId", middleware.Authentication(), h.DeleteWarehouseItem)
 
-	v1.Post("/stock-items", middleware.Authentication(), h.CreateWarehouseStockItem)
-	v1.Get("/stock-items", middleware.Authentication(), h.GetWarehouseStockItems)
-	v1.Get("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), h.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId)
-	v1.Put("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), h.UpdateWarehouseStockItem)
-	v1.Delete("/:warehouseId/stock-items/:warehouseItemId", middleware.Authentication(), h.DeleteWarehouseStockItem)
-
-	v1.Post("/order-items", middleware.Authentication(), h.CreateWarehouseOrderItem)
-	v1.Get("/order-items", middleware.Authentication(), h.GetWarehouseOrderItems)
-	v1.Get("/order-items/:id", middleware.Authentication(), h.GetWarehouseOrderItemById)
-	v1.Delete("/order-items/:id", middleware.Authentication(), h.DeleteWarehouseOrderItem)
-	v1.Patch("/order-items/:id/takes", middleware.Authentication(), h.TakeWarehouseOrderItem)
+	v1.Post("/order/items", middleware.Authentication(), h.CreateWarehouseOrderItem)
+	v1.Get("/order/items", middleware.Authentication(), h.GetWarehouseOrderItems)
+	v1.Get("/order/items/:id", middleware.Authentication(), h.GetWarehouseOrderItemById)
+	v1.Delete("/order/items/:id", middleware.Authentication(), h.DeleteWarehouseOrderItem)
+	v1.Patch("/order/items/:id/takes", middleware.Authentication(), h.TakeWarehouseOrderItem)
 
 	v1.Post("/items/convert/good-egg/butir-to-ikat", middleware.Authentication(), h.GoodEggConvertionButirToIkat)
 	v1.Post("/items/convert/good-egg/ikat-to-butir", middleware.Authentication(), h.GoodEggConvertionIkatToButir)
@@ -57,17 +56,17 @@ func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, val
 func (h *WarehouseHandler) CreateWarehouse(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateWarehouse] user if in context not found")
+		h.log.Error("user if in context not found")
 	}
 
 	var request dto.CreateWarehouseRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateWarehouse] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[CreateWarehouse] failed to validate struct", zap.Error(err))
+		h.log.Error("failed to validate struct", zap.Error(err))
 		return err
 	}
 
@@ -82,23 +81,23 @@ func (h *WarehouseHandler) CreateWarehouse(c *fiber.Ctx) error {
 func (h *WarehouseHandler) UpdateWarehouse(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateWarehouse] failed to parse warehouse id")
+		h.log.Error("failed to parse warehouse id")
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateWarehouse] user if in context not found")
+		h.log.Error("user if in context not found")
 	}
 
 	var request dto.UpdateWarehouseRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateWarehouse] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[CreateWarehouse] failed to validate struct", zap.Error(err))
+		h.log.Error("failed to validate struct", zap.Error(err))
 		return err
 	}
 
@@ -113,7 +112,7 @@ func (h *WarehouseHandler) UpdateWarehouse(c *fiber.Ctx) error {
 func (h *WarehouseHandler) DeleteWarehouse(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteWarehouse] failed to parse warehouse id")
+		h.log.Error("failed to parse warehouse id")
 		return err
 	}
 
@@ -128,165 +127,160 @@ func (h *WarehouseHandler) DeleteWarehouse(c *fiber.Ctx) error {
 func (h *WarehouseHandler) GetWarehouses(c *fiber.Ctx) error {
 	var filter dto.GetWarehouseFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetWarehouses] failed to parse query request", zap.Error(err))
+		h.log.Error("failed to parse query request", zap.Error(err))
 		return err
 	}
 
 	warehouses, err := h.service.GetWarehouses(filter)
 	if err != nil {
-		h.log.Error("[GetWarehouses] failed to get warehouses", zap.Error(err))
+		h.log.Error("failed to get warehouses", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, warehouses, "get warehouses success")
 }
 
-
-
-func (h *WarehouseHandler) CreateWarehouseStockItem(c *fiber.Ctx) error {
-	var request dto.CreateWarehouseStockItemRequest
+func (h *WarehouseHandler) CreateWarehouseItem(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseItemRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateStockWarehouseItem] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[CreateStockWarehouseItem] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateStockWarehouseItem] failed to get userId from context")
-		return errx.Unauthorized("no userId in context")
+		h.log.Error("failed to get user id from context")
+		return errx.Unauthorized("no user id in context")
 	}
 
-	res, err := h.service.CreateWarehouseStockItem(&request, uuid.MustParse(userId))
+	res, err := h.service.CreateWarehouseItem(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[CreateStockWarehouseItem] failed to create stock warehouse item", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusCreated, res, "create stock warehouse item success")
 }
 
-func (h *WarehouseHandler) GetWarehouseStockItems(c *fiber.Ctx) error {
-	var filter dto.GetWarehouseStockItemFilter
+func (h *WarehouseHandler) GetWarehouseItems(c *fiber.Ctx) error {
+	var filter dto.GetWarehouseItemFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetStockWarehouseItems] failed to parse query", zap.Error(err))
+		h.log.Error("failed to parse query", zap.Error(err))
 		return err
 	}
 
-	stockWarehouseItems, err := h.service.GetWarehouseStockItems(filter)
+	stockWarehouseItems, err := h.service.GetWarehouseItems(filter)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItems] failed to get stock warehouse items", zap.Error(err))
+		h.log.Error("failed to get stock warehouse items", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, stockWarehouseItems, "get stock warehouse items success")
 }
 
-func (h *WarehouseHandler) GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(c *fiber.Ctx) error {
+func (h *WarehouseHandler) GetWarehouseItemByWarehouseIdAndItemId(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
-	warehouseItemIdParam := c.Params("warehouseItemId")
+	warehouseItemIdParam := c.Params("itemId")
 
 	if warehouseIdParam == "" || warehouseItemIdParam == "" {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] warehouseId and warehouseItemId are required")
-		return errx.BadRequest("warehouseId and warehouseItemId are required")
+		h.log.Error("warehouse id and item id are required")
+		return errx.BadRequest("warrehouse id and item id are required")
 	}
 
 	warehouseId, err := strconv.ParseUint(warehouseIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to parse warehouseId", zap.Error(err))
-		return errx.BadRequest("failed to parse warehouseId")
+		h.log.Error("failed to parse warehouse id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse id")
 	}
 
 	warehouseItemId, err := strconv.ParseUint(warehouseItemIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to parse warehouseItemId", zap.Error(err))
+		h.log.Error("failed to parse item id", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouseItemId")
 	}
 
-	res, err := h.service.GetWarehouseStockItemByWarehouseIdAndWarehouseItemId(warehouseId, warehouseItemId)
+	res, err := h.service.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to get stock warehouse item", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "get stock warehouse item success")
 }
 
-func (h *WarehouseHandler) UpdateWarehouseStockItem(c *fiber.Ctx) error {
+func (h *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
-	warehouseItemIdParam := c.Params("warehouseItemId")
+	warehouseItemIdParam := c.Params("itemId")
 
 	if warehouseIdParam == "" || warehouseItemIdParam == "" {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] warehouseId and warehouseItemId are required")
+		h.log.Error("warehouseId and warehouseItemId are required")
 		return errx.BadRequest("warehouseId and warehouseItemId are required")
 	}
 
 	warehouseId, err := strconv.ParseUint(warehouseIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to parse warehouseId", zap.Error(err))
+		h.log.Error("failed to parse warehouseId", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouseId")
 	}
 
 	warehouseItemId, err := strconv.ParseUint(warehouseItemIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[GetStockWarehouseItemByWarehouseIdAndWarehouseItemId] failed to parse warehouseItemId", zap.Error(err))
+		h.log.Error("failed to parse warehouseItemId", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouseItemId")
 	}
 
-	var request dto.UpdateWarehouseStockItemRequest
+	var request dto.UpdateWarehouseItemRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[UpdateStockWarehouseItem] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[UpdateStockWarehouseItem] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateStockWarehouseItem] failed to get userId from context")
+		h.log.Error("failed to get userId from context")
 		return errx.Unauthorized("no userId in context")
 	}
 
-	res, err := h.service.UpdateWarehouseStockItem(warehouseId, warehouseItemId, request, uuid.MustParse(userId))
+	res, err := h.service.UpdateWarehouseItem(warehouseId, warehouseItemId, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[UpdateStockWarehouseItem] failed to update stock warehouse item", zap.Error(err))
+		h.log.Error("failed to update stock warehouse item", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "update stock warehouse item success")
 }
 
-func (h *WarehouseHandler) DeleteWarehouseStockItem(c *fiber.Ctx) error {
+func (h *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {
 	warehouseIdParam := c.Params("warehouseId")
-	warehouseItemIdParam := c.Params("warehouseItemId")
+	warehouseItemIdParam := c.Params("itemId")
 
 	if warehouseIdParam == "" || warehouseItemIdParam == "" {
-		h.log.Error("[DeleteStockWarehouseItem] warehouseId and warehouseItemId are required")
+		h.log.Error("warehouseId and warehouseItemId are required")
 		return errx.BadRequest("warehouseId and warehouseItemId are required")
 	}
 
 	warehouseId, err := strconv.ParseUint(warehouseIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteStockWarehouseItem] failed to parse warehouseId", zap.Error(err))
+		h.log.Error("failed to parse warehouseId", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouseId")
 	}
 
 	warehouseItemId, err := strconv.ParseUint(warehouseItemIdParam, 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteStockWarehouseItem] failed to parse warehouseItemId", zap.Error(err))
+		h.log.Error("failed to parse warehouseItemId", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouseItemId")
 	}
 
-	err = h.service.DeleteWarehouseStockItem(warehouseId, warehouseItemId)
+	err = h.service.DeleteWarehouseItem(warehouseId, warehouseItemId)
 	if err != nil {
-		h.log.Error("[DeleteStockWarehouseItem] failed to delete stock warehouse item", zap.Error(err))
 		return err
 	}
 

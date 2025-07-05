@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Todo : fix log wiht not json type
 func New() *zap.Logger {
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
@@ -44,5 +45,6 @@ func New() *zap.Logger {
 		zap.L().Panic("failed to create zap logger", zap.Error(err))
 	}
 
+	zap.ReplaceGlobals(log)
 	return log
 }

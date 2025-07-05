@@ -6,13 +6,13 @@ type CreateCagePlacementRequest struct {
 }
 
 type CreateStorePlacementRequest struct {
-	UserId   string   `json:"userId" validate:"required,number"`
-	StoreIds []uint64 `json:"storeIds" validate:"required,number"`
+	UserId  string `json:"userId" validate:"required,number"`
+	StoreId uint64 `json:"storeId" validate:"required,number"`
 }
 
 type CreateWarehousePlacementRequest struct {
-	UserId       string   `json:"userId" validate:"required,number"`
-	WarehouseIds []uint64 `json:"warehouseIds" validate:"required,number"`
+	UserId      string `json:"userId" validate:"required,number"`
+	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
 }
 
 type CagePlacementResponse struct {

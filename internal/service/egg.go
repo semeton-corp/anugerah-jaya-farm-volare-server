@@ -53,6 +53,7 @@ func NewEggService(
 }
 
 func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
+	// Todo auto update warehoue item when create monitoring
 	count, err := s.repository.CountEggMonitoringByChickenCageIdToday(request.ChickenCageId)
 	if err != nil {
 		s.log.Error("[CreateEggMonitoring] failed to count egg monitoring", zap.Error(err))
