@@ -27,7 +27,6 @@ func (h *EggHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/monitorings/:id", middleware.Authentication(), h.GetEggMonitoringById)
 	v1.Put("/monitorings/:id", middleware.Authentication(), h.UpdateEggMonitoring)
 	v1.Delete("/monitorings/:id", middleware.Authentication(), h.DeleteEggMonitoring)
-	v1.Patch("/monitorings/:id/takes", middleware.Authentication(), h.TakeEggMonitoring)
 
 	v1.Get("/overview", middleware.Authentication(), h.GetEggOverview)
 }
@@ -162,34 +161,6 @@ func (h *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
-}
-
-func (h *EggHandler) TakeEggMonitoring(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		h.log.Error("id is required")
-		return errx.BadRequest("id is required")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
-	if err != nil {
-		h.log.Error("failed to parse id", zap.Error(err))
-		return errx.BadRequest("invalid id param")
-	}
-
-	userId, ok := c.Locals("userId").(string)
-	if !ok {
-		h.log.Error("failed to get userId from context")
-		return errx.Unauthorized("no userId in context")
-	}
-
-	res, err := h.service.TakeEggMonitoring(id, uuid.MustParse(userId))
-	if err != nil {
-		h.log.Error("failed to take egg monitoring", zap.Error(err))
-		return err
-	}
-
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success take egg monitoring")
 }
 
 func (h *EggHandler) GetEggOverview(c *fiber.Ctx) error {

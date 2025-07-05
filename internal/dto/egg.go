@@ -44,7 +44,6 @@ type EggMonitoringResponse struct {
 	TotalRemainingRejectEgg  uint64            `json:"totalRemainingRejectEgg"`
 	TotalWeightAllEgg        float64           `json:"totalWeightAllEgg"`
 	AverageWeight            float64           `json:"averageWeight"`
-	IsTaken                  bool              `json:"isTaken"`
 }
 
 type EggMonitoringListResponse struct {
@@ -58,7 +57,6 @@ type EggMonitoringListResponse struct {
 	AbnormalityRate float64           `json:"abnormalityRate"`
 	AverageWeight   float64           `json:"averageWeight"` // totalWeightGoodEgg / totalGoodEgg
 	Status          string            `json:"status"`
-	IsTaken         bool              `json:"isTaken"`
 }
 
 type GetEggMonitoringFilter struct {

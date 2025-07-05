@@ -123,7 +123,7 @@ func (r *StoreRepository) CreateStoreRequestItem(storeRequestItem *entity.StoreR
 	err := r.GetDB().Create(storeRequestItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
-			
+			return errx.BadRequest("invaid warehouse, item, or store")
 		}
 		return err
 	}

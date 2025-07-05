@@ -29,8 +29,12 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 		TotalWeightGoodEgg:       eggMonitoring.TotalWeightGoodEgg,
 		TotalWeightCrackedEgg:    eggMonitoring.TotalWeightCrackedEgg,
 		TotalWeightAllEgg:        eggMonitoring.TotalWeightGoodEgg + eggMonitoring.TotalWeightCrackedEgg,
-		AverageWeight:            float64(uint64(eggMonitoring.TotalWeightGoodEgg*1000.0/float64(eggMonitoring.TotalGoodEgg)*100.0)) / 100.0,
-		IsTaken:                  eggMonitoring.IsTaken,
+	}
+
+	if eggMonitoring.TotalGoodEgg == 0 {
+		response.AverageWeight = 0
+	} else {
+		response.AverageWeight = float64(uint64(eggMonitoring.TotalWeightGoodEgg*1000.0/float64(eggMonitoring.TotalGoodEgg)*100)) / 100.0
 	}
 
 	return response
@@ -45,8 +49,12 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-		AverageWeight:   float64(uint64(eggMonitoring.TotalWeightGoodEgg*1000.0/float64(eggMonitoring.TotalGoodEgg)*100)) / 100.0,
-		IsTaken:         eggMonitoring.IsTaken,
+	}
+
+	if eggMonitoring.TotalGoodEgg == 0 {
+		response.AverageWeight = 0
+	} else {
+		response.AverageWeight = float64(uint64(eggMonitoring.TotalWeightGoodEgg*1000.0/float64(eggMonitoring.TotalGoodEgg)*100)) / 100.0
 	}
 
 	if response.TotalAllEgg == 0 {

@@ -104,7 +104,16 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 }
 
 func (r *EggRepository) UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring) error {
-	return r.GetDB().Model(entity.EggMonitoring{}).Where("id = ?", eggMonitoring.Id).Updates(eggMonitoring).Error
+	return r.GetDB().Model(&entity.EggMonitoring{}).Where("id = ?", eggMonitoring.Id).Updates(map[string]interface{}{
+		"chicken_cage_id":          eggMonitoring.ChickenCageId,
+		"warehouse_id":             eggMonitoring.WarehouseId,
+		"total_weight_cracked_egg": eggMonitoring.TotalWeightCrackedEgg,
+		"total_weight_good_egg":    eggMonitoring.TotalWeightGoodEgg,
+		"total_good_egg":           eggMonitoring.TotalGoodEgg,
+		"total_cracked_egg":        eggMonitoring.TotalCrackedEgg,
+		"total_reject_egg":         eggMonitoring.TotalRejectEgg,
+		"updated_by":               eggMonitoring.UpdatedBy,
+	}).Error
 }
 
 func (r *EggRepository) DeleteEggMonitoring(id uint64) error {
