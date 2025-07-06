@@ -41,14 +41,14 @@ type UpdateItemPriceRequest struct {
 
 type CreateItemPriceDiscountRequest struct {
 	Name                   string  `json:"name" validate:"required"`
-	MinimumTransactionUser uint64  `json:"minimumTransactionUser" validate:"required,number"`
-	TotalDiscount          float64 `json:"totalDiscount" validate:"required"`
+	MinimumTransactionUser uint64  `json:"minimumTransactionUser" validate:"number,min=0"`
+	TotalDiscount          float64 `json:"totalDiscount" validate:"number,gte=0,lte=100"`
 }
 
 type UpdateItemPriceDiscountRequest struct {
 	Name                   string  `json:"name" validate:"required"`
-	MinimumTransactionUser uint64  `json:"minimumTransactionUser" validate:"required,number"`
-	TotalDiscount          float64 `json:"totalDiscount" validate:"required"`
+	MinimumTransactionUser uint64  `json:"minimumTransactionUser" validate:"number,min=0"`
+	TotalDiscount          float64 `json:"totalDiscount" validate:number,"gte=0,lte=100"`
 }
 
 type ItemPriceResponse struct {

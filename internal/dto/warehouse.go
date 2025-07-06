@@ -58,14 +58,14 @@ type CreateWarehouseOrderItemRequest struct {
 }
 
 type WarehouseOrderItemResponse struct {
-	Id            uint64                               `json:"id"`
-	Warehouse     WarehouseResponse                    `json:"warehouse"`
-	WarehouseItem ItemResponse                         `json:"warehouseItem"`
-	Supplier      SupplierWithoutWarehouseItemResponse `json:"supplier"`
-	TakenBy       string                               `json:"takenBy"`
-	TakenAt       string                               `json:"takenAt"`
-	IsTaken       bool                                 `json:"isTaken"`
-	Quantity      uint64                               `json:"quantity"`
+	Id            uint64               `json:"id"`
+	Warehouse     WarehouseResponse    `json:"warehouse"`
+	WarehouseItem ItemResponse         `json:"warehouseItem"`
+	Supplier      SupplierListResponse `json:"supplier"`
+	TakenBy       string               `json:"takenBy"`
+	TakenAt       string               `json:"takenAt"`
+	IsTaken       bool                 `json:"isTaken"`
+	Quantity      uint64               `json:"quantity"`
 }
 
 type GoodEggWarehouseConvertionRequest struct {

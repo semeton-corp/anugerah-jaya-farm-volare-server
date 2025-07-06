@@ -53,10 +53,12 @@ type UpdateChickenHealthItemRequest struct {
 }
 
 type ChickenHealthItemResponse struct {
-	Id         uint64  `json:"id"`
-	Name       string  `json:"name"`
-	Type       string  `json:"type"`
-	ChickenAge *uint64 `json:"chickenAge"`
+	Id              uint64  `json:"id"`
+	Name            string  `json:"name"`
+	Type            string  `json:"type"`
+	ChickenAge      *uint64 `json:"chickenAge"`
+	ChickenCategory *string `json:"chickenCategory"`
+	Note            string  `json:"note"`
 }
 
 type GetChickenHealthItemFilter struct {

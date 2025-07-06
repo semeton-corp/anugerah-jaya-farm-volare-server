@@ -6,11 +6,30 @@ import (
 )
 
 func SupplierToResponse(supplier *entity.Supplier) dto.SupplierResponse {
-	return dto.SupplierResponse{
-		Id:            supplier.Id,
-		WarehouseItem: ItemToResponse(&supplier.Item),
-		Name:          supplier.Name,
-		PhoneNumber:   supplier.PhoneNumber,
-		Address:       supplier.Address,
+	response := dto.SupplierResponse{
+		Id:          supplier.Id,
+		Name:        supplier.Name,
+		PhoneNumber: supplier.PhoneNumber,
+		Address:     supplier.Address,
 	}
+
+	items := make([]dto.ItemResponse, 0)
+	for _, e := range supplier.SupplierItems {
+		items = append(items, ItemToResponse(&e.Item))
+	}
+
+	response.Items = items
+
+	return response
+}
+
+func SupplierToListResponse(supplier *entity.Supplier) dto.SupplierListResponse {
+	response := dto.SupplierListResponse{
+		Id:          supplier.Id,
+		Name:        supplier.Name,
+		PhoneNumber: supplier.PhoneNumber,
+		Address:     supplier.Address,
+	}
+
+	return response
 }

@@ -1,11 +1,7 @@
 package repository
 
 import (
-	"errors"
-
-	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -24,6 +20,9 @@ type ISupplierRepository interface {
 	GetAllSuppliers() ([]entity.Supplier, error)
 	UpdateSupplier(supplier *entity.Supplier) error
 	DeleteSupplier(id uint64) error
+
+	CreateBatchSupplierItem(supplierItems *[]entity.SupplierItem) error
+	DeleteSupplierItemInBatch(ids []uint64, supplierId uint64) error
 }
 
 func NewSupplierRepository(db *gorm.DB) ISupplierRepository {
@@ -60,17 +59,9 @@ func (r *SupplierRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-// Todo : check to handle violation errror
 func (r *SupplierRepository) CreateSupplier(supplier *entity.Supplier) error {
 	err := r.GetDB().Create(&supplier).Error
 	if err != nil {
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			if pqErr.Code.Name() == "foreign_key_violation" && pqErr.Constraint == "fk_suppliers_warehouse_item" {
-				return errx.NotFound("Warehouse Item not found")
-			}
-		}
-
 		return err
 	}
 
@@ -79,7 +70,7 @@ func (r *SupplierRepository) CreateSupplier(supplier *entity.Supplier) error {
 
 func (r *SupplierRepository) GetSupplierById(id uint64) (entity.Supplier, error) {
 	var supplier entity.Supplier
-	err := r.GetDB().Preload("WarehouseItem").Where("id = ?", id).First(&supplier).Error
+	err := r.GetDB().Model(&entity.Supplier{}).Preload("SupplierItems.Item").Where("id = ?", id).First(&supplier).Error
 	if err != nil {
 		return entity.Supplier{}, err
 	}
@@ -89,7 +80,7 @@ func (r *SupplierRepository) GetSupplierById(id uint64) (entity.Supplier, error)
 
 func (r *SupplierRepository) GetAllSuppliers() ([]entity.Supplier, error) {
 	var suppliers []entity.Supplier
-	err := r.GetDB().Preload("WarehouseItem").Find(&suppliers).Error
+	err := r.GetDB().Model(&entity.Supplier{}).Preload("SupplierItems.Item").Find(&suppliers).Error
 	if err != nil {
 		return nil, err
 	}
@@ -103,4 +94,13 @@ func (r *SupplierRepository) UpdateSupplier(supplier *entity.Supplier) error {
 
 func (r *SupplierRepository) DeleteSupplier(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Supplier{}).Error
+}
+
+// Todo : check to handle violation errror
+func (r *SupplierRepository) CreateBatchSupplierItem(supplierItems *[]entity.SupplierItem) error {
+	return r.GetDB().Model(&entity.SupplierItem{}).CreateInBatches(supplierItems, len(*supplierItems)).Error
+}
+
+func (r *SupplierRepository) DeleteSupplierItemInBatch(ids []uint64, supplierId uint64) error {
+	return r.GetDB().Where("item_id IN ? AND supplier_id = ?", ids, supplierId).Delete(&entity.SupplierItem{}).Error
 }

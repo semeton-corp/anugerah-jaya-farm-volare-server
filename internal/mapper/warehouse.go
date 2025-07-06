@@ -46,7 +46,7 @@ func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem)
 		IsTaken:       warehouseOrderItem.IsTaken.Bool,
 		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
 		WarehouseItem: ItemToResponse(&warehouseOrderItem.Item),
-		Supplier: dto.SupplierWithoutWarehouseItemResponse{
+		Supplier: dto.SupplierListResponse{
 			Id:          warehouseOrderItem.Supplier.Id,
 			Name:        warehouseOrderItem.Supplier.Name,
 			PhoneNumber: warehouseOrderItem.Supplier.PhoneNumber,

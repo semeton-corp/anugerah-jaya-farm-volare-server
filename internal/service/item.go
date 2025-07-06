@@ -202,7 +202,7 @@ func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceD
 
 	eggPriceDiscount, err := s.repository.GetItemPriceDiscountById(id)
 	if err != nil {
-		s.log.Error("[UpdateEggPriceDiscount] failed to get item price discount by id", zap.Error(err))
+		s.log.Error("failed to get item price discount by id", zap.Error(err))
 		return dto.ItemPriceDiscountResponse{}, err
 	}
 
@@ -213,7 +213,7 @@ func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceD
 
 	err = s.repository.UpdateItemPriceDiscount(&eggPriceDiscount)
 	if err != nil {
-		s.log.Error("[UpdateEggPriceDiscount] failed to update item price discount", zap.Error(err))
+		s.log.Error("failed to update item price discount", zap.Error(err))
 		return dto.ItemPriceDiscountResponse{}, err
 	}
 
@@ -223,7 +223,13 @@ func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceD
 func (s *ItemService) DeleteItemDiscount(id uint64) error {
 	s.repository.UseTx(false)
 
-	return s.repository.DeleteItemPriceDiscount(id)
+	err := s.repository.DeleteItemPriceDiscount(id)
+	if err != nil {
+		s.log.Error("failed to delete item price discount")
+		return err
+	}
+
+	return nil
 }
 
 func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (dto.ItemResponse, error) {
@@ -260,7 +266,7 @@ func (s *ItemService) CreateItem(request dto.CreateItemRequest, createdBy uuid.U
 		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	err := s.repository.CreateWarehouseItem(&warehouseItem)
+	err := s.repository.CreateItem(&warehouseItem)
 	if err != nil {
 		s.log.Error("failed to create warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
@@ -317,7 +323,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 		return warehouseStockItemResponses, nil
 	}
 
-	warehouseItems, err := s.repository.GetWarehouseItems(filter)
+	warehouseItems, err := s.repository.GetItems(filter)
 	if err != nil {
 		s.log.Error("[GetWarehouseItems] failed to get warehouse items", zap.Error(err))
 		return nil, err
@@ -340,7 +346,7 @@ func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemR
 		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
 	}
 
-	warehouseItem, err := s.repository.GetWarehouseItemById(warehouseItemId)
+	warehouseItem, err := s.repository.GetItemById(warehouseItemId)
 	if err != nil {
 		s.log.Error("failed to get warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
@@ -351,7 +357,7 @@ func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemR
 	warehouseItem.Category = warehouseItemCategory
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
-	err = s.repository.UpdateWarehouseItem(&warehouseItem)
+	err = s.repository.UpdateItem(&warehouseItem)
 	if err != nil {
 		s.log.Error("failed to update warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
@@ -363,7 +369,7 @@ func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemR
 func (s *ItemService) GetItemById(id uint64) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItem, err := s.repository.GetWarehouseItemById(id)
+	warehouseItem, err := s.repository.GetItemById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
@@ -375,5 +381,5 @@ func (s *ItemService) GetItemById(id uint64) (dto.ItemResponse, error) {
 
 func (s *ItemService) DeleteItem(id uint64) error {
 	s.repository.UseTx(false)
-	return s.repository.DeleteWarehouseItem(id)
+	return s.repository.DeleteItem(id)
 }

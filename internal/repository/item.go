@@ -32,12 +32,12 @@ type IItemRepository interface {
 	UpdateItemPriceDiscount(eggPriceDiscount *entity.ItemPriceDiscount) error
 	DeleteItemPriceDiscount(id uint64) error
 
-	CreateWarehouseItem(warehouseItem *entity.Item) error
-	GetWarehouseItems(filter dto.GetItemFilter) ([]entity.Item, error)
-	GetWarehouseItemById(id uint64) (entity.Item, error)
-	UpdateWarehouseItem(warehouseItem *entity.Item) error
-	DeleteWarehouseItem(id uint64) error
-	GetWarehouseItemByNameAndUnit(name string, unit string) (entity.Item, error)
+	CreateItem(item *entity.Item) error
+	GetItems(filter dto.GetItemFilter) ([]entity.Item, error)
+	GetItemById(id uint64) (entity.Item, error)
+	UpdateItem(warehouseItem *entity.Item) error
+	DeleteItem(id uint64) error
+	GetItemByNameAndUnit(name string, unit string) (entity.Item, error)
 	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.Item, error)
 }
 
@@ -75,12 +75,12 @@ func (r *ItemRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *ItemRepository) CreateItemPrice(eggPrice *entity.ItemPrice) error {
-	return r.GetDB().Create(eggPrice).Error
+func (r *ItemRepository) CreateItemPrice(itemPrice *entity.ItemPrice) error {
+	return r.GetDB().Create(itemPrice).Error
 }
 
-func (r *ItemRepository) CreateItemPriceDiscount(eggPriceDiscount *entity.ItemPriceDiscount) error {
-	return r.GetDB().Create(eggPriceDiscount).Error
+func (r *ItemRepository) CreateItemPriceDiscount(itemPriceDiscount *entity.ItemPriceDiscount) error {
+	return r.GetDB().Create(itemPriceDiscount).Error
 }
 
 func (r *ItemRepository) GetItemPrices() ([]entity.ItemPrice, error) {
@@ -110,12 +110,12 @@ func (r *ItemRepository) GetItemPriceDiscountById(id uint64) (entity.ItemPriceDi
 	return eggPriceDiscount, err
 }
 
-func (r *ItemRepository) UpdateItemPrice(eggPrice *entity.ItemPrice) error {
-	return r.GetDB().Where("id = ?", eggPrice.Id).Updates(eggPrice).Error
+func (r *ItemRepository) UpdateItemPrice(itemPrice *entity.ItemPrice) error {
+	return r.GetDB().Model(&entity.ItemPrice{}).Where("id = ?", itemPrice.Id).Save(itemPrice).Error
 }
 
-func (r *ItemRepository) UpdateItemPriceDiscount(eggPriceDiscount *entity.ItemPriceDiscount) error {
-	return r.GetDB().Where("id = ?", eggPriceDiscount.Id).Updates(eggPriceDiscount).Error
+func (r *ItemRepository) UpdateItemPriceDiscount(itemPriceDiscount *entity.ItemPriceDiscount) error {
+	return r.GetDB().Model(&entity.ItemPriceDiscount{}).Where("id = ?", itemPriceDiscount.Id).Save(itemPriceDiscount).Error
 }
 
 func (r *ItemRepository) DeleteItemPrice(id uint64) error {
@@ -126,11 +126,11 @@ func (r *ItemRepository) DeleteItemPriceDiscount(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.ItemPriceDiscount{}).Error
 }
 
-func (r *ItemRepository) CreateWarehouseItem(warehouseItem *entity.Item) error {
+func (r *ItemRepository) CreateItem(warehouseItem *entity.Item) error {
 	return r.GetDB().Create(warehouseItem).Error
 }
 
-func (r *ItemRepository) GetWarehouseItems(filter dto.GetItemFilter) ([]entity.Item, error) {
+func (r *ItemRepository) GetItems(filter dto.GetItemFilter) ([]entity.Item, error) {
 	var warehouseItems []entity.Item
 
 	query := r.GetDB()
@@ -147,7 +147,7 @@ func (r *ItemRepository) GetWarehouseItems(filter dto.GetItemFilter) ([]entity.I
 	return warehouseItems, nil
 }
 
-func (r *ItemRepository) GetWarehouseItemById(id uint64) (entity.Item, error) {
+func (r *ItemRepository) GetItemById(id uint64) (entity.Item, error) {
 	var warehouseItem entity.Item
 	err := r.GetDB().Where("id = ?", id).First(&warehouseItem).Error
 	if err != nil {
@@ -159,15 +159,15 @@ func (r *ItemRepository) GetWarehouseItemById(id uint64) (entity.Item, error) {
 	return warehouseItem, nil
 }
 
-func (r *ItemRepository) UpdateWarehouseItem(warehouseItem *entity.Item) error {
+func (r *ItemRepository) UpdateItem(warehouseItem *entity.Item) error {
 	return r.GetDB().Model(entity.Item{}).Where("id = ?", warehouseItem.Id).Updates(warehouseItem).Error
 }
 
-func (r *ItemRepository) DeleteWarehouseItem(id uint64) error {
+func (r *ItemRepository) DeleteItem(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Item{}).Error
 }
 
-func (r *ItemRepository) GetWarehouseItemByNameAndUnit(name string, unit string) (entity.Item, error) {
+func (r *ItemRepository) GetItemByNameAndUnit(name string, unit string) (entity.Item, error) {
 	var warehouseItem entity.Item
 	err := r.GetDB().Where("name = ? AND unit = ?", name, unit).First(&warehouseItem).Error
 	if err != nil {
