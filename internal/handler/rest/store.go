@@ -26,6 +26,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/", middleware.Authentication(), h.CreateStore)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateStore)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
+	v1.Get("/:id", middleware.Authentication(), h.GetStoreDetail)
 
 	v1.Post("/request-items", middleware.Authentication(), h.CreateStoreRequestItem)
 	v1.Get("/request-items", middleware.Authentication(), h.GetStockRequestItems)
@@ -50,6 +51,21 @@ func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *
 		service:   service,
 		validator: validator,
 	}
+}
+
+func (h *StoreHandler) GetStoreDetail(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreDetailById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store detail")
 }
 
 func (h *StoreHandler) CreateStore(c *fiber.Ctx) error {

@@ -3,19 +3,23 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type UserResponse struct {
-	Id           string       `json:"id"`
-	Email        string       `json:"email"`
-	Name         string       `json:"name"`
-	PhotoProfile string       `json:"photoProfile"`
-	PhoneNumber  string       `json:"phoneNumber"`
-	Address      string       `json:"address"`
-	Salary       string       `json:"salary"`
-	Role         RoleResponse `json:"role"`
-	CreatedAt    string       `json:"createdAt"`
+	Id           string           `json:"id"`
+	Username     string           `json:"username"`
+	Email        string           `json:"email"`
+	Name         string           `json:"name"`
+	PhotoProfile string           `json:"photoProfile"`
+	PhoneNumber  string           `json:"phoneNumber"`
+	Address      string           `json:"address"`
+	Salary       string           `json:"salary"`
+	Role         RoleResponse     `json:"role"`
+	Location     LocationResponse `json:"location"`
+	CreatedAt    string           `json:"createdAt"`
 }
 
 type UpdateUserRequest struct {
 	Email        string `json:"email" validate:"required,email"`
+	Username     string `json:"username" validate:"required"`
+	LocationId   uint64 `json:"locationId" validate:"required"`
 	RoleId       uint64 `json:"roleId" validate:"required"`
 	PhotoProfile string `json:"photoProfile" validate:"required"`
 	Name         string `json:"name" validate:"required"`
@@ -25,9 +29,10 @@ type UpdateUserRequest struct {
 }
 
 type GetUserFilter struct {
-	RoleId  string `query:"roleId"`
-	Page    uint64 `query:"page"`
-	Keyword string `query:"keyword"`
+	RoleId     uint64 `query:"roleId"`
+	LocationId uint64 `query:"locationId"`
+	Page       uint64 `query:"page"`
+	Keyword    string `query:"keyword"`
 }
 
 type UserListResponse struct {

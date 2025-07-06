@@ -27,6 +27,7 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/:id", middleware.Authentication(), h.UpdateWarehouse)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteWarehouse)
 	v1.Get("/", middleware.Authentication(), h.GetWarehouses)
+	v1.Get("/:id", middleware.Authentication(), h.GetWarehouseDetail)
 
 	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
 	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
@@ -51,6 +52,21 @@ func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, val
 		service:   service,
 		validator: validator,
 	}
+}
+
+func (h *WarehouseHandler) GetWarehouseDetail(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetWarehouseDetailById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse detail")
 }
 
 func (h *WarehouseHandler) CreateWarehouse(c *fiber.Ctx) error {

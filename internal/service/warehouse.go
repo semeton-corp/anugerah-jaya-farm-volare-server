@@ -18,9 +18,10 @@ import (
 )
 
 type WarehouseService struct {
-	log          *zap.Logger
-	repository   repository.IWarehouseRepository
-	cacheService cache.ICache
+	log              *zap.Logger
+	repository       repository.IWarehouseRepository
+	cacheService     cache.ICache
+	placementService IPlacementService
 }
 
 type IWarehouseService interface {
@@ -28,6 +29,7 @@ type IWarehouseService interface {
 	CreateWarehouse(request dto.CreateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
 	DeleteWarehouse(id uint64) error
 	UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
+	GetWarehouseDetailById(id uint64) (dto.WarehouseDetailResponse, error)
 
 	CreateWarehouseItem(request dto.CreateWarehouseItemRequest, accountId uuid.UUID) (dto.WarehouseItemResponse, error)
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
@@ -46,12 +48,40 @@ type IWarehouseService interface {
 	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
 }
 
-func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache) IWarehouseService {
+func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService) IWarehouseService {
 	return &WarehouseService{
-		log:          log,
-		repository:   repository,
-		cacheService: cacheService,
+		log:              log,
+		repository:       repository,
+		cacheService:     cacheService,
+		placementService: placementService,
 	}
+}
+
+func (s *WarehouseService) GetWarehouseDetailById(id uint64) (dto.WarehouseDetailResponse, error) {
+	s.repository.UseTx(false)
+
+	warehouse, err := s.repository.GetWarehouseById(id)
+	if err != nil {
+		s.log.Error("failed to get warehouse by id")
+		return dto.WarehouseDetailResponse{}, err
+	}
+
+	warehousePlacements, err := s.placementService.GetWarehousePlacementByWarehouseId(id)
+	if err != nil {
+		return dto.WarehouseDetailResponse{}, err
+	}
+
+	userResponses := make([]dto.UserResponse, 0)
+	for _, e := range warehousePlacements {
+		userResponses = append(userResponses, e.User)
+	}
+
+	return dto.WarehouseDetailResponse{
+		Id:       warehouse.Id,
+		Name:     warehouse.Name,
+		Location: mapper.LocationToResponse(&warehouse.Location),
+		Users:    userResponses,
+	}, nil
 }
 
 func (s *WarehouseService) UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, updateBy uuid.UUID) (dto.WarehouseResponse, error) {

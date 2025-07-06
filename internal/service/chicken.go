@@ -368,6 +368,7 @@ func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealth
 		Name:      request.Name,
 		Type:      chickenHealthitemType,
 		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		Note:      request.Note,
 	}
 
 	if request.ChickenAge != nil {
@@ -437,6 +438,7 @@ func (s *ChickenService) UpdateChickenHealthItem(id uint64, request dto.UpdateCh
 		chickenHealthItem.ChickenAge = sql.NullInt64{Int64: int64(*request.ChickenAge), Valid: true}
 	}
 	chickenHealthItem.Type = chickenHealthItemType
+	chickenHealthItem.Note = request.Note
 
 	err = s.repository.UpdateChickenHealthItem(&chickenHealthItem)
 	if err != nil {

@@ -1,17 +1,22 @@
 package dto
 
 type CreateCagePlacementRequest struct {
-	UserId  string   `json:"userId" validate:"required,number"`
-	CageIds []uint64 `json:"cageIds" validate:"required,number"`
+	UserId string `json:"userId" validate:"required"`
+	CageId uint64 `json:"cageId" validate:"required,number"`
+}
+
+type UpdateCagePlacementRequest struct {
+	UserId string `json:"userId" validate:"required"`
+	CageId uint64 `json:"cageId" validate:"required,number"`
 }
 
 type CreateStorePlacementRequest struct {
-	UserId  string `json:"userId" validate:"required,number"`
+	UserId  string `json:"userId" validate:"required"`
 	StoreId uint64 `json:"storeId" validate:"required,number"`
 }
 
 type CreateWarehousePlacementRequest struct {
-	UserId      string `json:"userId" validate:"required,number"`
+	UserId      string `json:"userId" validate:"required"`
 	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
 }
 

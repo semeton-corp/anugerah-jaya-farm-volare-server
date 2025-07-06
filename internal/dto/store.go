@@ -23,6 +23,13 @@ type StoreResponse struct {
 	TotalEmployee uint64           `json:"totalEmployee"`
 }
 
+type StoreDetailResponse struct {
+	Id       uint64           `json:"id"`
+	Name     string           `json:"name"`
+	Location LocationResponse `json:"location"`
+	Users    []UserResponse   `json:"users"`
+}
+
 type CreateStoreRequestItemRequest struct {
 	ItemId      uint64 `json:"itemID" validate:"required,number"`
 	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`

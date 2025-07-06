@@ -9,16 +9,15 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 	return dto.UserResponse{
 		Id:           user.Id.String(),
 		Name:         user.Name,
+		Username:     user.Username,
 		Email:        user.Email,
 		Address:      user.Address,
 		PhotoProfile: user.PhotoProfile,
 		PhoneNumber:  user.PhoneNumber,
-		Salary:       user.Salary.String(), // just base salary
+		Salary:       user.Salary.String(), //Note : just base salary
 		CreatedAt:    user.CreatedAt.Format("02 Januari 2006"),
-		Role: dto.RoleResponse{
-			Id:   user.Role.Id,
-			Name: user.Role.Name,
-		},
+		Role:         RoleToResponse(&user.Role),
+		Location:     LocationToResponse(&user.Location),
 	}
 }
 

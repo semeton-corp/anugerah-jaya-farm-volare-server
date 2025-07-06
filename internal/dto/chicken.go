@@ -44,12 +44,14 @@ type CreateChickenHealthItemRequest struct {
 	Name       string  `json:"name" validate:"required"`
 	Type       string  `json:"type" validate:"required,chickenHealthItemType"`
 	ChickenAge *uint64 `json:"chickenAge"`
+	Note       string  `json:"note"`
 }
 
 type UpdateChickenHealthItemRequest struct {
 	Name       string  `json:"name" validate:"required"`
 	Type       string  `json:"type" validate:"required,chickenHealthItemType"`
 	ChickenAge *uint64 `json:"chickenAge"`
+	Note       string  `json:"note"`
 }
 
 type ChickenHealthItemResponse struct {

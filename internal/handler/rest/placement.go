@@ -4,6 +4,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
@@ -19,9 +20,14 @@ type PlacementHandler struct {
 
 func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/placements")
-	v1.Get("/store/me", middleware.Authentication(), h.GetCurrentUserStorePlacement)
-	v1.Get("/warehouse/me", middleware.Authentication(), h.GetCurrentUserWarehousePlacement)
-	v1.Get("/cage/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
+	v1.Get("/stores/me", middleware.Authentication(), h.GetCurrentUserStorePlacement)
+	v1.Post("/stores", middleware.Authentication(), h.CreateStorePlacement)
+
+	v1.Get("/warehouses/me", middleware.Authentication(), h.GetCurrentUserWarehousePlacement)
+	v1.Post("/warehouses", middleware.Authentication(), h.CreateWarehousePlacement)
+
+	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
+	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)
 }
 
 func NewPlacementHandler(log *zap.Logger, service service.IPlacementService, validator *validator.Validate) *PlacementHandler {
@@ -75,4 +81,84 @@ func (h *PlacementHandler) GetCurrentUserCagePlacement(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage placement")
+}
+
+func (h *PlacementHandler) CreateStorePlacement(c *fiber.Ctx) error {
+	var request dto.CreateStorePlacementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateStorePlacement(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create store placement")
+}
+
+func (h *PlacementHandler) CreateWarehousePlacement(c *fiber.Ctx) error {
+	var request dto.CreateWarehousePlacementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Warn("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found context")
+		return errx.Unauthorized("user id not founc in context")
+	}
+
+	data, err := h.service.CreateWarehousePlacement(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create warehouse placement")
+}
+
+func (h *PlacementHandler) UpdateCagePlacement(c *fiber.Ctx) error {
+	var requests []dto.UpdateCagePlacementRequest
+	if err := c.BodyParser(&requests); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	for i := range requests {
+		if err := h.validator.Struct(&requests[i]); err != nil {
+			h.log.Error("validation error", zap.Error(err))
+			return err
+		}
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.UpdateCagePlacement(requests, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success update cage placement")
 }

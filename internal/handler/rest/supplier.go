@@ -42,19 +42,19 @@ func NewSupplierHandler(log *zap.Logger, service service.ISupplierService, valid
 func (h *SupplierHandler) CreateSupplier(c *fiber.Ctx) error {
 	var request dto.CreateSupplierRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateSupplier] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[CreateSupplier] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	userId := c.Locals("userId").(string)
 	if userId == "" {
-		h.log.Error("[CreateSupplier] userId not found in context")
-		return errx.NotFound("userId not found in context")
+		h.log.Error("user id not found in context")
+		return errx.NotFound("user id not found in context")
 	}
 
 	resp, err := h.service.CreateSupplier(&request, uuid.MustParse(userId))
@@ -68,13 +68,12 @@ func (h *SupplierHandler) CreateSupplier(c *fiber.Ctx) error {
 func (h *SupplierHandler) GetSupplierById(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[GetSupplierById] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return err
 	}
 
 	supplier, err := h.service.GetSupplierById(id)
 	if err != nil {
-		h.log.Error("[GetSupplierById] failed to get supplier", zap.Error(err))
 		return err
 	}
 
@@ -84,7 +83,6 @@ func (h *SupplierHandler) GetSupplierById(c *fiber.Ctx) error {
 func (h *SupplierHandler) GetAllSuppliers(c *fiber.Ctx) error {
 	suppliers, err := h.service.GetAllSuppliers()
 	if err != nil {
-		h.log.Error("[GetAllSuppliers] failed to get all suppliers", zap.Error(err))
 		return err
 	}
 
@@ -94,31 +92,30 @@ func (h *SupplierHandler) GetAllSuppliers(c *fiber.Ctx) error {
 func (h *SupplierHandler) UpdateSupplier(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateSupplier] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return err
 	}
 
 	userId := c.Locals("userId").(string)
 	if userId == "" {
-		h.log.Error("[UpdateSupplier] userId not found in context")
-		return errx.NotFound("userId not found in context")
+		h.log.Error("user id not found in context")
+		return errx.NotFound("user id not found in context")
 	}
 
 	var request dto.UpdateSupplierRequest
 
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[UpdateSupplier] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
-		h.log.Error("[UpdateSupplier] failed to validate request", zap.Error(err))
+		h.log.Error("failed to validate request", zap.Error(err))
 		return err
 	}
 
 	resp, err := h.service.UpdateSupplier(id, &request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[UpdateSupplier] failed to update supplier", zap.Error(err))
 		return err
 	}
 
@@ -128,12 +125,12 @@ func (h *SupplierHandler) UpdateSupplier(c *fiber.Ctx) error {
 func (h *SupplierHandler) DeleteSupplier(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[DeleteSupplier] failed to parse id", zap.Error(err))
+		h.log.Error("failed to parse id", zap.Error(err))
 		return err
 	}
 
 	if err := h.service.DeleteSupplier(id); err != nil {
-		h.log.Error("[DeleteSupplier] failed to delete supplier", zap.Error(err))
+		h.log.Error("failed to delete supplier", zap.Error(err))
 		return err
 	}
 

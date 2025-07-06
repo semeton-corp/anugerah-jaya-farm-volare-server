@@ -1,12 +1,14 @@
 package repository
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -62,14 +64,17 @@ func (r *UserRepository) GetDB() *gorm.DB {
 
 func (r *UserRepository) GetUserById(id uuid.UUID) (entity.User, error) {
 	var user entity.User
-	if err := r.GetDB().Where(&entity.User{Id: id}).Preload("Role").First(&user).Error; err != nil {
+	if err := r.GetDB().Where(&entity.User{Id: id}).Preload("Location").Preload("Role").First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.User{}, errx.NotFound("user not found")
+		}
 		return entity.User{}, err
 	}
 	return user, nil
 }
 
-func (r *UserRepository) UpdateUser(staff *entity.User) error {
-	if err := r.GetDB().Model(&entity.User{}).Where("id = ?", staff.Id).Updates(staff).Error; err != nil {
+func (r *UserRepository) UpdateUser(user *entity.User) error {
+	if err := r.GetDB().Model(&entity.User{}).Where("id = ?", user.Id).Updates(user).Error; err != nil {
 		return err
 	}
 	return nil
@@ -83,8 +88,12 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserFilter) ([]entity.User, err
 		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
 	}
 
-	if filter.RoleId != "" {
+	if filter.RoleId > 0 {
 		query = query.Where("role_id = ?", filter.RoleId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
 	if filter.Page != 0 {
@@ -109,7 +118,7 @@ func (r *UserRepository) CountTotalUser(filter *dto.GetUserFilter) (uint64, erro
 		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
 	}
 
-	if filter.RoleId != "" {
+	if filter.RoleId > 0 {
 		query = query.Where("role_id = ?", filter.RoleId)
 	}
 

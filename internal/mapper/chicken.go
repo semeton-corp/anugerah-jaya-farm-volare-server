@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dto.ChickenHealthItemResponse {
@@ -10,13 +11,28 @@ func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dt
 		Id:   chickenHealthItem.Id,
 		Name: chickenHealthItem.Name,
 		Type: chickenHealthItem.Type.String(),
+		Note: chickenHealthItem.Note,
 	}
 
 	if chickenHealthItem.ChickenAge.Valid {
 		valUint64 := uint64(chickenHealthItem.ChickenAge.Int64)
+		var chickenCategory string
+
+		if chickenHealthItem.ChickenAge.Int64 >= 0 && valUint64 <= 9 {
+			chickenCategory = enum.ChickenCategoryDOC.String()
+		} else if valUint64 >= 10 && valUint64 <= 15 {
+			chickenCategory = enum.ChickenCategoryGrower.String()
+		} else if valUint64 >= 16 && valUint64 <= 17 {
+			chickenCategory = enum.ChickenCategoryPreLayer.String()
+		} else if valUint64 >= 18 {
+			chickenCategory = enum.ChickenCategoryPreLayer.String()
+		}
+
 		response.ChickenAge = &valUint64
+		response.ChickenCategory = &chickenCategory
 	} else {
 		response.ChickenAge = nil
+		response.ChickenCategory = nil
 	}
 
 	return response

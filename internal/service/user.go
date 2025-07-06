@@ -67,6 +67,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 	}
 
 	user.Email = request.Email
+	user.Username = request.Username
 	user.RoleId = request.RoleId
 	user.PhotoProfile = request.PhotoProfile
 	user.Name = request.Name

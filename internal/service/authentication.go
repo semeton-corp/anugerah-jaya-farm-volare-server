@@ -101,10 +101,15 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		}
 
 		if slices.Contains(entity.CageLocationTypeList, role.Name) {
-			_, err := s.placementService.CreateCagePlacementBatch(dto.CreateCagePlacementRequest{
-				UserId:  Id.String(),
-				CageIds: request.PlacementIds,
-			}, userId)
+			createCagePlacementRequests := make([]dto.CreateCagePlacementRequest, 0)
+			for _, id := range request.PlacementIds {
+				createCagePlacementRequests = append(createCagePlacementRequests, dto.CreateCagePlacementRequest{
+					UserId: Id.String(),
+					CageId: id,
+				})
+			}
+
+			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId)
 			if err != nil {
 				// Saga Pattern
 				s.repository.DeleteUser(Id)
@@ -115,7 +120,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				return dto.SignUpResponse{}, errx.BadRequest("store type must be only 1 placement")
 			}
 
-			_, err := s.placementService.CreateStorePlacement(dto.CreateStorePlacementRequest{
+			_, err := s.placementService.CreateStorePlacementForAuthentication(dto.CreateStorePlacementRequest{
 				UserId:  Id.String(),
 				StoreId: request.PlacementIds[0],
 			}, userId)
@@ -129,7 +134,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				return dto.SignUpResponse{}, errx.BadRequest("warehouse type must be only 1 placement")
 			}
 
-			_, err := s.placementService.CreateWarehousePlacement(dto.CreateWarehousePlacementRequest{
+			_, err := s.placementService.CreateWarehousePlacementForAuthentication(dto.CreateWarehousePlacementRequest{
 				UserId:      Id.String(),
 				WarehouseId: request.PlacementIds[0],
 			}, userId)

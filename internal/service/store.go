@@ -30,6 +30,7 @@ type IStoreService interface {
 	UpdateStore(id uint64, request dto.UpdateStoreRequest, updatedBy uuid.UUID) (dto.StoreResponse, error)
 	DeleteStore(id uint64) error
 	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
+	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
@@ -138,6 +139,33 @@ func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse
 	}
 
 	return storeResponses, nil
+}
+
+func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error) {
+	s.repository.UseTx(false)
+
+	store, err := s.repository.GetStoreById(id)
+	if err != nil {
+		s.log.Error("failed to get store by id", zap.Error(err))
+		return dto.StoreDetailResponse{}, err
+	}
+
+	storePlacements, err := s.placementService.GetStorePlacementByStoreId(id)
+	if err != nil {
+		return dto.StoreDetailResponse{}, err
+	}
+
+	userResponses := make([]dto.UserResponse, 0)
+	for _, e := range storePlacements {
+		userResponses = append(userResponses, e.User)
+	}
+
+	return dto.StoreDetailResponse{
+		Id:       store.Id,
+		Name:     store.Name,
+		Location: mapper.LocationToResponse(&store.Location),
+		Users:    userResponses,
+	}, nil
 }
 
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {

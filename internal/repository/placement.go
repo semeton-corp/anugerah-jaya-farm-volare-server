@@ -27,9 +27,15 @@ type IPlacementRepository interface {
 	GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error)
 	GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error)
 
+	GetCagePlacementByCageId(cageId uint64) ([]entity.CagePlacement, error)
+	GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error)
+	GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]entity.WarehousePlacement, error)
+
 	DeleteCagePlacementByUserId(userId uuid.UUID) error
 	DeleteStorePlacementByUserId(userId uuid.UUID) error
 	DeleteWarehousePlacementByUserId(userId uuid.UUID) error
+
+	DeleteCagePlacementByCageId(cageId uint64) error
 }
 
 func NewPlacementRepository(db *gorm.DB) IPlacementRepository {
@@ -67,7 +73,14 @@ func (r *PlacementRepository) GetDB() *gorm.DB {
 }
 
 func (r *PlacementRepository) CreateStorePlacement(data *entity.StorePlacement) error {
-	return r.GetDB().Model(&entity.StorePlacement{}).Create(data).Error
+	err := r.GetDB().Model(&entity.StorePlacement{}).Create(data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.BadRequest("invalid store or user")
+		}
+		return err
+	}
+	return nil
 }
 
 func (r *PlacementRepository) CreateWarehousePlacement(data *entity.WarehousePlacement) error {
@@ -124,4 +137,38 @@ func (r *PlacementRepository) DeleteStorePlacementByUserId(userId uuid.UUID) err
 
 func (r *PlacementRepository) DeleteWarehousePlacementByUserId(userId uuid.UUID) error {
 	return r.GetDB().Where("user_id = ?", userId).Delete(&entity.WarehousePlacement{}).Error
+}
+
+func (r *PlacementRepository) GetCagePlacementByCageId(cageId uint64) ([]entity.CagePlacement, error) {
+	data := make([]entity.CagePlacement, 0)
+	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Cage.Location").Where("cage_id = ?", cageId).Find(&data).Error
+	if err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (r *PlacementRepository) GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error) {
+	data := make([]entity.StorePlacement, 0)
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Store.Location").Where("store_id = ?", storeId).First(&data).Error
+	if err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (r *PlacementRepository) GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]entity.WarehousePlacement, error) {
+	data := make([]entity.WarehousePlacement, 0)
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Warehouse.Location").Where("warehouse_id = ?", warehouseId).First(&data).Error
+	if err != nil {
+		return data, err
+	}
+
+	return data, nil
+}
+
+func (r *PlacementRepository) DeleteCagePlacementByCageId(cageId uint64) error {
+	return r.GetDB().Where("cage_id = ?", cageId).Delete(&entity.CagePlacement{}).Error
 }

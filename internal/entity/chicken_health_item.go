@@ -11,8 +11,9 @@ import (
 type ChickenHealthItem struct {
 	Id         uint64                     `gorm:"primaryKey;autoIncrement"`
 	Name       string                     `gorm:"type:varchar(255);not null"`
-	Type       enum.ChickenHealthItemType `gorm:"int;not null"`
-	ChickenAge sql.NullInt64              `gorm:"int"`
+	Type       enum.ChickenHealthItemType `gorm:"type:int;not null"`
+	ChickenAge sql.NullInt64              `gorm:"type:int"`
+	Note       string                     `gorm:"type:text"`
 	CreatedAt  time.Time                  `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy  uuid.NullUUID              `gorm:"type:varchar(255)"`
 	UpdatedAt  time.Time                  `gorm:"type:timestamp;autoUpdateTime"`
