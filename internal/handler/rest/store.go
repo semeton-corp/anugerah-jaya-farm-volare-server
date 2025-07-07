@@ -28,13 +28,15 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
 	v1.Get("/:id", middleware.Authentication(), h.GetStoreDetail)
 
-	v1.Post("/request-items", middleware.Authentication(), h.CreateStoreRequestItem)
-	v1.Get("/request-items", middleware.Authentication(), h.GetStockRequestItems)
-	v1.Get("/request-items/:id", middleware.Authentication(), h.GetStoreRequestItemById)
-	v1.Put("/request-items/:id/warehouses", middleware.Authentication(), h.UpdateStoreRequestItemByWarehouse)
-	v1.Put("/request-items/:id/stores", middleware.Authentication(), h.UpdateStoreRequestItemByStore)
+	v1.Post("/request/items", middleware.Authentication(), h.CreateStoreRequestItem)
+	v1.Get("/request/items", middleware.Authentication(), h.GetStockRequestItems)
+	v1.Get("/request/items/:id", middleware.Authentication(), h.GetStoreRequestItemById)
+	v1.Put("/request/items/:id/warehouses", middleware.Authentication(), h.UpdateStoreRequestItemByWarehouse)
+	v1.Put("/request/items/:id/stores", middleware.Authentication(), h.UpdateStoreRequestItemByStore)
 
-	v1.Get("/items", middleware.Authentication(), h.GetStoreItems)
+	v1.Get("/items/overview/:id", middleware.Authentication(), h.GetStoreItemOverview)
+	v1.Get("/:storeId/items/:itemId", middleware.Authentication(), h.GetStoreItem)
+	v1.Put("/:storeId/items/:itemId", middleware.Authentication(), h.UpdateStoreItem)
 
 	v1.Post("/sales", middleware.Authentication(), h.CreateStoreSale)
 	v1.Get("/sales/:id", middleware.Authentication(), h.GetStoreSaleById)
@@ -71,18 +73,18 @@ func (h *StoreHandler) GetStoreDetail(c *fiber.Ctx) error {
 func (h *StoreHandler) CreateStore(c *fiber.Ctx) error {
 	var request dto.CreateStoreRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[CreateStore] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[CreateStore] validation failed", zap.Error(err))
+		h.log.Error("validation failed", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[CreateStore] user id not found in context")
+		h.log.Error("user id not found in context")
 		return errx.Unauthorized("user id not found in context")
 	}
 
@@ -97,26 +99,26 @@ func (h *StoreHandler) CreateStore(c *fiber.Ctx) error {
 func (h *StoreHandler) UpdateStore(c *fiber.Ctx) error {
 	var request dto.UpdateStoreRequest
 	if err := c.BodyParser(&request); err != nil {
-		h.log.Error("[UpdateStore] failed to parse request", zap.Error(err))
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
-		h.log.Error("[UpdateStore] validation failed", zap.Error(err))
+		h.log.Error("validation failed", zap.Error(err))
 		return err
 
 	}
 
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateStore] failed to parse id param", zap.Error(err))
+		h.log.Error("failed to parse id param", zap.Error(err))
 		return err
 
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[UpdateStore] user id not found in context")
+		h.log.Error("user id not found in context")
 		return errx.Unauthorized("user id not found in context")
 	}
 
@@ -131,13 +133,13 @@ func (h *StoreHandler) UpdateStore(c *fiber.Ctx) error {
 func (h *StoreHandler) DeleteStore(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[UpdateStore] failed to parse id param", zap.Error(err))
+		h.log.Error("failed to parse id param", zap.Error(err))
 		return err
 	}
 
 	err = h.service.DeleteStore(id)
 	if err != nil {
-		h.log.Error("[DeleteStore] failed to delete store")
+		h.log.Error("failed to delete store")
 		return err
 	}
 
@@ -147,7 +149,7 @@ func (h *StoreHandler) DeleteStore(c *fiber.Ctx) error {
 func (h *StoreHandler) GetStores(c *fiber.Ctx) error {
 	var filter dto.GetStoreFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetStores] failed to parse query request")
+		h.log.Error("failed to parse query request")
 		return err
 	}
 
@@ -318,20 +320,81 @@ func (h *StoreHandler) UpdateStoreRequestItemByStore(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store request item by warehouse")
 }
 
-func (h *StoreHandler) GetStoreItems(c *fiber.Ctx) error {
-	var filter dto.GetStoreItemFilter
-	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetStoreItems] failed to parse query", zap.Error(err))
-		return err
-	}
-
-	res, err := h.service.GetStoreItems(filter)
+func (h *StoreHandler) GetStoreItemOverview(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[GetStoreItems] failed to get store items", zap.Error(err))
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	data, err := h.service.GetStoreItemOverview(id)
+	if err != nil {
+		h.log.Error("failed to get store item overview", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success get store items")
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store item overview")
+}
+
+func (h *StoreHandler) GetStoreItem(c *fiber.Ctx) error {
+	storeId, err := strconv.ParseUint(c.Params("storeId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid store id param", zap.Error(err))
+		return errx.BadRequest("invalid store id param")
+	}
+
+	itemId, err := strconv.ParseUint(c.Params("itemId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid item id param", zap.Error(err))
+		return errx.BadRequest("invalid item id param")
+	}
+
+	data, err := h.service.GetStoreItemByStoreIdAndItemId(storeId, itemId)
+	if err != nil {
+		h.log.Error("failed to get store item overview", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store item")
+}
+
+func (h *StoreHandler) UpdateStoreItem(c *fiber.Ctx) error {
+	var request dto.UpdateStoreItemRequest
+
+	storeId, err := strconv.ParseUint(c.Params("storeId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid store id param", zap.Error(err))
+		return errx.BadRequest("invalid store id param")
+	}
+
+	itemId, err := strconv.ParseUint(c.Params("itemId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid item id param", zap.Error(err))
+		return errx.BadRequest("invalid item id param")
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validaton error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.UpdateStoreItem(storeId, itemId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success update store item")
 }
 
 func (h *StoreHandler) CreateStoreSale(c *fiber.Ctx) error {

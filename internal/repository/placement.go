@@ -151,7 +151,7 @@ func (r *PlacementRepository) GetCagePlacementByCageId(cageId uint64) ([]entity.
 
 func (r *PlacementRepository) GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error) {
 	data := make([]entity.StorePlacement, 0)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Store.Location").Where("store_id = ?", storeId).First(&data).Error
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Store.Location").Where("store_id = ?", storeId).Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -161,7 +161,7 @@ func (r *PlacementRepository) GetStorePlacementByStoreId(storeId uint64) ([]enti
 
 func (r *PlacementRepository) GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]entity.WarehousePlacement, error) {
 	data := make([]entity.WarehousePlacement, 0)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Warehouse.Location").Where("warehouse_id = ?", warehouseId).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Warehouse.Location").Where("warehouse_id = ?", warehouseId).Find(&data).Error
 	if err != nil {
 		return data, err
 	}

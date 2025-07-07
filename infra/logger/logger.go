@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// Todo : fix log wiht not json type
 func New() *zap.Logger {
 	encoderCfg := zap.NewProductionEncoderConfig()
 	encoderCfg.EncodeTime = zapcore.TimeEncoderOfLayout(time.RFC3339)
@@ -30,7 +29,7 @@ func New() *zap.Logger {
 		log, err = logCfg.Build()
 	} else if viper.GetString("log.environment") == constant.LogEnvProduction {
 		logCfg := zap.Config{
-			Level:             zap.NewAtomicLevelAt(zap.InfoLevel),
+			Level:             zap.NewAtomicLevelAt(zap.ErrorLevel),
 			Encoding:          "json",
 			EncoderConfig:     encoderCfg,
 			OutputPaths:       []string{"stdout"},

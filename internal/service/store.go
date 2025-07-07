@@ -38,6 +38,9 @@ type IStoreService interface {
 	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
+	GetStoreItemOverview(id uint64) (dto.StoreItemOverview, error)
+	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error)
+	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
 
 	CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
@@ -60,6 +63,7 @@ func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, ca
 	}
 }
 
+// When created store auto create 3 egg object
 func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
 	s.repository.UseTx(false)
 
@@ -182,7 +186,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 	}
 
 	// Note & Todo : the stock must be in Kg && fix
-	if warehouseItem.Quantity < float64(request.Quantity*constant.TotalEggPerIkat) && warehouseItem.Item.Unit == "Kg" {
+	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == "Kg" {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
 	}
 
@@ -338,9 +342,11 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 }
 
 func (s *StoreService) GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error) {
+	s.repository.UseTx(false)
+
 	storeItems, err := s.repository.GetStoreItems(filter)
 	if err != nil {
-		s.log.Error("[GetStoreItem] failed to get store items", zap.Error(err))
+		s.log.Error("failed to get store items", zap.Error(err))
 		return nil, err
 	}
 
@@ -350,6 +356,97 @@ func (s *StoreService) GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.Store
 	}
 
 	return storeItemResponses, nil
+}
+
+func (s *StoreService) GetStoreItemOverview(id uint64) (dto.StoreItemOverview, error) {
+	s.repository.UseTx(false)
+
+	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
+		StoreId: id,
+	})
+	if err != nil {
+		s.log.Error("failed to get store items", zap.Error(err))
+		return dto.StoreItemOverview{}, err
+	}
+
+	eggStoreItemSummaries := make([]dto.EggStoreItemSummary, 0)
+	for _, warehouseItem := range storeItems {
+		switch warehouseItem.Item.Name {
+		case constant.GoodEgg:
+			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
+				Name:     constant.GoodEgg,
+				Quantity: warehouseItem.Quantity,
+				Unit:     constant.EggUnitKg,
+			})
+
+			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
+				Name:     constant.GoodEgg,
+				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
+				Unit:     constant.EggUnitIkat,
+			})
+		case constant.CrackedEgg:
+			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
+				Name:     constant.CrackedEgg,
+				Quantity: warehouseItem.Quantity,
+				Unit:     constant.EggUnitKg,
+			})
+
+			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
+				Name:     constant.CrackedEgg,
+				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
+				Unit:     constant.EggUnitIkat,
+			})
+		}
+	}
+
+	storeItemResponses := make([]dto.StoreItemResponse, len(storeItems))
+	for i, storeItem := range storeItems {
+		storeItemResponses[i] = mapper.StoreItemToResponse(&storeItem)
+	}
+
+	return dto.StoreItemOverview{
+		StoreItems:            storeItemResponses,
+		EggStoreItemSummaries: eggStoreItemSummaries,
+	}, nil
+}
+
+func (s *StoreService) GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error) {
+	s.repository.UseTx(false)
+
+	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(storeId, itemId)
+	if err != nil {
+		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
+		return dto.StoreItemResponse{}, err
+	}
+
+	return mapper.StoreItemToResponse(&storeItem), nil
+}
+
+func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error) {
+	s.repository.UseTx(false)
+
+	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(storeId, itemId)
+	if err != nil {
+		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
+		return dto.StoreItemResponse{}, err
+	}
+
+	storeItem.Quantity = request.Quantity
+	storeItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	err = s.repository.UpdateStoreItem(&storeItem)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.StoreItemResponse{}, err
+	}
+
+	storeItem, err = s.repository.GetStoreItemByStoreIdAndItemId(storeId, itemId)
+	if err != nil {
+		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
+		return dto.StoreItemResponse{}, err
+	}
+
+	return mapper.StoreItemToResponse(&storeItem), nil
 }
 
 func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {

@@ -50,24 +50,19 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 }
 
 func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
-	return dto.StoreItemResponse{
-		Store: dto.StoreResponse{
-			Id:   storeItem.Store.Id,
-			Name: storeItem.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeItem.Store.Location.Id,
-				Name: storeItem.Store.Location.Name,
-			},
-		},
-		WarehouseItem: dto.ItemResponse{
-			Id:       storeItem.Item.Id,
-			Name:     storeItem.Item.Name,
-			Category: storeItem.Item.Category.String(),
-			Unit:     storeItem.Item.Unit,
-		},
-		Quantity:    storeItem.Quantity,
-		Description: constant.StoreItemDescriptionDanger, // Todo : give formula for description
+	response := dto.StoreItemResponse{
+		Store:    StoreToResponse(&storeItem.Store),
+		Item:     ItemToResponse(&storeItem.Item),
+		Quantity: storeItem.Quantity,
 	}
+
+	if storeItem.Quantity/float64(constant.TotalEggPerIkat) >= 20.0 {
+		response.Description = constant.StoreItemDescriptionSafety
+	} else {
+		response.Description = constant.StoreItemDescriptionDanger
+	}
+
+	return response
 }
 
 // Note : without payments, payment payment

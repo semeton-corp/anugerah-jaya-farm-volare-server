@@ -297,7 +297,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 
 		storeItemResponses := make([]dto.ItemResponse, 0, len(storeItems))
 		for _, item := range storeItems {
-			storeItemResponses = append(storeItemResponses, item.WarehouseItem)
+			storeItemResponses = append(storeItemResponses, item.Item)
 		}
 
 		return storeItemResponses, nil

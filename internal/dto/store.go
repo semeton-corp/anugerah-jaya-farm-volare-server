@@ -31,9 +31,9 @@ type StoreDetailResponse struct {
 }
 
 type CreateStoreRequestItemRequest struct {
-	ItemId      uint64 `json:"itemID" validate:"required,number"`
-	WarehouseId uint64 `json:"warehouseId" validate:"required,number"`
-	Quantity    uint64 `json:"quantity" validate:"required,number"` // ikat
+	ItemId      uint64  `json:"itemID" validate:"required,number"`
+	WarehouseId uint64  `json:"warehouseId" validate:"required,number"`
+	Quantity    float64 `json:"quantity" validate:"required,number"` // ikat
 }
 
 type UpdateStoreRequestItemByWarehouseRequest struct {
@@ -41,13 +41,13 @@ type UpdateStoreRequestItemByWarehouseRequest struct {
 }
 
 type UpdateStoreRequestItemByStoreRequest struct {
-	Status   string `json:"status" validate:"required,requestItemStatus,oneof=Diterima"`
-	Quantity uint64 `json:"quantity" validate:"required,number"`
+	Status   string  `json:"status" validate:"required,requestItemStatus,oneof=Diterima"`
+	Quantity float64 `json:"quantity" validate:"required,number"`
 }
 
 type UpdateStoreRequestItemRequest struct {
-	Status   string `json:"status" validate:"required,requestItemStatus"`
-	Quantity uint64 `json:"quantity" validate:"required,number"`
+	Status   string  `json:"status" validate:"required,requestItemStatus"`
+	Quantity float64 `json:"quantity" validate:"required,number"`
 }
 
 type StoreRequestItemResponse struct {
@@ -55,7 +55,7 @@ type StoreRequestItemResponse struct {
 	Warehouse     WarehouseResponse `json:"warehouse"`
 	WarehouseItem ItemResponse      `json:"warehouseItem"`
 	Store         StoreResponse     `json:"store"`
-	Quantity      uint64            `json:"quantity"`
+	Quantity      float64           `json:"quantity"`
 	Status        string            `json:"status"`
 	RequestDate   string            `json:"requestDate"`
 }
@@ -73,10 +73,25 @@ type GetStoreRequestItemFilter struct {
 }
 
 type StoreItemResponse struct {
-	Store         StoreResponse `json:"store"`
-	WarehouseItem ItemResponse  `json:"warehouseItem"`
-	Quantity      uint64        `json:"quantity"`
-	Description   string        `json:"description"`
+	Store       StoreResponse `json:"store"`
+	Item        ItemResponse  `json:"item"`
+	Quantity    float64       `json:"quantity"`
+	Description string        `json:"description"`
+}
+
+type UpdateStoreItemRequest struct {
+	Quantity float64 `json:"quantity" validate:"required"`
+}
+
+type StoreItemOverview struct {
+	EggStoreItemSummaries []EggStoreItemSummary `json:"eggStoreItemSummaries"`
+	StoreItems            []StoreItemResponse   `json:"storeItems"`
+}
+
+type EggStoreItemSummary struct {
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	Unit     string  `json:"unit"`
 }
 
 type GetStoreSaleFilter struct {

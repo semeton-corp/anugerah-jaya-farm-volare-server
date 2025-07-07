@@ -35,6 +35,7 @@ type IStoreRepository interface {
 	FirstOrCreateStoreItem(storeItem *entity.StoreItem) error
 	UpdateStoreItem(storeItem *entity.StoreItem) error
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error)
+	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (entity.StoreItem, error)
 
 	CreateStoreSale(storeSale *entity.StoreSale) error
 	GetStoreSaleById(id uint64) (entity.StoreSale, error)
@@ -173,7 +174,24 @@ func (r *StoreRepository) FirstOrCreateStoreItem(storeItem *entity.StoreItem) er
 }
 
 func (r *StoreRepository) UpdateStoreItem(storeItem *entity.StoreItem) error {
-	return r.GetDB().Model(entity.StoreItem{}).Where("store_id = ? AND warehouse_item_id = ?", storeItem.StoreId, storeItem.ItemId).Updates(storeItem).Error
+	return r.GetDB().Model(entity.StoreItem{}).
+		Where("store_id = ? AND item_id = ?", storeItem.StoreId, storeItem.ItemId).
+		Updates(map[string]interface{}{
+			"quantity": storeItem.Quantity,
+		}).Error
+}
+
+func (r *StoreRepository) GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (entity.StoreItem, error) {
+	var storeItem entity.StoreItem
+	err := r.GetDB().Model(&entity.StoreItem{}).Preload("Store.Location").Preload("Item").Where("store_id = ? AND item_id = ?", storeId, itemId).First(&storeItem).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StoreItem{}, err
+		}
+		return entity.StoreItem{}, err
+	}
+
+	return storeItem, nil
 }
 
 func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error) {

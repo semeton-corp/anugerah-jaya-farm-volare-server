@@ -327,7 +327,7 @@ func (s *PlacementService) GetStorePlacementByStoreId(storeId uint64) ([]dto.Sto
 
 	storePlacements, err := s.repository.GetStorePlacementByStoreId(storeId)
 	if err != nil {
-		s.log.Error("failed to get warehouse placement by warehouse id", zap.Error(err))
+		s.log.Error("failed to get warehouse placement by store id", zap.Error(err))
 		return nil, err
 	}
 
