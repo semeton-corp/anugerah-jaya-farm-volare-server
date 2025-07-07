@@ -22,7 +22,7 @@ func (cd DateParam) Value() time.Time {
 	return time.Time(cd)
 }
 
-type WarehouseItemCategoryParam enum.WarehouseItemCategory
+type WarehouseItemCategoryParam enum.ItemCategory
 
 func (w *WarehouseItemCategoryParam) UnmarshalText(text []byte) error {
 	parsedCategory := enum.ValueOfWarehouseItemCategory(string(text))
@@ -34,8 +34,8 @@ func (w *WarehouseItemCategoryParam) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (w WarehouseItemCategoryParam) Value() enum.WarehouseItemCategory {
-	return enum.WarehouseItemCategory(w)
+func (w WarehouseItemCategoryParam) Value() enum.ItemCategory {
+	return enum.ItemCategory(w)
 }
 
 type PaymentMethodParam enum.PaymentMethod

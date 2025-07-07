@@ -5,6 +5,7 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
@@ -38,7 +39,11 @@ type IWarehouseRepository interface {
 	DeleteWarehouseOrderItem(id uint64) error
 	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
 
-	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.Item, error)
+	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (entity.Item, error)
+	CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error)
+
+	GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error)
+	GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error)
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -142,8 +147,8 @@ func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilte
 		query = query.Where("items.name IN ?", filter.ItemNames)
 	}
 
-	if filter.Unit != nil {
-		query = query.Where("items.unit IN ?", filter.Unit)
+	if filter.Units != nil {
+		query = query.Where("items.unit IN ?", filter.Units)
 	}
 
 	err := query.Preload("Item").Preload("Warehouse.Location").Find(&warehouseItems).Error
@@ -222,9 +227,9 @@ func (r *WarehouseRepository) UpdateWarehouseOrderItem(warehouseOrderItem *entit
 	return r.GetDB().Model(entity.WarehouseOrderItem{}).Where("id = ?", warehouseOrderItem.Id).Updates(&warehouseOrderItem).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.Item, error) {
+func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, unit string, category enum.ItemCategory) (entity.Item, error) {
 	var item entity.Item
-	err := r.GetDB().Where("name = ? AND unit = ? AND type = ?", name, unit, itemType).First(&item).Error
+	err := r.GetDB().Where("name = ? AND unit = ? AND category = ?", name, unit, category).First(&item).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Item{}, errx.NotFound("warehouse item not found")
@@ -232,4 +237,44 @@ func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, 
 		return entity.Item{}, err
 	}
 	return item, nil
+}
+
+func (r *WarehouseRepository) CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error) {
+	var count int64
+	err := r.GetDB().Model(&entity.StoreRequestItem{}).Where("warehouse_id = ?", warehouseId).Count(&count).Error
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
+func (r *WarehouseRepository) GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error) {
+	warehouseItemHistory := make([]entity.WarehouseItemHistory, 0)
+	query := r.GetDB().Model(&entity.WarehouseItemHistory{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Preload("Item").Preload("User").Find(&warehouseItemHistory).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return warehouseItemHistory, nil
+}
+
+func (r *WarehouseRepository) GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error) {
+	var warehouseItemHistory entity.WarehouseItemHistory
+	err := r.GetDB().Model(&entity.WarehouseItemHistory{}).Where("id = ?", id).Preload("Item").Preload("User").First(&warehouseItemHistory).Error
+	if err != nil {
+		return entity.WarehouseItemHistory{}, err
+	}
+
+	return warehouseItemHistory, nil
 }

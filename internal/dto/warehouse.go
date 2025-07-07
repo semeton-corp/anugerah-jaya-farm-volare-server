@@ -20,7 +20,7 @@ type GetWarehouseItemFilter struct {
 	WarehouseId uint64                           `query:"warehouseId"`
 	Category    param.WarehouseItemCategoryParam `query:"category"`
 	ItemNames   []string                         `query:"itemNames"`
-	Unit        []string                         `query:"unit"`
+	Units       []string                         `query:"units"`
 }
 
 type WarehouseResponse struct {
@@ -38,21 +38,21 @@ type WarehouseDetailResponse struct {
 }
 
 type CreateWarehouseItemRequest struct {
-	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
-	ItemId          uint64 `json:"itemId" validate:"required"`
-	Quantity        uint64 `json:"quantity" validate:"required"`
-	RunOutCountDown uint64 `json:"runOutCountDown" validate:"required"`
+	WarehouseId     uint64  `json:"warehouseId" validate:"required"`
+	ItemId          uint64  `json:"itemId" validate:"required"`
+	Quantity        float64 `json:"quantity" validate:"required"`
+	RunOutCountDown *uint64 `json:"runOutCountDown"`
 }
 
 type UpdateWarehouseItemRequest struct {
-	Quantity        uint64 `json:"quantity" validate:"required"`
-	RunOutCountDown uint64 `json:"runOutCountDown" validate:"required"`
+	Quantity        float64 `json:"quantity" validate:"required"`
+	RunOutCountDown *uint64 `json:"runOutCountDown"`
 }
 
 type WarehouseItemResponse struct {
 	Warehouse        WarehouseResponse `json:"warehouse"`
 	Item             ItemResponse      `json:"item"`
-	Quantity         uint64            `json:"quantity"`
+	Quantity         float64           `json:"quantity"`
 	EstimationRunOut string            `json:"estimationRunOut"`
 	Description      string            `json:"description"`
 }
@@ -91,4 +91,51 @@ type CrackedEggWarehouseConvertionRequest struct {
 type GetWarehouseOrderItemFilter struct {
 	Date    param.DateParam `query:"date"`
 	IsTaken bool
+}
+
+type WarehouseOverview struct {
+	Notifications     []string                `json:"notifications"`
+	TotalSafeStock    uint64                  `json:"totalSafeStock"`
+	TotalDangerStock  uint64                  `json:"totalDangerStock"`
+	TotalStoreRequest uint64                  `json:"totalStoreRequest"`
+	EggStocks         []WarehouseItemResponse `json:"eggStocks"`
+	EquipmentStocks   []WarehouseItemResponse `json:"equipmentStocks"`
+}
+
+type WarehouseItemHistoryListResponse struct {
+	Id          uint64       `json:"id"`
+	Item        ItemResponse `json:"item"`
+	Source      string       `json:"source"`
+	Destination string       `json:"destination"`
+	Quantity    float64      `json:"quantity"`
+	Status      string       `json:"status"`
+	Time        string       `json:"time"`
+}
+
+type WarehouseItemHistoryResponse struct {
+	Id             uint64       `json:"id"`
+	Item           ItemResponse `json:"item"`
+	Source         string       `json:"source"`
+	Destination    string       `json:"destination"`
+	QuantityBefore float64      `json:"quantityBefore"`
+	QuantityAfter  float64      `json:"quantityAfter"`
+	Status         string       `json:"status"`
+	UpdatedBy      string       `json:"updatedBy"`
+	Time           string       `json:"time"`
+	Date           string       `json:"date"`
+}
+
+type GetWarehouseItemHistoryFilter struct {
+	Date param.DateParam `query:"date"`
+	Page uint64          `query:"page"`
+}
+
+type EggWarehouseItemSummary struct {
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	Unit     string  `json:"unit"`
+}
+
+type GetEggWarehouseItemSummary struct {
+	WarehouseId uint64 `query:"warehouseId"`
 }

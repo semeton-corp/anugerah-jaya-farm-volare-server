@@ -32,7 +32,7 @@ type IItemService interface {
 	UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, accountId uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	DeleteItemDiscount(id uint64) error
 
-	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (dto.ItemResponse, error)
+	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (dto.ItemResponse, error)
 	CreateItem(request dto.CreateItemRequest, createdBy uuid.UUID) (dto.ItemResponse, error)
 	GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, error)
 	UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, accountId uuid.UUID) (dto.ItemResponse, error)
@@ -232,7 +232,7 @@ func (s *ItemService) DeleteItemDiscount(id uint64) error {
 	return nil
 }
 
-func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (dto.ItemResponse, error) {
+func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
 	stockWarehouseItem, err := s.repository.GetItemByNameAndUnitAndType(name, unit, itemType)
@@ -279,7 +279,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 	s.repository.UseTx(false)
 
 	if filter.StoreId > 0 && filter.WarehouseId > 0 {
-		s.log.Error("[GetWarehouseItems] storeId and warehouseId cannot be used at the same time")
+		s.log.Error("store id and warehouse id cannot be used at the same time")
 		return nil, errx.BadRequest("storeId and warehouseId cannot be used at the same time")
 	}
 
@@ -291,7 +291,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 			},
 		)
 		if err != nil {
-			s.log.Error("[GetWarehouseItems] failed to get store items", zap.Error(err))
+			s.log.Error("failed to get store items", zap.Error(err))
 			return nil, err
 		}
 
@@ -311,7 +311,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 			},
 		)
 		if err != nil {
-			s.log.Error("[GetWarehouseItems] failed to get warehouse stock items", zap.Error(err))
+			s.log.Error("failed to get warehouse stock items", zap.Error(err))
 			return nil, err
 		}
 
@@ -325,7 +325,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 
 	warehouseItems, err := s.repository.GetItems(filter)
 	if err != nil {
-		s.log.Error("[GetWarehouseItems] failed to get warehouse items", zap.Error(err))
+		s.log.Error("failed to get warehouse items", zap.Error(err))
 		return nil, err
 	}
 

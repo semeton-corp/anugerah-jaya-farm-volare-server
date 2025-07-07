@@ -59,7 +59,6 @@ func (h *EggHandler) CreateEggMonitoring(c *fiber.Ctx) error {
 
 	res, err := h.service.CreateEggMonitoring(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create egg monitoring", zap.Error(err))
 		return err
 	}
 
@@ -75,7 +74,6 @@ func (h *EggHandler) GetEggMonitorings(c *fiber.Ctx) error {
 
 	res, err := h.service.GetEggMonitorings(filter)
 	if err != nil {
-		h.log.Error("failed to get egg monitorings", zap.Error(err))
 		return err
 	}
 
@@ -97,7 +95,6 @@ func (h *EggHandler) GetEggMonitoringById(c *fiber.Ctx) error {
 
 	res, err := h.service.GetEggMonitoringById(id)
 	if err != nil {
-		h.log.Error("failed to get egg monitoring by id", zap.Error(err))
 		return err
 	}
 
@@ -155,8 +152,13 @@ func (h *EggHandler) DeleteEggMonitoring(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid id param")
 	}
 
-	if err := h.service.DeleteEggMonitoring(id); err != nil {
-		h.log.Error("failed to delete egg monitoring", zap.Error(err))
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("failed to get userId from context")
+		return errx.Unauthorized("no userId in context")
+	}
+
+	if err := h.service.DeleteEggMonitoring(id, uuid.MustParse(userId)); err != nil {
 		return err
 	}
 
@@ -177,7 +179,6 @@ func (h *EggHandler) GetEggOverview(c *fiber.Ctx) error {
 
 	res, err := h.service.GetOverviewEggMonitoring(filter)
 	if err != nil {
-		h.log.Error("failed to get egg overview", zap.Error(err))
 		return err
 	}
 

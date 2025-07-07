@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"slices"
 
 	"github.com/google/uuid"
@@ -72,13 +73,16 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		Username:     request.Username,
 		Password:     string(hashedPassword),
 		RoleId:       request.RoleId,
-		LocationId:   request.LocationId,
 		PhotoProfile: "https://www.gravatar.com/avatar/?d=mp",
 		Name:         request.Name,
 		PhoneNumber:  request.PhoneNumber,
 		Address:      request.Address,
 		Salary:       salary,
 		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.LocationId != nil {
+		user.LocationId = sql.NullInt64{Int64: int64(*request.LocationId), Valid: true}
 	}
 
 	if request.PhotoProfile != "" {
@@ -172,24 +176,24 @@ func (s *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 
 	user, err := s.repository.GetUserByUsername(request.Username)
 	if err != nil {
-		s.log.Error("[SigIn] failed to get user by email", zap.Error(err))
+		s.log.Error("failed to get user by email", zap.Error(err))
 		return dto.SignInResponse{}, err
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.Password)) != nil {
-		s.log.Error("[SignIn] password or email is incorrect")
+		s.log.Error("password or email is incorrect")
 		return dto.SignInResponse{}, errx.BadRequest("password or email is incorrect")
 	}
 
 	token, err := jwt.EncodeToken(&user)
 	if err != nil {
-		s.log.Error("[SignIn] failed to encode token", zap.Error(err))
+		s.log.Error("failed to encode token", zap.Error(err))
 		return dto.SignInResponse{}, err
 	}
 
 	user, err = s.repository.GetUserById(user.Id)
 	if err != nil {
-		s.log.Error("[SignIn] failed to get staff by id", zap.Error(err))
+		s.log.Error("failed to get staff by id", zap.Error(err))
 		return dto.SignInResponse{}, err
 	}
 

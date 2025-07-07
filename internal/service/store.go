@@ -181,8 +181,8 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	// Note : the stock must be in Kg
-	if warehouseItem.Quantity < request.Quantity*constant.TotalEggPerIkat && warehouseItem.Item.Unit == "Kg" {
+	// Note & Todo : the stock must be in Kg && fix
+	if warehouseItem.Quantity < float64(request.Quantity*constant.TotalEggPerIkat) && warehouseItem.Item.Unit == "Kg" {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
 	}
 

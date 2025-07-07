@@ -6,12 +6,14 @@ const (
 	ActivityStatusUnknown ActivityStatus = 0
 	ActivityStatusIn      ActivityStatus = 1
 	ActivityStatusOut     ActivityStatus = 2
+	ActivityStockUpdated  ActivityStatus = 3
 )
 
 var (
 	ActivityStatusMap = map[ActivityStatus]string{
-		ActivityStatusIn:  "Masuk",
-		ActivityStatusOut: "Keluar",
+		ActivityStockUpdated: "Stok Diperbarui",
+		ActivityStatusIn:     "Barang Masuk",
+		ActivityStatusOut:    "Barang Keluar",
 	}
 )
 

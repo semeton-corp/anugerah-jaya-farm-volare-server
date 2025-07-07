@@ -20,19 +20,28 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	}
 }
 
+// Todo : fix this!!
 func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseItemResponse {
 	var description string
-	if time.Now().Add(time.Hour * 24 * 7).After(warehouseItem.EstimationRunOut) {
-		description = constant.StockWarehouseItemDanger
+	var estimationRunOutStr string
+
+	if warehouseItem.EstimationRunOut.Valid {
+		if time.Now().Add(time.Hour * 24 * 7).After(warehouseItem.EstimationRunOut.Time) {
+			description = constant.StockWarehouseItemDanger
+		} else {
+			description = constant.StockWarehouseItemSafe
+		}
+		estimationRunOutStr = warehouseItem.EstimationRunOut.Time.Format("02-Jan-2006")
 	} else {
 		description = constant.StockWarehouseItemSafe
+		estimationRunOutStr = ""
 	}
 
 	response := dto.WarehouseItemResponse{
 		Warehouse:        WarehouseToResponse(&warehouseItem.Warehouse),
 		Item:             ItemToResponse(&warehouseItem.Item),
 		Quantity:         warehouseItem.Quantity,
-		EstimationRunOut: warehouseItem.EstimationRunOut.Format("02-Jan-2006"),
+		EstimationRunOut: estimationRunOutStr,
 		Description:      description,
 	}
 
@@ -60,4 +69,31 @@ func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem)
 	}
 
 	return warehouseItemResponse
+}
+
+func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryResponse {
+	return dto.WarehouseItemHistoryResponse{
+		Id:             warehouseItemHistory.Id,
+		Item:           ItemToResponse(&warehouseItemHistory.Item),
+		Source:         warehouseItemHistory.Source,
+		Destination:    warehouseItemHistory.Destination,
+		QuantityBefore: warehouseItemHistory.QuantityBefore,
+		QuantityAfter:  warehouseItemHistory.QuantityAfter,
+		Status:         warehouseItemHistory.Status.String(),
+		UpdatedBy:      warehouseItemHistory.User.Name,
+		Date:           warehouseItemHistory.CreatedAt.Format("02-Jan-2006"),
+		Time:           warehouseItemHistory.CreatedAt.Format("15:04"),
+	}
+}
+
+func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryListResponse {
+	return dto.WarehouseItemHistoryListResponse{
+		Id:          warehouseItemHistory.Id,
+		Item:        ItemToResponse(&warehouseItemHistory.Item),
+		Source:      warehouseItemHistory.Source,
+		Destination: warehouseItemHistory.Destination,
+		Status:      warehouseItemHistory.Status.String(),
+		Quantity:    warehouseItemHistory.QuantityAfter - warehouseItemHistory.QuantityBefore,
+		Time:        warehouseItemHistory.CreatedAt.Format("15:04"),
+	}
 }

@@ -34,7 +34,7 @@ type GetPresenceFilter struct {
 }
 
 type UpdateStaffPresenceRequest struct {
-	IsPresent bool   `json:"isPresent" validate:"required"`
+	Status    string `json:"status"`
 	StartTime string `json:"startTime"` // format: "15:04"`
 	EndTime   string `json:"endTime"`
 }

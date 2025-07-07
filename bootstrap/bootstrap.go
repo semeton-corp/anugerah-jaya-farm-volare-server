@@ -17,6 +17,7 @@ import (
 	_scheduler "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/scheduler"
 	_validator "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/validator"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/handler/rest"
+	_listener "github.com/semeton-corp/anugerah-jaya-farm-volare/internal/listener"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/spf13/viper"
@@ -93,8 +94,12 @@ func (b *Bootstrap) DepedencyInjection() {
 	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService)
 	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
 
+	itemRepository := repository.NewItemRepository(b.db)
+	itemService := service.NewItemPriceService(b.log, itemRepository, storeService, warehouseService)
+	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
+
 	eggRepository := repository.NewEggRepository(b.db)
-	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService)
+	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService, itemService, b.cache)
 	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
 
 	chickenRepository := repository.NewChickenRepository(b.db)
@@ -116,10 +121,6 @@ func (b *Bootstrap) DepedencyInjection() {
 	userRepository := repository.NewUserRepository(b.db)
 	userService := service.NewUserService(b.log, userRepository, workService, presenceService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
-
-	itemRepository := repository.NewItemRepository(b.db)
-	itemService := service.NewItemPriceService(b.log, itemRepository, storeService, warehouseService)
-	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
 
 	locationRepository := repository.NewLocationRepository(b.db)
 	locationService := service.NewLocationService(b.log, locationRepository)
@@ -155,6 +156,9 @@ func (b *Bootstrap) Run() {
 	b.log.Info("Running database migrations...")
 	_persistence.Migrate(b.db)
 	// _persistence.Rollback(b.db)
+
+	warehouseListener := _listener.NewWarehouseListener(b.cache, b.db, b.log)
+	go warehouseListener.Start(context.Background())
 
 	b.router.Use(cors.New(cors.Config{
 		AllowOrigins:  viper.GetString("server.cors.allow_origins"),

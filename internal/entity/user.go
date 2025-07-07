@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,7 +13,7 @@ type User struct {
 	Username     string          `gorm:"type:varchar(255);not null;unique"`
 	Email        string          `gorm:"type:varchar(255);not null;unique"`
 	Password     string          `gorm:"type:varchar(255);not null"`
-	LocationId   uint64          `gorm:"type:bigint;not null"`
+	LocationId   sql.NullInt64   `gorm:"type:bigint"`
 	Location     Location        `gorm:"foreignKey:LocationId;references:Id;constraint:OnDelete:CASCADE"`
 	RoleId       uint64          `gorm:"type:bigint;not null"`
 	Role         Role            `gorm:"foreignKey:RoleId;references:Id;constraint:OnDelete:set null"`

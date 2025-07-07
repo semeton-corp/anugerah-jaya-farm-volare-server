@@ -5,6 +5,7 @@ const (
 	EggMonitoringStatusCheck  string = "Periksa"
 	EggMonitoringStatusUrgent string = "Urgent"
 
+	EggUnitKg      string = "Kg"
 	EggUnitButir   string = "Butir"
 	EggUnitIkat    string = "Ikat"
 	EggUnitKarpet  string = "Karpet"

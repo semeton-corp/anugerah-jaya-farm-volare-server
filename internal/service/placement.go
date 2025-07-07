@@ -30,6 +30,9 @@ type IPlacementService interface {
 
 	GetStorePlacementByStoreId(storeId uint64) ([]dto.StorePlacementResponse, error)
 	GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]dto.WarehousePlacementResponse, error)
+
+	DeleteStorePlacementByUserId(userId uuid.UUID) error
+	DeleteWarehousePlacementByUserId(userId uuid.UUID) error
 }
 
 func NewPlacementService(log *zap.Logger, repository repository.IPlacementRepository) IPlacementService {

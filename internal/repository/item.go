@@ -38,7 +38,7 @@ type IItemRepository interface {
 	UpdateItem(warehouseItem *entity.Item) error
 	DeleteItem(id uint64) error
 	GetItemByNameAndUnit(name string, unit string) (entity.Item, error)
-	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.Item, error)
+	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (entity.Item, error)
 }
 
 func NewItemRepository(db *gorm.DB) IItemRepository {
@@ -179,9 +179,9 @@ func (r *ItemRepository) GetItemByNameAndUnit(name string, unit string) (entity.
 	return warehouseItem, nil
 }
 
-func (r *ItemRepository) GetItemByNameAndUnitAndType(name string, unit string, itemType enum.WarehouseItemCategory) (entity.Item, error) {
+func (r *ItemRepository) GetItemByNameAndUnitAndType(name string, unit string, category enum.ItemCategory) (entity.Item, error) {
 	var warehouseItem entity.Item
-	err := r.GetDB().Where("name = ? AND unit = ? AND type = ?", name, unit, itemType).First(&warehouseItem).Error
+	err := r.GetDB().Where("name = ? AND unit = ? AND category = ?", name, unit, category).First(&warehouseItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Item{}, errx.NotFound("warehouse item not found")

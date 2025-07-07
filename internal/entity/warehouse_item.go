@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,8 +12,8 @@ type WarehouseItem struct {
 	Item             Item          `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId      uint64        `gorm:"primaryKey;type:bigint;not null"`
 	Warehouse        Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	Quantity         uint64        `gorm:"type:bigint;not null"`
-	EstimationRunOut time.Time     `gorm:"type:date;not null"`
+	Quantity         float64       `gorm:"type:decimal;not null"`
+	EstimationRunOut sql.NullTime  `gorm:"type:date"`
 	CreatedAt        time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy        uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt        time.Time     `gorm:"type:timestamp;autoUpdateTime"`

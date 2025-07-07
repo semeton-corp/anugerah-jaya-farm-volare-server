@@ -23,12 +23,14 @@ type WarehouseHandler struct {
 
 func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/warehouses")
+	v1.Get("/overview/:id", middleware.Authentication(), h.GetWarehouseOverview)
 	v1.Post("/", middleware.Authentication(), h.CreateWarehouse)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateWarehouse)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteWarehouse)
 	v1.Get("/", middleware.Authentication(), h.GetWarehouses)
 	v1.Get("/:id", middleware.Authentication(), h.GetWarehouseDetail)
 
+	v1.Get("/items/eggs/summary/:warehouseId", middleware.Authentication(), h.GetEggWarehouseItemSummary)
 	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
 	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
 	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
@@ -44,6 +46,9 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/items/convert/good-egg/butir-to-ikat", middleware.Authentication(), h.GoodEggConvertionButirToIkat)
 	v1.Post("/items/convert/good-egg/ikat-to-butir", middleware.Authentication(), h.GoodEggConvertionIkatToButir)
 	v1.Post("/items/convert/cracked-egg/butir-to-pack", middleware.Authentication(), h.CrackedEggConverterButirToPack)
+
+	v1.Get("/items/histories", middleware.Authentication(), h.GetWarehouseItemHistories)
+	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetWarehouseItemHistory)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -52,6 +57,21 @@ func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, val
 		service:   service,
 		validator: validator,
 	}
+}
+
+func (h *WarehouseHandler) GetWarehouseOverview(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetWarehouseOverview(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse overview")
 }
 
 func (h *WarehouseHandler) GetWarehouseDetail(c *fiber.Ctx) error {
@@ -279,20 +299,20 @@ func (h *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {
 	warehouseItemIdParam := c.Params("itemId")
 
 	if warehouseIdParam == "" || warehouseItemIdParam == "" {
-		h.log.Error("warehouseId and warehouseItemId are required")
-		return errx.BadRequest("warehouseId and warehouseItemId are required")
+		h.log.Error("warehouse id and warehouse item id are required")
+		return errx.BadRequest("warehouse id and warehouse item id are required")
 	}
 
 	warehouseId, err := strconv.ParseUint(warehouseIdParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse warehouseId", zap.Error(err))
-		return errx.BadRequest("failed to parse warehouseId")
+		return errx.BadRequest("failed to parse warehouse id")
 	}
 
 	warehouseItemId, err := strconv.ParseUint(warehouseItemIdParam, 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse warehouseItemId", zap.Error(err))
-		return errx.BadRequest("failed to parse warehouseItemId")
+		return errx.BadRequest("failed to parse warehouse item id")
 	}
 
 	err = h.service.DeleteWarehouseItem(warehouseId, warehouseItemId)
@@ -301,6 +321,21 @@ func (h *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *WarehouseHandler) GetEggWarehouseItemSummary(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("warehouseId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse id")
+		return errx.BadRequest("invalid warehouse id")
+	}
+
+	data, err := h.service.GetEggWarehouseItemSummary(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get egg warehouse item summary")
 }
 
 func (h *WarehouseHandler) CreateWarehouseOrderItem(c *fiber.Ctx) error {
@@ -502,4 +537,34 @@ func (h *WarehouseHandler) CrackedEggConverterButirToPack(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "cracked egg converter butir to packet success")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemHistories(c *fiber.Ctx) error {
+	var filter dto.GetWarehouseItemHistoryFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetWarehouseItemHistory(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse item histories")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemHistory(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	data, err := h.service.GetWarehouseItemHistoryById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse item history")
 }

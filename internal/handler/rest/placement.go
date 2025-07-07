@@ -22,9 +22,11 @@ func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/placements")
 	v1.Get("/stores/me", middleware.Authentication(), h.GetCurrentUserStorePlacement)
 	v1.Post("/stores", middleware.Authentication(), h.CreateStorePlacement)
+	v1.Delete("/stores/:userId", middleware.Authentication(), h.DeleteStorePlacementByUserId)
 
 	v1.Get("/warehouses/me", middleware.Authentication(), h.GetCurrentUserWarehousePlacement)
 	v1.Post("/warehouses", middleware.Authentication(), h.CreateWarehousePlacement)
+	v1.Delete("/warehouses/:userId", middleware.Authentication(), h.DeleteStorePlacementByUserId)
 
 	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
 	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)
@@ -161,4 +163,22 @@ func (h *PlacementHandler) UpdateCagePlacement(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success update cage placement")
+}
+
+func (h *PlacementHandler) DeleteStorePlacementByUserId(c *fiber.Ctx) error {
+	err := h.service.DeleteStorePlacementByUserId(uuid.MustParse(c.Params("userId")))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *PlacementHandler) DeleteWarehousePlacementByUserId(c *fiber.Ctx) error {
+	err := h.service.DeleteWarehousePlacementByUserId(uuid.MustParse(c.Params("userId")))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }

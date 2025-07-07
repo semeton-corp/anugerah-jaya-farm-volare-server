@@ -1,38 +1,38 @@
 package enum
 
-type WarehouseItemCategory uint8
+type ItemCategory uint8
 
 const (
-	WarehouseItemCategoryUnknown     WarehouseItemCategory = 0
-	WarehouseItemCategoryFeed        WarehouseItemCategory = 1
-	WarehouseItemCategoryEgg         WarehouseItemCategory = 2
-	WarehouseItemCategoryEquipment   WarehouseItemCategory = 3
-	WarehouseItemCategoryRawMaterial WarehouseItemCategory = 4
+	ItemCategoryUnknown     ItemCategory = 0
+	ItemCategoryFeed        ItemCategory = 1
+	ItemCategoryEgg         ItemCategory = 2
+	ItemCategoryEquipment   ItemCategory = 3
+	ItemCategoryRawMaterial ItemCategory = 4
 )
 
 var (
-	WarehouseItemCategoryMap = map[WarehouseItemCategory]string{
-		WarehouseItemCategoryFeed:        "Pakan",
-		WarehouseItemCategoryEgg:         "Telur",
-		WarehouseItemCategoryEquipment:   "Barang",
-		WarehouseItemCategoryRawMaterial: "Bahan Baku",
+	WarehouseItemCategoryMap = map[ItemCategory]string{
+		ItemCategoryFeed:        "Pakan",
+		ItemCategoryEgg:         "Telur",
+		ItemCategoryEquipment:   "Barang",
+		ItemCategoryRawMaterial: "Bahan Baku",
 	}
 )
 
-func (c WarehouseItemCategory) String() string {
+func (c ItemCategory) String() string {
 	return WarehouseItemCategoryMap[c]
 }
 
-func ValueOfWarehouseItemCategory(value string) WarehouseItemCategory {
+func ValueOfWarehouseItemCategory(value string) ItemCategory {
 	for k, v := range WarehouseItemCategoryMap {
 		if v == value {
 			return k
 		}
 	}
-	return WarehouseItemCategoryUnknown
+	return ItemCategoryUnknown
 }
 
-func (c WarehouseItemCategory) IsValid() bool {
+func (c ItemCategory) IsValid() bool {
 	_, ok := WarehouseItemCategoryMap[c]
 	return ok
 }
