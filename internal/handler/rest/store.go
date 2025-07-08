@@ -38,6 +38,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/overview/:id", middleware.Authentication(), h.GetStoreverview)
 	v1.Get("/:storeId/items/:itemId", middleware.Authentication(), h.GetStoreItem)
 	v1.Put("/:storeId/items/:itemId", middleware.Authentication(), h.UpdateStoreItem)
+	v1.Get("/items/eggs/summary/:storeId", middleware.Authentication(), h.GetEggStoreItemSummary)
 
 	v1.Post("/sales", middleware.Authentication(), h.CreateStoreSale)
 	v1.Get("/sales/:id", middleware.Authentication(), h.GetStoreSaleById)
@@ -396,6 +397,21 @@ func (h *StoreHandler) UpdateStoreItem(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success update store item")
+}
+
+func (h *StoreHandler) GetEggStoreItemSummary(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("storeId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse store id")
+		return errx.BadRequest("invalid store id")
+	}
+
+	data, err := h.service.GetEggStoreItemSummary(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get egg warehouse item summary")
 }
 
 func (h *StoreHandler) CreateStoreSale(c *fiber.Ctx) error {

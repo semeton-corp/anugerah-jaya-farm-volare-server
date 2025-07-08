@@ -41,6 +41,7 @@ type IStoreService interface {
 	GetStoreOverview(id uint64) (dto.StoreItemOverview, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error)
 	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
+	GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreItemSummary, error)
 
 	CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
