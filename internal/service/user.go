@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -161,7 +162,7 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 		return dto.UserOverviewResponse{}, nil
 	}
 
-	staffPresences, err := s.presenceService.GetAllStaffPresences(id,
+	staffPresences, err := s.presenceService.GetUserPresencesByUserId(id,
 		dto.GetPresenceFilter{
 			Month: filter.Month,
 			Year:  filter.Year,
@@ -185,7 +186,7 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 			continue
 		}
 
-		if staffPresence.IsPresent {
+		if staffPresence.Status == enum.PresenceStatusPresent.String() {
 			totalPresent++
 			totalPresentWeek[week]++
 

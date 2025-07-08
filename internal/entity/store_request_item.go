@@ -10,11 +10,11 @@ import (
 type StoreRequestItem struct {
 	Id          uint64                 `gorm:"primaryKey;autoIncrement"`
 	WarehouseId uint64                 `gorm:"bigint;not null"`
-	Warehouse   Warehouse              `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	Warehouse   Warehouse              `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
 	ItemId      uint64                 `gorm:"bigint;not null"`
-	Item        Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	Item        Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	StoreId     uint64                 `gorm:"bigint;not null"`
-	Store       Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	Store       Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	Quantity    float64                `gorm:"bigint;not null"` // Note : this one in ikat (always)
 	Status      enum.RequestItemStatus `gorm:"int;not null"`
 	CreatedAt   time.Time              `gorm:"type:timestamp;autoCreateTime"`

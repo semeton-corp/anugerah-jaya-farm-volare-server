@@ -26,7 +26,7 @@ func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/warehouses/me", middleware.Authentication(), h.GetCurrentUserWarehousePlacement)
 	v1.Post("/warehouses", middleware.Authentication(), h.CreateWarehousePlacement)
-	v1.Delete("/warehouses/:userId", middleware.Authentication(), h.DeleteStorePlacementByUserId)
+	v1.Delete("/warehouses/:userId", middleware.Authentication(), h.DeleteWarehousePlacementByUserId)
 
 	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
 	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)

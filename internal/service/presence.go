@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"math"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -19,10 +22,9 @@ type PresenceService struct {
 }
 
 type IPresenceService interface {
-	GetCurrentStaffPresence(staffId uuid.UUID) (dto.PresenceResponse, error)
-	GetAllStaffPresences(staffId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
-	ArrivalPresence(id uint64, acountId uuid.UUID) (dto.PresenceResponse, error)
-	DeparturePresence(id uint64, accountId uuid.UUID) (dto.PresenceResponse, error)
+	GetCurrentUserPresence(userId uuid.UUID) (map[string]any, error)
+	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
+	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
 }
 
 func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository) IPresenceService {
@@ -32,24 +34,29 @@ func NewPresenceService(log *zap.Logger, repository repository.IPresenceReposito
 	}
 }
 
-func (p *PresenceService) GetCurrentStaffPresence(staffId uuid.UUID) (dto.PresenceResponse, error) {
-	p.repository.UseTx(false)
+func (s *PresenceService) GetCurrentUserPresence(userId uuid.UUID) (map[string]any, error) {
+	nofications := make([]string, 0)
 
-	staffPresence, err := p.repository.GetStaffPresenceTodayByStaffId(staffId)
+	s.repository.UseTx(false)
+
+	staffPresence, err := s.repository.GetUserPresenceTodayByUserId(userId)
 	if err != nil {
-		p.log.Error("[GetCurrentStaffPresence] failed to get staff presence", zap.Error(err))
-		return dto.PresenceResponse{}, err
+		s.log.Error("failed to get user presence", zap.Error(err))
+		return nil, err
 	}
 
-	return mapper.PresenceToResponse(&staffPresence), nil
+	return map[string]any{
+		"notifications":   nofications,
+		"currentPresence": mapper.PresenceToResponse(&staffPresence),
+	}, nil
 }
 
-func (p *PresenceService) GetAllStaffPresences(staffId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error) {
-	p.repository.UseTx(false)
+func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error) {
+	s.repository.UseTx(false)
 
-	staffPresence, err := p.repository.GetStaffPresenceByStaffId(staffId, filter)
+	staffPresence, err := s.repository.GetUserPresencesByUserId(userId, filter)
 	if err != nil {
-		p.log.Error("[GetAllStaffPresences] failed to get staff presence", zap.Error(err))
+		s.log.Error("failed to get user presences by user id", zap.Error(err))
 		return dto.PresenceListPaginationResponse{}, err
 	}
 
@@ -58,12 +65,12 @@ func (p *PresenceService) GetAllStaffPresences(staffId uuid.UUID, filter dto.Get
 		presenceResponses[i] = mapper.PresenceToResponseList(&presence)
 	}
 
-	totalData, err := p.repository.CountTotalStaffPresenceByStaffId(staffId, dto.GetPresenceFilter{
+	totalData, err := s.repository.CountTotalUserPresenceByUserId(userId, dto.GetPresenceFilter{
 		Month: filter.Month,
 		Year:  filter.Year,
 	})
 	if err != nil {
-		p.log.Error("[GetAllStaffPresences] failed to count staff presence", zap.Error(err))
+		s.log.Error("failed to count user presence", zap.Error(err))
 		return dto.PresenceListPaginationResponse{}, err
 	}
 
@@ -76,44 +83,69 @@ func (p *PresenceService) GetAllStaffPresences(staffId uuid.UUID, filter dto.Get
 	return resp, nil
 }
 
-func (p *PresenceService) ArrivalPresence(id uint64, accountId uuid.UUID) (dto.PresenceResponse, error) {
-	p.repository.UseTx(false)
+func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error) {
+	s.repository.UseTx(false)
 
-	staffPresence, err := p.repository.GetStaffPresenceById(id)
+	userPresence, err := s.repository.GetUserPresenceById(id)
 	if err != nil {
-		p.log.Error("[ArrivalPresence] failed to get staff presence", zap.Error(err))
+		s.log.Error("failed to get staff presence", zap.Error(err))
 		return dto.PresenceResponse{}, err
 	}
 
-	staffPresence.IsPresent = true
-	staffPresence.StartTime = datatype.TimeOnly{Time: time.Now()}
+	status := enum.ValueOfPresenceStatus(request.Status)
+	if !status.IsValid() {
+		s.log.Warn("invalid status presence", zap.String("status", request.Status))
+		return dto.PresenceResponse{}, errx.BadRequest("invalid status presence")
+	}
 
-	err = p.repository.UpdateStaffPresence(&staffPresence)
+	if (userPresence.Status == enum.PresenceStatusPresent && userPresence.EndTime.Time != nil) || userPresence.Status == enum.PresenceStatusSick || userPresence.Status == enum.PresenceStatusPermission {
+		return dto.PresenceResponse{}, errx.BadRequest("presence record cannot be updated because it has already been completed or is in a non-present status")
+	}
+
+	if status == enum.PresenceStatusPresent && request.StartTime == "" && userPresence.StartTime.Time == nil {
+		return dto.PresenceResponse{}, errx.BadRequest("start time is required and end time must be empty when marking presence as present for the first time")
+	} else if status == enum.PresenceStatusPresent && request.EndTime == "" && userPresence.EndTime.Time == nil && request.StartTime == "" {
+		return dto.PresenceResponse{}, errx.BadRequest("end time is required and start time must be empty when updating presence as present after start time is set")
+	} else if (status == enum.PresenceStatusPermission || status == enum.PresenceStatusSick) && request.Evidence == "" && request.Note == "" {
+		return dto.PresenceResponse{}, errx.BadRequest("evidence or note is required for permission status")
+	}
+
+	switch status {
+	case enum.PresenceStatusPresent:
+		userPresence.Status = status
+
+		var timez datatype.TimeOnly
+		if request.StartTime != "" {
+			timeParsed, err := time.Parse("15:04", request.StartTime)
+			if err != nil {
+				return dto.PresenceResponse{}, err
+			}
+
+			timez = datatype.TimeOnly{Time: &timeParsed}
+			userPresence.StartTime = timez
+		} else if request.EndTime != "" {
+			timeParsed, err := time.Parse("15:04", request.EndTime)
+			if err != nil {
+				return dto.PresenceResponse{}, err
+			}
+
+			timez = datatype.TimeOnly{Time: &timeParsed}
+			userPresence.EndTime = timez
+		}
+	case enum.PresenceStatusSick, enum.PresenceStatusPermission:
+		userPresence.Status = status
+		userPresence.Evidence = sql.NullString{String: request.Evidence, Valid: true}
+		userPresence.Note = sql.NullString{String: request.Note, Valid: true}
+		userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusPending
+	}
+
+	userPresence.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	err = s.repository.UpdateUserPresence(&userPresence)
 	if err != nil {
-		p.log.Error("[ArrivalPresence] failed to update staff presence", zap.Error(err))
+		s.log.Error("failed to update staff presence", zap.Error(err))
 		return dto.PresenceResponse{}, err
 	}
 
-	return mapper.PresenceToResponse(&staffPresence), nil
-}
-
-func (p *PresenceService) DeparturePresence(id uint64, acountId uuid.UUID) (dto.PresenceResponse, error) {
-	p.repository.UseTx(false)
-
-	staffPresence, err := p.repository.GetStaffPresenceById(id)
-	if err != nil {
-		p.log.Error("[DeparturePresence] failed to get staff presence", zap.Error(err))
-		return dto.PresenceResponse{}, err
-	}
-
-	staffPresence.IsPresent = true
-	staffPresence.EndTime = datatype.TimeOnly{Time: time.Now()}
-
-	err = p.repository.UpdateStaffPresence(&staffPresence)
-	if err != nil {
-		p.log.Error("[DeparturePresence] failed to update staff presence", zap.Error(err))
-		return dto.PresenceResponse{}, err
-	}
-
-	return mapper.PresenceToResponse(&staffPresence), nil
+	return mapper.PresenceToResponse(&userPresence), nil
 }

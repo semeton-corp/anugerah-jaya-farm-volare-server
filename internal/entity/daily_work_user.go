@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type DailyWorkStaff struct {
+type DailyWorkUser struct {
 	Id          uint64        `gorm:"primaryKey;autoIncrement"`
 	DailyWorkId uint64        `gorm:"type:biginteger;not null"`
 	DailyWork   DailyWork     `gorm:"foreignKey:DailyWorkId;references:Id"`
@@ -14,7 +14,7 @@ type DailyWorkStaff struct {
 	User        User          `gorm:"foreignKey:UserId;references:Id"`
 	IsDone      bool          `gorm:"type:bool;not null"`
 	CreatedAt   time.Time     `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy   uuid.NullUUID `gorm:"type:varchar(255);not null"`
+	CreatedBy   uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt   time.Time     `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy   uuid.NullUUID `gorm:"type:varchar(255);not null"`
+	UpdatedBy   uuid.NullUUID `gorm:"type:varchar(255)"`
 }

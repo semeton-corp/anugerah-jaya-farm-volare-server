@@ -11,6 +11,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("paymentType", ValidationPaymentType)
 	validate.RegisterValidation("saleUnit", ValidationSaleUnit)
 	validate.RegisterValidation("chickenHealthItemType", ValidationChickenHealthItemType)
+	validate.RegisterValidation("presenceStatus", ValidationPresenceStatus)
 
 	return validate
 }
@@ -79,6 +80,16 @@ func ValidationChickenHealthItemType(fl validator.FieldLevel) bool {
 	chickenHealthItemType := fl.Field().String()
 	switch chickenHealthItemType {
 	case "Obat", "Vaksin Kondisional", "Vaksin Rutin":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationPresenceStatus(fl validator.FieldLevel) bool {
+	presenceStatus := fl.Field().String()
+	switch presenceStatus {
+	case "Hadir", "Sakit", "Izin":
 		return true
 	default:
 		return false

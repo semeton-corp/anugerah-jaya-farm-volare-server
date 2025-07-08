@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Store struct {
@@ -16,4 +17,5 @@ type Store struct {
 	CreatedBy      uuid.NullUUID    `gorm:"type:varchar(255)"`
 	UpdatedAt      time.Time        `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy      uuid.NullUUID    `gorm:"type:varchar(255)"`
+	DeletedAt      gorm.DeletedAt   `gorm:"type:timestamp;index"`
 }

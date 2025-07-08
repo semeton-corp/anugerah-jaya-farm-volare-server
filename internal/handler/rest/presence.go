@@ -23,10 +23,9 @@ type PresenceHandler struct {
 func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/presences")
 
-	v1.Get("/current", middleware.Authentication(), h.GetCurrentStaffPresence)
-	v1.Get("/", middleware.Authentication(), h.GetAllStaffPresences)
-	v1.Patch("/arrival/:id", middleware.Authentication(), h.ArrivalPresence)
-	v1.Patch("/departure/:id", middleware.Authentication(), h.DeparturePresence)
+	v1.Get("/current/me", middleware.Authentication(), h.GetCurrentUserPresence)
+	v1.Get("/me", middleware.Authentication(), h.GetCurrentUserPresences)
+	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
 }
 
 func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, validator *validator.Validate) *PresenceHandler {
@@ -37,101 +36,75 @@ func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, valid
 	}
 }
 
-func (h *PresenceHandler) GetCurrentStaffPresence(c *fiber.Ctx) error {
+func (h *PresenceHandler) GetCurrentUserPresence(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[GetCurrentStaffPresence] userId not found in context")
-		return errx.NotFound("userId not found in context")
+		h.log.Error("user id not found in context")
+		return errx.NotFound("user id not found in context")
 	}
 
-	staffPresence, err := h.service.GetCurrentStaffPresence(uuid.MustParse(userId))
+	staffPresence, err := h.service.GetCurrentUserPresence(uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("[GetCurrentStaffPresence] failed to get current staff presence", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success get current staff presence")
+	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success get current user presence")
 }
 
-func (h *PresenceHandler) GetAllStaffPresences(c *fiber.Ctx) error {
+func (h *PresenceHandler) GetCurrentUserPresences(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[GetAllStaffPresences] userId not found in context")
-		return errx.NotFound("userId not found in context")
+		h.log.Error("user id not found in context")
+		return errx.NotFound("user id not found in context")
 	}
 
 	var filter dto.GetPresenceFilter
 	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("[GetAllStaffPresences] failed to parsing query filter", zap.Error(err))
+		h.log.Error("failed to parsing query filter", zap.Error(err))
 		return err
 	}
 
 	if err := h.validator.Struct(filter); err != nil {
-		h.log.Error("[GetAllStaffPresences] failed to validate filter", zap.Error(err))
+		h.log.Error("failed to validate filter", zap.Error(err))
 		return err
 	}
 
-	staffPresences, err := h.service.GetAllStaffPresences(uuid.MustParse(userId), filter)
+	staffPresences, err := h.service.GetUserPresencesByUserId(uuid.MustParse(userId), filter)
 	if err != nil {
-		h.log.Error("[GetAllStaffPresences] failed to get all staff presences", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresences, "success get all staff presences")
+	return response.SuccessResponse(c, fiber.StatusOK, staffPresences, "success get all user presences")
 }
 
-func (h *PresenceHandler) ArrivalPresence(c *fiber.Ctx) error {
+func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		h.log.Error("[ArrivalPresence] userId not found in context")
+		h.log.Error("userId not found in context")
 		return errx.NotFound("userId not found in context")
 	}
 
-	presenceIdStr := c.Params("id")
-	if presenceIdStr == "" {
-		h.log.Error("[ArrivalPresence] presenceId not found in param")
-		return errx.NotFound("presenceId not found in param")
-	}
-
-	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
+	presenceId, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("[ArrivalPresence] failed to parse presenceId", zap.Error(err))
+		h.log.Error("failed to parse presenceId", zap.Error(err))
 		return errx.BadRequest("invalid presence id param")
 	}
 
-	staffPresence, err := h.service.ArrivalPresence(presenceId, uuid.MustParse(userId))
-	if err != nil {
-		h.log.Error("[ArrivalPresence] failed to arrival presence", zap.Error(err))
+	var request dto.UpdateUserPresenceRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success arrival presence")
-}
-
-func (h *PresenceHandler) DeparturePresence(c *fiber.Ctx) error {
-	userId, ok := c.Locals("userId").(string)
-	if !ok {
-		h.log.Error("[DeparturePresence] userId not found in context")
-		return errx.NotFound("userId not found in context")
-	}
-
-	presenceIdStr := c.Params("id")
-	if presenceIdStr == "" {
-		h.log.Error("[DeparturePresence] presenceId not found in param")
-		return errx.NotFound("presenceId not found in param")
-	}
-
-	presenceId, err := strconv.ParseUint(presenceIdStr, 10, 64)
-	if err != nil {
-		h.log.Error("[DeparturePresence] failed to parse presenceId", zap.Error(err))
-		return errx.BadRequest("invalid presence id param")
-	}
-
-	staffPresence, err := h.service.DeparturePresence(presenceId, uuid.MustParse(userId))
-	if err != nil {
-		h.log.Error("[DeparturePresence] failed to departure presence", zap.Error(err))
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success departure presence")
+	staffPresence, err := h.service.UpdateUserPresence(presenceId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success update presence")
 }

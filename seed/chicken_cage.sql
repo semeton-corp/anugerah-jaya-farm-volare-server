@@ -8,9 +8,9 @@ INSERT INTO chicken_cages (
     updated_by
 )
 VALUES
-(1, NULL, 0, NOW(), NOW(), NULL, NULL),
-(2, NULL, 0, NOW(), NOW(), NULL, NULL),
-(3, NULL, 0, NOW(), NOW(), NULL, NULL),
-(4, NULL, 0, NOW(), NOW(), NULL, NULL),
-(5, NULL, 0, NOW(), NOW(), NULL, NULL),
-(6, NULL, 0, NOW(), NOW(), NULL, NULL);
+(10, NULL, 0, NOW(), NOW(), NULL, NULL),
+(11, NULL, 0, NOW(), NOW(), NULL, NULL),
+(12, NULL, 0, NOW(), NOW(), NULL, NULL),
+(13, NULL, 0, NOW(), NOW(), NULL, NULL),
+(14, NULL, 0, NOW(), NOW(), NULL, NULL),
+(15, NULL, 0, NOW(), NOW(), NULL, NULL);

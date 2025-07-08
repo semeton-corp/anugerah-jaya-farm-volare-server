@@ -53,6 +53,20 @@ func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHe
 		response.Disease = "-"
 	}
 
+	var chickenCategory string
+	if chickenHealthMonitoring.ChickenAge >= 0 && chickenHealthMonitoring.ChickenAge <= 9 {
+		chickenCategory = enum.ChickenCategoryDOC.String()
+	} else if chickenHealthMonitoring.ChickenAge >= 10 && chickenHealthMonitoring.ChickenAge <= 15 {
+		chickenCategory = enum.ChickenCategoryGrower.String()
+	} else if chickenHealthMonitoring.ChickenAge >= 16 && chickenHealthMonitoring.ChickenAge <= 17 {
+		chickenCategory = enum.ChickenCategoryPreLayer.String()
+	} else if chickenHealthMonitoring.ChickenAge >= 18 {
+		chickenCategory = enum.ChickenCategoryPreLayer.String()
+	}
+
+	response.ChickenAge = chickenHealthMonitoring.ChickenAge
+	response.ChickenCategory = chickenCategory
+
 	return response
 }
 

@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type AdditionalWorkStaff struct {
+type AdditionalWorkUser struct {
 	Id               uint64         `gorm:"primaryKey;autoIncrement"`
 	UserId           uuid.UUID      `gorm:"type:varchar(255);not null"`
 	User             User           `gorm:"foreignKey:UserId;references:Id;constraint:OnDelete:CASCADE"`

@@ -10,7 +10,7 @@ type ChickenProcurement struct {
 	Id                  uint64        `gorm:"primaryKey;autoIncrement"`
 	Quantity            int           `gorm:"type:int;not null"`
 	SupplierId          uint64        `gorm:"type:bigint;not null"`
-	Supplier            Supplier      `gorm:"foreignKey:SupplierId;refereces:Id"`
+	Supplier            Supplier      `gorm:"foreignKey:SupplierId;refereces:Id;constraint:OnDelete:SET NULL"`
 	TotalPrice          float64       `gorm:"type:float;not null"`
 	StatusPayment       string        `gorm:"type:varchar(255);not null"`
 	PaymentType         string        `gorm:"type:varchar(255);not null"`

@@ -196,19 +196,25 @@ func (r *StoreRepository) GetStoreItemByStoreIdAndItemId(storeId uint64, itemId 
 
 func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error) {
 	var storeItems []entity.StoreItem
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.StoreItem{}).Joins("JOIN items ON items.id = store_items.item_id")
 
-	if filter.StoreId > 0 {
-		query = query.Where("store_id = ?", filter.StoreId)
+	if filter.StoreId != 0 {
+		query = query.Where("store_items.store_id = ?", filter.StoreId)
 	}
 
 	if filter.Category.Value().IsValid() {
-		query = query.Preload("Item", "category = ?", filter.Category)
-	} else {
-		query = query.Preload("Item")
+		query = query.Where("items.category = ?", filter.Category)
 	}
 
-	err := query.Preload("Store.Location").Find(&storeItems).Error
+	if filter.ItemNames != nil {
+		query = query.Where("items.name IN ?", filter.ItemNames)
+	}
+
+	if filter.Units != nil {
+		query = query.Where("items.unit IN ?", filter.Units)
+	}
+
+	err := query.Preload("Item").Preload("Store.Location").Find(&storeItems).Error
 	if err != nil {
 		return nil, err
 	}

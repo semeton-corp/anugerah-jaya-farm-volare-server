@@ -343,7 +343,7 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]d
 }
 
 func (w *WorkService) CreateAdditionalWorkStaff(id uint64, staffId uuid.UUID) (dto.AdditionalWorkStaffResponse, error) {
-	additionalWorkStaff := entity.AdditionalWorkStaff{
+	additionalWorkStaff := entity.AdditionalWorkUser{
 		AdditionalWorkId: id,
 		UserId:           staffId,
 		IsDone:           false,
@@ -429,7 +429,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, staffId uuid.UUID) (dto.Addi
 		}
 	}
 
-	additionalWorkStaff := entity.AdditionalWorkStaff{
+	additionalWorkStaff := entity.AdditionalWorkUser{
 		AdditionalWorkId: id,
 		UserId:           staffId,
 		IsDone:           false,

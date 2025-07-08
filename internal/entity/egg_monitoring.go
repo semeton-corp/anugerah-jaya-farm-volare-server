@@ -9,9 +9,9 @@ import (
 type EggMonitoring struct {
 	Id                    uint64        `gorm:"primaryKey;autoIncrement"`
 	ChickenCageId         uint64        `gorm:"bigint;not null"`
-	ChickenCage           ChickenCage   `gorm:"foreingKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	ChickenCage           ChickenCage   `gorm:"foreingKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId           uint64        `gorm:"type:bigint;not null"`
-	Warehouse             Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
+	Warehouse             Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
 	TotalCrackedEgg       uint64        `gorm:"type:bigint;not null"`
 	TotalGoodEgg          uint64        `gorm:"type:bigint;not null"`
 	TotalRejectEgg        uint64        `gorm:"type:bigint;not null"`

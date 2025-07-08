@@ -479,12 +479,18 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 		return dto.ChickenHealthMonitoringResponse{}, errx.BadRequest("disease is required, since you choose medicine type")
 	}
 
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.ChickenHealthMonitoringResponse{}, nil
+	}
+
 	data := entity.ChickenHealthMonitoring{
 		ChickenCageId:  request.ChickenCageId,
 		HealthItemName: request.HealthItemName,
 		Type:           chickenHealthMonitoringType,
 		Dose:           request.Dose,
 		Unit:           request.Unit,
+		ChickenAge:     chickenCage.ChickenAge,
 		CreatedBy:      uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
@@ -492,7 +498,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 		data.Disease = sql.NullString{String: *request.Disease, Valid: true}
 	}
 
-	err := s.repository.CreateChickenHealthMonitoring(&data)
+	err = s.repository.CreateChickenHealthMonitoring(&data)
 	if err != nil {
 		s.log.Error("failed to create chicken health monitoring", zap.Error(err))
 		return dto.ChickenHealthMonitoringResponse{}, err

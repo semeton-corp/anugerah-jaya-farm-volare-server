@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"gorm.io/gorm"
 )
 
 type Item struct {
@@ -16,4 +17,5 @@ type Item struct {
 	CreatedBy uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt time.Time         `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy uuid.NullUUID     `gorm:"type:varchar(255)"`
+	DeletedAt gorm.DeletedAt    `gorm:"type:timestamp;index"`
 }

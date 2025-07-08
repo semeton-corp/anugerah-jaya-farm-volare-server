@@ -27,6 +27,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/:id", middleware.Authentication(), h.UpdateStore)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
 	v1.Get("/:id", middleware.Authentication(), h.GetStoreDetail)
+	v1.Get("/overview/:id", middleware.Authentication(), h.GetStoreverview)
 
 	v1.Post("/request/items", middleware.Authentication(), h.CreateStoreRequestItem)
 	v1.Get("/request/items", middleware.Authentication(), h.GetStockRequestItems)
@@ -34,7 +35,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/request/items/:id/warehouses", middleware.Authentication(), h.UpdateStoreRequestItemByWarehouse)
 	v1.Put("/request/items/:id/stores", middleware.Authentication(), h.UpdateStoreRequestItemByStore)
 
-	v1.Get("/items/overview/:id", middleware.Authentication(), h.GetStoreItemOverview)
+	v1.Get("/items/overview/:id", middleware.Authentication(), h.GetStoreverview)
 	v1.Get("/:storeId/items/:itemId", middleware.Authentication(), h.GetStoreItem)
 	v1.Put("/:storeId/items/:itemId", middleware.Authentication(), h.UpdateStoreItem)
 
@@ -320,14 +321,14 @@ func (h *StoreHandler) UpdateStoreRequestItemByStore(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store request item by warehouse")
 }
 
-func (h *StoreHandler) GetStoreItemOverview(c *fiber.Ctx) error {
+func (h *StoreHandler) GetStoreverview(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
 		return errx.BadRequest("invalid id param")
 	}
 
-	data, err := h.service.GetStoreItemOverview(id)
+	data, err := h.service.GetStoreOverview(id)
 	if err != nil {
 		h.log.Error("failed to get store item overview", zap.Error(err))
 		return err

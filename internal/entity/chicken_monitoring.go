@@ -9,7 +9,7 @@ import (
 type ChickenMonitoring struct {
 	Id                uint64        `gorm:"primaryKey;autoIncrement"`
 	ChickenCageId     uint64        `gorm:"bigint;not null"`
-	ChickenCage       ChickenCage   `gorm:"foreignKey:ChickenCageId;references:Id"`
+	ChickenCage       ChickenCage   `gorm:"foreignKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE"`
 	TotalDeathChicken uint64        `gorm:"type:bigint;not null"`
 	TotalSickChicken  uint64        `gorm:"type:bigint;not null"`
 	TotalFeed         float64       `gorm:"type:decimal;not null"`

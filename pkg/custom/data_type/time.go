@@ -11,7 +11,7 @@ import (
 )
 
 type TimeOnly struct {
-	Time time.Time
+	Time *time.Time
 }
 
 func (TimeOnly) GormDataType() string {
@@ -23,22 +23,25 @@ func (TimeOnly) GormDBDataType(db *gorm.DB, field *schema.Field) string {
 }
 
 func (timeOnly TimeOnly) Value() (driver.Value, error) {
-	if !timeOnly.Time.IsZero() {
-		return timeOnly.GetTime().Format("15:04"), nil
-	} else {
-		return nil, nil
+	if timeOnly.Time != nil && !timeOnly.Time.IsZero() {
+		return timeOnly.Time.Format("15:04"), nil
 	}
+	return nil, nil
 }
 
-func (timeOnly *TimeOnly) GetTime() time.Time {
+func (timeOnly *TimeOnly) GetTime() *time.Time {
 	return timeOnly.Time
 }
 
 func (timeOnly *TimeOnly) Scan(value interface{}) error {
+	if value == nil {
+		timeOnly.Time = nil
+		return nil
+	}
 	switch v := value.(type) {
 	case time.Time:
 		t := time.Date(0, 1, 1, v.Hour(), v.Minute(), v.Second(), v.Nanosecond(), time.UTC)
-		*timeOnly = TimeOnly{t}
+		timeOnly.Time = &t
 		return nil
 	case []byte:
 		scannedString := string(v)
@@ -51,6 +54,10 @@ func (timeOnly *TimeOnly) Scan(value interface{}) error {
 }
 
 func (timeOnly *TimeOnly) parseString(s string) error {
+	if s == "" {
+		timeOnly.Time = nil
+		return nil
+	}
 	parsedTime, err := time.Parse("15:04:05", s)
 	if err != nil {
 		parsedTime, err = time.Parse("15:04:05Z07:00", s)
@@ -58,32 +65,42 @@ func (timeOnly *TimeOnly) parseString(s string) error {
 			return errx.InternalServerError("failed to parse time string: " + err.Error())
 		}
 	}
-	*timeOnly = TimeOnly{parsedTime}
+	timeOnly.Time = &parsedTime
 	return nil
 }
 
 func (timeOnly TimeOnly) MarshalJSON() ([]byte, error) {
-	return json.Marshal(timeOnly.GetTime().Format("15:04:05"))
+	if timeOnly.Time == nil {
+		return json.Marshal(nil)
+	}
+	return json.Marshal(timeOnly.Time.Format("15:04:05"))
 }
 
 func (timeOnly *TimeOnly) UnmarshalJSON(bs []byte) error {
-	var s string
+	var s *string
 	err := json.Unmarshal(bs, &s)
 	if err != nil {
 		return err
 	}
-	t, err := time.ParseInLocation("15:04", s, time.UTC)
+	if s == nil || *s == "" {
+		timeOnly.Time = nil
+		return nil
+	}
+	t, err := time.ParseInLocation("15:04", *s, time.UTC)
 	if err != nil {
 		return err
 	}
-	*timeOnly = TimeOnly{t}
+	timeOnly.Time = &t
 	return nil
 }
 
 func ParseTimeOnly(value string) (TimeOnly, error) {
+	if value == "" {
+		return TimeOnly{nil}, nil
+	}
 	t, err := time.Parse("15:04", value)
 	if err != nil {
 		return TimeOnly{}, err
 	}
-	return TimeOnly{t}, nil
+	return TimeOnly{&t}, nil
 }

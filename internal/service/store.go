@@ -38,7 +38,7 @@ type IStoreService interface {
 	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
-	GetStoreItemOverview(id uint64) (dto.StoreItemOverview, error)
+	GetStoreOverview(id uint64) (dto.StoreItemOverview, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error)
 	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
 
@@ -358,7 +358,7 @@ func (s *StoreService) GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.Store
 	return storeItemResponses, nil
 }
 
-func (s *StoreService) GetStoreItemOverview(id uint64) (dto.StoreItemOverview, error) {
+func (s *StoreService) GetStoreOverview(id uint64) (dto.StoreItemOverview, error) {
 	s.repository.UseTx(false)
 
 	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
@@ -447,6 +447,58 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 	}
 
 	return mapper.StoreItemToResponse(&storeItem), nil
+}
+
+func (s *StoreService) GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreItemSummary, error) {
+	s.repository.UseTx(false)
+
+	response := make([]dto.EggStoreItemSummary, 0)
+	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
+		StoreId:   storeId,
+		ItemNames: []string{constant.GoodEgg, constant.CrackedEgg, constant.BrokenEgg},
+		Units:     []string{constant.EggUnitKg, constant.EggUnitPlastik},
+	})
+	if err != nil {
+		s.log.Error("failed to get store items", zap.Error(err))
+		return nil, err
+	}
+
+	for _, storeItem := range storeItems {
+		switch storeItem.Item.Name {
+		case constant.GoodEgg:
+			response = append(response, dto.EggStoreItemSummary{
+				Name:     constant.GoodEgg,
+				Quantity: storeItem.Quantity,
+				Unit:     constant.EggUnitKg,
+			})
+
+			response = append(response, dto.EggStoreItemSummary{
+				Name:     constant.GoodEgg,
+				Quantity: storeItem.Quantity / float64(constant.TotalEggPerIkat),
+				Unit:     constant.EggUnitIkat,
+			})
+		case constant.CrackedEgg:
+			response = append(response, dto.EggStoreItemSummary{
+				Name:     constant.CrackedEgg,
+				Quantity: storeItem.Quantity,
+				Unit:     constant.EggUnitKg,
+			})
+
+			response = append(response, dto.EggStoreItemSummary{
+				Name:     constant.CrackedEgg,
+				Quantity: storeItem.Quantity / float64(constant.TotalEggPerIkat),
+				Unit:     constant.EggUnitIkat,
+			})
+		case constant.BrokenEgg:
+			response = append(response, dto.EggStoreItemSummary{
+				Name:     constant.BrokenEgg,
+				Quantity: storeItem.Quantity,
+				Unit:     constant.EggUnitPlastik,
+			})
+		}
+	}
+
+	return response, nil
 }
 
 func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {

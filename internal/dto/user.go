@@ -3,17 +3,17 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type UserResponse struct {
-	Id           string           `json:"id"`
-	Username     string           `json:"username"`
-	Email        string           `json:"email"`
-	Name         string           `json:"name"`
-	PhotoProfile string           `json:"photoProfile"`
-	PhoneNumber  string           `json:"phoneNumber"`
-	Address      string           `json:"address"`
-	Salary       string           `json:"salary"`
-	Role         RoleResponse     `json:"role"`
-	Location     LocationResponse `json:"location"`
-	CreatedAt    string           `json:"createdAt"`
+	Id           string           `json:"id,omitempty"`
+	Username     string           `json:"username,omitempty"`
+	Email        string           `json:"email,omitempty"`
+	Name         string           `json:"name,omitempty"`
+	PhotoProfile string           `json:"photoProfile,omitempty"`
+	PhoneNumber  string           `json:"phoneNumber,omitempty"`
+	Address      string           `json:"address,omitempty"`
+	Salary       string           `json:"salary,omitempty"`
+	Role         RoleResponse     `json:"role,omitempty"`
+	Location     LocationResponse `json:"location,omitzero"`
+	CreatedAt    string           `json:"createdAt,omitempty"`
 }
 
 type UpdateUserRequest struct {

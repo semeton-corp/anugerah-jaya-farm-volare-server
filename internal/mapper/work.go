@@ -25,7 +25,7 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 	}
 }
 
-func AdditionalWorkStaffInformationToResponse(additionalWorkStaff *entity.AdditionalWorkStaff) dto.AdditionalWorkStaffInformationResponse {
+func AdditionalWorkStaffInformationToResponse(additionalWorkStaff *entity.AdditionalWorkUser) dto.AdditionalWorkStaffInformationResponse {
 	return dto.AdditionalWorkStaffInformationResponse{
 		Id:        additionalWorkStaff.Id,
 		Date:      additionalWorkStaff.CreatedAt.Format("2006-01-02"),
@@ -46,7 +46,7 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 	}
 }
 
-func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkStaff) dto.DailyWorkStaffResponse {
+func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkUser) dto.DailyWorkStaffResponse {
 	return dto.DailyWorkStaffResponse{
 		Id:     dailyWorkStaff.Id,
 		IsDone: dailyWorkStaff.IsDone,
@@ -60,7 +60,7 @@ func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkStaff) dto.DailyWo
 	}
 }
 
-func AdditionalWorkStaffToResponse(additionalWorkStaff *entity.AdditionalWorkStaff) dto.AdditionalWorkStaffResponse {
+func AdditionalWorkStaffToResponse(additionalWorkStaff *entity.AdditionalWorkUser) dto.AdditionalWorkStaffResponse {
 	return dto.AdditionalWorkStaffResponse{
 		Id:     additionalWorkStaff.Id,
 		IsDone: additionalWorkStaff.IsDone,

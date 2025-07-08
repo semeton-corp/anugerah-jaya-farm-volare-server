@@ -7,7 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 )
 
-func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
+func PresenceToResponse(presence *entity.UserPresence) dto.PresenceResponse {
 	presenceDto := dto.PresenceResponse{
 		Id: presence.Id,
 		User: dto.UserResponse{
@@ -18,24 +18,25 @@ func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
 				Name: presence.User.Role.Name,
 			},
 		},
-		Date:      presence.CreatedAt.Format("02 Januari 2006"),
-		IsPresent: presence.IsPresent,
-		CreatedAt: presence.CreatedAt,
+		Date:             presence.CreatedAt.Format("02 Januari 2006"),
+		CreatedAt:        presence.CreatedAt,
+		Status:           presence.Status.String(),
+		SubmissionStatus: presence.SubmissionPresenceStatus.String(),
 	}
 
-	if !presence.StartTime.Time.IsZero() {
+	if presence.StartTime.Time != nil {
 		presenceDto.StartTime = presence.StartTime.Time.Format("15:04")
 	} else {
 		presenceDto.StartTime = "-"
 	}
 
-	if !presence.EndTime.Time.IsZero() {
+	if presence.EndTime.Time != nil {
 		presenceDto.EndTime = presence.EndTime.Time.Format("15:04")
 	} else {
 		presenceDto.EndTime = "-"
 	}
 
-	if !presence.EndTime.Time.IsZero() {
+	if presence.EndTime.Time != nil {
 		extraTime := presence.EndTime.Time.Sub(time.Date(presence.CreatedAt.Year(), presence.CreatedAt.Month(), presence.CreatedAt.Day(), 5, 0, 0, 0, time.Local))
 		if extraTime > 0 {
 			presenceDto.Overtime = extraTime.Hours()
@@ -44,10 +45,22 @@ func PresenceToResponse(presence *entity.StaffPresence) dto.PresenceResponse {
 		}
 	}
 
+	if presence.Evidence.Valid {
+		presenceDto.Evidence = presence.Evidence.String
+	} else {
+		presenceDto.Evidence = "-"
+	}
+
+	if presence.Note.Valid {
+		presenceDto.Note = presence.Note.String
+	} else {
+		presenceDto.Note = "-"
+	}
+
 	return presenceDto
 }
 
-func PresenceToResponseList(presence *entity.StaffPresence) dto.PresenceListResponse {
+func PresenceToResponseList(presence *entity.UserPresence) dto.PresenceListResponse {
 	presenceDto := dto.PresenceListResponse{
 		Id: presence.Id,
 		User: dto.UserResponse{
@@ -58,25 +71,38 @@ func PresenceToResponseList(presence *entity.StaffPresence) dto.PresenceListResp
 				Name: presence.User.Role.Name,
 			},
 		},
-		Date:      presence.CreatedAt.Format("02 Januari 2006"),
-		IsPresent: presence.IsPresent,
+		Date:             presence.CreatedAt.Format("02 Januari 2006"),
+		Status:           presence.Status.String(),
+		SubmissionStatus: presence.SubmissionPresenceStatus.String(),
 	}
 
-	if !presence.StartTime.Time.IsZero() {
+	if presence.StartTime.Time != nil {
 		presenceDto.StartTime = presence.StartTime.Time.Format("15:04")
 	}
 
-	if !presence.EndTime.Time.IsZero() {
+	if presence.EndTime.Time != nil {
 		presenceDto.EndTime = presence.EndTime.Time.Format("15:04")
 	}
 
-	if !presence.EndTime.Time.IsZero() {
+	if presence.EndTime.Time != nil {
 		extraTime := presence.EndTime.Time.Sub(time.Date(presence.CreatedAt.Year(), presence.CreatedAt.Month(), presence.CreatedAt.Day(), 5, 0, 0, 0, time.Local))
 		if extraTime > 0 {
 			presenceDto.Overtime = extraTime.Hours()
 		} else {
 			presenceDto.Overtime = 0
 		}
+	}
+
+	if presence.Evidence.Valid {
+		presenceDto.Evidence = presence.Evidence.String
+	} else {
+		presenceDto.Evidence = "-"
+	}
+
+	if presence.Note.Valid {
+		presenceDto.Note = presence.Note.String
+	} else {
+		presenceDto.Note = "-"
 	}
 
 	return presenceDto

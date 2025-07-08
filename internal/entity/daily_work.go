@@ -12,12 +12,12 @@ type DailyWork struct {
 	Id          uint64            `gorm:"primaryKey;autoIncrement"`
 	Description string            `gorm:"type:text;not null"`
 	RoleId      uint64            `gorm:"type:bigint;not null"`
-	Role        Role              `gorm:"foreignKey:RoleId;references:Id"`
+	Role        Role              `gorm:"foreignKey:RoleId;references:Id;constraint:OnDelete:CASCADE"`
 	StartTime   datatype.TimeOnly `gorm:"not null"`
 	EndTime     datatype.TimeOnly `gorm:"not null"`
-	CreatedBy   uuid.NullUUID     `gorm:"type:varchar(255);not null"`
+	CreatedBy   uuid.NullUUID     `gorm:"type:varchar(255)"`
 	CreatedAt   time.Time         `gorm:"type:timestamp;autoCreateTime"`
-	UpdatedBy   uuid.NullUUID     `gorm:"type:varchar(255);not null"`
+	UpdatedBy   uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt   time.Time         `gorm:"type:timestamp;autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt    `gorm:"type:timestamp;index"` // soft delete
 }

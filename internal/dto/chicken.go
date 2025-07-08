@@ -86,12 +86,15 @@ type UpdateChickenHealthMonitoringRequest struct {
 }
 
 type ChickenHealthMonitoringResponse struct {
-	Id             uint64  `json:"id"`
-	HealthItemName string  `json:"healthItemName"`
-	Type           string  `json:"type"`
-	Dose           float64 `json:"dose"`
-	Unit           string  `json:"unit"`
-	Disease        string  `json:"disease"`
+	Id              uint64  `json:"id"`
+	HealthItemName  string  `json:"healthItemName"`
+	Type            string  `json:"type"`
+	Dose            float64 `json:"dose"`
+	Unit            string  `json:"unit"`
+	Disease         string  `json:"disease"`
+	Date            string  `json:"date"`
+	ChickenAge      uint64  `json:"chickenAge"`
+	ChickenCategory string  `json:"chickenCategory"`
 }
 
 type ChickenHealthMonitoringDetailResponse struct {

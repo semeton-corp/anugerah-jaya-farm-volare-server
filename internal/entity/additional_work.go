@@ -13,7 +13,7 @@ type AdditionalWork struct {
 	Id                  uint64                    `gorm:"primaryKey;autoIncrement"`
 	Description         string                    `gorm:"type:text;not null"`
 	Slot                uint64                    `gorm:"type:bigint;not null"`
-	AdditionalWorkStaff []AdditionalWorkStaff     `gorm:"foreignKey:AdditionalWorkId;references:Id"`
+	AdditionalWorkStaff []AdditionalWorkUser      `gorm:"foreignKey:AdditionalWorkId;references:Id;constraint:OnDelete:CASCADE"`
 	Location            enum.LocationAddionalWork `gorm:"int;not null"`
 	Salary              decimal.Decimal           `gorm:"decimal;not null;default:0"`
 	CreatedBy           uuid.NullUUID             `gorm:"type:varchar(255)"`

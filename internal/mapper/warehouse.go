@@ -1,6 +1,7 @@
 package mapper
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -26,12 +27,19 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	var estimationRunOutStr string
 
 	if warehouseItem.EstimationRunOut.Valid {
-		if time.Now().Add(time.Hour * 24 * 7).After(warehouseItem.EstimationRunOut.Time) {
+		now := time.Now()
+		runOutTime := warehouseItem.EstimationRunOut.Time
+		daysLeft := int(runOutTime.Sub(now).Hours() / 24)
+		if daysLeft < 0 {
+			daysLeft = 0
+		}
+		estimationRunOutStr = fmt.Sprintf("%d hari lagi", daysLeft)
+
+		if now.Add(time.Hour * 24 * 7).After(runOutTime) {
 			description = constant.StockWarehouseItemDanger
 		} else {
 			description = constant.StockWarehouseItemSafe
 		}
-		estimationRunOutStr = warehouseItem.EstimationRunOut.Time.Format("02-Jan-2006")
 	} else {
 		description = constant.StockWarehouseItemSafe
 		estimationRunOutStr = ""
