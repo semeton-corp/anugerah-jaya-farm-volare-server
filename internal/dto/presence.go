@@ -47,8 +47,8 @@ type UpdateUserPresenceRequest struct {
 	EndTime   string  `json:"endTime"`
 	Evidence  string  `json:"evidence"`
 	Note      string  `json:"note"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	Latitude  float64 `json:"latitude" validate:"required"`
+	Longitude float64 `json:"longitude" validate:"required"`
 }
 
 type PresenceListPaginationResponse struct {

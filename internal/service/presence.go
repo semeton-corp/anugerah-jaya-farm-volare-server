@@ -13,6 +13,7 @@ import (
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"go.uber.org/zap"
 )
 
@@ -112,6 +113,10 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 	switch status {
 	case enum.PresenceStatusPresent:
+		if !util.IsWithinRadius(userPresence.User.Location.Longitude, userPresence.User.Location.Latitude, request.Longitude, request.Latitude, constant.RadiusPresence) {
+			return dto.PresenceResponse{}, errx.BadRequest("location is not within the allowed radius")
+		}
+
 		userPresence.Status = status
 
 		var timez datatype.TimeOnly

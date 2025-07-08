@@ -54,7 +54,7 @@ func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHe
 	}
 
 	var chickenCategory string
-	if chickenHealthMonitoring.ChickenAge >= 0 && chickenHealthMonitoring.ChickenAge <= 9 {
+	if chickenHealthMonitoring.ChickenAge <= 9 {
 		chickenCategory = enum.ChickenCategoryDOC.String()
 	} else if chickenHealthMonitoring.ChickenAge >= 10 && chickenHealthMonitoring.ChickenAge <= 15 {
 		chickenCategory = enum.ChickenCategoryGrower.String()
