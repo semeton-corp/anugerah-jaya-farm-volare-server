@@ -28,6 +28,7 @@ type EggService struct {
 	cageService      ICageService
 	itemService      IItemService
 	cacheService     cache.ICache
+	storeService     IStoreService
 }
 
 type IEggService interface {
@@ -47,6 +48,7 @@ func NewEggService(
 	cageService ICageService,
 	itemService IItemService,
 	cacheService cache.ICache,
+	storeService IStoreService,
 ) IEggService {
 	return &EggService{
 		log:              log,
@@ -55,10 +57,11 @@ func NewEggService(
 		cageService:      cageService,
 		itemService:      itemService,
 		cacheService:     cacheService,
+		storeService:     storeService,
 	}
 }
 
-// Todo : add created at in response to avoid delete after one day
+// Todo : add created at in response to avoid delete after one day and saga pattern
 func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
@@ -156,6 +159,16 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 	if err := s.repository.CreateEggMonitoring(&eggMonitoring); err != nil {
 		s.log.Error("failed to create egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	_, err = s.storeService.CreateStoreRequestItemFromEggMonitoring(dto.CreateStoreRequestItemRequest{
+		WarehouseId: request.WarehouseId,
+		Quantity:    request.TotalWeightCrackedEgg,
+		ItemId:      crackedEggItem.Id,
+	}, createdBy)
+	if err != nil {
+		s.log.Error("failed to create store request item from egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 

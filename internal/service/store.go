@@ -36,6 +36,7 @@ type IStoreService interface {
 	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error)
 	WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
@@ -202,13 +203,33 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 	storeRequestItem := entity.StoreRequestItem{
 		WarehouseId: request.WarehouseId,
 		ItemId:      request.ItemId,
-		StoreId:     storePlacement.Store.Id,
+		StoreId:     sql.NullInt64{Int64: int64(storePlacement.Store.Id), Valid: true},
 		Quantity:    request.Quantity,
 		Status:      enum.RequestItemStatusPending,
 		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
 	err = s.repository.CreateStoreRequestItem(&storeRequestItem)
+	if err != nil {
+		s.log.Error("failed to create store request item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	return s.GetStoreRequestItemById(storeRequestItem.Id)
+}
+
+func (s *StoreService) CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+	s.repository.UseTx(false)
+
+	storeRequestItem := entity.StoreRequestItem{
+		WarehouseId: request.WarehouseId,
+		ItemId:      request.ItemId,
+		Quantity:    request.Quantity,
+		Status:      enum.RequestItemStatusPending,
+		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+	}
+
+	err := s.repository.CreateStoreRequestItem(&storeRequestItem)
 	if err != nil {
 		s.log.Error("failed to create store request item", zap.Error(err))
 		return dto.StoreRequestItemResponse{}, err
@@ -288,7 +309,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		storeRequestItem.Quantity = request.Quantity
 		storeRequestItem.WarehouseNote = request.WarehouseNote
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
-		storeRequestItem.StoreId = request.StoreId
+		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
 		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 
 		newStoreRequestItem := entity.StoreRequestItem{
@@ -307,7 +328,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		}
 	} else {
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
-		storeRequestItem.StoreId = request.StoreId
+		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
 		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 	}
 
@@ -353,7 +374,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		storeRequestItem.Status = enum.RequestItemStatusArrivedOk
 	}
 
-	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(storeRequestItem.StoreId, storeRequestItem.ItemId)
+	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(uint64(storeRequestItem.StoreId.Int64), storeRequestItem.ItemId)
 	if err != nil {
 		s.log.Error("failed to get store item", zap.Error(err))
 		return dto.StoreRequestItemResponse{}, err
@@ -424,7 +445,7 @@ func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingSto
 	}
 
 	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
-		StoreId:   storeRequestItem.StoreId,
+		StoreId:   uint64(storeRequestItem.StoreId.Int64),
 		Category:  param.ItemCategoryParam(enum.ItemCategoryEgg),
 		ItemNames: []string{constant.CrackedEgg, constant.BrokenEgg},
 		Units:     []string{constant.EggUnitPlastik, constant.EggUnitKg},
