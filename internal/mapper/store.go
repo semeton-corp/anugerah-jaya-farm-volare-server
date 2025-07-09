@@ -8,45 +8,31 @@ import (
 
 func StoreToResponse(store *entity.Store) dto.StoreResponse {
 	return dto.StoreResponse{
-		Id:   store.Id,
-		Name: store.Name,
-		Location: dto.LocationResponse{
-			Id:   store.Location.Id,
-			Name: store.Location.Name,
-		},
+		Id:            store.Id,
+		Name:          store.Name,
+		Location:      LocationToResponse(&store.Location),
 		TotalEmployee: uint64(len(store.StorePlacement)),
 	}
 }
 
 func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.StoreRequestItemResponse {
-	return dto.StoreRequestItemResponse{
-		Id: storeRequestItem.Id,
-		Warehouse: dto.WarehouseResponse{
-			Id:   storeRequestItem.Warehouse.Id,
-			Name: storeRequestItem.Warehouse.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Warehouse.Location.Id,
-				Name: storeRequestItem.Warehouse.Location.Name,
-			},
-		},
-		WarehouseItem: dto.ItemResponse{
-			Id:       storeRequestItem.Item.Id,
-			Name:     storeRequestItem.Item.Name,
-			Category: storeRequestItem.Item.Category.String(),
-			Unit:     storeRequestItem.Item.Unit,
-		},
-		Store: dto.StoreResponse{
-			Id:   storeRequestItem.Store.Id,
-			Name: storeRequestItem.Store.Name,
-			Location: dto.LocationResponse{
-				Id:   storeRequestItem.Store.Location.Id,
-				Name: storeRequestItem.Store.Location.Name,
-			},
-		},
+	response := dto.StoreRequestItemResponse{
+		Id:          storeRequestItem.Id,
+		Warehouse:   WarehouseToResponse(&storeRequestItem.Warehouse),
+		Item:        ItemToResponse(&storeRequestItem.Item),
 		Quantity:    storeRequestItem.Quantity,
 		Status:      storeRequestItem.Status.String(),
-		RequestDate: storeRequestItem.CreatedAt.Format("02-01-2006"),
+		RequestDate: storeRequestItem.CreatedAt.Format("15:04, 02 Jan 2006"),
+		IsSorted:    storeRequestItem.IsSorted,
 	}
+
+	if storeRequestItem.RecieveDate.Valid {
+		response.RecieveDate = storeRequestItem.RecieveDate.Time.Format("15:04, 02 Jan 2006")
+	} else {
+		response.RecieveDate = "-"
+	}
+
+	return response
 }
 
 func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {

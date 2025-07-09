@@ -17,10 +17,10 @@ type GetWarehouseFilter struct {
 }
 
 type GetWarehouseItemFilter struct {
-	WarehouseId uint64                           `query:"warehouseId"`
-	Category    param.WarehouseItemCategoryParam `query:"category"`
-	ItemNames   []string                         `query:"itemNames"`
-	Units       []string                         `query:"units"`
+	WarehouseId uint64                  `query:"warehouseId"`
+	Category    param.ItemCategoryParam `query:"category"`
+	ItemNames   []string                `query:"itemNames"`
+	Units       []string                `query:"units"`
 }
 
 type WarehouseResponse struct {

@@ -11,7 +11,7 @@ const (
 )
 
 var (
-	WarehouseItemCategoryMap = map[ItemCategory]string{
+	ItemCategoryMap = map[ItemCategory]string{
 		ItemCategoryFeed:        "Pakan",
 		ItemCategoryEgg:         "Telur",
 		ItemCategoryEquipment:   "Barang",
@@ -20,11 +20,11 @@ var (
 )
 
 func (c ItemCategory) String() string {
-	return WarehouseItemCategoryMap[c]
+	return ItemCategoryMap[c]
 }
 
 func ValueOfWarehouseItemCategory(value string) ItemCategory {
-	for k, v := range WarehouseItemCategoryMap {
+	for k, v := range ItemCategoryMap {
 		if v == value {
 			return k
 		}
@@ -33,7 +33,7 @@ func ValueOfWarehouseItemCategory(value string) ItemCategory {
 }
 
 func (c ItemCategory) IsValid() bool {
-	_, ok := WarehouseItemCategoryMap[c]
+	_, ok := ItemCategoryMap[c]
 	return ok
 }
 

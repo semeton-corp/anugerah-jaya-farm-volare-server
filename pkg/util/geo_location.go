@@ -1,11 +1,12 @@
 package util
 
-import "math"
+import (
+	"math"
+)
 
 func IsWithinRadius(locationLon, locationLat, userLon, userLat, radiusKm float64) bool {
 	const earthRadiusKm = 6371.0
 
-	// Convert degrees to radians
 	toRad := func(deg float64) float64 {
 		return deg * (3.141592653589793 / 180.0)
 	}
@@ -21,7 +22,7 @@ func IsWithinRadius(locationLon, locationLat, userLon, userLat, radiusKm float64
 	cVal := 2 * atan2(sqrt(a), sqrt(1-a))
 
 	distance := earthRadiusKm * cVal
-
+	
 	return distance <= radiusKm
 }
 

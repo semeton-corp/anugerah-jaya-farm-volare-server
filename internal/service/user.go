@@ -44,7 +44,7 @@ func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 
 	staff, err := s.repository.GetUserById(id)
 	if err != nil {
-		s.log.Error("[GetStaffById] failed to get staff by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 

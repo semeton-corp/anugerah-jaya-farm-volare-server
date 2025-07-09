@@ -22,19 +22,19 @@ func (cd DateParam) Value() time.Time {
 	return time.Time(cd)
 }
 
-type WarehouseItemCategoryParam enum.ItemCategory
+type ItemCategoryParam enum.ItemCategory
 
-func (w *WarehouseItemCategoryParam) UnmarshalText(text []byte) error {
+func (w *ItemCategoryParam) UnmarshalText(text []byte) error {
 	parsedCategory := enum.ValueOfWarehouseItemCategory(string(text))
 	if !parsedCategory.IsValid() {
 		return errx.BadRequest("invalid warehouse item category")
 	}
 
-	*w = WarehouseItemCategoryParam(parsedCategory)
+	*w = ItemCategoryParam(parsedCategory)
 	return nil
 }
 
-func (w WarehouseItemCategoryParam) Value() enum.ItemCategory {
+func (w ItemCategoryParam) Value() enum.ItemCategory {
 	return enum.ItemCategory(w)
 }
 

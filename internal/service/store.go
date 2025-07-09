@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"math"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
@@ -23,6 +25,7 @@ type StoreService struct {
 	cacheService     cache.ICache
 	placementService IPlacementService
 	warehouseService IWarehouseService
+	userService      IUserService
 }
 
 type IStoreService interface {
@@ -32,10 +35,13 @@ type IStoreService interface {
 	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
 	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
 
-	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error)
-	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
 	GetStoreOverview(id uint64) (dto.StoreItemOverview, error)
@@ -54,17 +60,18 @@ type IStoreService interface {
 	SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
-func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService) IStoreService {
+func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService) IStoreService {
 	return &StoreService{
 		log:              log,
 		repository:       repository,
 		cacheService:     cacheService,
 		placementService: placementService,
 		warehouseService: warehouseService,
+		userService:      userService,
 	}
 }
 
-// When created store auto create 3 egg object
+// Todo : When created store auto create 3 egg object
 func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
 	s.repository.UseTx(false)
 
@@ -173,6 +180,7 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 	}, nil
 }
 
+// Todo : pubsub redis store item history
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
@@ -206,13 +214,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	storeRequestItem, err = s.repository.GetStoreRequestItemById(storeRequestItem.Id)
-	if err != nil {
-		s.log.Error("failed to get store request item by id", zap.Error(err))
-		return dto.StoreRequestItemResponse{}, err
-	}
-
-	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
+	return s.GetStoreRequestItemById(storeRequestItem.Id)
 }
 
 func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error) {
@@ -222,7 +224,15 @@ func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemR
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil
+	user, err := s.userService.GetUserById(storeRequestItem.CreatedBy.UUID)
+	if err != nil {
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	response := mapper.StoreRequestItemToResponse(&storeRequestItem)
+	response.CreatedBy = user.Name
+
+	return response, nil
 }
 
 func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error) {
@@ -256,7 +266,7 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 	return resp, nil
 }
 
-func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, accountId uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -266,77 +276,209 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	status := enum.ValueOfRequestItemStatus(request.Status)
-	if !status.IsValid() {
-		s.log.Error("invalid status", zap.String("status", request.Status))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("invalid status")
+	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is in another status")
+	} else if storeRequestItem.Status != enum.RequestItemStatusPending {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item not pending")
 	}
 
-	if storeRequestItem.Status == enum.RequestItemStatusArrivedOk || storeRequestItem.Status == enum.RequestItemStatusRejected {
-		s.log.Error("store request item is already accepted or rejected", zap.Uint64("id", id))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is already accepted or rejected")
-	}
+	if storeRequestItem.Quantity > request.Quantity {
+		remainingQuantity := storeRequestItem.Quantity - request.Quantity
 
-	if status == enum.RequestItemStatusArrivedOk && storeRequestItem.Status != enum.RequestItemStatusSentOff {
-		s.log.Error("store request item is not sent off", zap.Uint64("id", id))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is not sent off")
-	}
-
-	if status == enum.RequestItemStatusSentOff && storeRequestItem.Status != enum.RequestItemStatusPending {
-		s.log.Error("store request item is not pending", zap.Uint64("id", id))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is not pending")
-	}
-
-	if status == enum.RequestItemStatusPending && storeRequestItem.Status != enum.RequestItemStatusPending {
-		s.log.Error("store request item is not pending", zap.Uint64("id", id))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is not pending")
-	}
-
-	if status == enum.RequestItemStatusArrivedOk {
-		// Todo : Create store activity
-		storeItem := entity.StoreItem{
-			ItemId:  storeRequestItem.ItemId,
-			StoreId: storeRequestItem.StoreId,
-		}
-
-		err = s.repository.FirstOrCreateStoreItem(&storeItem)
-		if err != nil {
-			s.log.Error("failed to first or create store item", zap.Error(err))
-			return dto.StoreRequestItemResponse{}, err
-		}
-
-		storeItem.Quantity += storeRequestItem.Quantity
-		err = s.repository.UpdateStoreItem(&storeItem)
-		if err != nil {
-			s.log.Error("[UpdateStoreRequestItem] failed to update store item", zap.Error(err))
-			return dto.StoreRequestItemResponse{}, err
-		}
-	}
-
-	if storeRequestItem.Status == enum.RequestItemStatusPending {
 		storeRequestItem.Quantity = request.Quantity
-	} else if status != enum.RequestItemStatusArrivedOk {
-		s.log.Error("[UpdateStoreRequestItem] can't update quantity when status is not pending", zap.Uint64("id", id))
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("can't update quantity when status is not pending")
-	}
+		storeRequestItem.WarehouseNote = request.WarehouseNote
+		storeRequestItem.Status = enum.RequestItemStatusSentOff
+		storeRequestItem.StoreId = request.StoreId
+		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 
-	storeRequestItem.Status = status
-	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+		newStoreRequestItem := entity.StoreRequestItem{
+			WarehouseId: storeRequestItem.WarehouseId,
+			ItemId:      storeRequestItem.ItemId,
+			StoreId:     storeRequestItem.StoreId,
+			Quantity:    remainingQuantity,
+			Status:      enum.RequestItemStatusPending,
+			CreatedBy:   uuid.NullUUID{UUID: updatedBy, Valid: true},
+		}
+
+		err = s.repository.CreateStoreRequestItem(&newStoreRequestItem)
+		if err != nil {
+			s.log.Error("failed to create store request item", zap.Error(err))
+			return dto.StoreRequestItemResponse{}, err
+		}
+	} else {
+		storeRequestItem.Status = enum.RequestItemStatusSentOff
+		storeRequestItem.StoreId = request.StoreId
+		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	}
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
-		s.log.Error("[UpdateStoreRequestItem] failed to update store request item", zap.Error(err))
+		s.log.Error("failed to update store request item", zap.Error(err))
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	storeRequestItem, err = s.repository.GetStoreRequestItemById(storeRequestItem.Id)
+	err = s.repository.Commit()
 	if err != nil {
-		s.log.Error("[UpdateStoreRequestItem] failed to get store request item by id", zap.Error(err))
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	if err := s.repository.Commit(); err != nil {
-		s.log.Error("[UpdateStoreRequestItem] failed to commit transaction", zap.Error(err))
+	return s.GetStoreRequestItemById(id)
+}
+
+func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	storeRequestItem, err := s.repository.GetStoreRequestItemById(id)
+	if err != nil {
+		s.log.Error("failed to get store request item by id", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is in another status")
+	} else if storeRequestItem.Status != enum.RequestItemStatusSentOff {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item not sent off")
+	}
+
+	storeRequestItem.RecieveQuantity = request.Quantity
+	storeRequestItem.StoreNote = request.StoreNote
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	storeRequestItem.RecieveDate = sql.NullTime{Time: time.Now(), Valid: true}
+
+	if storeRequestItem.RecieveQuantity != storeRequestItem.Quantity {
+		storeRequestItem.Status = enum.RequestItemStatusArrivedNotOk
+	} else {
+		storeRequestItem.Status = enum.RequestItemStatusArrivedOk
+	}
+
+	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(storeRequestItem.StoreId, storeRequestItem.ItemId)
+	if err != nil {
+		s.log.Error("failed to get store item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	storeItem.Quantity += request.Quantity
+
+	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
+	if err != nil {
+		s.log.Error("failed to update store request item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	err = s.repository.UpdateStoreItem(&storeItem)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	return s.GetStoreRequestItemById(id)
+}
+
+func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+	s.repository.UseTx(false)
+
+	storeRequestItem, err := s.repository.GetStoreRequestItemById(id)
+	if err != nil {
+		s.log.Error("failed to get store request item by id", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is in another status")
+	}
+
+	status := enum.ValueOfRequestItemStatus(request.Status)
+	if !status.IsValid() {
+		s.log.Warn("invalid status request item", zap.String("status", request.Status))
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("invalid request item status")
+	}
+
+	storeRequestItem.Status = status
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
+	if err != nil {
+		s.log.Error("failed to update store request item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	return s.GetStoreRequestItemById(id)
+}
+
+func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	storeRequestItem, err := s.repository.GetStoreRequestItemById(id)
+	if err != nil {
+		s.log.Error("failed to get store request item by id", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
+		StoreId:   storeRequestItem.StoreId,
+		Category:  param.ItemCategoryParam(enum.ItemCategoryEgg),
+		ItemNames: []string{constant.CrackedEgg, constant.BrokenEgg},
+		Units:     []string{constant.EggUnitPlastik, constant.EggUnitKg},
+	})
+
+	if err != nil {
+		s.log.Error("failed to get store items", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	var crackedEgg, brokenEgg entity.StoreItem
+	for _, storeItem := range storeItems {
+		switch storeItem.Item.Name {
+		case constant.CrackedEgg:
+			crackedEgg = storeItem
+		case constant.BrokenEgg:
+			brokenEgg = storeItem
+		}
+	}
+
+	if crackedEgg.Item.Id == 0 || brokenEgg.Item.Id == 0 {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("cracked egg or broken egg not found")
+	}
+
+	crackedEgg.Quantity -= request.BrokenEggInKg
+	crackedEgg.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	brokenEgg.Quantity += math.Ceil(float64(request.BrokenEggInButir) / 4)
+	brokenEgg.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	storeRequestItem.IsSorted = true
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+
+	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
+	if err != nil {
+		s.log.Error("failed to update store request item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	err = s.repository.UpdateStoreItem(&crackedEgg)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	err = s.repository.UpdateStoreItem(&brokenEgg)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
 	}
 
 	return mapper.StoreRequestItemToResponse(&storeRequestItem), nil

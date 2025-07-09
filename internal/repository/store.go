@@ -131,9 +131,10 @@ func (r *StoreRepository) CreateStoreRequestItem(storeRequestItem *entity.StoreR
 	return nil
 }
 
+// Todo : join table with user using createdBy
 func (r *StoreRepository) GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error) {
 	var storeRequestItem entity.StoreRequestItem
-	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").Preload("Store.Location").First(&storeRequestItem, id).Error
+	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").First(&storeRequestItem, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StoreRequestItem{}, errx.NotFound("store request item not found")
@@ -145,17 +146,25 @@ func (r *StoreRepository) GetStoreRequestItemById(id uint64) (entity.StoreReques
 
 func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) ([]entity.StoreRequestItem, error) {
 	var storeRequestItems []entity.StoreRequestItem
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.StoreRequestItem{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
 	if filter.Page > 0 {
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Store.Location").Find(&storeRequestItems).Order("status ASC").Error
+	err := query.Preload("Warehouse.Location").Preload("Item").Find(&storeRequestItems).Order("status ASC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +172,13 @@ func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFil
 }
 
 func (r *StoreRepository) UpdateStoreRequestItem(storeRequestItem *entity.StoreRequestItem) error {
-	return r.GetDB().Model(entity.StoreRequestItem{}).Where("id = ?", storeRequestItem.Id).Updates(storeRequestItem).Error
+	return r.GetDB().Model(entity.StoreRequestItem{}).Where("id = ?", storeRequestItem.Id).Updates(map[string]any{
+		"quantity":       storeRequestItem.Quantity,
+		"updated_by":     storeRequestItem.UpdatedBy,
+		"status":         storeRequestItem.Status,
+		"warehouse_note": storeRequestItem.WarehouseNote,
+		"store_note":     storeRequestItem.StoreNote,
+	}).Error
 }
 
 func (r *StoreRepository) FirstOrCreateStoreItem(storeItem *entity.StoreItem) error {
@@ -186,7 +201,7 @@ func (r *StoreRepository) GetStoreItemByStoreIdAndItemId(storeId uint64, itemId 
 	err := r.GetDB().Model(&entity.StoreItem{}).Preload("Store.Location").Preload("Item").Where("store_id = ? AND item_id = ?", storeId, itemId).First(&storeItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.StoreItem{}, err
+			return entity.StoreItem{}, errx.BadRequest("store item not found")
 		}
 		return entity.StoreItem{}, err
 	}

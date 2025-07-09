@@ -76,7 +76,7 @@ func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dt
 		ChickenCage:        ChickenCageToResponse(&chickenMonitoring.ChickenCage),
 		TotalLiveChicken:   chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken,
 		TotalSickChicken:   chickenMonitoring.TotalSickChicken,
-		TotalDeatchChicken: chickenMonitoring.TotalSickChicken,
+		TotalDeatchChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:          chickenMonitoring.TotalFeed,
 		Note:               chickenMonitoring.Note,
 	}

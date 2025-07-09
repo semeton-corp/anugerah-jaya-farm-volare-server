@@ -36,28 +36,40 @@ type CreateStoreRequestItemRequest struct {
 	Quantity    float64 `json:"quantity" validate:"required,number"` // ikat
 }
 
-type UpdateStoreRequestItemByWarehouseRequest struct {
-	Status string `json:"status" validate:"required,requestItemStatus,oneof=Dikirim Ditolak"`
-}
-
-type UpdateStoreRequestItemByStoreRequest struct {
-	Status   string  `json:"status" validate:"required,requestItemStatus,oneof=Diterima"`
-	Quantity float64 `json:"quantity" validate:"required,number"`
-}
-
 type UpdateStoreRequestItemRequest struct {
-	Status   string  `json:"status" validate:"required,requestItemStatus"`
-	Quantity float64 `json:"quantity" validate:"required,number"`
+	Status string `json:"status" validate:"required,requestItemStatus"`
+}
+
+type WarehouseConfirmationStoreRequestItem struct {
+	StoreId       uint64  `json:"storeId" validate:"required"`
+	Quantity      float64 `json:"quantity" validate:"required"`
+	WarehouseNote string  `json:"warehouseNote"`
+}
+
+type StoreConfirmationStoreRequestItem struct {
+	Quantity  float64 `json:"quantity" validate:"required"`
+	StoreNote string  `json:"storeNote"`
+}
+
+type SortingStoreRequestItemRequest struct {
+	BrokenEggInButir uint64  `json:"brokenEggInButir" validate:"required"`
+	BrokenEggInKg    float64 `json:"brokenEggInKg" validate:"required"`
+}
+
+type WarehouseSendUnknownStoreRequestItem struct {
+	StoreId uint64 `json:"storeId" validate:"required"`
 }
 
 type StoreRequestItemResponse struct {
-	Id            uint64            `json:"id"`
-	Warehouse     WarehouseResponse `json:"warehouse"`
-	WarehouseItem ItemResponse      `json:"warehouseItem"`
-	Store         StoreResponse     `json:"store"`
-	Quantity      float64           `json:"quantity"`
-	Status        string            `json:"status"`
-	RequestDate   string            `json:"requestDate"`
+	Id          uint64            `json:"id"`
+	Warehouse   WarehouseResponse `json:"warehouse"`
+	Item        ItemResponse      `json:"item"`
+	Quantity    float64           `json:"quantity"`
+	Status      string            `json:"status"`
+	RequestDate string            `json:"requestDate"`
+	RecieveDate string            `json:"recieveDate"`
+	IsSorted    bool              `json:"isSorted"`
+	CreatedBy   string            `json:"createdBy,omitempty"`
 }
 
 type StoreRequestItemListPaginationResponse struct {
@@ -67,9 +79,10 @@ type StoreRequestItemListPaginationResponse struct {
 }
 
 type GetStoreRequestItemFilter struct {
-	Date    param.DateParam `query:"date"`
-	Page    uint64          `query:"page"`
-	StoreId uint64
+	Date        param.DateParam `query:"date"`
+	Page        uint64          `query:"page"`
+	StoreId     uint64          `query:"storeId"`
+	WarehouseId uint64          `query:"warehouseId"`
 }
 
 type StoreItemResponse struct {
@@ -105,7 +118,7 @@ type StoreSaleResponse struct {
 	SendDate         string                     `json:"sentDate"`
 	Customer         string                     `json:"customer"`
 	Phone            string                     `json:"phone"`
-	WarehouseItem    ItemResponse               `json:"warehouseItem"`
+	WarehouseItem    ItemResponse               `json:"item"`
 	Store            StoreResponse              `json:"store"`
 	Quantity         uint64                     `json:"quantity"`
 	SaleUnit         string                     `json:"saleUnit"`
@@ -186,8 +199,8 @@ type StoreSalePaymentResponse struct {
 }
 
 type GetStoreItemFilter struct {
-	StoreId   uint64                           `query:"storeId"`
-	Category  param.WarehouseItemCategoryParam `query:"category"`
-	ItemNames []string                         `query:"itemNames"`
-	Units     []string                         `query:"units"`
+	StoreId   uint64                  `query:"storeId"`
+	Category  param.ItemCategoryParam `query:"category"`
+	ItemNames []string                `query:"itemNames"`
+	Units     []string                `query:"units"`
 }

@@ -90,22 +90,6 @@ func (b *Bootstrap) DepedencyInjection() {
 	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, b.cache, placementService)
 	warehouseHandler := rest.NewWarehouseHandler(b.log, warehouseService, b.validator)
 
-	storeRepository := repository.NewStoreRepository(b.db)
-	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService)
-	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
-
-	itemRepository := repository.NewItemRepository(b.db)
-	itemService := service.NewItemPriceService(b.log, itemRepository, storeService, warehouseService)
-	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
-
-	eggRepository := repository.NewEggRepository(b.db)
-	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService, itemService, b.cache)
-	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
-
-	chickenRepository := repository.NewChickenRepository(b.db)
-	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService)
-	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
-
 	workRepository := repository.NewWorkRepository(b.db)
 	workService := service.NewWorkService(b.log, workRepository, roleService)
 	workHandler := rest.NewWorkHandler(b.log, workService, b.validator)
@@ -121,6 +105,22 @@ func (b *Bootstrap) DepedencyInjection() {
 	userRepository := repository.NewUserRepository(b.db)
 	userService := service.NewUserService(b.log, userRepository, workService, presenceService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
+
+	storeRepository := repository.NewStoreRepository(b.db)
+	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService, userService)
+	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
+
+	itemRepository := repository.NewItemRepository(b.db)
+	itemService := service.NewItemPriceService(b.log, itemRepository, storeService, warehouseService)
+	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
+
+	eggRepository := repository.NewEggRepository(b.db)
+	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService, itemService, b.cache)
+	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
+
+	chickenRepository := repository.NewChickenRepository(b.db)
+	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService)
+	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
 
 	locationRepository := repository.NewLocationRepository(b.db)
 	locationService := service.NewLocationService(b.log, locationRepository)
