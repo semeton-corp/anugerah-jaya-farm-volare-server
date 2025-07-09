@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,7 +49,7 @@ type IWarehouseService interface {
 	GoodEggConvertionIkatToButir(request dto.GoodEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
 	CrackedEggConvertionButirToPack(request dto.CrackedEggWarehouseConvertionRequest, accountId uuid.UUID) ([]dto.WarehouseItemResponse, error)
 
-	GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]dto.WarehouseItemHistoryListResponse, error)
+	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) (dto.WarehouseItemHistoryListPaginationResponse, error)
 	GetWarehouseItemHistoryById(id uint64) (dto.WarehouseItemHistoryResponse, error)
 }
 
@@ -658,13 +659,13 @@ func (s *WarehouseService) CrackedEggConvertionButirToPack(request dto.CrackedEg
 	return response, nil
 }
 
-func (s *WarehouseService) GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]dto.WarehouseItemHistoryListResponse, error) {
+func (s *WarehouseService) GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) (dto.WarehouseItemHistoryListPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItemHistories, err := s.repository.GetWarehouseItemHistory(filter)
+	warehouseItemHistories, err := s.repository.GetWarehouseItemHistories(filter)
 	if err != nil {
 		s.log.Error("failed to get warehouse item history", zap.Error(err))
-		return nil, err
+		return dto.WarehouseItemHistoryListPaginationResponse{}, err
 	}
 
 	response := make([]dto.WarehouseItemHistoryListResponse, 0)
@@ -672,7 +673,17 @@ func (s *WarehouseService) GetWarehouseItemHistory(filter dto.GetWarehouseItemHi
 		response = append(response, mapper.WarehouseItemHistoryToListResponse(&e))
 	}
 
-	return response, nil
+	totalData, err := s.repository.CountTotalWarehouseItemHistory(filter)
+	if err != nil {
+		s.log.Error("failed to count warehouse item history", zap.Error(err))
+		return dto.WarehouseItemHistoryListPaginationResponse{}, err
+	}
+
+	return dto.WarehouseItemHistoryListPaginationResponse{
+		TotalPage:              uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
+		TotalData:              uint64(totalData),
+		WarehouseItemHistories: response,
+	}, nil
 }
 
 func (s *WarehouseService) GetWarehouseItemHistoryById(id uint64) (dto.WarehouseItemHistoryResponse, error) {

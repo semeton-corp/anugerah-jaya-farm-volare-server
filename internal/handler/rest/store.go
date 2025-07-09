@@ -49,6 +49,10 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/sales/:storeSaleId/payments", middleware.Authentication(), h.CreateStoreSalePayment)
 	v1.Put("/sales/:storeSaleId/payments/:id", middleware.Authentication(), h.UpdateStoreSalePayment)
 	v1.Patch("sales/:storeSaleId/send", middleware.Authentication(), h.SendStoreSale)
+
+	v1.Get("/items/histories", middleware.Authentication(), h.GetStoreItemHistories)
+	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetStoreItemHistory)
+
 }
 
 func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *validator.Validate) *StoreHandler {
@@ -444,6 +448,36 @@ func (h *StoreHandler) GetEggStoreItemSummary(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get egg warehouse item summary")
+}
+
+func (h *StoreHandler) GetStoreItemHistories(c *fiber.Ctx) error {
+	var filter dto.GetStoreItemHistoryFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreItemHistories(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store item histories")
+}
+
+func (h *StoreHandler) GetStoreItemHistory(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	data, err := h.service.GetStoreItemHistoryById(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store item history")
 }
 
 func (h *StoreHandler) CreateStoreSale(c *fiber.Ctx) error {

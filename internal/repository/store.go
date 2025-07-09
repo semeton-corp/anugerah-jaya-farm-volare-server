@@ -37,6 +37,10 @@ type IStoreRepository interface {
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (entity.StoreItem, error)
 
+	GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) ([]entity.StoreItemHistory, error)
+	GetStoreItemHistoryById(id uint64) (entity.StoreItemHistory, error)
+	CountTotalStoreItemHistory(filter dto.GetStoreItemHistoryFilter) (int64, error)
+
 	CreateStoreSale(storeSale *entity.StoreSale) error
 	GetStoreSaleById(id uint64) (entity.StoreSale, error)
 	GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
@@ -235,6 +239,56 @@ func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity
 	}
 
 	return storeItems, nil
+}
+
+func (r *StoreRepository) GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) ([]entity.StoreItemHistory, error) {
+	storeItemHistory := make([]entity.StoreItemHistory, 0)
+	query := r.GetDB().Model(&entity.StoreItemHistory{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Preload("Item").Preload("User").Find(&storeItemHistory).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return storeItemHistory, nil
+}
+
+func (r *StoreRepository) GetStoreItemHistoryById(id uint64) (entity.StoreItemHistory, error) {
+	var storeItemHistory entity.StoreItemHistory
+	err := r.GetDB().Model(&entity.StoreItemHistory{}).Where("id = ?", id).Preload("Item").Preload("User").First(&storeItemHistory).Error
+	if err != nil {
+		return entity.StoreItemHistory{}, err
+	}
+
+	return storeItemHistory, nil
+}
+
+func (r *StoreRepository) CountTotalStoreItemHistory(filter dto.GetStoreItemHistoryFilter) (int64, error) {
+	var total int64
+	query := r.GetDB().Model(&entity.StoreItemHistory{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Count(&total).Error
+	if err != nil {
+		return -1, err
+	}
+
+	return total, nil
 }
 
 func (r *StoreRepository) CreateStoreSale(storeSale *entity.StoreSale) error {

@@ -17,13 +17,14 @@ func StoreToResponse(store *entity.Store) dto.StoreResponse {
 
 func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.StoreRequestItemResponse {
 	response := dto.StoreRequestItemResponse{
-		Id:          storeRequestItem.Id,
-		Warehouse:   WarehouseToResponse(&storeRequestItem.Warehouse),
-		Item:        ItemToResponse(&storeRequestItem.Item),
-		Quantity:    storeRequestItem.Quantity,
-		Status:      storeRequestItem.Status.String(),
-		RequestDate: storeRequestItem.CreatedAt.Format("15:04, 02 Jan 2006"),
-		IsSorted:    storeRequestItem.IsSorted,
+		Id:                   storeRequestItem.Id,
+		Warehouse:            WarehouseToResponse(&storeRequestItem.Warehouse),
+		Item:                 ItemToResponse(&storeRequestItem.Item),
+		Quantity:             storeRequestItem.Quantity,
+		Status:               storeRequestItem.Status.String(),
+		RequestDate:          storeRequestItem.CreatedAt.Format("15:04, 02 Jan 2006"),
+		IsSorted:             storeRequestItem.IsSorted,
+		WarehouseFulFillment: storeRequestItem.WarehouseFulfillment,
 	}
 
 	if storeRequestItem.RecieveDate.Valid {
@@ -106,5 +107,32 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		PaymentType:   storeSale.PaymentType.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
+	}
+}
+
+func StoreItemHistoryToResponse(storeItemHistory *entity.StoreItemHistory) dto.StoreItemHistoryResponse {
+	return dto.StoreItemHistoryResponse{
+		Id:             storeItemHistory.Id,
+		Item:           ItemToResponse(&storeItemHistory.Item),
+		Source:         storeItemHistory.Source,
+		Destination:    storeItemHistory.Destination,
+		QuantityBefore: storeItemHistory.QuantityBefore,
+		QuantityAfter:  storeItemHistory.QuantityAfter,
+		Status:         storeItemHistory.Status.String(),
+		UpdatedBy:      storeItemHistory.User.Name,
+		Date:           storeItemHistory.CreatedAt.Format("02-Jan-2006"),
+		Time:           storeItemHistory.CreatedAt.Format("15:04"),
+	}
+}
+
+func StoreItemHistoryToListResponse(storeItemHistory *entity.StoreItemHistory) dto.StoreItemHistoryListResponse {
+	return dto.StoreItemHistoryListResponse{
+		Id:          storeItemHistory.Id,
+		Item:        ItemToResponse(&storeItemHistory.Item),
+		Source:      storeItemHistory.Source,
+		Destination: storeItemHistory.Destination,
+		Status:      storeItemHistory.Status.String(),
+		Quantity:    storeItemHistory.QuantityAfter - storeItemHistory.QuantityBefore,
+		Time:        storeItemHistory.CreatedAt.Format("15:04"),
 	}
 }

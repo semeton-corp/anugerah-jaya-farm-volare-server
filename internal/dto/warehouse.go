@@ -112,6 +112,12 @@ type WarehouseItemHistoryListResponse struct {
 	Time        string       `json:"time"`
 }
 
+type WarehouseItemHistoryListPaginationResponse struct {
+	TotalPage              uint64                             `json:"totalPage"`
+	TotalData              uint64                             `json:"totalData"`
+	WarehouseItemHistories []WarehouseItemHistoryListResponse `json:"warehouseItemHistories"`
+}
+
 type WarehouseItemHistoryResponse struct {
 	Id             uint64       `json:"id"`
 	Item           ItemResponse `json:"item"`

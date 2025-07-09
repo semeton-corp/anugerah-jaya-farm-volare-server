@@ -109,7 +109,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  eggMonitoring.TotalWeightGoodEgg + goodEggWarehouseItem.Quantity,
 		UserId:         createdBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 
 	if err != nil {
@@ -142,7 +142,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  eggMonitoring.TotalWeightCrackedEgg + crackedEggWarehouseItem.Quantity,
 		UserId:         createdBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -239,7 +239,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg + request.TotalWeightGoodEgg,
 		UserId:         updatedBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -271,7 +271,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg + request.TotalWeightCrackedEgg,
 		UserId:         updatedBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -335,7 +335,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg,
 		UserId:         updatedBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -367,7 +367,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg,
 		UserId:         updatedBy,
-		Status:         enum.ActivityStatusIn,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))

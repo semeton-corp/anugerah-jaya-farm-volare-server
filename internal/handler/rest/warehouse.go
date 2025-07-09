@@ -546,7 +546,7 @@ func (h *WarehouseHandler) GetWarehouseItemHistories(c *fiber.Ctx) error {
 		return err
 	}
 
-	data, err := h.service.GetWarehouseItemHistory(filter)
+	data, err := h.service.GetWarehouseItemHistories(filter)
 	if err != nil {
 		return err
 	}

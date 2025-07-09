@@ -7,7 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-type WarehouseItemHistory struct {
+type StoreItemHistory struct {
 	Id             uint64                 `gorm:"primaryKey;autoIncrement"`
 	ItemId         uint64                 `gorm:"type:bigint;not null"`
 	Item           Item                   `gorm:"foreignKey:ItemId;references:Id" json:"-"`

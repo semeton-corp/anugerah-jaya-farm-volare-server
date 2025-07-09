@@ -50,6 +50,9 @@ type IStoreService interface {
 	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
 	GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreItemSummary, error)
 
+	GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) (dto.StoreItemHistoryListPaginationResponse, error)
+	GetStoreItemHistoryById(id uint64) (dto.StoreItemHistoryResponse, error)
+
 	CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
 	GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error)
@@ -306,7 +309,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 	if storeRequestItem.Quantity > request.Quantity {
 		remainingQuantity := storeRequestItem.Quantity - request.Quantity
 
-		storeRequestItem.Quantity = request.Quantity
+		storeRequestItem.WarehouseFulfillment = request.Quantity
 		storeRequestItem.WarehouseNote = request.WarehouseNote
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
 		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
@@ -327,6 +330,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 			return dto.StoreRequestItemResponse{}, err
 		}
 	} else {
+		storeRequestItem.WarehouseFulfillment = request.Quantity
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
 		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
 		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
@@ -663,6 +667,45 @@ func (s *StoreService) GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreIte
 	}
 
 	return response, nil
+}
+
+func (s *StoreService) GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) (dto.StoreItemHistoryListPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	storeItemHistories, err := s.repository.GetStoreItemHistories(filter)
+	if err != nil {
+		s.log.Error("failed to get Store item history", zap.Error(err))
+		return dto.StoreItemHistoryListPaginationResponse{}, err
+	}
+
+	response := make([]dto.StoreItemHistoryListResponse, 0)
+	for _, e := range storeItemHistories {
+		response = append(response, mapper.StoreItemHistoryToListResponse(&e))
+	}
+
+	totalData, err := s.repository.CountTotalStoreItemHistory(filter)
+	if err != nil {
+		s.log.Error("failed to count Store item history", zap.Error(err))
+		return dto.StoreItemHistoryListPaginationResponse{}, err
+	}
+
+	return dto.StoreItemHistoryListPaginationResponse{
+		TotalPage:          uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
+		TotalData:          uint64(totalData),
+		StoreItemHistories: response,
+	}, nil
+}
+
+func (s *StoreService) GetStoreItemHistoryById(id uint64) (dto.StoreItemHistoryResponse, error) {
+	s.repository.UseTx(false)
+
+	storeItemHistory, err := s.repository.GetStoreItemHistoryById(id)
+	if err != nil {
+		s.log.Error("failed to get Store item history by id", zap.Error(err))
+		return dto.StoreItemHistoryResponse{}, err
+	}
+
+	return mapper.StoreItemHistoryToResponse(&storeItemHistory), nil
 }
 
 func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, accountId uuid.UUID) (dto.StoreSaleResponse, error) {

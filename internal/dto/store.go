@@ -61,15 +61,16 @@ type WarehouseSendUnknownStoreRequestItem struct {
 }
 
 type StoreRequestItemResponse struct {
-	Id          uint64            `json:"id"`
-	Warehouse   WarehouseResponse `json:"warehouse"`
-	Item        ItemResponse      `json:"item"`
-	Quantity    float64           `json:"quantity"`
-	Status      string            `json:"status"`
-	RequestDate string            `json:"requestDate"`
-	RecieveDate string            `json:"recieveDate"`
-	IsSorted    bool              `json:"isSorted"`
-	CreatedBy   string            `json:"createdBy,omitempty"`
+	Id                   uint64            `json:"id"`
+	Warehouse            WarehouseResponse `json:"warehouse"`
+	Item                 ItemResponse      `json:"item"`
+	Quantity             float64           `json:"quantity"`
+	Status               string            `json:"status"`
+	RequestDate          string            `json:"requestDate"`
+	RecieveDate          string            `json:"recieveDate"`
+	IsSorted             bool              `json:"isSorted"`
+	WarehouseFulFillment float64           `json:"warehoseFulFillment"`
+	CreatedBy            string            `json:"createdBy,omitempty"`
 }
 
 type StoreRequestItemListPaginationResponse struct {
@@ -105,6 +106,40 @@ type EggStoreItemSummary struct {
 	Name     string  `json:"name"`
 	Quantity float64 `json:"quantity"`
 	Unit     string  `json:"unit"`
+}
+
+type StoreItemHistoryListResponse struct {
+	Id          uint64       `json:"id"`
+	Item        ItemResponse `json:"item"`
+	Source      string       `json:"source"`
+	Destination string       `json:"destination"`
+	Quantity    float64      `json:"quantity"`
+	Status      string       `json:"status"`
+	Time        string       `json:"time"`
+}
+
+type StoreItemHistoryResponse struct {
+	Id             uint64       `json:"id"`
+	Item           ItemResponse `json:"item"`
+	Source         string       `json:"source"`
+	Destination    string       `json:"destination"`
+	QuantityBefore float64      `json:"quantityBefore"`
+	QuantityAfter  float64      `json:"quantityAfter"`
+	Status         string       `json:"status"`
+	UpdatedBy      string       `json:"updatedBy"`
+	Time           string       `json:"time"`
+	Date           string       `json:"date"`
+}
+
+type GetStoreItemHistoryFilter struct {
+	Date param.DateParam `query:"date"`
+	Page uint64          `query:"page"`
+}
+
+type StoreItemHistoryListPaginationResponse struct {
+	TotalPage          uint64                         `json:"totalPage"`
+	TotalData          uint64                         `json:"totalData"`
+	StoreItemHistories []StoreItemHistoryListResponse `json:"storeItemHistories"`
 }
 
 type GetStoreSaleFilter struct {

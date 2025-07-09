@@ -42,8 +42,9 @@ type IWarehouseRepository interface {
 	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (entity.Item, error)
 	CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error)
 
-	GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error)
+	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error)
 	GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error)
+	CountTotalWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) (int64, error)
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -249,7 +250,7 @@ func (r *WarehouseRepository) CountStoreRequestItemByWarehouseId(warehouseId uin
 	return count, nil
 }
 
-func (r *WarehouseRepository) GetWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error) {
+func (r *WarehouseRepository) GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error) {
 	warehouseItemHistory := make([]entity.WarehouseItemHistory, 0)
 	query := r.GetDB().Model(&entity.WarehouseItemHistory{})
 
@@ -277,4 +278,24 @@ func (r *WarehouseRepository) GetWarehouseItemHistoryById(id uint64) (entity.War
 	}
 
 	return warehouseItemHistory, nil
+}
+
+func (r *WarehouseRepository) CountTotalWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) (int64, error) {
+	var total int64
+	query := r.GetDB().Model(&entity.WarehouseItemHistory{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Count(&total).Error
+	if err != nil {
+		return -1, err
+	}
+
+	return total, nil
 }
