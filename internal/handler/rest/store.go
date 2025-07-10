@@ -37,7 +37,6 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/request/items/:id/store-confirmations", middleware.Authentication(), h.StoreConfirmationStoreRequestItem)
 	v1.Put("/request/items/:id/sorting-cracked-eggs", middleware.Authentication(), h.SortingStoreRequestItem)
 
-	v1.Get("/items/overview/:id", middleware.Authentication(), h.GetStoreverview)
 	v1.Get("/:storeId/items/:itemId", middleware.Authentication(), h.GetStoreItem)
 	v1.Put("/:storeId/items/:itemId", middleware.Authentication(), h.UpdateStoreItem)
 	v1.Get("/items/eggs/summary/:storeId", middleware.Authentication(), h.GetEggStoreItemSummary)
@@ -52,7 +51,6 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/items/histories", middleware.Authentication(), h.GetStoreItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetStoreItemHistory)
-
 }
 
 func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *validator.Validate) *StoreHandler {

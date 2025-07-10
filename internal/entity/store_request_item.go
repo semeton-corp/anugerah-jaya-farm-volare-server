@@ -22,7 +22,7 @@ type StoreRequestItem struct {
 	Status               enum.RequestItemStatus `gorm:"int;not null"`
 	WarehouseNote        string                 `gorm:"type:text"`
 	StoreNote            string                 `gorm:"type:text"`
-	IsSorted             bool                   `gorm:"type:bool;default:false;not null"`
+	IsSorted             bool                   `gorm:"type:boolean;default:false;not null"`
 	RecieveDate          sql.NullTime           `gorm:"type:timestamp"`
 	CreatedAt            time.Time              `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID          `gorm:"type:varchar(255)"`

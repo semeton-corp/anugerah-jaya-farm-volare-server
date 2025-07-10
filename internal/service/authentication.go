@@ -193,7 +193,7 @@ func (s *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 
 	user, err = s.repository.GetUserById(user.Id)
 	if err != nil {
-		s.log.Error("failed to get staff by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.SignInResponse{}, err
 	}
 

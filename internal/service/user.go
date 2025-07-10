@@ -42,13 +42,13 @@ func NewUserService(log *zap.Logger, repository repository.IUserRepository, work
 func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 	s.repository.UseTx(false)
 
-	staff, err := s.repository.GetUserById(id)
+	user, err := s.repository.GetUserById(id)
 	if err != nil {
 		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
-	return mapper.UserToResponse(&staff), nil
+	return mapper.UserToResponse(&user), nil
 }
 
 func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error) {
@@ -57,13 +57,13 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 
 	user, err := s.repository.GetUserById(id)
 	if err != nil {
-		s.log.Error("[UpdateStaff] failed to get staff by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
-		s.log.Error("[UpdateStaff] failed to parse salary", zap.Error(err))
+		s.log.Error("failed to parse salary", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
@@ -77,18 +77,18 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 	user.Salary = salary
 
 	if err := s.repository.UpdateUser(&user); err != nil {
-		s.log.Error("[UpdateStaff] failed to update staff", zap.Error(err))
+		s.log.Error("failed to update user", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
 	if err := s.repository.Commit(); err != nil {
-		s.log.Error("[UpdateStaff] failed to commit transaction", zap.Error(err))
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
 	user, err = s.repository.GetUserById(id)
 	if err != nil {
-		s.log.Error("[UpdateStaff] failed to get staff by id", zap.Error(err))
+		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.UserResponse{}, err
 	}
 
@@ -98,9 +98,9 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	staffs, err := s.repository.GetUsers(&filter)
+	users, err := s.repository.GetUsers(&filter)
 	if err != nil {
-		s.log.Error("[GetStaffs] failed to get staffs", zap.Error(err))
+		s.log.Error("failed to get users", zap.Error(err))
 		return dto.UserListPaginationResponse{}, err
 	}
 
@@ -110,8 +110,8 @@ func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPagination
 	// Todo : get salary cashbon
 
 	userResponses := make([]dto.UserListResponse, 0)
-	for _, staff := range staffs {
-		userResponses = append(userResponses, mapper.UserToListResponse(&staff))
+	for _, user := range users {
+		userResponses = append(userResponses, mapper.UserToListResponse(&user))
 	}
 
 	totalData, err := s.repository.CountTotalUser(&dto.GetUserFilter{
@@ -119,7 +119,7 @@ func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPagination
 		RoleId:  filter.RoleId,
 	})
 	if err != nil {
-		s.log.Error("[GetStaffs] failed to count total staffs")
+		s.log.Error("failed to count total users")
 		return dto.UserListPaginationResponse{}, err
 	}
 
@@ -137,13 +137,13 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
 
-	staff, err := s.repository.GetUserById(id)
+	user, err := s.repository.GetUserById(id)
 	if err != nil {
 		return dto.UserOverviewResponse{}, nil
 	}
 
-	additionalWorkStaffs, err := s.workService.GetAdditionalWorkStaffByStaffId(id,
-		dto.GetAdditionalWorkStaffFilter{
+	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(id,
+		dto.GetAdditionalWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
 			WithDeleted: true,
@@ -152,8 +152,8 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 		return dto.UserOverviewResponse{}, nil
 	}
 
-	dailyWorkStaffs, err := s.workService.GetDailyWorkStaffByStaffId(id,
-		dto.GetDailyWorkStaffFilter{
+	dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(id,
+		dto.GetDailyWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
 			WithDeleted: true,
@@ -162,7 +162,7 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 		return dto.UserOverviewResponse{}, nil
 	}
 
-	staffPresences, err := s.presenceService.GetUserPresencesByUserId(id,
+	userPresences, err := s.presenceService.GetUserPresencesByUserId(id,
 		dto.GetPresenceFilter{
 			Month: filter.Month,
 			Year:  filter.Year,
@@ -180,23 +180,23 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 	var totalPresent uint64 = 0
 	var totalOvertime float64 = 0
 	var totalWorkHour float64 = 0
-	for _, staffPresence := range staffPresences.Presences {
-		week := util.FindWeek(staff.CreatedAt, weeks)
+	for _, userPresence := range userPresences.Presences {
+		week := util.FindWeek(user.CreatedAt, weeks)
 		if week == 0 {
 			continue
 		}
 
-		if staffPresence.Status == enum.PresenceStatusPresent.String() {
+		if userPresence.Status == enum.PresenceStatusPresent.String() {
 			totalPresent++
 			totalPresentWeek[week]++
 
-			if staffPresence.EndTime != "" {
-				startTime, err := time.Parse("15:04", staffPresence.StartTime)
+			if userPresence.EndTime != "" {
+				startTime, err := time.Parse("15:04", userPresence.StartTime)
 				if err != nil {
 					continue
 				}
 
-				endTime, err := time.Parse("15:04", staffPresence.EndTime)
+				endTime, err := time.Parse("15:04", userPresence.EndTime)
 				if err != nil {
 					continue
 				}
@@ -208,10 +208,10 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 					totalWorkHour += diffHours
 				}
 
-				totalOvertime += staffPresence.Overtime
+				totalOvertime += userPresence.Overtime
 
 				totalWorkHourWeek[week] += uint64(diffHours)
-				totalOvertimeHourWeek[week] += uint64(staffPresence.Overtime)
+				totalOvertimeHourWeek[week] += uint64(userPresence.Overtime)
 			}
 		}
 	}
@@ -223,28 +223,28 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 
 	var bonusSalary decimal.Decimal
 	var totalWorkDone uint64 = 0
-	for _, dailyWorkStaff := range dailyWorkStaffs {
-		week := util.FindWeek(dailyWorkStaff.CreatedAt, weeks)
+	for _, dailyWorkUser := range dailyWorkUsers {
+		week := util.FindWeek(dailyWorkUser.CreatedAt, weeks)
 		if week == 0 {
 			continue
 		}
-		if dailyWorkStaff.IsDone {
+		if dailyWorkUser.IsDone {
 			totalWorkDone++
 			totalWorkDoneWeek[week]++
 		}
 	}
 
-	for _, additionalWorkStaff := range additionalWorkStaffs {
-		week := util.FindWeek(additionalWorkStaff.CreatedAt, weeks)
+	for _, additionalWorkUser := range additionalWorkUsers {
+		week := util.FindWeek(additionalWorkUser.CreatedAt, weeks)
 		if week == 0 {
 			continue
 		}
 
-		if additionalWorkStaff.IsDone {
+		if additionalWorkUser.IsDone {
 			totalWorkDone++
 			totalWorkDoneWeek[week]++
 
-			salary, err := decimal.NewFromString(additionalWorkStaff.AdditionalWork.Salary)
+			salary, err := decimal.NewFromString(additionalWorkUser.AdditionalWork.Salary)
 			if err != nil {
 				return dto.UserOverviewResponse{}, nil
 			}
@@ -255,15 +255,15 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 	}
 
 	var presenceScore float64
-	if len(staffPresences.Presences) == 0 {
+	if len(userPresences.Presences) == 0 {
 		presenceScore = 0
 	} else {
-		presenceScore = float64(totalPresent) / float64(len(staffPresences.Presences)) * 100
+		presenceScore = float64(totalPresent) / float64(len(userPresences.Presences)) * 100
 	}
 
 	workPresence := totalWorkHour / float64(8*util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month)))
 
-	totalSalary := staff.Salary.Add(overtimeSalary).Add(bonusSalary) // Todo : need cashbon
+	totalSalary := user.Salary.Add(overtimeSalary).Add(bonusSalary) // Todo : need cashbon
 	userInformation := dto.UserInformationResponse{
 		TotalWorkHour: totalWorkHour,
 		TotalSalary:   totalSalary.String(),
@@ -272,16 +272,16 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 
 	userPresenceInformation := dto.UserPresenceInformationResponse{
 		TotalPresent:    totalPresent,
-		TotalNotPresent: uint64(len(staffPresences.Presences) - int(totalPresent)),
+		TotalNotPresent: uint64(len(userPresences.Presences) - int(totalPresent)),
 	}
 
 	userWorkInformation := dto.UserWorkInformationResponse{
 		TotalWorkDone:    totalWorkDone,
-		TotalWorkNotDone: uint64(len(dailyWorkStaffs) + len(additionalWorkStaffs) - int(totalWorkDone)),
+		TotalWorkNotDone: uint64(len(dailyWorkUsers) + len(additionalWorkUsers) - int(totalWorkDone)),
 	}
 
 	userSalaryInformation := dto.UserSalaryInformationResponse{
-		BaseSalary:     staff.Salary.String(),
+		BaseSalary:     user.Salary.String(),
 		OvertimeSalary: overtimeSalary.String(),
 		BonusSalary:    bonusSalary.String(),
 		Cashbon:        decimal.Zero.String(),

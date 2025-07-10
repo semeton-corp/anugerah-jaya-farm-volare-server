@@ -50,7 +50,7 @@ func (h *UserHandler) GetUserById(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get staff by id")
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user by id")
 }
 
 func (h *UserHandler) GetOwnProfile(c *fiber.Ctx) error {

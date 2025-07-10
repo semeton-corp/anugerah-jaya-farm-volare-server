@@ -23,12 +23,12 @@ type IPresenceRepository interface {
 	Commit() error
 	Rollback() error
 
-	UpdateUserPresence(staffPresence *entity.UserPresence) error
+	UpdateUserPresence(userPresence *entity.UserPresence) error
 	GetUserPresenceById(id uint64) (entity.UserPresence, error)
-	GetUserPresenceTodayByUserId(staffId uuid.UUID) (entity.UserPresence, error)
-	GetUserPresencesByUserId(staffId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.UserPresence, error)
+	GetUserPresenceTodayByUserId(userId uuid.UUID) (entity.UserPresence, error)
+	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.UserPresence, error)
 	GetUserPresenceInRoleIds(roleIds []uint64) ([]entity.UserPresence, error)
-	CountTotalUserPresenceByUserId(staffId uuid.UUID, filter dto.GetPresenceFilter) (int64, error)
+	CountTotalUserPresenceByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (int64, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -65,25 +65,25 @@ func (r *PresenceRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *PresenceRepository) UpdateUserPresence(staffPresence *entity.UserPresence) error {
-	return r.GetDB().Model(&entity.UserPresence{}).Where("id = ?", staffPresence.Id).Updates(staffPresence).Error
+func (r *PresenceRepository) UpdateUserPresence(userPresence *entity.UserPresence) error {
+	return r.GetDB().Model(&entity.UserPresence{}).Where("id = ?", userPresence.Id).Updates(userPresence).Error
 }
 
 func (r *PresenceRepository) GetUserPresenceById(id uint64) (entity.UserPresence, error) {
-	var staffPresence entity.UserPresence
-	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("id = ?", id).First(&staffPresence).Error
+	var userPresence entity.UserPresence
+	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("id = ?", id).First(&userPresence).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return staffPresence, errx.NotFound("user presence not found")
+			return userPresence, errx.NotFound("user presence not found")
 		}
-		return staffPresence, err
+		return userPresence, err
 	}
-	return staffPresence, nil
+	return userPresence, nil
 }
 
-func (r *PresenceRepository) GetUserPresencesByUserId(staffId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.UserPresence, error) {
-	var staffPresences []entity.UserPresence
-	query := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ?", staffId)
+func (r *PresenceRepository) GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.UserPresence, error) {
+	var userPresences []entity.UserPresence
+	query := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ?", userId)
 
 	if filter.Month.Value().IsValid() {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
@@ -94,42 +94,42 @@ func (r *PresenceRepository) GetUserPresencesByUserId(staffId uuid.UUID, filter 
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Find(&staffPresences).Order("created_at DESC").Error
+	err := query.Find(&userPresences).Order("created_at DESC").Error
 	if err != nil {
-		return staffPresences, err
+		return userPresences, err
 	}
-	return staffPresences, nil
+	return userPresences, nil
 }
 
 func (r *PresenceRepository) GetUserPresenceInRoleIds(roleIds []uint64) ([]entity.UserPresence, error) {
-	var staffPresences []entity.UserPresence
+	var userPresences []entity.UserPresence
 	err := r.GetDB().
 		Joins("JOIN users ON users.id = user_presences.user_id").
 		Where("users.role_id IN ?", roleIds).
 		Preload("User.Role").
 		Preload("User.Location").
-		Find(&staffPresences).Error
+		Find(&userPresences).Error
 	if err != nil {
 		return nil, err
 	}
-	return staffPresences, nil
+	return userPresences, nil
 }
 
-func (r *PresenceRepository) GetUserPresenceTodayByUserId(staffId uuid.UUID) (entity.UserPresence, error) {
-	var staffPresence entity.UserPresence
-	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ? AND DATE(created_at) = ?", staffId, time.Now()).First(&staffPresence).Error
+func (r *PresenceRepository) GetUserPresenceTodayByUserId(userId uuid.UUID) (entity.UserPresence, error) {
+	var userPresence entity.UserPresence
+	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ? AND DATE(created_at) = ?", userId, time.Now()).First(&userPresence).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return staffPresence, errx.NotFound("user presence not found")
+			return userPresence, errx.NotFound("user presence not found")
 		}
-		return staffPresence, err
+		return userPresence, err
 	}
-	return staffPresence, nil
+	return userPresence, nil
 }
 
-func (r *PresenceRepository) CountTotalUserPresenceByUserId(staffId uuid.UUID, filter dto.GetPresenceFilter) (int64, error) {
+func (r *PresenceRepository) CountTotalUserPresenceByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (int64, error) {
 	var totalData int64
-	query := r.GetDB().Model(&entity.UserPresence{}).Where("user_id = ?", staffId)
+	query := r.GetDB().Model(&entity.UserPresence{}).Where("user_id = ?", userId)
 
 	if filter.Month.Value().IsValid() {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))

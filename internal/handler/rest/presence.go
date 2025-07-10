@@ -43,12 +43,12 @@ func (h *PresenceHandler) GetCurrentUserPresence(c *fiber.Ctx) error {
 		return errx.NotFound("user id not found in context")
 	}
 
-	staffPresence, err := h.service.GetCurrentUserPresence(uuid.MustParse(userId))
+	userPresence, err := h.service.GetCurrentUserPresence(uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success get current user presence")
+	return response.SuccessResponse(c, fiber.StatusOK, userPresence, "success get current user presence")
 }
 
 func (h *PresenceHandler) GetCurrentUserPresences(c *fiber.Ctx) error {
@@ -69,12 +69,12 @@ func (h *PresenceHandler) GetCurrentUserPresences(c *fiber.Ctx) error {
 		return err
 	}
 
-	staffPresences, err := h.service.GetUserPresencesByUserId(uuid.MustParse(userId), filter)
+	userPresences, err := h.service.GetUserPresencesByUserId(uuid.MustParse(userId), filter)
 	if err != nil {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresences, "success get all user presences")
+	return response.SuccessResponse(c, fiber.StatusOK, userPresences, "success get all user presences")
 }
 
 func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
@@ -101,10 +101,10 @@ func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
 		return err
 	}
 
-	staffPresence, err := h.service.UpdateUserPresence(presenceId, request, uuid.MustParse(userId))
+	userPresence, err := h.service.UpdateUserPresence(presenceId, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, staffPresence, "success update presence")
+	return response.SuccessResponse(c, fiber.StatusOK, userPresence, "success update presence")
 }

@@ -19,12 +19,12 @@ type DailyWork struct {
 	CreatedAt   time.Time         `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy   uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt   time.Time         `gorm:"type:timestamp;autoUpdateTime"`
-	DeletedAt   gorm.DeletedAt    `gorm:"type:timestamp;index"` // soft delete
+	DeletedAt   gorm.DeletedAt    `gorm:"type:timestamp;index"`
 }
 
 type DailyWorkSummary struct {
-	RoleID     uint64 `gorm:"column:role_id"`
-	RoleName   string `gorm:"column:role_name"`
-	TotalWork  uint64 `gorm:"column:total_work"`
-	TotalStaff uint64 `gorm:"column:total_staff"`
+	RoleID    uint64 `gorm:"column:role_id"`
+	RoleName  string `gorm:"column:role_name"`
+	TotalWork uint64 `gorm:"column:total_work"`
+	TotalUser uint64 `gorm:"column:total_user"`
 }

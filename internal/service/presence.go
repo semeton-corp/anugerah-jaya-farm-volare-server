@@ -40,7 +40,7 @@ func (s *PresenceService) GetCurrentUserPresence(userId uuid.UUID) (map[string]a
 
 	s.repository.UseTx(false)
 
-	staffPresence, err := s.repository.GetUserPresenceTodayByUserId(userId)
+	userPresence, err := s.repository.GetUserPresenceTodayByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get user presence", zap.Error(err))
 		return nil, err
@@ -48,21 +48,21 @@ func (s *PresenceService) GetCurrentUserPresence(userId uuid.UUID) (map[string]a
 
 	return map[string]any{
 		"notifications":   nofications,
-		"currentPresence": mapper.PresenceToResponse(&staffPresence),
+		"currentPresence": mapper.PresenceToResponse(&userPresence),
 	}, nil
 }
 
 func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	staffPresence, err := s.repository.GetUserPresencesByUserId(userId, filter)
+	userPresence, err := s.repository.GetUserPresencesByUserId(userId, filter)
 	if err != nil {
 		s.log.Error("failed to get user presences by user id", zap.Error(err))
 		return dto.PresenceListPaginationResponse{}, err
 	}
 
-	presenceResponses := make([]dto.PresenceListResponse, len(staffPresence))
-	for i, presence := range staffPresence {
+	presenceResponses := make([]dto.PresenceListResponse, len(userPresence))
+	for i, presence := range userPresence {
 		presenceResponses[i] = mapper.PresenceToResponseList(&presence)
 	}
 
@@ -89,7 +89,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 	userPresence, err := s.repository.GetUserPresenceById(id)
 	if err != nil {
-		s.log.Error("failed to get staff presence", zap.Error(err))
+		s.log.Error("failed to get user presence", zap.Error(err))
 		return dto.PresenceResponse{}, err
 	}
 
@@ -148,7 +148,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 	err = s.repository.UpdateUserPresence(&userPresence)
 	if err != nil {
-		s.log.Error("failed to update staff presence", zap.Error(err))
+		s.log.Error("failed to update user presence", zap.Error(err))
 		return dto.PresenceResponse{}, err
 	}
 

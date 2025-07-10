@@ -3,6 +3,8 @@ package mapper
 import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 func DailyWorkDetailToResponse(dailyWork *entity.DailyWork) dto.DailyWorkDetailResponse {
@@ -14,63 +16,95 @@ func DailyWorkDetailToResponse(dailyWork *entity.DailyWork) dto.DailyWorkDetailR
 	}
 }
 
-// Note : Without additonal work staff information
+// Note : Without additonal work user information
 func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.AdditionalWorkResponse {
-	return dto.AdditionalWorkResponse{
-		Id:          additionalWork.Id,
-		Description: additionalWork.Description,
-		Location:    additionalWork.Location.String(),
-		Slot:        additionalWork.Slot,
-		Salary:      additionalWork.Salary.String(),
+	response := dto.AdditionalWorkResponse{
+		Id:           additionalWork.Id,
+		Name:         additionalWork.Name,
+		Description:  additionalWork.Description,
+		Location:     LocationToResponse(&additionalWork.Location),
+		LocationType: additionalWork.LocationType.String(),
+		Date:         additionalWork.WorkDate.Format("02-01-2006"),
+		Time:         additionalWork.WorkDate.Format("15:04"),
+		Slot:         additionalWork.Slot,
+		Salary:       additionalWork.Salary.String(),
 	}
+
+	switch additionalWork.LocationType {
+	case enum.LocationWorkTypeCage:
+		response.Place = additionalWork.Cage.Name
+	case enum.LocationWorkTypeStore:
+		response.Place = additionalWork.Store.Name
+	case enum.LocationWorkTypeWarehouse:
+		response.Place = additionalWork.Warehouse.Name
+	}
+
+	return response
 }
 
-func AdditionalWorkStaffInformationToResponse(additionalWorkStaff *entity.AdditionalWorkUser) dto.AdditionalWorkStaffInformationResponse {
-	return dto.AdditionalWorkStaffInformationResponse{
-		Id:        additionalWorkStaff.Id,
-		Date:      additionalWorkStaff.CreatedAt.Format("2006-01-02"),
-		Time:      additionalWorkStaff.CreatedAt.Format("15:04"),
-		StaffName: additionalWorkStaff.User.Name,
-		IsDone:    additionalWorkStaff.IsDone,
+func AdditionalWorkUserInformationToResponse(additionalWorkUser *entity.AdditionalWorkUser) dto.AdditionalWorkUserInformationResponse {
+	return dto.AdditionalWorkUserInformationResponse{
+		Id:       additionalWorkUser.Id,
+		RoleName: additionalWorkUser.User.Role.Name,
+		UserName: additionalWorkUser.User.Name,
+		IsDone:   additionalWorkUser.IsDone,
 	}
 }
 
 // Note : without status
 func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.AdditionalWorkListResponse {
-	return dto.AdditionalWorkListResponse{
+	response := dto.AdditionalWorkListResponse{
 		Id:            additionalWork.Id,
-		Date:          additionalWork.CreatedAt.Format("02 Jan 2006"),
-		Description:   additionalWork.Description,
-		Location:      additionalWork.Location.String(),
-		RemainingSlot: additionalWork.Slot - uint64(len(additionalWork.AdditionalWorkStaff)),
+		Date:          additionalWork.WorkDate.Format("02 Jan 2006"),
+		Time:          additionalWork.WorkDate.Format("15:04"),
+		Name:          additionalWork.Name,
+		Location:      additionalWork.Location.Name,
+		RemainingSlot: additionalWork.Slot - uint64(len(additionalWork.AdditionalWorkUsers)),
 	}
+
+	switch additionalWork.LocationType {
+	case enum.LocationWorkTypeCage:
+		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Cage.Name
+	case enum.LocationWorkTypeStore:
+		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Store.Name
+	case enum.LocationWorkTypeWarehouse:
+		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Warehouse.Name
+	}
+
+	if additionalWork.Slot == uint64(len(additionalWork.AdditionalWorkUsers)) {
+		response.Status = constant.AdditionalWorkFullWorker
+	} else {
+		response.Status = constant.AdditionalWorkNeedWorker
+	}
+
+	return response
 }
 
-func DailyWorkStaffToResponse(dailyWorkStaff *entity.DailyWorkUser) dto.DailyWorkStaffResponse {
-	return dto.DailyWorkStaffResponse{
-		Id:     dailyWorkStaff.Id,
-		IsDone: dailyWorkStaff.IsDone,
+func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkUserResponse {
+	return dto.DailyWorkUserResponse{
+		Id:     dailyWorkUser.Id,
+		IsDone: dailyWorkUser.IsDone,
 		DailyWork: dto.DailyWorkDetailResponse{
-			Id:          dailyWorkStaff.DailyWork.Id,
-			Description: dailyWorkStaff.DailyWork.Description,
-			StartTime:   dailyWorkStaff.DailyWork.StartTime.Time.Format("15:04"),
-			EndTime:     dailyWorkStaff.DailyWork.EndTime.Time.Format("15:04"),
+			Id:          dailyWorkUser.DailyWork.Id,
+			Description: dailyWorkUser.DailyWork.Description,
+			StartTime:   dailyWorkUser.DailyWork.StartTime.Time.Format("15:04"),
+			EndTime:     dailyWorkUser.DailyWork.EndTime.Time.Format("15:04"),
 		},
-		CreatedAt: dailyWorkStaff.CreatedAt,
+		CreatedAt: dailyWorkUser.CreatedAt,
 	}
 }
 
-func AdditionalWorkStaffToResponse(additionalWorkStaff *entity.AdditionalWorkUser) dto.AdditionalWorkStaffResponse {
-	return dto.AdditionalWorkStaffResponse{
-		Id:     additionalWorkStaff.Id,
-		IsDone: additionalWorkStaff.IsDone,
+func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser) dto.AdditionalWorkUserResponse {
+	return dto.AdditionalWorkUserResponse{
+		Id:     additionalWorkUser.Id,
+		IsDone: additionalWorkUser.IsDone,
 		AdditionalWork: dto.AdditionalWorkDetailResponse{
-			Id:          additionalWorkStaff.AdditionalWork.Id,
-			Description: additionalWorkStaff.AdditionalWork.Description,
-			Date:        additionalWorkStaff.AdditionalWork.CreatedAt.Format("2006-01-02"),
-			Time:        additionalWorkStaff.AdditionalWork.CreatedAt.Format("15:04"),
-			Salary:      additionalWorkStaff.AdditionalWork.Salary.String(),
+			Id:          additionalWorkUser.AdditionalWork.Id,
+			Description: additionalWorkUser.AdditionalWork.Description,
+			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("2006-01-02"),
+			Time:        additionalWorkUser.AdditionalWork.CreatedAt.Format("15:04"),
+			Salary:      additionalWorkUser.AdditionalWork.Salary.String(),
 		},
-		CreatedAt: additionalWorkStaff.CreatedAt,
+		CreatedAt: additionalWorkUser.CreatedAt,
 	}
 }

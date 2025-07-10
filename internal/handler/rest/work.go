@@ -22,14 +22,18 @@ type WorkHandler struct {
 
 func (h *WorkHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/works")
-	v1.Get("/me", middleware.Authentication(), h.GetOwnStaffWork)
-	v1.Post("/dailies", middleware.Authentication(), h.CreateAndUpdateDailyWorks)
-	v1.Get("/dailies", middleware.Authentication(), h.GetDailyWorksBasedOnRole)
+	v1.Get("/overview", middleware.Authentication(), h.GetWorkOverview)
+
+	v1.Get("/me", middleware.Authentication(), h.GetOwnWorkUser)
+
+	v1.Post("/dailies", middleware.Authentication(), h.SaveDailyWorks)
+	v1.Get("/dailies/summaries", middleware.Authentication(), h.GetDailyWorksSummariesBasedOnRole)
 	v1.Get("/dailies/:roleId", middleware.Authentication(), h.GetDailyWorksByRoleId)
-	v1.Put("/dailies/staffs/:id", middleware.Authentication(), h.UpdateDailyWorkStaff)
+	v1.Put("/dailies/users/:id", middleware.Authentication(), h.UpdateDailyWorkUser)
 	v1.Delete("/dailies/:id", middleware.Authentication(), h.DeleteDailyWork)
 
-	v1.Put("/additionals/staffs/:id", middleware.Authentication(), h.UpdateAdditionalWorkStaff)
+	v1.Put("/additionals/users/:id", middleware.Authentication(), h.UpdateAdditionalWorkUser)
+	v1.Delete("/additionals/users/:id", middleware.Authentication(), h.DeleteAdditionalWorkUser)
 	v1.Post("/additionals", middleware.Authentication(), h.CreateAdditionalWork)
 	v1.Get("/additionals", middleware.Authentication(), h.GetAdditionalWorks)
 	v1.Get("/additionals/:id", middleware.Authentication(), h.GetAdditionalWorkById)
@@ -46,7 +50,16 @@ func NewWorkHandler(log *zap.Logger, service service.IWorkService, validator *va
 	}
 }
 
-func (h *WorkHandler) CreateAndUpdateDailyWorks(c *fiber.Ctx) error {
+func (h *WorkHandler) GetWorkOverview(c *fiber.Ctx) error {
+	res, err := h.service.GetWorkOverview()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get work overview")
+}
+
+func (h *WorkHandler) SaveDailyWorks(c *fiber.Ctx) error {
 	var request dto.CreateDailyWorkRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
@@ -58,32 +71,23 @@ func (h *WorkHandler) CreateAndUpdateDailyWorks(c *fiber.Ctx) error {
 		return err
 	}
 
-	idCtx := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 
-	res, err := h.service.CreateAndUpdateDailyWorks(request, uuid.MustParse(idCtx))
+	res, err := h.service.SaveDailyWorks(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create and update daily works", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create and update daily works")
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success save daily works")
 }
 
-func (h *WorkHandler) GetDailyWorksBasedOnRole(c *fiber.Ctx) error {
-	var filter dto.GetDailyWorkBasedOnRoleFilter
-	if err := c.QueryParser(&filter); err != nil {
-		h.log.Error("failed to parse query", zap.Error(err))
-		return err
-	}
-
-	if err := h.validator.Struct(filter); err != nil {
-		h.log.Error("failed to validate request", zap.Error(err))
-		return err
-	}
-
-	res, err := h.service.GetDailyWorksBasedOnRole(filter)
+func (h *WorkHandler) GetDailyWorksSummariesBasedOnRole(c *fiber.Ctx) error {
+	res, err := h.service.GetDailyWorkSummariesBasedOnRole()
 	if err != nil {
-		h.log.Error("failed to get daily works based on role", zap.Error(err))
 		return err
 	}
 
@@ -91,12 +95,7 @@ func (h *WorkHandler) GetDailyWorksBasedOnRole(c *fiber.Ctx) error {
 }
 
 func (h *WorkHandler) GetDailyWorksByRoleId(c *fiber.Ctx) error {
-	roleIdParam := c.Params("roleId")
-	if roleIdParam == "" {
-		return errx.BadRequest("role id is required")
-	}
-
-	roleId, err := strconv.ParseUint(roleIdParam, 10, 64)
+	roleId, err := strconv.ParseUint(c.Params("roleId"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse role id", zap.Error(err))
 		return errx.BadRequest("role id must be a number")
@@ -104,7 +103,6 @@ func (h *WorkHandler) GetDailyWorksByRoleId(c *fiber.Ctx) error {
 
 	res, err := h.service.GetDailyWorksByRoleId(roleId)
 	if err != nil {
-		h.log.Error("failed to get daily works by role id", zap.Error(err))
 		return err
 	}
 
@@ -123,11 +121,14 @@ func (h *WorkHandler) CreateAdditionalWork(c *fiber.Ctx) error {
 		return err
 	}
 
-	idCtx := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 
-	res, err := h.service.CreateAdditionalWork(request, uuid.MustParse(idCtx))
+	res, err := h.service.CreateAdditionalWork(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create additional work", zap.Error(err))
 		return err
 	}
 
@@ -135,15 +136,22 @@ func (h *WorkHandler) CreateAdditionalWork(c *fiber.Ctx) error {
 }
 
 func (h *WorkHandler) GetAdditionalWorks(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
 	var filter dto.GetAdditonalWorkFilter
 	if err := c.QueryParser(&filter); err != nil {
 		h.log.Error("failed to parse query", zap.Error(err))
 		return err
 	}
 
+	filter.ExcludeUserIds = []uuid.UUID{uuid.MustParse(userId)}
+
 	res, err := h.service.GetAdditionalWorks(filter)
 	if err != nil {
-		h.log.Error("failed to get additional works", zap.Error(err))
 		return err
 	}
 
@@ -151,12 +159,7 @@ func (h *WorkHandler) GetAdditionalWorks(c *fiber.Ctx) error {
 }
 
 func (h *WorkHandler) GetAdditionalWorkById(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		return errx.BadRequest(" id is required")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
@@ -164,7 +167,6 @@ func (h *WorkHandler) GetAdditionalWorkById(c *fiber.Ctx) error {
 
 	res, err := h.service.GetAdditionalWorkById(id)
 	if err != nil {
-		h.log.Error("failed to get additional work by id", zap.Error(err))
 		return err
 	}
 
@@ -172,12 +174,7 @@ func (h *WorkHandler) GetAdditionalWorkById(c *fiber.Ctx) error {
 }
 
 func (h *WorkHandler) UpdateAdditionalWork(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		return errx.BadRequest(" id is required")
-	}
-
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
@@ -194,11 +191,14 @@ func (h *WorkHandler) UpdateAdditionalWork(c *fiber.Ctx) error {
 		return err
 	}
 
-	idCtx := c.Locals("accountId").(string)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 
-	res, err := h.service.UpdateAdditionalWork(id, request, uuid.MustParse(idCtx))
+	res, err := h.service.UpdateAdditionalWork(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update additional work", zap.Error(err))
 		return err
 	}
 
@@ -219,51 +219,54 @@ func (h *WorkHandler) DeleteAdditionalWork(c *fiber.Ctx) error {
 
 	err = h.service.DeleteAdditionalWork(id)
 	if err != nil {
-		h.log.Error("failed to delete additional work", zap.Error(err))
 		return err
 	}
 
 	return response.NoContentResponse(c)
 }
 
-func (h *WorkHandler) GetOwnStaffWork(c *fiber.Ctx) error {
-	idCtx := c.Locals("accountId").(string)
+func (h *WorkHandler) GetOwnWorkUser(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 
-	res, err := h.service.GetStaffWorksByStaffId(uuid.MustParse(idCtx))
+	res, err := h.service.GetUserWorksByUserId(uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to get own staff work", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success get own staff work")
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get own user work")
 }
 
 func (h *WorkHandler) TakeAdditionalWork(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-
-	idParam := c.Params("id")
-	if idParam == "" {
-		return errx.BadRequest("id is required")
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
 	}
 
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse work id", zap.Error(err))
 		return errx.BadRequest("work id must be a number")
 	}
 
-	resp, err := h.service.TakeAdditionalWork(id, uuid.MustParse(accountIdCtx))
+	resp, err := h.service.TakeAdditionalWork(id, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to take additional work", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusCreated, resp, "success take additional work")
 }
 
-func (h *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
-
+func (h *WorkHandler) UpdateAdditionalWorkUser(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 	idParam := c.Params("id")
 	if idParam == "" {
 		return errx.BadRequest(" id is required")
@@ -275,7 +278,7 @@ func (h *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
 		return errx.BadRequest("work id must be a number")
 	}
 
-	var request dto.UpdateAdditionalWorkStaffRequest
+	var request dto.UpdateAdditionalWorkUserRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
 		return err
@@ -286,17 +289,20 @@ func (h *WorkHandler) UpdateAdditionalWorkStaff(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.UpdateAdditionalWorkStaff(id, request, uuid.MustParse(accountIdCtx))
+	res, err := h.service.UpdateAdditionalWorkUser(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update additional work staff", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success update additional work staff")
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update additional work user")
 }
 
-func (h *WorkHandler) UpdateDailyWorkStaff(c *fiber.Ctx) error {
-	accountIdCtx := c.Locals("accountId").(string)
+func (h *WorkHandler) UpdateDailyWorkUser(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
 
 	IdParam := c.Params("id")
 	if IdParam == "" {
@@ -309,7 +315,7 @@ func (h *WorkHandler) UpdateDailyWorkStaff(c *fiber.Ctx) error {
 		return errx.BadRequest("work id must be a number")
 	}
 
-	var request dto.UpdateDailyWorkStaffRequest
+	var request dto.UpdateDailyWorkUserRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
 		return err
@@ -320,13 +326,12 @@ func (h *WorkHandler) UpdateDailyWorkStaff(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.UpdateDailyWorkStaff(Id, request, uuid.MustParse(accountIdCtx))
+	res, err := h.service.UpdateDailyWorkUser(Id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update daily work staff", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success update daily work staff")
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update daily work user")
 }
 
 func (h *WorkHandler) DeleteDailyWork(c *fiber.Ctx) error {
@@ -343,7 +348,21 @@ func (h *WorkHandler) DeleteDailyWork(c *fiber.Ctx) error {
 
 	err = h.service.DeleteDailyWork(id)
 	if err != nil {
-		h.log.Error("failed to delete daily work", zap.Error(err))
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *WorkHandler) DeleteAdditionalWorkUser(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return err
+	}
+
+	err = h.service.DeleteAdditionalWorkUser(id)
+	if err != nil {
 		return err
 	}
 

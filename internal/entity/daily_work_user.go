@@ -12,7 +12,7 @@ type DailyWorkUser struct {
 	DailyWork   DailyWork     `gorm:"foreignKey:DailyWorkId;references:Id"`
 	UserId      uuid.UUID     `gorm:"type:varchar(255);not null"`
 	User        User          `gorm:"foreignKey:UserId;references:Id"`
-	IsDone      bool          `gorm:"type:bool;not null"`
+	IsDone      bool          `gorm:"type:boolean;not null"`
 	CreatedAt   time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy   uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt   time.Time     `gorm:"type:timestamp;autoUpdateTime"`

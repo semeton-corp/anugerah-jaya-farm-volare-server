@@ -45,7 +45,7 @@ func New(db *gorm.DB, log *zap.Logger) IScheduler {
 func (s *Scheduler) InitScheduler() {
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.createDailyWorkStaff(tx)
+			err := s.createDailyWorkUser(tx)
 			if err != nil {
 				s.log.Error("failed to create daily work user", zap.Error(err))
 				return err
@@ -67,7 +67,7 @@ func (s *Scheduler) InitScheduler() {
 
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.checkForgottenStaffPresence(tx)
+			err := s.checkForgottenUserPresence(tx)
 			if err != nil {
 				s.log.Error("failed to check user presence", zap.Error(err))
 				return err
@@ -77,8 +77,8 @@ func (s *Scheduler) InitScheduler() {
 	})
 }
 
-func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
-	s.log.Info("Creating daily work staff...")
+func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
+	s.log.Info("Creating daily work user...")
 
 	var dailyWorks []entity.DailyWork
 	if err := tx.Model(&entity.DailyWork{}).Find(&dailyWorks).Error; err != nil {
@@ -90,23 +90,23 @@ func (s *Scheduler) createDailyWorkStaff(tx *gorm.DB) error {
 		return err
 	}
 
-	var dailyWorkStaffs []entity.DailyWorkUser
+	var dailyWorkUsers []entity.DailyWorkUser
 	for _, dailyWork := range dailyWorks {
 		for _, user := range users {
 			if user.RoleId == dailyWork.RoleId {
-				dailyWorkStaff := entity.DailyWorkUser{
+				dailyWorkUser := entity.DailyWorkUser{
 					DailyWorkId: dailyWork.Id,
 					UserId:      user.Id,
 					IsDone:      false,
 					CreatedBy:   uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 				}
-				dailyWorkStaffs = append(dailyWorkStaffs, dailyWorkStaff)
+				dailyWorkUsers = append(dailyWorkUsers, dailyWorkUser)
 			}
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("Daily work staff created: %d", len(dailyWorkStaffs)))
-	return tx.CreateInBatches(dailyWorkStaffs, len(dailyWorkStaffs)).Error
+	s.log.Info(fmt.Sprintf("Daily work user created: %d", len(dailyWorkUsers)))
+	return tx.CreateInBatches(dailyWorkUsers, len(dailyWorkUsers)).Error
 }
 
 func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
@@ -117,13 +117,13 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 
 	for _, user := range users {
 		if user.Role.Name != ownerRole {
-			staffPresence := entity.UserPresence{
+			userPresence := entity.UserPresence{
 				UserId:                   user.Id,
 				Status:                   enum.PresenceStatusAlpha,
 				SubmissionPresenceStatus: enum.SubmissionPresenceStatusNoSubmission,
 				CreatedBy:                uuid.NullUUID{UUID: uuid.Nil, Valid: false},
 			}
-			if err := tx.Create(&staffPresence).Error; err != nil {
+			if err := tx.Create(&userPresence).Error; err != nil {
 				return err
 			}
 		}
@@ -133,25 +133,25 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 	return nil
 }
 
-func (s *Scheduler) checkForgottenStaffPresence(tx *gorm.DB) error {
+func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 	s.log.Info("Checking user presence...")
 
-	var staffPresences []entity.UserPresence
-	if err := tx.Where("status = ? AND start_time IS NOT NULL", enum.PresenceStatusPresent).Find(&staffPresences).Error; err != nil {
+	var userPresences []entity.UserPresence
+	if err := tx.Where("status = ? AND start_time IS NOT NULL", enum.PresenceStatusPresent).Find(&userPresences).Error; err != nil {
 		return err
 	}
 
 	endTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.UTC)
 
-	for _, staffPresence := range staffPresences {
-		staffPresence.Status = enum.PresenceStatusPresent
-		staffPresence.EndTime = datatype.TimeOnly{Time: &endTime}
-		if err := tx.Save(&staffPresence).Error; err != nil {
+	for _, userPresence := range userPresences {
+		userPresence.Status = enum.PresenceStatusPresent
+		userPresence.EndTime = datatype.TimeOnly{Time: &endTime}
+		if err := tx.Save(&userPresence).Error; err != nil {
 			return err
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("User presence checked: %d", len(staffPresences)))
+	s.log.Info(fmt.Sprintf("User presence checked: %d", len(userPresences)))
 	return nil
 }
 
