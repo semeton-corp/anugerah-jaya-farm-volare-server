@@ -23,7 +23,7 @@ type PresenceService struct {
 }
 
 type IPresenceService interface {
-	GetCurrentUserPresence(userId uuid.UUID) (map[string]any, error)
+	GetCurrentUserPresence(userId uuid.UUID) (dto.PresenceResponse, error)
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
 }
@@ -35,21 +35,16 @@ func NewPresenceService(log *zap.Logger, repository repository.IPresenceReposito
 	}
 }
 
-func (s *PresenceService) GetCurrentUserPresence(userId uuid.UUID) (map[string]any, error) {
-	nofications := make([]string, 0)
-
+func (s *PresenceService) GetCurrentUserPresence(userId uuid.UUID) (dto.PresenceResponse, error) {
 	s.repository.UseTx(false)
 
 	userPresence, err := s.repository.GetUserPresenceTodayByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get user presence", zap.Error(err))
-		return nil, err
+		return dto.PresenceResponse{}, err
 	}
 
-	return map[string]any{
-		"notifications":   nofications,
-		"currentPresence": mapper.PresenceToResponse(&userPresence),
-	}, nil
+	return mapper.PresenceToResponse(&userPresence), nil
 }
 
 func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error) {

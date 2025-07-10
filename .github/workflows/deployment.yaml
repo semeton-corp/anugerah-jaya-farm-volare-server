@@ -32,4 +32,5 @@ jobs:
           command_timeout: 60m
           script: |
             cd ./Anugerah-Jaya-Farm-Volare
+            make compose-down
             make compose-up

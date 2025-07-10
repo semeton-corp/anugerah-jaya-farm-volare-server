@@ -94,7 +94,6 @@ type GetWarehouseOrderItemFilter struct {
 }
 
 type WarehouseOverview struct {
-	Notifications     []string                `json:"notifications"`
 	TotalSafeStock    uint64                  `json:"totalSafeStock"`
 	TotalDangerStock  uint64                  `json:"totalDangerStock"`
 	TotalStoreRequest uint64                  `json:"totalStoreRequest"`

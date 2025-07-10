@@ -298,9 +298,7 @@ func (s *WarehouseService) DeleteWarehouseItem(warehouseId uint64, warehouseItem
 }
 
 func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOverview, error) {
-	// Todo : add notification
 	s.repository.UseTx(false)
-	notifications := make([]string, 0)
 
 	warehouseItems, err := s.repository.GetWarehouseItems(dto.GetWarehouseItemFilter{
 		WarehouseId: id,
@@ -339,7 +337,6 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 	}
 
 	return dto.WarehouseOverview{
-		Notifications:     notifications,
 		EggStocks:         eggWarehouseItems,
 		EquipmentStocks:   equipmentWarehouseItems,
 		TotalSafeStock:    uint64(totalSafeStock),
