@@ -68,26 +68,25 @@ type GetEggMonitoringFilter struct {
 }
 
 type GetEggOverviewFilter struct {
-	Location          uint64                       `query:"location"`
+	LocationId        uint64                       `query:"locationId"`
+	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime"`
 }
 
 type EggOverviewDetailResponse struct {
-	TotalGoodEgg    uint64 `json:"totalGoodEgg"`
-	TotalCrackedEgg uint64 `json:"totalCrackedEgg"`
-	TotalBrokenEgg  uint64 `json:"totalBrokenEgg"`
-	TotalRejectEgg  uint64 `json:"totalRejectEgg"`
+	Name     string  `json:"name"`
+	Quantity float64 `json:"quantity"`
+	Unit     string  `json:"unit"`
 }
 
 type EggGraphResponse struct {
 	Key        string `json:"key"`
 	GoodEgg    uint64 `json:"goodEgg"`
 	CrackedEgg uint64 `json:"crackedEgg"`
-	BrokenEgg  uint64 `json:"brokenEgg"`
 	RejectEgg  uint64 `json:"rejectEgg"`
 }
 
 type EggOverviewResponse struct {
-	EggOverviewDetail EggOverviewDetailResponse `json:"eggOverviewDetail"`
-	EggGraphs         []EggGraphResponse        `json:"eggGraphs"`
+	EggOverviewDetail []EggOverviewDetailResponse `json:"eggOverviewDetail"`
+	EggGraphs         []EggGraphResponse          `json:"eggGraphs"`
 }

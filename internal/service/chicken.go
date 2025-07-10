@@ -3,7 +3,6 @@ package service
 import (
 	"database/sql"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -306,7 +305,7 @@ func (c *ChickenService) buildMonthlyGraph() ([]dto.ChickenGraphResponse, error)
 		}
 	}
 
-	keys := getSortedKeys(weekMaps)
+	keys := util.GetSortedKeys(weekMaps)
 	graphs := make([]dto.ChickenGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.ChickenGraphResponse{
@@ -341,11 +340,11 @@ func (c *ChickenService) buildYearlyGraph() ([]dto.ChickenGraphResponse, error) 
 		}
 	}
 
-	keys := getSortedKeys(monthMaps)
+	keys := util.GetSortedKeys(monthMaps)
 	graphs := make([]dto.ChickenGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.ChickenGraphResponse{
-			Key:          time.Month(k).String(),
+			Key:          util.IndoMonthName(k),
 			SickChicken:  totalSick[k],
 			DeathChicken: totalDeath[k],
 		})
@@ -355,18 +354,6 @@ func (c *ChickenService) buildYearlyGraph() ([]dto.ChickenGraphResponse, error) 
 
 func isSameDate(a, b time.Time) bool {
 	return a.Year() == b.Year() && a.Month() == b.Month() && a.Day() == b.Day()
-}
-
-func getSortedKeys(m interface{}) []int {
-	keys := make([]int, 0)
-	switch mm := m.(type) {
-	case map[int]util.DateRange:
-		for k := range mm {
-			keys = append(keys, k)
-		}
-	}
-	sort.Ints(keys)
-	return keys
 }
 
 func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, createdBy uuid.UUID) (dto.ChickenHealthItemResponse, error) {

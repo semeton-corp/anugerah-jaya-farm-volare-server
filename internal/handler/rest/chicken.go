@@ -378,6 +378,11 @@ func (h *ChickenHandler) GetChickenOverview(c *fiber.Ctx) error {
 		return err
 	}
 
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("failed to validate request", zap.Error(err))
+		return err
+	}
+
 	data, err := h.service.GetChickenOverview(filter)
 	if err != nil {
 		return err

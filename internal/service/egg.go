@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"sort"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -391,166 +391,172 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 }
 
 func (s *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error) {
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+
 	currentEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
-		LocationId: filter.Location,
-		Date:       param.DateParam(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)),
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+		Date:       param.DateParam(today),
 	})
 	if err != nil {
-		s.log.Error(" failed to get egg monitorings", zap.Error(err))
+		s.log.Error("failed to get egg monitorings", zap.Error(err))
 		return dto.EggOverviewResponse{}, err
 	}
 
-	totalGoodEgg := uint64(0)
-	totalCrackedEgg := uint64(0)
-	totalBrokenEgg := uint64(0)
-	totalRejectEgg := uint64(0)
+	var totalGoodEggInButir, totalCrackedEggInButir, totalRejectEggInButir uint64
+	var totalGoodEggInKg, totalCrackedEggInKg float64
 
-	for _, eggMonitoring := range currentEggMonitorings {
-		totalGoodEgg += eggMonitoring.TotalGoodEgg
-		totalCrackedEgg += eggMonitoring.TotalCrackedEgg
-		// totalBrokenEgg += eggMonitoring.TotalBrokeEgg
-		totalRejectEgg += eggMonitoring.TotalRejectEgg
+	for _, egg := range currentEggMonitorings {
+		totalGoodEggInButir += egg.TotalGoodEgg
+		totalCrackedEggInButir += egg.TotalCrackedEgg
+		totalRejectEggInButir += egg.TotalRejectEgg
+		totalGoodEggInKg += egg.TotalWeightGoodEgg
+		totalCrackedEggInKg += egg.TotalWeightCrackedEgg
 	}
 
 	eggGraphs := make([]dto.EggGraphResponse, 0)
-
-	if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisWeek {
-		endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-		startDate := endDate.AddDate(0, 0, -7)
-
-		weekEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
-			LocationId: filter.Location,
-			StartDate:  param.DateParam(startDate),
-			EndDate:    param.DateParam(endDate),
-		})
-		if err != nil {
-			s.log.Error("failed to get egg monitorings", zap.Error(err))
-			return dto.EggOverviewResponse{}, err
-		}
-
-		for i := startDate; i.Before(endDate); i = i.AddDate(0, 0, 1) {
-			for _, eggMonitoring := range weekEggMonitorings {
-				if i.Equal(eggMonitoring.CreatedAt) {
-					eggGraphs = append(eggGraphs, dto.EggGraphResponse{
-						Key:        i.Format("2006-01-02"),
-						GoodEgg:    eggMonitoring.TotalGoodEgg,
-						CrackedEgg: eggMonitoring.TotalCrackedEgg,
-						// BrokenEgg:  eggMonitoring.TotalBrokeEgg,
-						RejectEgg: eggMonitoring.TotalRejectEgg,
-					})
-				} else {
-					eggGraphs = append(eggGraphs, dto.EggGraphResponse{
-						Key:        i.Format("2006-01-02"),
-						GoodEgg:    0,
-						CrackedEgg: 0,
-						BrokenEgg:  0,
-						RejectEgg:  0,
-					})
-				}
-			}
-		}
-	} else if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisMonth {
-		weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
-		startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
-
-		monthEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
-			LocationId: filter.Location,
-			StartDate:  param.DateParam(startDate),
-			EndDate:    param.DateParam(endDate),
-		})
-		if err != nil {
-			s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
-			return dto.EggOverviewResponse{}, err
-		}
-
-		goodEggMaps := make(map[int]uint64)
-		crackedEggMaps := make(map[int]uint64)
-		brokenEggMaps := make(map[int]uint64)
-		rejectEggMaps := make(map[int]uint64)
-
-		for _, eggMonitoring := range monthEggMonitorings {
-			i := util.FindWeek(eggMonitoring.CreatedAt, weekMaps)
-			if i != 0 {
-				goodEggMaps[i] += eggMonitoring.TotalGoodEgg
-				crackedEggMaps[i] += eggMonitoring.TotalCrackedEgg
-				// brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
-				rejectEggMaps[i] += eggMonitoring.TotalRejectEgg
-			}
-		}
-
-		keys := make([]int, 0)
-		for k := range weekMaps {
-			keys = append(keys, k)
-		}
-		sort.Ints(keys)
-
-		for i := range keys {
-			eggGraphs = append(eggGraphs, dto.EggGraphResponse{
-				Key:        fmt.Sprintf("Minggu %d", i),
-				GoodEgg:    goodEggMaps[i],
-				CrackedEgg: crackedEggMaps[i],
-				BrokenEgg:  brokenEggMaps[i],
-				RejectEgg:  rejectEggMaps[i],
-			})
-		}
-
-	} else if filter.OverviewGraphTime.Value() == enum.OverviewGraphTimeThisYear {
-		monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
-		startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
-
-		yearEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
-			LocationId: filter.Location,
-			StartDate:  param.DateParam(startDate),
-			EndDate:    param.DateParam(endDate),
-		})
-		if err != nil {
-			s.log.Error("[GetOverviewEggMonitoring] failed to get egg monitorings", zap.Error(err))
-			return dto.EggOverviewResponse{}, err
-		}
-
-		goodEggMaps := make(map[int]uint64)
-		crackedEggMaps := make(map[int]uint64)
-		brokenEggMaps := make(map[int]uint64)
-		rejectEggMaps := make(map[int]uint64)
-
-		for _, eggMonitoring := range yearEggMonitorings {
-			i := util.FindMonth(eggMonitoring.CreatedAt, monthMaps)
-			if i != 0 {
-				goodEggMaps[i] += eggMonitoring.TotalGoodEgg
-				crackedEggMaps[i] += eggMonitoring.TotalCrackedEgg
-				// brokenEggMaps[i] += eggMonitoring.TotalBrokeEgg
-				rejectEggMaps[i] += eggMonitoring.TotalRejectEgg
-			}
-		}
-
-		keys := make([]int, 0)
-		for k := range monthMaps {
-			keys = append(keys, k)
-		}
-		sort.Ints(keys)
-
-		for i := range keys {
-			eggGraphs = append(eggGraphs, dto.EggGraphResponse{
-				Key:        time.Month(i).String(),
-				GoodEgg:    goodEggMaps[i],
-				CrackedEgg: crackedEggMaps[i],
-				BrokenEgg:  brokenEggMaps[i],
-				RejectEgg:  rejectEggMaps[i],
-			})
-		}
+	switch filter.OverviewGraphTime.Value() {
+	case enum.OverviewGraphTimeThisWeek:
+		eggGraphs, err = s.buildEggWeeklyGraph(filter.LocationId)
+	case enum.OverviewGraphTimeThisMonth:
+		eggGraphs, err = s.buildEggMonthlyGraph(filter.LocationId)
+	case enum.OverviewGraphTimeThisYear:
+		eggGraphs, err = s.buildEggYearlyGraph(filter.LocationId)
 	}
-
-	eggOverviewDetail := dto.EggOverviewDetailResponse{
-		TotalGoodEgg:    totalGoodEgg,
-		TotalCrackedEgg: totalCrackedEgg,
-		TotalBrokenEgg:  totalBrokenEgg,
-		TotalRejectEgg:  totalRejectEgg,
+	if err != nil {
+		return dto.EggOverviewResponse{}, err
 	}
 
 	eggOverview := dto.EggOverviewResponse{
-		EggOverviewDetail: eggOverviewDetail,
+		EggOverviewDetail: s.buildEggOverviewDetails(totalGoodEggInButir, totalCrackedEggInButir, totalRejectEggInButir, totalGoodEggInKg, totalCrackedEggInKg),
 		EggGraphs:         eggGraphs,
 	}
 
 	return eggOverview, nil
+}
+
+func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
+	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	startDate := endDate.AddDate(0, 0, -7)
+
+	weekEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get egg monitorings weekly", zap.Error(err))
+		return nil, err
+	}
+
+	graphs := make([]dto.EggGraphResponse, 0)
+	for day := startDate; day.Before(endDate); day = day.AddDate(0, 0, 1) {
+		var good, cracked, reject uint64
+		for _, egg := range weekEggs {
+			if isSameDate(day, egg.CreatedAt) {
+				good += egg.TotalGoodEgg
+				cracked += egg.TotalCrackedEgg
+				reject += egg.TotalRejectEgg
+			}
+		}
+		graphs = append(graphs, dto.EggGraphResponse{
+			Key:        day.Format("2006-01-02"),
+			GoodEgg:    good,
+			CrackedEgg: cracked,
+			RejectEgg:  reject,
+		})
+	}
+	return graphs, nil
+}
+
+func (s *EggService) buildEggMonthlyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
+	weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
+
+	monthEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get egg monitorings monthly", zap.Error(err))
+		return nil, err
+	}
+
+	goodMap, crackedMap, rejectMap := make(map[int]uint64), make(map[int]uint64), make(map[int]uint64)
+	for _, egg := range monthEggs {
+		week := util.FindWeek(egg.CreatedAt, weekMaps)
+		if week > 0 {
+			goodMap[week] += egg.TotalGoodEgg
+			crackedMap[week] += egg.TotalCrackedEgg
+			rejectMap[week] += egg.TotalRejectEgg
+		}
+	}
+
+	keys := util.GetSortedKeys(weekMaps)
+	graphs := make([]dto.EggGraphResponse, 0)
+	for _, k := range keys {
+		graphs = append(graphs, dto.EggGraphResponse{
+			Key:        fmt.Sprintf("Minggu %d", k),
+			GoodEgg:    goodMap[k],
+			CrackedEgg: crackedMap[k],
+			RejectEgg:  rejectMap[k],
+		})
+	}
+	return graphs, nil
+}
+
+func (s *EggService) buildEggYearlyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
+	monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
+	startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
+
+	yearEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get egg monitorings yearly", zap.Error(err))
+		return nil, err
+	}
+
+	goodMap, crackedMap, rejectMap := make(map[int]uint64), make(map[int]uint64), make(map[int]uint64)
+	for _, egg := range yearEggs {
+		month := util.FindMonth(egg.CreatedAt, monthMaps)
+		if month > 0 {
+			goodMap[month] += egg.TotalGoodEgg
+			crackedMap[month] += egg.TotalCrackedEgg
+			rejectMap[month] += egg.TotalRejectEgg
+		}
+	}
+
+	keys := util.GetSortedKeys(monthMaps)
+	graphs := make([]dto.EggGraphResponse, 0)
+	for _, k := range keys {
+		graphs = append(graphs, dto.EggGraphResponse{
+			Key:        util.IndoMonthName(k),
+			GoodEgg:    goodMap[k],
+			CrackedEgg: crackedMap[k],
+			RejectEgg:  rejectMap[k],
+		})
+	}
+	return graphs, nil
+}
+
+func (s *EggService) buildEggOverviewDetails(
+	totalGoodEggInButir, totalCrackedEggInButir, totalRejectEggInButir uint64,
+	totalGoodEggInKg, totalCrackedEggInKg float64) []dto.EggOverviewDetailResponse {
+
+	details := []dto.EggOverviewDetailResponse{
+		{Name: constant.GoodEgg, Quantity: float64(totalGoodEggInButir), Unit: constant.EggUnitButir},
+		{Name: constant.GoodEgg, Quantity: math.Ceil(float64(totalGoodEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.EggUnitKarpet},
+		{Name: constant.CrackedEgg, Quantity: float64(totalCrackedEggInButir), Unit: constant.EggUnitButir},
+		{Name: constant.CrackedEgg, Quantity: math.Ceil(float64(totalCrackedEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.EggUnitKarpet},
+		{Name: constant.GoodEgg, Quantity: totalGoodEggInKg, Unit: constant.EggUnitKg},
+		{Name: constant.GoodEgg, Quantity: math.Ceil(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
+		{Name: constant.CrackedEgg, Quantity: totalCrackedEggInKg, Unit: constant.EggUnitKg},
+		{Name: constant.CrackedEgg, Quantity: math.Ceil(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
+		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.EggUnitIkat},
+	}
+	return details
 }
