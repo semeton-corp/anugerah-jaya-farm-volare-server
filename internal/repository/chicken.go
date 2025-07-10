@@ -118,16 +118,18 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	var chickenMonitorings []entity.ChickenMonitoring
 	query := r.GetDB().
 		Preload("ChickenCage.Cage.Location").
-		Model(&entity.ChickenMonitoring{})
+		Model(&entity.ChickenMonitoring{}).Joins("JOIN chicken_cages ON chicken_cages.id = chicken_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(chicken_monitorings.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.LocationId > 0 {
-		query = query.
-			Joins("JOIN chicken_cages ON chicken_cages.id = chicken_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id").
-			Where("cages.location_id = ?", filter.LocationId)
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if filter.CageId > 0 {
+		query = query.Where("cages.id = ?", filter.CageId)
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {

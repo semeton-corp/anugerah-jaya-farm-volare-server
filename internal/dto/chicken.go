@@ -105,12 +105,14 @@ type ChickenHealthMonitoringDetailResponse struct {
 type GetChickenMonitoringFilter struct {
 	Date       param.DateParam `query:"date"`
 	LocationId uint64          `query:"locationId"`
+	CageId     uint64
 	StartDate  param.DateParam
 	EndDate    param.DateParam
 }
 
 type GetChickenOverviewFilter struct {
-	Location          uint64                       `query:"location"`
+	LocationId        uint64                       `query:"locationId"`
+	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime"`
 }
 
@@ -127,16 +129,16 @@ type ChickenGraphResponse struct {
 	DeathChicken uint64 `json:"deathChicken"`
 }
 
-type ChickenPieResponse struct {
-	ChickenDOCType       float64 `json:"chickenDOCType"`
-	ChickenGrowerType    float64 `json:"chickenGrowerType"`
-	ChickentPreLayerType float64 `json:"chickentPreLayerType"`
-	ChickenLayer         float64 `json:"chickenLayer"`
-	ChickenAfkir         float64 `json:"chickenAfkir"`
+type ChickenBarChartResponse struct {
+	ChickenDOC       float64 `json:"chickenDOC"`
+	ChickenGrower    float64 `json:"chickenGrower"`
+	ChickentPreLayer float64 `json:"chickentPreLayer"`
+	ChickenLayer     float64 `json:"chickenLayer"`
+	ChickenAfkir     float64 `json:"chickenAfkir"`
 }
 
 type ChickenOverviewResponse struct {
-	ChickenDetail ChickenDetailOverview  `json:"chickenDetail"`
-	ChickenGraphs []ChickenGraphResponse `json:"chickenGraphs"`
-	ChickenPie    ChickenPieResponse     `json:"chickenPie"`
+	ChickenDetail ChickenDetailOverview   `json:"chickenDetail"`
+	ChickenGraphs []ChickenGraphResponse  `json:"chickenGraphs"`
+	ChickenPie    ChickenBarChartResponse `json:"chickenPie"`
 }

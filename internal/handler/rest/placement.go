@@ -30,6 +30,7 @@ func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
 	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)
+	v1.Post("/cages/:userId", middleware.Authentication(), h.DeleteCagePlacementByUserId)
 }
 
 func NewPlacementHandler(log *zap.Logger, service service.IPlacementService, validator *validator.Validate) *PlacementHandler {
@@ -176,6 +177,15 @@ func (h *PlacementHandler) DeleteStorePlacementByUserId(c *fiber.Ctx) error {
 
 func (h *PlacementHandler) DeleteWarehousePlacementByUserId(c *fiber.Ctx) error {
 	err := h.service.DeleteWarehousePlacementByUserId(uuid.MustParse(c.Params("userId")))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *PlacementHandler) DeleteCagePlacementByUserId(c *fiber.Ctx) error {
+	err := h.service.DeleteCagePlacementByUserId(uuid.MustParse(c.Params("userId")))
 	if err != nil {
 		return err
 	}

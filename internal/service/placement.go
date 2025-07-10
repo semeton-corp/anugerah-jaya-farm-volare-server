@@ -33,6 +33,7 @@ type IPlacementService interface {
 
 	DeleteStorePlacementByUserId(userId uuid.UUID) error
 	DeleteWarehousePlacementByUserId(userId uuid.UUID) error
+	DeleteCagePlacementByUserId(userId uuid.UUID) error
 }
 
 func NewPlacementService(log *zap.Logger, repository repository.IPlacementRepository) IPlacementService {

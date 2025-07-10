@@ -6,8 +6,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func GetStartDayAndEndDayByMonthFilter(presenceStatus enum.Month, year int) (time.Time, time.Time) {
-	switch presenceStatus {
+func GetStartDayAndEndDayByMonthFilter(month enum.Month, year int) (time.Time, time.Time) {
+	switch month {
 	case enum.MonthJanuary:
 		return GetStartDateAndEndDateInMonth(year, time.January)
 	case enum.MonthFebruary:

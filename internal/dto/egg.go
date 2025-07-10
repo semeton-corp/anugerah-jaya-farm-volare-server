@@ -62,6 +62,7 @@ type EggMonitoringListResponse struct {
 type GetEggMonitoringFilter struct {
 	Date       param.DateParam `query:"date"`
 	LocationId uint64          `query:"locationId"`
+	CageId     uint64
 	StartDate  param.DateParam
 	EndDate    param.DateParam
 }

@@ -22,6 +22,8 @@ type ChickenHandler struct {
 
 func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/chickens")
+	v1.Get("/overview", middleware.Authentication(), h.GetChickenOverview)
+
 	v1.Post("/monitorings", middleware.Authentication(), h.CreateChickenMonitoring)
 	v1.Get("/monitorings", middleware.Authentication(), h.GetChickenMonitorings)
 	v1.Put("/monitorings/:id", middleware.Authentication(), h.UpdateChickenMonitoring)
@@ -367,4 +369,19 @@ func (h *ChickenHandler) DeleteChickenHealthMonitoring(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) GetChickenOverview(c *fiber.Ctx) error {
+	var filter dto.GetChickenOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenOverview(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken overview")
 }

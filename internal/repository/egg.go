@@ -84,16 +84,19 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 	query := r.GetDB().
 		Preload("Warehouse.Location").
 		Preload("ChickenCage.Cage.Location").
-		Model(&entity.EggMonitoring{})
+		Model(&entity.EggMonitoring{}).
+		Joins("JOIN chicken_cages ON chicken_cages.id = egg_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(egg_monitorings.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.LocationId > 0 {
-		query = query.
-			Joins("JOIN chicken_cages ON chicken_cages.id = egg_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id").
-			Where("cages.location_id = ?", filter.LocationId)
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if filter.CageId > 0 {
+		query = query.Where("cages.id = ?", filter.CageId)
 	}
 
 	if err := query.Order("egg_monitorings.created_at ASC").Find(&eggMonitorings).Error; err != nil {
