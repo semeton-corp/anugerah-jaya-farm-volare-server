@@ -126,25 +126,27 @@ func (r *WorkRepository) GetAdditionalWorkById(id uint64) (entity.AdditionalWork
 
 func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) ([]entity.DailyWorkUser, error) {
 	var dailyWorkUsers []entity.DailyWorkUser
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.DailyWorkUser{}).
+		Joins("JOIN daily_works ON daily_work_users.daily_work_id = daily_works.id").
+		Joins("JOIN users ON daily_work_users.user_id = users.id")
 
-	if filter.Month.Value().IsValid() {
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+		query = query.Where("daily_work_users.created_at >= ? AND daily_work_users.created_at <= ?", startDate, endDate)
 	}
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(created_at) = ?", filter.Date.Value().Format("2006-01-02"))
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
 	}
 
 	if filter.WithDeleted {
-		query = query.Preload("DailyWork")
-	} else {
-		query = query.Preload("DailyWork", "deleted_at IS NULL")
+		query = query.Where("daily_works.deleted_at IS NULL")
 	}
 
-	err := query.Preload("DailyWork").
-		Preload("User", "id = ?", userId).
+	err := query.
+		Where("users.id = ?", userId).
+		Preload("DailyWork").
+		Preload("User").
 		Order("created_at DESC").
 		Find(&dailyWorkUsers).Error
 
@@ -157,25 +159,26 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 
 func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]entity.AdditionalWorkUser, error) {
 	var additionalWorks []entity.AdditionalWorkUser
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.AdditionalWorkUser{}).
+		Joins("JOIN additional_works ON additional_work_users.additional_work_id = additional_works.id").
+		Joins("JOIN users ON additional_work_users.user_id = users.id")
 
-	if filter.Month.Value().IsValid() {
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
 	}
 
 	if filter.WithDeleted {
-		query = query.Preload("AdditionalWork")
-	} else {
-		query = query.Preload("AdditionalWork", "deleted_at IS NULL")
+		query = query.Where("additional_works.deleted_at IS NULL")
 	}
 
 	if filter.IsAdditionalWorkFull {
-		query = query.Where("is_additional_work_full = ?", filter.IsAdditionalWorkFull)
+		query = query.Where("additional_work_users.is_additional_work_full = ?", filter.IsAdditionalWorkFull)
 	}
 
-	err := query.Preload("AdditionalWork").
-		Preload("User", "id = ?", userId).
+	err := query.Where("users.id = ?", userId).
+		Preload("AdditionalWork").
+		Preload("User").
 		Order("created_at DESC").
 		Find(&additionalWorks).Error
 
@@ -196,10 +199,6 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
 	query := r.GetDB().Model(&entity.AdditionalWork{}).Joins("JOIN additional_work_users ON additional_works.id = additional_work_users.additional_work_id")
-
-	if filter.ExcludeUserIds != nil {
-		query = query.Where("additional_work_users.user_id NOT IN ?", filter.ExcludeUserIds)
-	}
 
 	err := query.
 		Preload("AdditionalWorkUsers.User.Role").

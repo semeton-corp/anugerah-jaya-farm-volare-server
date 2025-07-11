@@ -148,9 +148,7 @@ func (h *WorkHandler) GetAdditionalWorks(c *fiber.Ctx) error {
 		return err
 	}
 
-	filter.ExcludeUserIds = []uuid.UUID{uuid.MustParse(userId)}
-
-	res, err := h.service.GetAdditionalWorks(filter)
+	res, err := h.service.GetAdditionalWorks(filter, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}

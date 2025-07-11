@@ -3,7 +3,6 @@ package dto
 import (
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
 
@@ -91,6 +90,7 @@ type AdditionalWorkDetailResponse struct {
 type AdditionalWorkUserResponse struct {
 	Id             uint64                       `json:"id"`
 	IsDone         bool                         `json:"isDone"`
+	Note           string                       `json:"note"`
 	AdditionalWork AdditionalWorkDetailResponse `json:"additionalWork"`
 	CreatedAt      time.Time                    `json:"-"`
 }
@@ -98,6 +98,7 @@ type AdditionalWorkUserResponse struct {
 type DailyWorkUserResponse struct {
 	Id        uint64                  `json:"id"`
 	IsDone    bool                    `json:"isDone"`
+	Note      string                  `json:"note"`
 	DailyWork DailyWorkDetailResponse `json:"dailyWork"`
 	CreatedAt time.Time               `json:"-"`
 }
@@ -109,19 +110,19 @@ type DailyWorkListResponse struct {
 }
 
 type AdditionalWorkListResponse struct {
-	Id            uint64 `json:"id"`
-	Date          string `json:"date"`
-	Time          string `json:"time"`
-	Name          string `json:"description"`
-	Location      string `json:"location"`
-	Place         string `json:"place"`
-	RemainingSlot uint64 `json:"remainingSlot"`
-	Status        string `json:"status"`
+	Id                   uint64 `json:"id"`
+	Date                 string `json:"date"`
+	Time                 string `json:"time"`
+	Name                 string `json:"description"`
+	Location             string `json:"location"`
+	Place                string `json:"place"`
+	RemainingSlot        uint64 `json:"remainingSlot"`
+	Status               string `json:"status"`
+	IsTakenByCurrentUser bool   `json:"IsTakenByCurrentUser"`
 }
 
 type GetAdditonalWorkFilter struct {
-	Status         string      `query:"status"`
-	ExcludeUserIds []uuid.UUID `query:"excludeUserIds"`
+	Status string `query:"status"`
 }
 
 type UpdateAdditionalWorkUserRequest struct {

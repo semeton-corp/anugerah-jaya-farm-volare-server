@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ type IWorkService interface {
 	GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) ([]dto.DailyWorkUserResponse, error)
 
 	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
-	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]dto.AdditionalWorkListResponse, error)
+	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, currUser uuid.UUID) ([]dto.AdditionalWorkListResponse, error)
 	GetAdditionalWorkById(id uint64) (dto.AdditionalWorkResponse, error)
 	UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	DeleteAdditionalWork(id uint64) error
@@ -61,7 +62,7 @@ func (w *WorkService) GetWorkOverview() (dto.WorkOveriew, error) {
 		return dto.WorkOveriew{}, err
 	}
 
-	additionalWorkSummaries, err := w.GetAdditionalWorks(dto.GetAdditonalWorkFilter{})
+	additionalWorkSummaries, err := w.GetAdditionalWorks(dto.GetAdditonalWorkFilter{}, uuid.Nil)
 	if err != nil {
 		return dto.WorkOveriew{}, err
 	}
@@ -211,9 +212,9 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 		return dto.WorkUserResponse{}, err
 	}
 
-	dailyWorkResponse := make([]dto.DailyWorkUserResponse, len(dailyWorkUsers))
-	for i, dailyWorkUser := range dailyWorkUsers {
-		dailyWorkResponse[i] = mapper.DailyWorkUserToResponse(&dailyWorkUser)
+	dailyWorkResponse := make([]dto.DailyWorkUserResponse, 0)
+	for _, dailyWorkUser := range dailyWorkUsers {
+		dailyWorkResponse = append(dailyWorkResponse, mapper.DailyWorkUserToResponse(&dailyWorkUser))
 	}
 
 	additionalWorkUsers, err := w.repository.GetAdditionalWorkUserByUserId(userId, dto.GetAdditionalWorkUserFilter{
@@ -225,9 +226,9 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 		return dto.WorkUserResponse{}, err
 	}
 
-	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, len(additionalWorkUsers))
-	for i, additionalWork := range additionalWorkUsers {
-		additionalWorkResponse[i] = mapper.AdditionalWorkUserToResponse(&additionalWork)
+	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0)
+	for _, additionalWork := range additionalWorkUsers {
+		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkUserToResponse(&additionalWork))
 	}
 
 	return dto.WorkUserResponse{
@@ -421,7 +422,7 @@ func (w *WorkService) DeleteAdditionalWork(id uint64) error {
 	return nil
 }
 
-func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]dto.AdditionalWorkListResponse, error) {
+func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, currUser uuid.UUID) ([]dto.AdditionalWorkListResponse, error) {
 	additionalWorks, err := w.repository.GetAdditionalWorks(filter)
 	if err != nil {
 		w.log.Error("failed to get additional works", zap.Error(err))
@@ -430,7 +431,18 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]d
 
 	additionalWorkResponses := make([]dto.AdditionalWorkListResponse, len(additionalWorks))
 	for i, additionalWork := range additionalWorks {
+		isTakenByCurrentUser := false
+		takenBy := make([]uuid.UUID, 0)
+		for _, additionalWorkUser := range additionalWork.AdditionalWorkUsers {
+			takenBy = append(takenBy, additionalWorkUser.UserId)
+		}
+
+		if slices.Contains(takenBy, currUser) {
+			isTakenByCurrentUser = true
+		}
+
 		additionalWorkResponses[i] = mapper.AdditionalWorkToListResponse(&additionalWork)
+		additionalWorkResponses[i].IsTakenByCurrentUser = isTakenByCurrentUser
 	}
 
 	if filter.Status == constant.AdditionalWorkAvailable {
@@ -465,6 +477,7 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 	}
 
 	additionalWorkUser.IsDone = request.IsDone
+	additionalWorkUser.Note = request.Note
 	additionalWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := w.repository.UpdateAdditionalWorkUser(&additionalWorkUser); err != nil {
@@ -490,6 +503,7 @@ func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWork
 	}
 
 	dailyWorkUser.IsDone = request.IsDone
+	dailyWorkUser.Note = request.Note
 	dailyWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
 
 	if err := w.repository.UpdateDailyWorkUser(&dailyWorkUser); err != nil {

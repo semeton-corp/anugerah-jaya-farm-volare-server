@@ -84,6 +84,7 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 	return dto.DailyWorkUserResponse{
 		Id:     dailyWorkUser.Id,
 		IsDone: dailyWorkUser.IsDone,
+		Note:   dailyWorkUser.Note,
 		DailyWork: dto.DailyWorkDetailResponse{
 			Id:          dailyWorkUser.DailyWork.Id,
 			Description: dailyWorkUser.DailyWork.Description,
@@ -98,6 +99,7 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 	return dto.AdditionalWorkUserResponse{
 		Id:     additionalWorkUser.Id,
 		IsDone: additionalWorkUser.IsDone,
+		Note:   additionalWorkUser.Note,
 		AdditionalWork: dto.AdditionalWorkDetailResponse{
 			Id:          additionalWorkUser.AdditionalWork.Id,
 			Description: additionalWorkUser.AdditionalWork.Description,

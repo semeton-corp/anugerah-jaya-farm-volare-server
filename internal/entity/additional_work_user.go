@@ -14,6 +14,7 @@ type AdditionalWorkUser struct {
 	AdditionalWork       AdditionalWork `gorm:"foreignKey:AdditionalWorkId;references:Id;constraint:OnDelete:CASCADE"`
 	IsDone               bool           `gorm:"type:boolean;default:false"`
 	IsAdditionalWorkFull bool           `gorm:"type:boolean;default:false"`
+	Note                 string         `gorm:"type:text"`
 	CreatedAt            time.Time      `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID  `gorm:"type:varchar(255)"`
 	UpdatedAt            time.Time      `gorm:"type:timestamp;autoUpdateTime"`
