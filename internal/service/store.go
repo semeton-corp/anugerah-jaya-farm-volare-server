@@ -26,6 +26,7 @@ type StoreService struct {
 	placementService IPlacementService
 	warehouseService IWarehouseService
 	userService      IUserService
+	itemService      IItemService
 }
 
 type IStoreService interface {
@@ -64,7 +65,7 @@ type IStoreService interface {
 	SendStoreSale(id uint64, accountId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
-func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService) IStoreService {
+func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService, itemService IItemService) IStoreService {
 	return &StoreService{
 		log:              log,
 		repository:       repository,
@@ -72,12 +73,14 @@ func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, ca
 		placementService: placementService,
 		warehouseService: warehouseService,
 		userService:      userService,
+		itemService:      itemService,
 	}
 }
 
 // Todo : When created store auto create 3 egg object
 func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
 	store := entity.Store{
 		Name:       request.Name,
@@ -88,6 +91,53 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uui
 	err := s.repository.CreateStore(&store)
 	if err != nil {
 		s.log.Error("failed to create store", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreResponse{}, err
+	}
+
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreResponse{}, err
+
+	}
+
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreResponse{}, err
+	}
+
+	storeItems := make([]entity.StoreItem, 0)
+	storeItems = append(storeItems, entity.StoreItem{
+		StoreId:  store.Id,
+		ItemId:   goodEggItem.Id,
+		Quantity: 0,
+	})
+
+	storeItems = append(storeItems, entity.StoreItem{
+		StoreId:  store.Id,
+		ItemId:   crackedEggItem.Id,
+		Quantity: 0,
+	})
+
+	storeItems = append(storeItems, entity.StoreItem{
+		StoreId:  store.Id,
+		ItemId:   brokenEggItem.Id,
+		Quantity: 0,
+	})
+
+	err = s.repository.CreateStoreItemsInBatch(&storeItems)
+	if err != nil {
+		s.log.Error("failed to create store items in batch", zap.Error(err))
+		return dto.StoreResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return dto.StoreResponse{}, err
 	}
 

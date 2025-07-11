@@ -29,6 +29,7 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 		TotalWeightGoodEgg:       eggMonitoring.TotalWeightGoodEgg,
 		TotalWeightCrackedEgg:    eggMonitoring.TotalWeightCrackedEgg,
 		TotalWeightAllEgg:        eggMonitoring.TotalWeightGoodEgg + eggMonitoring.TotalWeightCrackedEgg,
+		CreatedAt:                eggMonitoring.CreatedAt.Format("02-01-2006"),
 	}
 
 	if eggMonitoring.TotalGoodEgg == 0 {
@@ -49,6 +50,7 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
 		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
 		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
+		CreatedAt:       eggMonitoring.CreatedAt.Format("02-01-2006"),
 	}
 
 	if eggMonitoring.TotalGoodEgg == 0 {

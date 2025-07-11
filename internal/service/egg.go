@@ -92,7 +92,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		CreatedBy:             uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur OK", "Kg", enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -125,7 +125,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur Retak", "Kg", enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}

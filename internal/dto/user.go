@@ -28,7 +28,7 @@ type UpdateUserRequest struct {
 	Salary       string `json:"salary" validate:"required"`
 }
 
-type GetUserFilter struct {
+type GetUserListFilter struct {
 	RoleId     uint64 `query:"roleId"`
 	LocationId uint64 `query:"locationId"`
 	Page       uint64 `query:"page"`
@@ -38,11 +38,10 @@ type GetUserFilter struct {
 type UserListResponse struct {
 	Id           string       `json:"id"`
 	Name         string       `json:"name"`
+	Username     string       `json:"username"`
 	PhotoProfile string       `json:"photoProfile"`
 	Email        string       `json:"email"`
-	Salary       string       `json:"salary"`
 	PhoneNumber  string       `json:"phoneNumber"`
-	Address      string       `json:"address"`
 	Role         RoleResponse `json:"role"`
 }
 
@@ -92,4 +91,22 @@ type UserOverviewResponse struct {
 	UserPresenceInformation UserPresenceInformationResponse `json:"userPresenceInformation"`
 	UserWorkInformation     UserWorkInformationResponse     `json:"userWorkInformation"`
 	UserSalaryInformation   UserSalaryInformationResponse   `json:"userSalaryInformation"`
+}
+
+type UserListOverviewResponse struct {
+	Id                   string       `json:"id"`
+	Name                 string       `json:"name"`
+	Username             string       `json:"username"`
+	PhotoProfile         string       `json:"photoProfile"`
+	Email                string       `json:"email"`
+	SalaryRecommendation string       `json:"salaryRecommendation"`
+	KpiStatus            string       `json:"kpiStatus"`
+	Role                 RoleResponse `json:"role"`
+}
+
+type GetUserListOverviewFilter struct {
+	RoleId     uint64 `query:"roleId"`
+	LocationId uint64 `query:"locationId"`
+	Page       uint64 `query:"page"`
+	Keyword    string `query:"keyword"`
 }

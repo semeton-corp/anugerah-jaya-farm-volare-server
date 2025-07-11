@@ -18,8 +18,9 @@ import (
 )
 
 type PresenceService struct {
-	log        *zap.Logger
-	repository repository.IPresenceRepository
+	log             *zap.Logger
+	repository      repository.IPresenceRepository
+	locationService ILocationService
 }
 
 type IPresenceService interface {
@@ -28,10 +29,11 @@ type IPresenceService interface {
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
 }
 
-func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository) IPresenceService {
+func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
 	return &PresenceService{
-		log:        log,
-		repository: repository,
+		log:             log,
+		repository:      repository,
+		locationService: locationService,
 	}
 }
 
@@ -148,4 +150,18 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 	}
 
 	return mapper.PresenceToResponse(&userPresence), nil
+}
+
+func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error) {
+	s.repository.UseTx(false)
+
+	
+
+	_, err := s.locationService.GetLocations()
+	if err != nil {
+		s.log.Error("failed to get cages", zap.Error(err))
+		return nil, err
+	}
+
+	return nil, nil
 }

@@ -143,3 +143,66 @@ func (r *PresenceRepository) CountTotalUserPresenceByUserId(userId uuid.UUID, fi
 
 	return totalData, nil
 }
+
+func (r *PresenceRepository) GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
+	var locationPresenceSummaries []entity.LocationPresenceSummary
+
+	query := r.GetDB().Table("locations").
+		Select("locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status").
+		Joins("LEFT JOIN users ON locations.id = users.location_id").
+		Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
+		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements)")
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
+	}
+
+	err := query.Scan(&locationPresenceSummaries).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return locationPresenceSummaries, nil
+}
+
+func (r *PresenceRepository) GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
+	var locationPresenceSummaries []entity.LocationPresenceSummary
+
+	query := r.GetDB().Table("stores").
+		Select("stores.id AS place_id, stores.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status").
+		Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
+		Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
+		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements)")
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
+	}
+
+	err := query.Scan(&locationPresenceSummaries).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return locationPresenceSummaries, nil
+}
+
+func (r *PresenceRepository) GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
+	var locationPresenceSummaries []entity.LocationPresenceSummary
+
+	query := r.GetDB().Table("warehouses").
+		Select("warehouses.id AS place_id, warehouses.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status").
+		Joins("LEFT JOIN warehouse_placements ON warehouse_placements.store_id = warehouses.id").
+		Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
+		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements)")
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
+	}
+
+	err := query.Scan(&locationPresenceSummaries).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return locationPresenceSummaries, nil
+}

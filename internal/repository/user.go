@@ -24,8 +24,8 @@ type IUserRepository interface {
 
 	GetUserById(id uuid.UUID) (entity.User, error)
 	UpdateUser(user *entity.User) error
-	GetUsers(filter *dto.GetUserFilter) ([]entity.User, error)
-	CountTotalUser(filter *dto.GetUserFilter) (uint64, error)
+	GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error)
+	CountTotalUser(filter *dto.GetUserListFilter) (uint64, error)
 }
 
 func NewUserRepository(db *gorm.DB) IUserRepository {
@@ -80,7 +80,7 @@ func (r *UserRepository) UpdateUser(user *entity.User) error {
 	return nil
 }
 
-func (r *UserRepository) GetUsers(filter *dto.GetUserFilter) ([]entity.User, error) {
+func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error) {
 	var users []entity.User
 	query := r.GetDB().Model(&entity.User{})
 
@@ -109,7 +109,7 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserFilter) ([]entity.User, err
 	return users, nil
 }
 
-func (r *UserRepository) CountTotalUser(filter *dto.GetUserFilter) (uint64, error) {
+func (r *UserRepository) CountTotalUser(filter *dto.GetUserListFilter) (uint64, error) {
 	var totalData int64
 
 	query := r.GetDB()

@@ -28,10 +28,11 @@ type IWarehouseRepository interface {
 	GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error)
 
 	CreateWarehouseItem(stockWarehouseItem *entity.WarehouseItem) error
+	CreateWarehouseItemInBatch(warehouseItems *[]entity.WarehouseItem) error
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
-	GetWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) (entity.WarehouseItem, error)
+	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error)
 	UpdateWarehouseItem(stockWarehouseItem *entity.WarehouseItem) error
-	DeleteWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, warehouseItemId uint64) error
+	DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error
 
 	CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
 	GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error)
@@ -122,7 +123,7 @@ func (r *WarehouseRepository) DeleteWarehouse(id uint64) error {
 func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
 	if err := r.GetDB().Create(warehouseItem).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return errx.BadRequest("stock warehouse item already exists")
+			return errx.BadRequest("warehouse item already exists")
 		} else if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			return errx.BadRequest("invalid warehouse or item")
 		}
@@ -130,6 +131,10 @@ func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.Warehous
 	}
 
 	return nil
+}
+
+func (r *WarehouseRepository) CreateWarehouseItemInBatch(warehouseItems *[]entity.WarehouseItem) error {
+	return r.GetDB().Model(&entity.WarehouseItem{}).CreateInBatches(warehouseItems, len(*warehouseItems)).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error) {
@@ -160,7 +165,7 @@ func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilte
 	return warehouseItems, nil
 }
 
-func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error) {
+func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error) {
 	var stockWarehouseItem entity.WarehouseItem
 	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").Where("item_id = ? AND warehouse_id = ?", itemId, warehouseId).First(&stockWarehouseItem).Error
 	if err != nil {
@@ -176,7 +181,7 @@ func (r *WarehouseRepository) UpdateWarehouseItem(warehouseItem *entity.Warehous
 	return r.GetDB().Model(entity.WarehouseItem{}).Where("item_id = ? AND warehouse_id = ?", warehouseItem.ItemId, warehouseItem.WarehouseId).Updates(warehouseItem).Error
 }
 
-func (r *WarehouseRepository) DeleteWarehouseItemByWarehouseIdAndWarehouseItemId(warehouseId uint64, itemId uint64) error {
+func (r *WarehouseRepository) DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error {
 	return r.GetDB().Where("warehouse_id = ? AND item_id = ?", warehouseId, itemId).Delete(&entity.WarehouseItem{}).Error
 }
 
@@ -187,7 +192,7 @@ func (r *WarehouseRepository) CreateWarehouseOrderItem(warehouseOrderItem *entit
 func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error) {
 	var warehouseOrderItem entity.WarehouseOrderItem
 	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier", func(tx *gorm.DB) *gorm.DB {
-		return tx.Omit("WarehouseItemId")
+		return tx.Omit("ItemId")
 	}).Where("id = ?", id).First(&warehouseOrderItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

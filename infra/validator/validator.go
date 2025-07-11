@@ -12,6 +12,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("saleUnit", ValidationSaleUnit)
 	validate.RegisterValidation("chickenHealthItemType", ValidationChickenHealthItemType)
 	validate.RegisterValidation("presenceStatus", ValidationPresenceStatus)
+	validate.RegisterValidation("salaryInterval", ValidationSalaryInterval)
 
 	return validate
 }
@@ -90,6 +91,16 @@ func ValidationPresenceStatus(fl validator.FieldLevel) bool {
 	presenceStatus := fl.Field().String()
 	switch presenceStatus {
 	case "Hadir", "Sakit", "Izin":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationSalaryInterval(fl validator.FieldLevel) bool {
+	presenceStatus := fl.Field().String()
+	switch presenceStatus {
+	case "Harian", "Bulanan":
 		return true
 	default:
 		return false

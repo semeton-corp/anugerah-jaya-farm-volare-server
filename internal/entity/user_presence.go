@@ -24,3 +24,10 @@ type UserPresence struct {
 	UpdatedAt                time.Time                     `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy                uuid.NullUUID                 `gorm:"type:varchar(255)"`
 }
+
+type LocationPresenceSummary struct {
+	PlaceId        uint64              `gorm:"column:place_id"`
+	PlaceName      string              `gorm:"column:place_name"`
+	UserId         uuid.UUID           `gorm:"column:user_id"`
+	PresenceStatus enum.PresenceStatus `gorm:"column:presence_status"`
+}

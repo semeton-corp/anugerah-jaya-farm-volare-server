@@ -15,9 +15,7 @@ type UpdateItemRequest struct {
 }
 
 type GetItemFilter struct {
-	Category    param.ItemCategoryParam `query:"category"`
-	StoreId     uint64                  `query:"storeId"`
-	WarehouseId uint64                  `query:"warehouseId"`
+	Category param.ItemCategoryParam `query:"category"`
 }
 
 type ItemResponse struct {

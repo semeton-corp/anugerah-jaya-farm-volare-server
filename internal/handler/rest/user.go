@@ -130,7 +130,7 @@ func (h *UserHandler) UpdateOwnProfile(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetUsers(c *fiber.Ctx) error {
-	var filter dto.GetUserFilter
+	var filter dto.GetUserListFilter
 	if err := c.QueryParser(&filter); err != nil {
 		h.log.Error("failed to parsing query filter", zap.Error(err))
 		return err

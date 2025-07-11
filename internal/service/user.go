@@ -26,7 +26,8 @@ type UserService struct {
 type IUserService interface {
 	GetUserById(id uuid.UUID) (dto.UserResponse, error)
 	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error)
-	GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error)
+	GetUsers(filter dto.GetUserListFilter) (dto.UserListPaginationResponse, error)
+	
 	GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 }
 
@@ -95,7 +96,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 	return mapper.UserToResponse(&user), nil
 }
 
-func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPaginationResponse, error) {
+func (s *UserService) GetUsers(filter dto.GetUserListFilter) (dto.UserListPaginationResponse, error) {
 	s.repository.UseTx(false)
 
 	users, err := s.repository.GetUsers(&filter)
@@ -114,7 +115,7 @@ func (s *UserService) GetUsers(filter dto.GetUserFilter) (dto.UserListPagination
 		userResponses = append(userResponses, mapper.UserToListResponse(&user))
 	}
 
-	totalData, err := s.repository.CountTotalUser(&dto.GetUserFilter{
+	totalData, err := s.repository.CountTotalUser(&dto.GetUserListFilter{
 		Keyword: filter.Keyword,
 		RoleId:  filter.RoleId,
 	})

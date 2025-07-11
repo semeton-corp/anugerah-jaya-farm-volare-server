@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/jwt"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
@@ -67,18 +68,25 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		return dto.SignUpResponse{}, err
 	}
 
+	salaryInterval := enum.ValueOfSalaryInterval(request.SalaryInterval)
+	if !salaryInterval.IsValid() {
+		s.log.Warn("invalid salary interval", zap.String("salaryInterval", request.SalaryInterval))
+		return dto.SignUpResponse{}, err
+	}
+
 	user := entity.User{
-		Id:           Id,
-		Email:        request.Email,
-		Username:     request.Username,
-		Password:     string(hashedPassword),
-		RoleId:       request.RoleId,
-		PhotoProfile: "https://www.gravatar.com/avatar/?d=mp",
-		Name:         request.Name,
-		PhoneNumber:  request.PhoneNumber,
-		Address:      request.Address,
-		Salary:       salary,
-		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+		Id:             Id,
+		Email:          request.Email,
+		Username:       request.Username,
+		Password:       string(hashedPassword),
+		RoleId:         request.RoleId,
+		PhotoProfile:   "https://www.gravatar.com/avatar/?d=mp",
+		Name:           request.Name,
+		PhoneNumber:    request.PhoneNumber,
+		Address:        request.Address,
+		Salary:         salary,
+		SalaryInterval: salaryInterval,
+		CreatedBy:      uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.LocationId != nil {

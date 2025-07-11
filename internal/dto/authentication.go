@@ -3,17 +3,18 @@ package dto
 import "time"
 
 type SignUpRequest struct {
-	Email        string   `json:"email" validate:"required,email"`
-	Username     string   `json:"username" validate:"required"`
-	LocationId   *uint64  `json:"locationId"`
-	RoleId       uint64   `json:"roleId" validate:"required"`
-	PlacementIds []uint64 `json:"placementIds"`
-	PhotoProfile string   `json:"photoProfile"`
-	PhoneNumber  string   `json:"phoneNumber" validate:"required"`
-	Address      string   `json:"address" validate:"required"`
-	Salary       string   `json:"salary" validate:"required"`
-	Name         string   `json:"name" validate:"required"`
-	Password     string   `json:"password" validate:"required,min=4"`
+	Email          string   `json:"email" validate:"required,email"`
+	Username       string   `json:"username" validate:"required"`
+	LocationId     *uint64  `json:"locationId"`
+	RoleId         uint64   `json:"roleId" validate:"required"`
+	PlacementIds   []uint64 `json:"placementIds"`
+	PhotoProfile   string   `json:"photoProfile"`
+	PhoneNumber    string   `json:"phoneNumber" validate:"required"`
+	Address        string   `json:"address" validate:"required"`
+	Salary         string   `json:"salary" validate:"required"`
+	SalaryInterval string   `json:"salaryInterval" validate:"required,salaryInterval"`
+	Name           string   `json:"name" validate:"required"`
+	Password       string   `json:"password" validate:"required,min=4"`
 }
 
 type SignUpResponse struct {

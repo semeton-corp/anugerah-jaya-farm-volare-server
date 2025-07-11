@@ -13,10 +13,8 @@ import (
 )
 
 type ItemService struct {
-	log              *zap.Logger
-	repository       repository.IItemRepository
-	storeService     IStoreService
-	warehouseService IWarehouseService
+	log        *zap.Logger
+	repository repository.IItemRepository
 }
 
 type IItemService interface {
@@ -40,12 +38,10 @@ type IItemService interface {
 	DeleteItem(id uint64) error
 }
 
-func NewItemPriceService(log *zap.Logger, repository repository.IItemRepository, storeService IStoreService, warehouseService IWarehouseService) IItemService {
+func NewItemPriceService(log *zap.Logger, repository repository.IItemRepository) IItemService {
 	return &ItemService{
-		log:              log,
-		repository:       repository,
-		storeService:     storeService,
-		warehouseService: warehouseService,
+		log:        log,
+		repository: repository,
 	}
 }
 
@@ -277,51 +273,6 @@ func (s *ItemService) CreateItem(request dto.CreateItemRequest, createdBy uuid.U
 
 func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, error) {
 	s.repository.UseTx(false)
-
-	if filter.StoreId > 0 && filter.WarehouseId > 0 {
-		s.log.Error("store id and warehouse id cannot be used at the same time")
-		return nil, errx.BadRequest("storeId and warehouseId cannot be used at the same time")
-	}
-
-	if filter.StoreId > 0 {
-		storeItems, err := s.storeService.GetStoreItems(
-			dto.GetStoreItemFilter{
-				StoreId:  filter.StoreId,
-				Category: filter.Category,
-			},
-		)
-		if err != nil {
-			s.log.Error("failed to get store items", zap.Error(err))
-			return nil, err
-		}
-
-		storeItemResponses := make([]dto.ItemResponse, 0, len(storeItems))
-		for _, item := range storeItems {
-			storeItemResponses = append(storeItemResponses, item.Item)
-		}
-
-		return storeItemResponses, nil
-	}
-
-	if filter.WarehouseId > 0 {
-		warehouseStockItems, err := s.warehouseService.GetWarehouseItems(
-			dto.GetWarehouseItemFilter{
-				WarehouseId: filter.WarehouseId,
-				Category:    filter.Category,
-			},
-		)
-		if err != nil {
-			s.log.Error("failed to get warehouse stock items", zap.Error(err))
-			return nil, err
-		}
-
-		warehouseStockItemResponses := make([]dto.ItemResponse, 0, len(warehouseStockItems))
-		for _, item := range warehouseStockItems {
-			warehouseStockItemResponses = append(warehouseStockItemResponses, item.Item)
-		}
-
-		return warehouseStockItemResponses, nil
-	}
 
 	warehouseItems, err := s.repository.GetItems(filter)
 	if err != nil {

@@ -14,7 +14,7 @@ type StoreRequestItem struct {
 	Warehouse            Warehouse              `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
 	ItemId               uint64                 `gorm:"bigint;not null"`
 	Item                 Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
-	StoreId              sql.NullInt64          `gorm:"bigint;not null"`
+	StoreId              sql.NullInt64          `gorm:"bigint"`
 	Store                Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	Quantity             float64                `gorm:"bigint;not null"`
 	RecieveQuantity      float64                `gorm:"bigint;not null;default:0"`

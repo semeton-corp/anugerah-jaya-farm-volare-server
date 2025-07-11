@@ -33,6 +33,7 @@ type IStoreRepository interface {
 	CountTotalStoreRequestItem(filter dto.GetStoreRequestItemFilter) (uint64, error)
 
 	FirstOrCreateStoreItem(storeItem *entity.StoreItem) error
+	CreateStoreItemsInBatch(storeItems *[]entity.StoreItem) error
 	UpdateStoreItem(storeItem *entity.StoreItem) error
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]entity.StoreItem, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (entity.StoreItem, error)
@@ -190,6 +191,10 @@ func (r *StoreRepository) FirstOrCreateStoreItem(storeItem *entity.StoreItem) er
 		ItemId:  storeItem.ItemId,
 		StoreId: storeItem.StoreId,
 	}).Error
+}
+
+func (r *StoreRepository) CreateStoreItemsInBatch(storeItems *[]entity.StoreItem) error {
+	return r.GetDB().Model(&entity.StoreItem{}).CreateInBatches(storeItems, len(*storeItems)).Error
 }
 
 func (r *StoreRepository) UpdateStoreItem(storeItem *entity.StoreItem) error {

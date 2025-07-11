@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
 
@@ -55,4 +56,28 @@ type PresenceListPaginationResponse struct {
 	TotalPage uint64                 `json:"totalPage"`
 	TotalData uint64                 `json:"totalData"`
 	Presences []PresenceListResponse `json:"presences"`
+}
+
+type LocationPresenceSummaryResponse struct {
+	Place               string `json:"place"`
+	PlaceType           string `json:"placeType"`
+	TotalUser           uint64 `json:"totalUser"`
+	TotalPresentUser    uint64 `json:"totalPresentUser"`
+	TotalSickUser       uint64 `json:"totalSickUser"`
+	TotalPermissionUser uint64 `json:"totalPermissionUser"`
+	TotalAlphaUser      uint64 `json:"totalAlphaUser"`
+}
+
+type GetLocationPresenceSummaryFilter struct {
+	Date param.DateParam `query:"date"`
+}
+
+type PresenceSummaryDetailResponse struct {
+	Month enum.Month `query:"month"`
+	Year  uint64     `query:"year"`
+}
+
+type GetPresenceSummaryDetailFilter struct {
+	PlaceType string `query:"placeType" validate:"required"`
+	PlaceId   uint64 `query:"placeId" validate:"required"`
 }
