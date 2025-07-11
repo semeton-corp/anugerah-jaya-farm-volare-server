@@ -33,7 +33,7 @@ type IPlacementService interface {
 
 	DeleteStorePlacementByUserId(userId uuid.UUID) error
 	DeleteWarehousePlacementByUserId(userId uuid.UUID) error
-	DeleteCagePlacementByUserId(userId uuid.UUID) error
+	DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error
 }
 
 func NewPlacementService(log *zap.Logger, repository repository.IPlacementRepository) IPlacementService {
@@ -127,9 +127,9 @@ func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto
 	return mapper.WarehousePlacementToResponse(&data), nil
 }
 
-func (s *PlacementService) DeleteCagePlacementByUserId(userId uuid.UUID) error {
+func (s *PlacementService) DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error {
 	s.repository.UseTx(false)
-	err := s.repository.DeleteCagePlacementByUserId(userId)
+	err := s.repository.DeleteCagePlacementByUserIdAndCageId(userId, cageId)
 	if err != nil {
 		s.log.Error("failed to delete cage placement by user id", zap.Error(err))
 		return err

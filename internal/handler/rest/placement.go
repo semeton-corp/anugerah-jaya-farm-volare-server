@@ -1,6 +1,8 @@
 package rest
 
 import (
+	"strconv"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -22,15 +24,15 @@ func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/placements")
 	v1.Get("/stores/me", middleware.Authentication(), h.GetCurrentUserStorePlacement)
 	v1.Post("/stores", middleware.Authentication(), h.CreateStorePlacement)
-	v1.Delete("/stores/:userId", middleware.Authentication(), h.DeleteStorePlacementByUserId)
+	v1.Delete("/stores/:storeId/", middleware.Authentication(), h.DeleteStorePlacementByUserId)
 
 	v1.Get("/warehouses/me", middleware.Authentication(), h.GetCurrentUserWarehousePlacement)
 	v1.Post("/warehouses", middleware.Authentication(), h.CreateWarehousePlacement)
-	v1.Delete("/warehouses/:userId", middleware.Authentication(), h.DeleteWarehousePlacementByUserId)
+	v1.Delete("/warehouses/:warehouseId/users/:userId", middleware.Authentication(), h.DeleteWarehousePlacementByUserId)
 
 	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
 	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)
-	v1.Post("/cages/:userId", middleware.Authentication(), h.DeleteCagePlacementByUserId)
+	v1.Delete("/cages/:cageId/users/:userId", middleware.Authentication(), h.DeleteCagePlacementByUserIdAndCageId)
 }
 
 func NewPlacementHandler(log *zap.Logger, service service.IPlacementService, validator *validator.Validate) *PlacementHandler {
@@ -184,8 +186,14 @@ func (h *PlacementHandler) DeleteWarehousePlacementByUserId(c *fiber.Ctx) error 
 	return response.NoContentResponse(c)
 }
 
-func (h *PlacementHandler) DeleteCagePlacementByUserId(c *fiber.Ctx) error {
-	err := h.service.DeleteCagePlacementByUserId(uuid.MustParse(c.Params("userId")))
+func (h *PlacementHandler) DeleteCagePlacementByUserIdAndCageId(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("cageId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id param", zap.Error(err))
+		return err
+	}
+
+	err = h.service.DeleteCagePlacementByUserIdAndCageId(uuid.MustParse(c.Params("userId")), id)
 	if err != nil {
 		return err
 	}

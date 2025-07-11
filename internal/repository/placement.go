@@ -31,7 +31,7 @@ type IPlacementRepository interface {
 	GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error)
 	GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]entity.WarehousePlacement, error)
 
-	DeleteCagePlacementByUserId(userId uuid.UUID) error
+	DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error
 	DeleteStorePlacementByUserId(userId uuid.UUID) error
 	DeleteWarehousePlacementByUserId(userId uuid.UUID) error
 
@@ -127,8 +127,8 @@ func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) (e
 	return *data, nil
 }
 
-func (r *PlacementRepository) DeleteCagePlacementByUserId(userId uuid.UUID) error {
-	return r.GetDB().Where("user_id = ?", userId).Delete(&entity.CagePlacement{}).Error
+func (r *PlacementRepository) DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error {
+	return r.GetDB().Where("user_id = ? AND cage_id = ?", userId, cageId).Delete(&entity.CagePlacement{}).Error
 }
 
 func (r *PlacementRepository) DeleteStorePlacementByUserId(userId uuid.UUID) error {
