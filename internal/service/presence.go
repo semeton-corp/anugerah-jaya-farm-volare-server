@@ -7,12 +7,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"go.uber.org/zap"
 )
@@ -27,6 +29,8 @@ type IPresenceService interface {
 	GetCurrentUserPresence(userId uuid.UUID) (dto.PresenceResponse, error)
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
+
+	GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error)
 }
 
 func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
@@ -154,14 +158,83 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error) {
 	s.repository.UseTx(false)
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	
+	processPresenceSummaries := func(summaries []entity.LocationPresenceSummary, placeType string) map[uint64]dto.LocationPresenceSummaryResponse {
+		result := make(map[uint64]dto.LocationPresenceSummaryResponse)
+		for _, e := range summaries {
+			summary := result[e.PlaceId]
+			if summary.PlaceName == "" {
+				summary.PlaceId = e.PlaceId
+				summary.PlaceType = placeType
+				summary.PlaceName = placeType + " " + e.PlaceName
+			}
 
-	_, err := s.locationService.GetLocations()
-	if err != nil {
-		s.log.Error("failed to get cages", zap.Error(err))
-		return nil, err
+			summary.TotalUser += 1
+			switch e.PresenceStatus {
+			case enum.PresenceStatusPresent:
+				summary.TotalPresentUser += 1
+			case enum.PresenceStatusSick:
+				summary.TotalSickUser += 1
+			case enum.PresenceStatusPermission:
+				summary.TotalPermissionUser += 1
+			case enum.PresenceStatusAlpha:
+				summary.TotalAlphaUser += 1
+			}
+			result[e.PlaceId] = summary
+		}
+		return result
 	}
 
-	return nil, nil
+	cageSummaries, err := s.repository.GetCageLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date: param.DateParam(today),
+	})
+	if err != nil {
+		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
+		return nil, err
+	}
+	cagePresenceMap := processPresenceSummaries(cageSummaries, enum.LocationWorkTypeCage.String())
+
+	storeSummaries, err := s.repository.GetStoreLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date: param.DateParam(today),
+	})
+	if err != nil {
+		s.log.Error("failed to get store location presence summaries", zap.Error(err))
+		return nil, err
+	}
+	storePresenceMap := processPresenceSummaries(storeSummaries, enum.LocationWorkTypeStore.String())
+
+	warehouseSummaries, err := s.repository.GetWarehouseLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date: param.DateParam(today),
+	})
+	if err != nil {
+		s.log.Error("failed to get warehouse location presence summaries", zap.Error(err))
+		return nil, err
+	}
+	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationWorkTypeWarehouse.String())
+
+	response := make([]dto.LocationPresenceSummaryResponse, 0,
+		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap))
+
+	for _, v := range cagePresenceMap {
+		response = append(response, v)
+	}
+	for _, v := range storePresenceMap {
+		response = append(response, v)
+	}
+	for _, v := range warehousePresenceMap {
+		response = append(response, v)
+	}
+
+	return response, nil
 }
+
+// func (s *PresenceService) GetLocationPresenceDetail(filter dto.GetLocationPresenceDetailFilter) {
+// 	s.repository.UseTx(false)
+
+// 	placeType := enum.ValueOfLocationWorkType(filter.PlaceType)
+// 	if !placeType.IsValid() {
+
+// 	}
+
+// }

@@ -31,21 +31,31 @@ type UpdateUserRequest struct {
 type GetUserListFilter struct {
 	RoleId     uint64 `query:"roleId"`
 	LocationId uint64 `query:"locationId"`
-	Page       uint64 `query:"page"`
-	Keyword    string `query:"keyword"`
+}
+
+type GetUserOverviewListFilter struct {
+	Page    uint64 `query:"page"`
+	Keyword string `query:"keyword"`
 }
 
 type UserListResponse struct {
+	Id   string       `json:"id"`
+	Name string       `json:"name"`
+	Role RoleResponse `json:"role"`
+}
+
+type UserOverviewListResponse struct {
 	Id           string       `json:"id"`
 	Name         string       `json:"name"`
-	Username     string       `json:"username"`
 	PhotoProfile string       `json:"photoProfile"`
 	Email        string       `json:"email"`
 	PhoneNumber  string       `json:"phoneNumber"`
 	Role         RoleResponse `json:"role"`
+	Salary       string       `json:"salary"`
+	KpiStatus    string       `json:"kpiStatus"`
 }
 
-type UserListPaginationResponse struct {
+type UserOverviewListPaginationResponse struct {
 	TotalPage uint64             `json:"totalPage"`
 	TotalData uint64             `json:"totalData"`
 	Users     []UserListResponse `json:"users"`

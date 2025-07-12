@@ -2,14 +2,12 @@ package service
 
 import (
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
@@ -26,9 +24,10 @@ type UserService struct {
 type IUserService interface {
 	GetUserById(id uuid.UUID) (dto.UserResponse, error)
 	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error)
-	GetUsers(filter dto.GetUserListFilter) (dto.UserListPaginationResponse, error)
-	
-	GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
+	GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResponse, error)
+
+	GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserOverviewListPaginationResponse, error)
+	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 }
 
 func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService) IUserService {
@@ -96,44 +95,24 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, ac
 	return mapper.UserToResponse(&user), nil
 }
 
-func (s *UserService) GetUsers(filter dto.GetUserListFilter) (dto.UserListPaginationResponse, error) {
+func (s *UserService) GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResponse, error) {
 	s.repository.UseTx(false)
 
 	users, err := s.repository.GetUsers(&filter)
 	if err != nil {
 		s.log.Error("failed to get users", zap.Error(err))
-		return dto.UserListPaginationResponse{}, err
+		return nil, err
 	}
-
-	// Idea : get with diff method repository, and the get totalOvertime, salary for additional work, and cashbon (using join)
-	// Todo : get salary from bonus lembur
-	// Todo : get salary from additional work
-	// Todo : get salary cashbon
 
 	userResponses := make([]dto.UserListResponse, 0)
 	for _, user := range users {
 		userResponses = append(userResponses, mapper.UserToListResponse(&user))
 	}
 
-	totalData, err := s.repository.CountTotalUser(&dto.GetUserListFilter{
-		Keyword: filter.Keyword,
-		RoleId:  filter.RoleId,
-	})
-	if err != nil {
-		s.log.Error("failed to count total users")
-		return dto.UserListPaginationResponse{}, err
-	}
-
-	resp := dto.UserListPaginationResponse{
-		TotalPage: uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData: totalData,
-		Users:     userResponses,
-	}
-
-	return resp, nil
+	return userResponses, nil
 }
 
-func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error) {
+func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error) {
 	s.repository.UseTx(false)
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
@@ -312,4 +291,8 @@ func (s *UserService) GetOverviewUser(id uuid.UUID, filter dto.GetUserOverviewFi
 	}
 
 	return overviewResponse, nil
+}
+
+func (s *UserService) GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserOverviewListPaginationResponse, error) {
+	return dto.UserOverviewListPaginationResponse{}, nil
 }

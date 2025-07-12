@@ -59,7 +59,8 @@ type PresenceListPaginationResponse struct {
 }
 
 type LocationPresenceSummaryResponse struct {
-	Place               string `json:"place"`
+	PlaceId             uint64 `json:"placeId"`
+	PlaceName           string `json:"placeName"`
 	PlaceType           string `json:"placeType"`
 	TotalUser           uint64 `json:"totalUser"`
 	TotalPresentUser    uint64 `json:"totalPresentUser"`
@@ -72,12 +73,38 @@ type GetLocationPresenceSummaryFilter struct {
 	Date param.DateParam `query:"date"`
 }
 
-type PresenceSummaryDetailResponse struct {
-	Month enum.Month `query:"month"`
-	Year  uint64     `query:"year"`
-}
-
-type GetPresenceSummaryDetailFilter struct {
+type GetUserPresenceSummaryFilter struct {
 	PlaceType string `query:"placeType" validate:"required"`
 	PlaceId   uint64 `query:"placeId" validate:"required"`
+}
+
+type GetUserPresenceWorkDetailSummaryFilter struct {
+	PlaceType string     `query:"placeType" validate:"required"`
+	PlaceId   uint64     `query:"placeId" validate:"required"`
+	Month     enum.Month `query:"month"`
+	Year      uint64     `query:"year"`
+}
+
+type UserPresenceSummary struct {
+	Id                  string `json:"id"`
+	Name                string `json:"name"`
+	PhotoProfile        string `json:"photoProfile"`
+	Email               string `json:"email"`
+	RoleName            string `json:"roleName"`
+	TotalPresentUser    uint64 `json:"totalPresentUser"`
+	TotalSickUser       uint64 `json:"totalSickUser"`
+	TotalPermissionUser uint64 `json:"totalPermissionUser"`
+	TotalAlphaUser      uint64 `json:"totalAlphaUser"`
+}
+
+type UserPresenceWorkDetailSummary struct {
+	Id                 string  `json:"id"`
+	Name               string  `json:"name"`
+	PhotoProfile       string  `json:"photoProfile"`
+	Email              string  `json:"email"`
+	RoleName           string  `json:"roleName"`
+	Status             string  `json:"status"`
+	ArrivedTime        string  `json:"arrivedTime"`
+	DepartureTime      string  `json:"departureTime"`
+	WorkDonePercentage float64 `json:"WorkDonePercentage"`
 }

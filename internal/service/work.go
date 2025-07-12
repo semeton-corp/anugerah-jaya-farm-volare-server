@@ -299,12 +299,12 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 				CreatedBy:            uuid.NullUUID{UUID: accountId, Valid: true},
 			})
 		}
-	}
 
-	err = w.repository.CreateAdditionalWorUserkInBatch(&additionalWorkUsers)
-	if err != nil {
-		w.log.Error("failed to create additional work user in batch", zap.Error(err))
-		return dto.AdditionalWorkResponse{}, err
+		err = w.repository.CreateAdditionalWorkUserInBatch(additionalWorkUsers)
+		if err != nil {
+			w.log.Error("failed to create additional work user in batch", zap.Error(err))
+			return dto.AdditionalWorkResponse{}, err
+		}
 	}
 
 	err = w.repository.Commit()
@@ -349,6 +349,9 @@ func (w *WorkService) GetAdditionalWorkById(id uint64) (dto.AdditionalWorkRespon
 }
 
 func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error) {
+	w.repository.UseTx(true)
+	defer w.repository.Rollback()
+
 	additionalWork, err := w.repository.GetAdditionalWorkById(id)
 	if err != nil {
 		w.log.Error("failed to get additional work by id", zap.Error(err))
@@ -399,6 +402,63 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {
 		w.log.Error("failed to update additional work", zap.Error(err))
+		return dto.AdditionalWorkResponse{}, err
+	}
+
+	currentUserIds := make([]uuid.UUID, 0)
+	for _, e := range additionalWork.AdditionalWorkUsers {
+		currentUserIds = append(currentUserIds, e.UserId)
+	}
+
+	deleteUserIds := make([]uuid.UUID, 0)
+	for _, e := range currentUserIds {
+		if !slices.Contains(request.UserIds, e.String()) {
+			deleteUserIds = append(deleteUserIds, e)
+		}
+	}
+
+	newUserIds := make([]uuid.UUID, 0)
+	for _, e := range request.UserIds {
+		if !slices.Contains(currentUserIds, uuid.MustParse(e)) {
+			newUserIds = append(newUserIds, uuid.MustParse(e))
+		}
+	}
+
+	if deleteUserIds != nil {
+		err = w.repository.DeleteAdditionalWorkUserByAdditionalWorkIdAndUserIds(additionalWork.Id, deleteUserIds)
+		if err != nil {
+			w.log.Error("failed to delete additional work user by additional work id and user ids", zap.Error(err))
+			return dto.AdditionalWorkResponse{}, err
+		}
+	}
+
+	isAdditionalWorkFull := false
+	if request.Slot == uint64(len(request.UserIds)) {
+		isAdditionalWorkFull = true
+	}
+
+	if newUserIds != nil {
+		additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
+
+		for _, userId := range newUserIds {
+			additionalWorkUsers = append(additionalWorkUsers, entity.AdditionalWorkUser{
+				UserId:               userId,
+				AdditionalWorkId:     additionalWork.Id,
+				IsAdditionalWorkFull: isAdditionalWorkFull,
+				CreatedBy:            uuid.NullUUID{UUID: accountId, Valid: true},
+			})
+		}
+
+		err = w.repository.CreateAdditionalWorkUserInBatch(additionalWorkUsers)
+		if err != nil {
+			w.log.Error("failed to create additional work user in batch", zap.Error(err))
+			return dto.AdditionalWorkResponse{}, err
+		}
+	}
+
+	err = w.repository.Commit()
+	if err != nil {
+		w.log.Error("failed to commit trasaction", zap.Error(err))
 		return dto.AdditionalWorkResponse{}, err
 	}
 

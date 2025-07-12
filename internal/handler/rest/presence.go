@@ -26,6 +26,9 @@ func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/current/me", middleware.Authentication(), h.GetCurrentUserPresence)
 	v1.Get("/me", middleware.Authentication(), h.GetCurrentUserPresences)
 	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
+
+	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
+
 }
 
 func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, validator *validator.Validate) *PresenceHandler {
@@ -107,4 +110,13 @@ func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, userPresence, "success update presence")
+}
+
+func (s *PresenceHandler) GetLocationPresenceSummaries(c *fiber.Ctx) error {
+	data, err := s.service.GetLocationPresenceSummaries()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get location presence summary")
 }

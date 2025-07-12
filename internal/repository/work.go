@@ -27,15 +27,17 @@ type IWorkRepository interface {
 	DeleteDailyWork(id uint64) error
 
 	SaveAdditionalWork(additionalWork *entity.AdditionalWork) error
-	CreateAdditionalWorUserkInBatch(additionalWorks *[]entity.AdditionalWorkUser) error
 	GetAdditionalWorkById(id uint64) (entity.AdditionalWork, error)
 	DeleteAdditionalWork(id uint64) error
 	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error)
 
 	CreateAdditionalWorkUser(additionalWorkUser *entity.AdditionalWorkUser) error
+	CreateAdditionalWorkUserInBatch(additionalWorkUsers []entity.AdditionalWorkUser) error
 	GetAdditionalWorkUserById(id uint64) (entity.AdditionalWorkUser, error)
 	UpdateAdditionalWorkUser(additionalWorkUser *entity.AdditionalWorkUser) error
 	DeleteAdditionalWorkUser(id uint64) error
+	DeleteAdditionalWorkUserByAdditionalWorkIdAndUserIds(additionalWorkId uint64, userIds []uuid.UUID) error
+
 	UpdateAdditionalWorkUserByAdditionalWorkId(id uint64, payload map[string]any) error
 	GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]entity.AdditionalWorkUser, error)
 
@@ -86,8 +88,8 @@ func (r *WorkRepository) SaveAdditionalWork(additionalWork *entity.AdditionalWor
 	return r.GetDB().Save(additionalWork).Error
 }
 
-func (r *WorkRepository) CreateAdditionalWorUserkInBatch(additionalWorks *[]entity.AdditionalWorkUser) error {
-	return r.GetDB().Model(&entity.AdditionalWorkUser{}).CreateInBatches(additionalWorks, len(*additionalWorks)).Error
+func (r *WorkRepository) CreateAdditionalWorkUserInBatch(additionalWorks []entity.AdditionalWorkUser) error {
+	return r.GetDB().Model(&entity.AdditionalWorkUser{}).CreateInBatches(additionalWorks, len(additionalWorks)).Error
 }
 
 func (r *WorkRepository) GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork, error) {
@@ -306,4 +308,8 @@ func (r *WorkRepository) DeleteAdditionalWorkUser(id uint64) error {
 
 func (r *WorkRepository) UpdateAdditionalWorkUserByAdditionalWorkId(id uint64, payload map[string]any) error {
 	return r.GetDB().Model(&entity.AdditionalWorkUser{}).Where("additional_work_id = ?", id).Updates(payload).Error
+}
+
+func (r *WorkRepository) DeleteAdditionalWorkUserByAdditionalWorkIdAndUserIds(additionalWorkId uint64, userIds []uuid.UUID) error {
+	return r.GetDB().Model(&entity.AdditionalWorkUser{}).Where("additional_work_id = ? AND user_id IN ?", additionalWorkId, userIds).Error
 }

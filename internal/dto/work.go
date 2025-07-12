@@ -48,14 +48,15 @@ type CreateAdditionalWorkRequest struct {
 }
 
 type UpdateAdditionalWorkRequest struct {
-	Name         string `json:"name" validate:"required"`
-	LocationId   uint64 `json:"locationId" validate:"required"`
-	LocationType string `json:"locationType" validate:"required"`
-	PlaceId      uint64 `json:"placeId" validate:"required"`
-	Description  string `json:"description" validate:"required"`
-	Slot         uint64 `json:"slot" validate:"required"`
-	Salary       string `json:"salary" validate:"required"`
-	WorkDate     string `json:"workDate" validate:"required"`
+	Name         string   `json:"name" validate:"required"`
+	LocationId   uint64   `json:"locationId" validate:"required"`
+	LocationType string   `json:"locationType" validate:"required"`
+	PlaceId      uint64   `json:"placeId" validate:"required"`
+	Description  string   `json:"description" validate:"required"`
+	Slot         uint64   `json:"slot" validate:"required"`
+	Salary       string   `json:"salary" validate:"required"`
+	WorkDate     string   `json:"workDate" validate:"required"`
+	UserIds      []string `json:"userIds"`
 }
 
 type AdditionalWorkResponse struct {

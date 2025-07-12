@@ -2,12 +2,10 @@ package repository
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -84,20 +82,12 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User,
 	var users []entity.User
 	query := r.GetDB().Model(&entity.User{})
 
-	if filter.Keyword != "" {
-		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
-	}
-
 	if filter.RoleId > 0 {
 		query = query.Where("role_id = ?", filter.RoleId)
 	}
 
 	if filter.LocationId > 0 {
 		query = query.Where("location_id = ?", filter.LocationId)
-	}
-
-	if filter.Page != 0 {
-		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	query = query.Preload("Role")
@@ -114,12 +104,12 @@ func (r *UserRepository) CountTotalUser(filter *dto.GetUserListFilter) (uint64, 
 
 	query := r.GetDB()
 
-	if filter.Keyword != "" {
-		query = query.Where("LOWER(name) LIKE ?", "%"+strings.ToLower(filter.Keyword)+"%")
-	}
-
 	if filter.RoleId > 0 {
 		query = query.Where("role_id = ?", filter.RoleId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
 	err := query.Model(&entity.User{}).Count(&totalData).Error

@@ -22,7 +22,7 @@ type User struct {
 	Name           string              `gorm:"type:varchar(255);not null"`
 	PhoneNumber    string              `gorm:"type:varchar(255);not null"`
 	Address        string              `gorm:"type:text;not null"`
-	SalaryInterval enum.SalaryInterval `gorm:"type:int;not null"`
+	SalaryInterval enum.SalaryInterval `gorm:"type:int;not null;default:1"`
 	Salary         decimal.Decimal     `gorm:"type:decimal;not null"`
 	CreatedBy      uuid.NullUUID       `gorm:"type:varchar(255)"`
 	CreatedAt      time.Time           `gorm:"type:timestamp;autoCreateTime"`

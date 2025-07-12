@@ -29,6 +29,10 @@ type IPresenceRepository interface {
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) ([]entity.UserPresence, error)
 	GetUserPresenceInRoleIds(roleIds []uint64) ([]entity.UserPresence, error)
 	CountTotalUserPresenceByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (int64, error)
+
+	GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
+	GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
+	GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -191,7 +195,7 @@ func (r *PresenceRepository) GetWarehouseLocationPresenceSummaries(filter dto.Ge
 
 	query := r.GetDB().Table("warehouses").
 		Select("warehouses.id AS place_id, warehouses.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status").
-		Joins("LEFT JOIN warehouse_placements ON warehouse_placements.store_id = warehouses.id").
+		Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
 		Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
 		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements)")
 
