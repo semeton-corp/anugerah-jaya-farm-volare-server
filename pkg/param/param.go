@@ -91,7 +91,7 @@ type ChickenHealthItemTypeParam enum.ChickenHealthItemType
 func (p *ChickenHealthItemTypeParam) UnmarshalText(text []byte) error {
 	parsedFilter := enum.ValueOfChickenHealthItemType(string(text))
 	if !parsedFilter.IsValid() {
-		return errx.BadRequest("invalid chicken health product type")
+		return errx.BadRequest("invalid chicken health item type")
 	}
 
 	*p = ChickenHealthItemTypeParam(parsedFilter)
@@ -102,18 +102,18 @@ func (p ChickenHealthItemTypeParam) Value() enum.ChickenHealthItemType {
 	return enum.ChickenHealthItemType(p)
 }
 
-type LocationWorkTypeParam enum.ChickenHealthItemType
+type LocationWorkTypeParam enum.LocationWorkType
 
 func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
-	parsedFilter := enum.ValueOfChickenHealthItemType(string(text))
+	parsedFilter := enum.ValueOfLocationWorkType(string(text))
 	if !parsedFilter.IsValid() {
-		return errx.BadRequest("invalid chicken health product type")
+		return errx.BadRequest("invalid location work type")
 	}
 
 	*p = LocationWorkTypeParam(parsedFilter)
 	return nil
 }
 
-func (p LocationWorkTypeParam) Value() enum.ChickenHealthItemType {
-	return enum.ChickenHealthItemType(p)
+func (p LocationWorkTypeParam) Value() enum.LocationWorkType {
+	return enum.LocationWorkType(p)
 }

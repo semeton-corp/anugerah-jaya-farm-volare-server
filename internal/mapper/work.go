@@ -45,6 +45,7 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 func AdditionalWorkUserInformationToResponse(additionalWorkUser *entity.AdditionalWorkUser) dto.AdditionalWorkUserInformationResponse {
 	return dto.AdditionalWorkUserInformationResponse{
 		UserId:   additionalWorkUser.UserId.String(),
+		RoleId:   additionalWorkUser.User.RoleId,
 		RoleName: additionalWorkUser.User.Role.Name,
 		UserName: additionalWorkUser.User.Name,
 	}

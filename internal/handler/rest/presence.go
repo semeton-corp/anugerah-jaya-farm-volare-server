@@ -28,6 +28,7 @@ func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
 
 	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
+	v1.Get("/users/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
 
 }
 
@@ -119,4 +120,24 @@ func (s *PresenceHandler) GetLocationPresenceSummaries(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get location presence summary")
+}
+
+func (s *PresenceHandler) GetUserPresenceSummaries(c *fiber.Ctx) error {
+	var filter dto.GetUserPresenceSummaryFilter
+	if err := c.QueryParser(&filter); err != nil {
+		s.log.Error("failed to parse query param", zap.Error(err))
+		return err
+	}
+
+	if err := s.validator.Struct(&filter); err != nil {
+		s.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := s.service.GetUserPresenceSummaries(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get user presence summaries")
 }

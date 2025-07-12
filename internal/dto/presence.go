@@ -74,22 +74,22 @@ type GetLocationPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceSummaryFilter struct {
-	PlaceType enum.LocationWorkType `query:"placeType" validate:"required"`
-	PlaceId   uint64                `query:"placeId" validate:"required"`
+	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
+	PlaceId   uint64                      `query:"placeId" validate:"required"`
+	Month     enum.Month                  `query:"month"`
+	Year      uint64                      `query:"year"`
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {
-	PlaceType string     `query:"placeType" validate:"required"`
-	PlaceId   uint64     `query:"placeId" validate:"required"`
-	Month     enum.Month `query:"month"`
-	Year      uint64     `query:"year"`
+	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
+	PlaceId   uint64                      `query:"placeId" validate:"required"`
 }
 
 type UserPresenceSummaryResponse struct {
-	Id                  string `json:"id"`
-	Name                string `json:"name"`
-	PhotoProfile        string `json:"photoProfile"`
-	Email               string `json:"email"`
+	UserId              string `json:"id"`
+	UserName            string `json:"name"`
+	UserPhotoProfile    string `json:"photoProfile"`
+	UserEmail           string `json:"email"`
 	RoleName            string `json:"roleName"`
 	TotalPresentUser    uint64 `json:"totalPresentUser"`
 	TotalSickUser       uint64 `json:"totalSickUser"`

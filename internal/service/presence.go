@@ -31,6 +31,7 @@ type IPresenceService interface {
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
 
 	GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error)
+	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
 }
 
 func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
@@ -229,15 +230,29 @@ func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresence
 	return response, nil
 }
 
-// func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error) {
-// 	s.repository.UseTx(false)
+func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error) {
+	s.repository.UseTx(false)
 
-// 	placeType := enum.ValueOfLocationWorkType(filter.PlaceType)
-// 	if !placeType.IsValid() {
-// 		s.log.Warn("invalid location type work", zap.String("locationType", filter.PlaceType))
-// 		return nil, errx.BadRequest("invalid location work type")
-// 	}
+	response := make([]dto.UserPresenceSummaryResponse, 0)
+	userPresenceSummaries, err := s.repository.GetUserPresenceSummaries(filter)
+	if err != nil {
+		s.log.Error("failed to get user presence summaries", zap.Error(err))
+		return nil, err
+	}
 
-// 	response := make([]dto.UserPresenceSummaryResponse, 0)
+	for _, userPresenceSummary := range userPresenceSummaries {
+		response = append(response, dto.UserPresenceSummaryResponse{
+			UserId:              userPresenceSummary.UserId.String(),
+			UserName:            userPresenceSummary.UserName,
+			UserPhotoProfile:    userPresenceSummary.UserPhotoProfile,
+			UserEmail:           userPresenceSummary.UserEmail,
+			RoleName:            userPresenceSummary.RoleName,
+			TotalPresentUser:    uint64(userPresenceSummary.TotalPresent),
+			TotalSickUser:       uint64(userPresenceSummary.TotalSick),
+			TotalPermissionUser: uint64(userPresenceSummary.TotalPermission),
+			TotalAlphaUser:      uint64(userPresenceSummary.TotalAlpha),
+		})
+	}
 
-// }
+	return response, nil
+}

@@ -75,6 +75,7 @@ type AdditionalWorkResponse struct {
 
 type AdditionalWorkUserInformationResponse struct {
 	UserId   string `json:"userId"`
+	RoleId   uint64 `json:"roleId"`
 	RoleName string `json:"roleName"`
 	UserName string `json:"userName"`
 }

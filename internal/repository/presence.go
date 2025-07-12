@@ -3,13 +3,13 @@ package repository
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
@@ -35,7 +35,7 @@ type IPresenceRepository interface {
 	GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
-	GetUserPresenceWorkDetailSummary(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceSummary, error)
+	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]entity.UserPresenceSummary, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -214,32 +214,42 @@ func (r *PresenceRepository) GetWarehouseLocationPresenceSummaries(filter dto.Ge
 	return locationPresenceSummaries, nil
 }
 
-func (r *PresenceRepository) GetUserPresenceWorkDetailSummary(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceSummary, error) {
+func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]entity.UserPresenceSummary, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month))
 
 	db := r.GetDB().Table("user_presences").
-		Select(`users.id AS user_id, users.name AS user_name, users.photo_profile AS user_photo_profile, users.email AS user_email, roles.name AS role_name, users.status, COUNT(*) AS total_presence`).
+		Select(`
+			users.id AS user_id,
+			users.name AS user_name,
+			users.photo_profile AS user_photo_profile,
+			users.email AS user_email,
+			roles.name AS role_name,
+			SUM(CASE WHEN user_presences.status = 'present' THEN 1 ELSE 0 END) AS total_present,
+			SUM(CASE WHEN user_presences.status = 'sick' THEN 1 ELSE 0 END) AS total_sick,
+			SUM(CASE WHEN user_presences.status = 'permission' THEN 1 ELSE 0 END) AS total_permission,
+			SUM(CASE WHEN user_presences.status = 'alpha' THEN 1 ELSE 0 END) AS total_alpha
+		`).
 		Joins(`LEFT JOIN users ON user_presences.user_id = users.id`).
 		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
 		Where(`DATE(user_presences.created_at) >= ? AND DATE(user_presences.created_at) <= ?`, startDate, endDate).
 		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, users.status`)
 
-	switch strings.ToLower(filter.PlaceType) {
-	case "cage":
+	switch filter.PlaceType.Value() {
+	case enum.LocationWorkTypeCage:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("cage_placements").
 			Select("user_id").
 			Joins(`LEFT JOIN cages ON cage_placements.cage_id = cages.id`).
 			Where("cages.location_id = ?", filter.PlaceId))
-	case "store":
+	case enum.LocationWorkTypeStore:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("store_placements").
 			Select("user_id").
 			Where("store_id = ?", filter.PlaceId))
-	case "warehouse":
+	case enum.LocationWorkTypeWarehouse:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("warehouse_placements").
 			Select("user_id").
 			Where("warehouse_id = ?", filter.PlaceId))
 	default:
-		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType)
+		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}
 
 	var results []entity.UserPresenceSummary
