@@ -74,8 +74,8 @@ type GetLocationPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceSummaryFilter struct {
-	PlaceType string `query:"placeType" validate:"required"`
-	PlaceId   uint64 `query:"placeId" validate:"required"`
+	PlaceType enum.LocationWorkType `query:"placeType" validate:"required"`
+	PlaceId   uint64                `query:"placeId" validate:"required"`
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {
@@ -85,7 +85,7 @@ type GetUserPresenceWorkDetailSummaryFilter struct {
 	Year      uint64     `query:"year"`
 }
 
-type UserPresenceSummary struct {
+type UserPresenceSummaryResponse struct {
 	Id                  string `json:"id"`
 	Name                string `json:"name"`
 	PhotoProfile        string `json:"photoProfile"`

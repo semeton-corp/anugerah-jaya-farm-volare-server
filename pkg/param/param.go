@@ -86,18 +86,34 @@ func (p OverviewGraphTimeParam) Value() enum.OverviewGraphTime {
 	return enum.OverviewGraphTime(p)
 }
 
-type ChickenHealthProductTypeParam enum.ChickenHealthItemType
+type ChickenHealthItemTypeParam enum.ChickenHealthItemType
 
-func (p *ChickenHealthProductTypeParam) UnmarshalText(text []byte) error {
+func (p *ChickenHealthItemTypeParam) UnmarshalText(text []byte) error {
 	parsedFilter := enum.ValueOfChickenHealthItemType(string(text))
 	if !parsedFilter.IsValid() {
 		return errx.BadRequest("invalid chicken health product type")
 	}
 
-	*p = ChickenHealthProductTypeParam(parsedFilter)
+	*p = ChickenHealthItemTypeParam(parsedFilter)
 	return nil
 }
 
-func (p ChickenHealthProductTypeParam) Value() enum.ChickenHealthItemType {
+func (p ChickenHealthItemTypeParam) Value() enum.ChickenHealthItemType {
+	return enum.ChickenHealthItemType(p)
+}
+
+type LocationWorkTypeParam enum.ChickenHealthItemType
+
+func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfChickenHealthItemType(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid chicken health product type")
+	}
+
+	*p = LocationWorkTypeParam(parsedFilter)
+	return nil
+}
+
+func (p LocationWorkTypeParam) Value() enum.ChickenHealthItemType {
 	return enum.ChickenHealthItemType(p)
 }

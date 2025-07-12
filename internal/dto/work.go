@@ -74,10 +74,9 @@ type AdditionalWorkResponse struct {
 }
 
 type AdditionalWorkUserInformationResponse struct {
-	Id       uint64 `json:"id"`
+	UserId   string `json:"userId"`
 	RoleName string `json:"roleName"`
 	UserName string `json:"userName"`
-	IsDone   bool   `json:"isDone"`
 }
 
 type AdditionalWorkDetailResponse struct {

@@ -31,3 +31,13 @@ type LocationPresenceSummary struct {
 	UserId         uuid.UUID           `gorm:"column:user_id"`
 	PresenceStatus enum.PresenceStatus `gorm:"column:presence_status"`
 }
+
+type UserPresenceSummary struct {
+	ID            uint64 `gorm:"column:id"`
+	Name          string `gorm:"column:name"`
+	PhotoProfile  string `gorm:"column:photo_profile"`
+	Email         string `gorm:"column:email"`
+	RoleName      string `gorm:"column:role_name"`
+	Status        string `gorm:"column:status"`
+	TotalPresence int64  `gorm:"column:total_presence"`
+}

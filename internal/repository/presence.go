@@ -2,6 +2,8 @@ package repository
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,6 +35,7 @@ type IPresenceRepository interface {
 	GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
+	GetUserPresenceWorkDetailSummary(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceSummary, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -209,4 +212,39 @@ func (r *PresenceRepository) GetWarehouseLocationPresenceSummaries(filter dto.Ge
 	}
 
 	return locationPresenceSummaries, nil
+}
+
+func (r *PresenceRepository) GetUserPresenceWorkDetailSummary(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceSummary, error) {
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month))
+
+	db := r.GetDB().Table("user_presences").
+		Select(`users.id AS user_id, users.name AS user_name, users.photo_profile AS user_photo_profile, users.email AS user_email, roles.name AS role_name, users.status, COUNT(*) AS total_presence`).
+		Joins(`LEFT JOIN users ON user_presences.user_id = users.id`).
+		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
+		Where(`DATE(user_presences.created_at) >= ? AND DATE(user_presences.created_at) <= ?`, startDate, endDate).
+		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, users.status`)
+
+	switch strings.ToLower(filter.PlaceType) {
+	case "cage":
+		db = db.Where(`user_id IN (?)`, r.GetDB().Table("cage_placements").
+			Select("user_id").
+			Joins(`LEFT JOIN cages ON cage_placements.cage_id = cages.id`).
+			Where("cages.location_id = ?", filter.PlaceId))
+	case "store":
+		db = db.Where(`user_id IN (?)`, r.GetDB().Table("store_placements").
+			Select("user_id").
+			Where("store_id = ?", filter.PlaceId))
+	case "warehouse":
+		db = db.Where(`user_id IN (?)`, r.GetDB().Table("warehouse_placements").
+			Select("user_id").
+			Where("warehouse_id = ?", filter.PlaceId))
+	default:
+		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType)
+	}
+
+	var results []entity.UserPresenceSummary
+	if err := db.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
 }

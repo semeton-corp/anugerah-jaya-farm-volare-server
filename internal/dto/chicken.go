@@ -64,7 +64,7 @@ type ChickenHealthItemResponse struct {
 }
 
 type GetChickenHealthItemFilter struct {
-	Type param.ChickenHealthProductTypeParam `query:"type"`
+	Type param.ChickenHealthItemTypeParam `query:"type"`
 }
 
 type CreateChickenHealthMonitoringRequest struct {
@@ -95,6 +95,7 @@ type ChickenHealthMonitoringResponse struct {
 	Date            string  `json:"date"`
 	ChickenAge      uint64  `json:"chickenAge"`
 	ChickenCategory string  `json:"chickenCategory"`
+	CreatedAt       string  `json:"createdAt"`
 }
 
 type ChickenHealthMonitoringDetailResponse struct {

@@ -229,12 +229,15 @@ func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresence
 	return response, nil
 }
 
-// func (s *PresenceService) GetLocationPresenceDetail(filter dto.GetLocationPresenceDetailFilter) {
+// func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error) {
 // 	s.repository.UseTx(false)
 
 // 	placeType := enum.ValueOfLocationWorkType(filter.PlaceType)
 // 	if !placeType.IsValid() {
-
+// 		s.log.Warn("invalid location type work", zap.String("locationType", filter.PlaceType))
+// 		return nil, errx.BadRequest("invalid location work type")
 // 	}
+
+// 	response := make([]dto.UserPresenceSummaryResponse, 0)
 
 // }

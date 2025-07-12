@@ -45,6 +45,7 @@ func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHe
 		Type:           chickenHealthMonitoring.Type.String(),
 		Dose:           chickenHealthMonitoring.Dose,
 		Unit:           chickenHealthMonitoring.Unit,
+		CreatedAt:      chickenHealthMonitoring.CreatedAt.Format("02 Jan 2006"),
 	}
 
 	if chickenHealthMonitoring.Disease.Valid {
