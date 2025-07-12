@@ -32,10 +32,10 @@ type EggService struct {
 }
 
 type IEggService interface {
-	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
+	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error)
 	GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error)
-	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, accountId uuid.UUID) (dto.EggMonitoringResponse, error)
+	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
 	DeleteEggMonitoring(id uint64, userId uuid.UUID) error
 
 	GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
@@ -222,7 +222,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur OK", "Kg", enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -254,7 +254,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur Retak", "Kg", enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -318,7 +318,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		return err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur OK", "Kg", enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return err
 	}
@@ -350,7 +350,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		return err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType("Telur Retak", "Kg", enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return err
 	}

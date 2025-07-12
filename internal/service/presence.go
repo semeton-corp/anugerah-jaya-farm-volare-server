@@ -32,6 +32,7 @@ type IPresenceService interface {
 
 	GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
+	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
 }
 
 func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
@@ -252,6 +253,48 @@ func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSum
 			TotalPermissionUser: uint64(userPresenceSummary.TotalPermission),
 			TotalAlphaUser:      uint64(userPresenceSummary.TotalAlpha),
 		})
+	}
+
+	return response, nil
+}
+
+func (s *PresenceService) GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error) {
+	s.repository.UseTx(false)
+	filter.Date = param.DateParam(time.Now())
+	userPresenceWorkDetailSummaries, err := s.repository.GetUserPresenceWorkDetailSummaries(filter)
+	if err != nil {
+		s.log.Error("failed to get user presence work detail summaries", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.UserPresenceWorkDetailSummaryResponse, 0)
+
+	for _, userPresenceWorkDetailSummary := range userPresenceWorkDetailSummaries {
+		workDonePercentage := float64(userPresenceWorkDetailSummary.TotalDoneAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDoneDailyWorkUsers) / float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDailyWorkUsers)
+
+		newData := dto.UserPresenceWorkDetailSummaryResponse{
+			UserId:             userPresenceWorkDetailSummary.UserId.String(),
+			UserName:           userPresenceWorkDetailSummary.UserName,
+			UserPhotoProfile:   userPresenceWorkDetailSummary.UserPhotoProfile,
+			UserEmail:          userPresenceWorkDetailSummary.UserEmail,
+			RoleName:           userPresenceWorkDetailSummary.RoleName,
+			PresenceStatus:     userPresenceWorkDetailSummary.PresenceStatus.String(),
+			WorkDonePercentage: workDonePercentage,
+		}
+
+		if userPresenceWorkDetailSummary.PresenceStartTime.Time != nil {
+			newData.ArrivedTime = userPresenceWorkDetailSummary.PresenceStartTime.Time.Format("15:04")
+		} else {
+			newData.ArrivedTime = "-"
+		}
+
+		if userPresenceWorkDetailSummary.PresenceEndTime.Time != nil {
+			newData.DepartureTime = userPresenceWorkDetailSummary.PresenceEndTime.Time.Format("15:04")
+		} else {
+			newData.DepartureTime = "-"
+		}
+
+		response = append(response, newData)
 	}
 
 	return response, nil

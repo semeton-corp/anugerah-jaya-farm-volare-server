@@ -119,7 +119,7 @@ func (s *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 	return chickenMonitoringsResponse, nil
 }
 
-func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, accountId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
+func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, updateBy uuid.UUID) (dto.ChickenMonitoringResponse, error) {
 	s.repository.UseTx(false)
 	chickenMonitoring, err := s.repository.GetChickenMonitoringById(id)
 	if err != nil {
@@ -131,7 +131,7 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
 	chickenMonitoring.Note = request.Note
-	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: updateBy, Valid: true}
 
 	// Todo : update in chicken cage
 

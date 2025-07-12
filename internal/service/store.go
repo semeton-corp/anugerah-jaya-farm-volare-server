@@ -99,13 +99,13 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uui
 		return dto.StoreResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreResponse{}, err
 
 	}
 
-	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreResponse{}, err
 	}

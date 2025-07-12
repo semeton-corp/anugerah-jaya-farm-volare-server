@@ -36,6 +36,7 @@ type IPresenceRepository interface {
 	GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]entity.UserPresenceSummary, error)
+	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceWorkDetailSummary, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -224,10 +225,10 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 			users.photo_profile AS user_photo_profile,
 			users.email AS user_email,
 			roles.name AS role_name,
-			SUM(CASE WHEN user_presences.status = 'present' THEN 1 ELSE 0 END) AS total_present,
-			SUM(CASE WHEN user_presences.status = 'sick' THEN 1 ELSE 0 END) AS total_sick,
-			SUM(CASE WHEN user_presences.status = 'permission' THEN 1 ELSE 0 END) AS total_permission,
-			SUM(CASE WHEN user_presences.status = 'alpha' THEN 1 ELSE 0 END) AS total_alpha
+			SUM(CASE WHEN user_presences.status = 1 THEN 1 ELSE 0 END) AS total_present,
+			SUM(CASE WHEN user_presences.status = 2 THEN 1 ELSE 0 END) AS total_sick,
+			SUM(CASE WHEN user_presences.status = 3 THEN 1 ELSE 0 END) AS total_permission,
+			SUM(CASE WHEN user_presences.status = 4 THEN 1 ELSE 0 END) AS total_alpha
 		`).
 		Joins(`LEFT JOIN users ON user_presences.user_id = users.id`).
 		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
@@ -253,6 +254,55 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 	}
 
 	var results []entity.UserPresenceSummary
+	if err := db.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+	return results, nil
+}
+
+func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceWorkDetailSummary, error) {
+	db := r.GetDB().Table("users").
+		Select(`
+			users.id AS user_id,
+			users.name AS user_name,
+			users.photo_profile AS user_photo_profile,
+			users.email AS user_email,
+			roles.name AS role_name,
+			user_presences.status AS presence_status,
+			user_presences.start_time AS presence_start_time,
+			user_presences.end_time AS presence_end_time,
+			COUNT(DISTINCT additional_work_users.id) AS total_additional_work_users,
+			COUNT(DISTINCT CASE WHEN additional_work_users.is_done THEN additional_work_users.id END) AS total_done_additional_work_users,
+			COUNT(DISTINCT daily_work_users.id) AS total_daily_work_users,
+			COUNT(DISTINCT CASE WHEN daily_work_users.is_done THEN daily_work_users.id END) AS total_done_daily_work_users
+		`).
+		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
+		Joins(`LEFT JOIN additional_work_users ON additional_work_users.user_id = users.id`).
+		Joins(`LEFT JOIN daily_work_users ON daily_work_users.user_id = users.id`).
+		Joins(`LEFT JOIN user_presences ON user_presences.user_id = users.id 
+			AND DATE(user_presences.created_at) = ?`, filter.Date.Value())
+
+	switch filter.PlaceType.Value() {
+	case enum.LocationWorkTypeCage:
+		db = db.
+			Joins(`LEFT JOIN cage_placements ON cage_placements.user_id = users.id`).
+			Joins(`LEFT JOIN cages ON cage_placements.cage_id = cages.id`).
+			Where("cages.location_id = ?", filter.PlaceId)
+	case enum.LocationWorkTypeStore:
+		db = db.
+			Joins(`LEFT JOIN store_placements ON store_placements.user_id = users.id`).
+			Where("store_placements.store_id = ?", filter.PlaceId)
+	case enum.LocationWorkTypeWarehouse:
+		db = db.
+			Joins(`LEFT JOIN warehouse_placements ON warehouse_placements.user_id = users.id`).
+			Where("warehouse_placements.warehouse_id = ?", filter.PlaceId)
+	default:
+		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
+	}
+
+	db = db.Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status`)
+
+	var results []entity.UserPresenceWorkDetailSummary
 	if err := db.Scan(&results).Error; err != nil {
 		return nil, err
 	}

@@ -140,13 +140,13 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 		return dto.WarehouseResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.WarehouseResponse{}, err
 
 	}
 
-	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.WarehouseResponse{}, err
 	}

@@ -18,22 +18,22 @@ type ItemService struct {
 }
 
 type IItemService interface {
-	CreateItemPrice(request dto.CreateItemPriceRequest, accountId uuid.UUID) (dto.ItemPriceResponse, error)
+	CreateItemPrice(request dto.CreateItemPriceRequest, createdBy uuid.UUID) (dto.ItemPriceResponse, error)
 	GetItemPrices() ([]dto.ItemPriceResponse, error)
 	GetItemPriceById(id uint64) (dto.ItemPriceResponse, error)
-	UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, accountId uuid.UUID) (dto.ItemPriceResponse, error)
+	UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, updatedBy uuid.UUID) (dto.ItemPriceResponse, error)
 	DeleteItemPrice(id uint64) error
 
-	CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, accountId uuid.UUID) (dto.ItemPriceDiscountResponse, error)
+	CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, createdBy uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	GetItemDiscounts() ([]dto.ItemPriceDiscountResponse, error)
 	GetItemDiscountById(id uint64) (dto.ItemPriceDiscountResponse, error)
-	UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, accountId uuid.UUID) (dto.ItemPriceDiscountResponse, error)
+	UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, createdBy uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	DeleteItemDiscount(id uint64) error
 
 	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (dto.ItemResponse, error)
 	CreateItem(request dto.CreateItemRequest, createdBy uuid.UUID) (dto.ItemResponse, error)
 	GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, error)
-	UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, accountId uuid.UUID) (dto.ItemResponse, error)
+	UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, updatedBy uuid.UUID) (dto.ItemResponse, error)
 	GetItemById(id uint64) (dto.ItemResponse, error)
 	DeleteItem(id uint64) error
 }
@@ -45,7 +45,7 @@ func NewItemPriceService(log *zap.Logger, repository repository.IItemRepository)
 	}
 }
 
-func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, accountId uuid.UUID) (dto.ItemPriceResponse, error) {
+func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, createdBy uuid.UUID) (dto.ItemPriceResponse, error) {
 	s.repository.UseTx(false)
 
 	price, err := decimal.NewFromString(request.Price)
@@ -58,7 +58,7 @@ func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, accoun
 		Category:  request.Category,
 		ItemId:    request.ItemId,
 		Price:     price,
-		CreatedBy: uuid.NullUUID{UUID: accountId, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
 	err = s.repository.CreateItemPrice(&eggPrice)
@@ -233,7 +233,7 @@ func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, item
 
 	stockWarehouseItem, err := s.repository.GetItemByNameAndUnitAndType(name, unit, itemType)
 	if err != nil {
-		s.log.Error("[GetStockWarehouseItemByNameAndUnit] failed to get stock warehouse item", zap.Error(err))
+		s.log.Error("failed to get stock warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 

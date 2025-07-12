@@ -83,6 +83,7 @@ type GetUserPresenceSummaryFilter struct {
 type GetUserPresenceWorkDetailSummaryFilter struct {
 	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                      `query:"placeId" validate:"required"`
+	Date      param.DateParam             `query:"date"`
 }
 
 type UserPresenceSummaryResponse struct {
@@ -97,13 +98,13 @@ type UserPresenceSummaryResponse struct {
 	TotalAlphaUser      uint64 `json:"totalAlphaUser"`
 }
 
-type UserPresenceWorkDetailSummary struct {
-	Id                 string  `json:"id"`
-	Name               string  `json:"name"`
-	PhotoProfile       string  `json:"photoProfile"`
-	Email              string  `json:"email"`
+type UserPresenceWorkDetailSummaryResponse struct {
+	UserId             string  `json:"id"`
+	UserName           string  `json:"name"`
+	UserPhotoProfile   string  `json:"photoProfile"`
+	UserEmail          string  `json:"email"`
 	RoleName           string  `json:"roleName"`
-	Status             string  `json:"status"`
+	PresenceStatus     string  `json:"status"`
 	ArrivedTime        string  `json:"arrivedTime"`
 	DepartureTime      string  `json:"departureTime"`
 	WorkDonePercentage float64 `json:"WorkDonePercentage"`
