@@ -38,7 +38,7 @@ type IChickenRepository interface {
 	GetChickenHealthMonitoringByChickenCageId(chickenCageId uint64) ([]entity.ChickenHealthMonitoring, error)
 	DeleteChickenHealthMonitoring(id uint64) error
 
-	CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error)
+	CountChickenMonitoringByChickenCageIdToday(cageId uint64) (int64, error)
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -75,7 +75,7 @@ func (r *ChickenRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *ChickenRepository) CountChickenMonitoringByCageIdToday(cageId uint64) (int64, error) {
+func (r *ChickenRepository) CountChickenMonitoringByChickenCageIdToday(cageId uint64) (int64, error) {
 	var count int64
 	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
 		return 0, err

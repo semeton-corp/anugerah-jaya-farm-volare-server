@@ -23,7 +23,7 @@ type AdditionalWork struct {
 	Cage                Cage                  `gorm:"foreignKey:CageId;refereces:Id;constraint:OnDelete:CASCADE"`
 	Description         string                `gorm:"type:text;not null"`
 	Slot                uint64                `gorm:"type:bigint;not null"`
-	WorkDate            time.Time             `gorm:"type:timestamp;not null"`
+	WorkDate            time.Time             `gorm:"type:timestamp;not null"` // Start Date
 	Salary              decimal.Decimal       `gorm:"decimal;not null;default:0"`
 	LocationType        enum.LocationWorkType `gorm:"int;not null"`
 	AdditionalWorkUsers []AdditionalWorkUser  `gorm:"foreignKey:AdditionalWorkId;references:Id;constraint:OnDelete:CASCADE"`

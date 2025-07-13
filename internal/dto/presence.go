@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
 
@@ -76,8 +75,8 @@ type GetLocationPresenceSummaryFilter struct {
 type GetUserPresenceSummaryFilter struct {
 	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                      `query:"placeId" validate:"required"`
-	Month     enum.Month                  `query:"month"`
-	Year      uint64                      `query:"year"`
+	Month     param.MonthParam            `query:"month" validate:"required"`
+	Year      uint64                      `query:"year" validate:"required"`
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {

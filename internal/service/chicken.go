@@ -58,7 +58,7 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, createdBy uuid.UUID) (dto.ChickenMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
-	count, err := s.repository.CountChickenMonitoringByCageIdToday(request.ChickenCageId)
+	count, err := s.repository.CountChickenMonitoringByChickenCageIdToday(request.ChickenCageId)
 	if err != nil {
 		s.log.Error("failed to count chicken monitoring by cage id", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
@@ -123,8 +123,18 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	s.repository.UseTx(false)
 	chickenMonitoring, err := s.repository.GetChickenMonitoringById(id)
 	if err != nil {
-		s.log.Error("[UpdateChickenMonitoring] failed to get chicken monitoring by id", zap.Error(err))
+		s.log.Error("failed to get chicken monitoring by id", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	count, err := s.repository.CountChickenMonitoringByChickenCageIdToday(request.ChickenCageId)
+	if err != nil {
+		s.log.Error("failed count chicken monitoring by chicken cage id today", zap.Error(err))
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	if count > 0 {
+		return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken cage id is already use for another monitoring")
 	}
 
 	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
@@ -132,8 +142,7 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	chickenMonitoring.TotalFeed = request.TotalFeed
 	chickenMonitoring.Note = request.Note
 	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: updateBy, Valid: true}
-
-	// Todo : update in chicken cage
+	chickenMonitoring.ChickenCageId = request.ChickenCageId
 
 	err = s.repository.UpdateChickenMonitoring(&chickenMonitoring)
 	if err != nil {

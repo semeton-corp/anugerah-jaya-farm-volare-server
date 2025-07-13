@@ -28,7 +28,7 @@ func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
 
 	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
-	v1.Get("/users/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
+	v1.Get("/users/summaries", middleware.Authentication(), h.GetUserPresenceSummaries)
 	v1.Get("/users/works/summaries", middleware.Authentication(), h.GetUserPresenceWorkDetailSummaries)
 }
 

@@ -233,7 +233,7 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 		Joins(`LEFT JOIN users ON user_presences.user_id = users.id`).
 		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
 		Where(`DATE(user_presences.created_at) >= ? AND DATE(user_presences.created_at) <= ?`, startDate, endDate).
-		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, users.status`)
+		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status`)
 
 	switch filter.PlaceType.Value() {
 	case enum.LocationWorkTypeCage:
@@ -300,7 +300,7 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}
 
-	db = db.Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status`)
+	db = db.Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status, user_presences.start_time, user_presences.end_time`)
 
 	var results []entity.UserPresenceWorkDetailSummary
 	if err := db.Scan(&results).Error; err != nil {

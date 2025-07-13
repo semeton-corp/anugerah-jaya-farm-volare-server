@@ -51,7 +51,8 @@ func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, er
 }
 
 func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.UUID) (dto.CageResponse, error) {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
@@ -81,6 +82,12 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 	err = s.repository.CreateChickenCage(&chickenCage)
 	if err != nil {
 		s.log.Error("failed to create chicken cage", zap.Error(err))
+		return dto.CageResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transcation", zap.Error(err))
 		return dto.CageResponse{}, err
 	}
 
