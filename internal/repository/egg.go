@@ -68,7 +68,7 @@ func (r *EggRepository) CreateEggMonitoring(eggMonitoring *entity.EggMonitoring)
 
 func (r *EggRepository) GetEggMonitoringById(id uint64) (entity.EggMonitoring, error) {
 	var eggMonitoring entity.EggMonitoring
-	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Warehouse.Location").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Preload("Warehouse.Location").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User.Role").Where("id = ?", id).First(&eggMonitoring).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.EggMonitoring{}, errx.NotFound("egg monitoring not found")
 		}
@@ -84,7 +84,7 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 	query := r.GetDB().
 		Preload("Warehouse.Location").
 		Preload("ChickenCage.Cage.Location").
-		Preload("ChickenCage.Cage.CagePlacement").
+		Preload("ChickenCage.Cage.CagePlacement.User.Role").
 		Model(&entity.EggMonitoring{}).
 		Joins("JOIN chicken_cages ON chicken_cages.id = egg_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
 

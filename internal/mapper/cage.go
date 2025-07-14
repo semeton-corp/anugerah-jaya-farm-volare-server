@@ -31,7 +31,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		batchId = fmt.Sprintf("%s%d", chickenCage.ChickenProcurement.CreatedAt.Format("02012005"), chickenCage.Id)
+		batchId = fmt.Sprintf("%s%d", chickenCage.ChickenProcurement.CreatedAt.Format("02012006"), chickenCage.Id)
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
 

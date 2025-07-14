@@ -162,7 +162,7 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 func (c *ChickenService) DeleteChickenMonitoring(id uint64) error {
 	err := c.repository.DeleteChickenMonitoring(id)
 	if err != nil {
-		c.log.Error("[DeleteChickenMonitoring] failed to delete chicken monitoring", zap.Error(err))
+		c.log.Error("failed to delete chicken monitoring", zap.Error(err))
 		return err
 	}
 
