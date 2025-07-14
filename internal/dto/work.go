@@ -81,11 +81,14 @@ type AdditionalWorkUserInformationResponse struct {
 }
 
 type AdditionalWorkDetailResponse struct {
-	Id          uint64 `json:"id"`
-	Description string `json:"description"`
-	Date        string `json:"date"`
-	Time        string `json:"time"`
-	Salary      string `json:"salary"`
+	Id          uint64           `json:"id"`
+	Description string           `json:"description"`
+	Date        string           `json:"date"`
+	Time        string           `json:"time"`
+	Salary      string           `json:"salary"`
+	Location    LocationResponse `json:"location"`
+	PlaceType   string           `json:"placeType"`
+	Place       string           `json:"place"`
 }
 
 type AdditionalWorkUserResponse struct {
@@ -93,15 +96,32 @@ type AdditionalWorkUserResponse struct {
 	IsDone         bool                         `json:"isDone"`
 	Note           string                       `json:"note"`
 	AdditionalWork AdditionalWorkDetailResponse `json:"additionalWork"`
+	TakenDate      string                       `json:"finishedAt"`
+	TakenTime      string                       `json:"finishedTime"`
 	CreatedAt      time.Time                    `json:"-"`
 }
 
+type AdditionalWorkUserListPaginationResponse struct {
+	TotalPage           uint64                       `json:"totalPage,omitempty"`
+	TotalData           uint64                       `json:"totalData,omitempty"`
+	AdditionalWorkUsers []AdditionalWorkUserResponse `json:"additionalWorkUsers"`
+}
+
 type DailyWorkUserResponse struct {
-	Id        uint64                  `json:"id"`
-	IsDone    bool                    `json:"isDone"`
-	Note      string                  `json:"note"`
-	DailyWork DailyWorkDetailResponse `json:"dailyWork"`
-	CreatedAt time.Time               `json:"-"`
+	Id           uint64                  `json:"id"`
+	IsDone       bool                    `json:"isDone"`
+	Note         string                  `json:"note"`
+	DailyWork    DailyWorkDetailResponse `json:"dailyWork"`
+	FinishedDate string                  `json:"finishedAt"`
+	FinishedTime string                  `json:"finishedTime"`
+	CreatedAt    time.Time               `json:"-"`
+	Status       string                  `json:"status"`
+}
+
+type DailyWorkUserListPaginationResponse struct {
+	TotalPage      uint64                  `json:"totalPage,omitempty"`
+	TotalData      uint64                  `json:"totalData,omitempty"`
+	DailyWorkUsers []DailyWorkUserResponse `json:"dailyWorkUsers"`
 }
 
 type DailyWorkListResponse struct {
@@ -140,14 +160,16 @@ type GetDailyWorkUserFilter struct {
 	Date        param.DateParam  `query:"date"`
 	Month       param.MonthParam `query:"month"`
 	Year        uint64           `query:"year"`
-	WithDeleted bool             `query:"withDeleted"`
+	Page        uint64           `query:"page"`
+	WithDeleted bool
 }
 
 type GetAdditionalWorkUserFilter struct {
 	Month                param.MonthParam `query:"month"`
 	Year                 uint64           `query:"year"`
-	WithDeleted          bool             `query:"withDeleted"`
-	IsAdditionalWorkFull bool             `query:"isAdditionalWorkFull"`
+	Page                 uint64           `query:"page"`
+	IsAdditionalWorkFull bool
+	WithDeleted          bool
 }
 
 type WorkOveriew struct {

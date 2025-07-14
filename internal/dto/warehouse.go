@@ -112,8 +112,8 @@ type WarehouseItemHistoryListResponse struct {
 }
 
 type WarehouseItemHistoryListPaginationResponse struct {
-	TotalPage              uint64                             `json:"totalPage"`
-	TotalData              uint64                             `json:"totalData"`
+	TotalPage              uint64                             `json:"totalPage,omitempty"`
+	TotalData              uint64                             `json:"totalData,omitempty"`
 	WarehouseItemHistories []WarehouseItemHistoryListResponse `json:"warehouseItemHistories"`
 }
 

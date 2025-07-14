@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"math"
 	"slices"
 	"time"
 
@@ -32,7 +33,7 @@ type IWorkService interface {
 	GetDailyWorkSummariesBasedOnRole() ([]dto.DailyWorkListResponse, error)
 	GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkResponse, error)
 	DeleteDailyWork(id uint64) error
-	GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) ([]dto.DailyWorkUserResponse, error)
+	GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (dto.DailyWorkUserListPaginationResponse, error)
 
 	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, currUser uuid.UUID) ([]dto.AdditionalWorkListResponse, error)
@@ -41,7 +42,7 @@ type IWorkService interface {
 	DeleteAdditionalWork(id uint64) error
 	UpdateAdditionalWorkUser(id uint64, request dto.UpdateAdditionalWorkUserRequest, accountId uuid.UUID) (dto.AdditionalWorkUserResponse, error)
 	TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.AdditionalWorkUserResponse, error)
-	GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]dto.AdditionalWorkUserResponse, error)
+	GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) (dto.AdditionalWorkUserListPaginationResponse, error)
 
 	GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserResponse, error)
 	UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWorkUserRequest, accountId uuid.UUID) (dto.DailyWorkUserResponse, error)
@@ -297,6 +298,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 				AdditionalWorkId:     additionalWork.Id,
 				IsAdditionalWorkFull: IsAdditionalWorkFull,
 				CreatedBy:            uuid.NullUUID{UUID: accountId, Valid: true},
+				TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
 			})
 		}
 
@@ -539,6 +541,7 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 	additionalWorkUser.IsDone = request.IsDone
 	additionalWorkUser.Note = request.Note
 	additionalWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	additionalWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	if err := w.repository.UpdateAdditionalWorkUser(&additionalWorkUser); err != nil {
 		w.log.Error("failed to update additional work user", zap.Error(err))
@@ -565,6 +568,7 @@ func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWork
 	dailyWorkUser.IsDone = request.IsDone
 	dailyWorkUser.Note = request.Note
 	dailyWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	dailyWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	if err := w.repository.UpdateDailyWorkUser(&dailyWorkUser); err != nil {
 		w.log.Error("failed to update daily work user", zap.Error(err))
@@ -608,6 +612,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 			UserId:               userId,
 			IsDone:               false,
 			IsAdditionalWorkFull: true,
+			TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
 		}
 
 		err := w.repository.UpdateAdditionalWorkUserByAdditionalWorkId(id, map[string]any{
@@ -624,6 +629,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 			UserId:               userId,
 			IsDone:               false,
 			IsAdditionalWorkFull: false,
+			TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
 		}
 	}
 
@@ -656,13 +662,13 @@ func (w *WorkService) DeleteDailyWork(id uint64) error {
 	return nil
 }
 
-func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]dto.AdditionalWorkUserResponse, error) {
+func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) (dto.AdditionalWorkUserListPaginationResponse, error) {
 	w.repository.UseTx(false)
 
 	additionalWorkUsers, err := w.repository.GetAdditionalWorkUserByUserId(userId, filter)
 	if err != nil {
 		w.log.Error("failed to get additional work user", zap.Error(err))
-		return nil, err
+		return dto.AdditionalWorkUserListPaginationResponse{}, err
 	}
 
 	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0, len(additionalWorkUsers))
@@ -670,16 +676,32 @@ func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto
 		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkUserToResponse(&additionalWork))
 	}
 
-	return additionalWorkResponse, nil
+	totalData, err := w.repository.CountAdditionalWorkUserByUserId(userId, filter)
+	if err != nil {
+		w.log.Error("failed count daily work user by user id", zap.Error(err))
+		return dto.AdditionalWorkUserListPaginationResponse{}, err
+	}
+
+	resp := dto.AdditionalWorkUserListPaginationResponse{
+		AdditionalWorkUsers: additionalWorkResponse,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = uint64(totalData)
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+	}
+
+	return resp, nil
 }
 
-func (w *WorkService) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) ([]dto.DailyWorkUserResponse, error) {
+func (w *WorkService) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (dto.DailyWorkUserListPaginationResponse, error) {
 	w.repository.UseTx(false)
 
+	filter.WithDeleted = false
 	dailyWorkUsers, err := w.repository.GetDailyWorkUserByUserId(userId, filter)
 	if err != nil {
 		w.log.Error("failed to get additional work user", zap.Error(err))
-		return nil, err
+		return dto.DailyWorkUserListPaginationResponse{}, err
 	}
 
 	dailyWorkResponse := make([]dto.DailyWorkUserResponse, len(dailyWorkUsers))
@@ -687,7 +709,22 @@ func (w *WorkService) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetD
 		dailyWorkResponse[i] = mapper.DailyWorkUserToResponse(&dailyWorkUser)
 	}
 
-	return dailyWorkResponse, nil
+	totalData, err := w.repository.CountDailyWorkUserByUserId(userId, filter)
+	if err != nil {
+		w.log.Error("failed count daily work user by user id", zap.Error(err))
+		return dto.DailyWorkUserListPaginationResponse{}, err
+	}
+
+	resp := dto.DailyWorkUserListPaginationResponse{
+		DailyWorkUsers: dailyWorkResponse,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = uint64(totalData)
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+	}
+
+	return resp, nil
 }
 
 func (w *WorkService) DeleteAdditionalWorkUser(id uint64) error {

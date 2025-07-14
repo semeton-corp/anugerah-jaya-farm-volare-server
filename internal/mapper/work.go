@@ -81,7 +81,7 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 }
 
 func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkUserResponse {
-	return dto.DailyWorkUserResponse{
+	response := dto.DailyWorkUserResponse{
 		Id:     dailyWorkUser.Id,
 		IsDone: dailyWorkUser.IsDone,
 		Note:   dailyWorkUser.Note,
@@ -93,10 +93,31 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 		},
 		CreatedAt: dailyWorkUser.CreatedAt,
 	}
+
+	if dailyWorkUser.FinishedAt.Valid {
+		finished := dailyWorkUser.FinishedAt.Time
+		start := dailyWorkUser.DailyWork.StartTime.Time
+
+		response.FinishedDate = finished.Format("02 Jan 2006")
+		response.FinishedTime = finished.Format("15:04")
+
+		if finished.Hour() < start.Hour() ||
+			(finished.Hour() == start.Hour() && finished.Minute() <= start.Minute()) {
+			response.Status = constant.DailyWorkDone
+		} else {
+			response.Status = constant.DailyWorkLate
+		}
+	} else {
+		response.FinishedDate = "-"
+		response.FinishedTime = "-"
+		response.Status = constant.DailyWorkNotDone
+	}
+
+	return response
 }
 
 func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser) dto.AdditionalWorkUserResponse {
-	return dto.AdditionalWorkUserResponse{
+	response := dto.AdditionalWorkUserResponse{
 		Id:     additionalWorkUser.Id,
 		IsDone: additionalWorkUser.IsDone,
 		Note:   additionalWorkUser.Note,
@@ -109,4 +130,15 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 		},
 		CreatedAt: additionalWorkUser.CreatedAt,
 	}
+
+	if additionalWorkUser.TakenAt.Valid {
+		taken := additionalWorkUser.TakenAt.Time
+		response.TakenDate = taken.Format("02 Jan 2006")
+		response.TakenTime = taken.Format("15:04")
+	} else {
+		response.TakenDate = "-"
+		response.TakenTime = "-"
+	}
+
+	return response
 }

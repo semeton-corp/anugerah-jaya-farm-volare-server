@@ -9,4 +9,8 @@ const (
 	AdditionalWorkFullWorker = "Pekerja Terpenuhi"
 
 	AdditionalWorkAvailable = "Available"
+
+	DailyWorkDone    = "Selesai"
+	DailyWorkLate    = "Terlambat"
+	DailyWorkNotDone = "Tidak Selesai"
 )

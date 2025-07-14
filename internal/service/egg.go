@@ -556,7 +556,7 @@ func (s *EggService) buildEggOverviewDetails(
 		{Name: constant.GoodEgg, Quantity: math.Ceil(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
 		{Name: constant.CrackedEgg, Quantity: totalCrackedEggInKg, Unit: constant.EggUnitKg},
 		{Name: constant.CrackedEgg, Quantity: math.Ceil(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
-		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.EggUnitIkat},
+		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.EggUnitButir},
 	}
 	return details
 }

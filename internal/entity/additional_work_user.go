@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,8 @@ type AdditionalWorkUser struct {
 	IsDone               bool           `gorm:"type:boolean;default:false"`
 	IsAdditionalWorkFull bool           `gorm:"type:boolean;default:false"`
 	Note                 string         `gorm:"type:text"`
+	FinishedAt           sql.NullTime   `gorm:"type:timestamp"`
+	TakenAt              sql.NullTime   `gorm:"type:timestamp"`
 	CreatedAt            time.Time      `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID  `gorm:"type:varchar(255)"`
 	UpdatedAt            time.Time      `gorm:"type:timestamp;autoUpdateTime"`

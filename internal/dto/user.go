@@ -36,6 +36,7 @@ type GetUserListFilter struct {
 type GetUserOverviewListFilter struct {
 	Page    uint64 `query:"page"`
 	Keyword string `query:"keyword"`
+	RoleId  uint64 `query:"roleId"`
 }
 
 type UserListResponse struct {
@@ -44,21 +45,10 @@ type UserListResponse struct {
 	Role RoleResponse `json:"role"`
 }
 
-type UserOverviewListResponse struct {
-	Id           string       `json:"id"`
-	Name         string       `json:"name"`
-	PhotoProfile string       `json:"photoProfile"`
-	Email        string       `json:"email"`
-	PhoneNumber  string       `json:"phoneNumber"`
-	Role         RoleResponse `json:"role"`
-	Salary       string       `json:"salary"`
-	KpiStatus    string       `json:"kpiStatus"`
-}
-
-type UserOverviewListPaginationResponse struct {
-	TotalPage uint64             `json:"totalPage"`
-	TotalData uint64             `json:"totalData"`
-	Users     []UserListResponse `json:"users"`
+type UserListOverviewPaginationResponse struct {
+	TotalPage uint64                     `json:"totalPage,omitempty"`
+	TotalData uint64                     `json:"totalData,omitempty"`
+	Users     []UserListOverviewResponse `json:"users"`
 }
 
 type UserInformationResponse struct {
@@ -112,11 +102,4 @@ type UserListOverviewResponse struct {
 	SalaryRecommendation string       `json:"salaryRecommendation"`
 	KpiStatus            string       `json:"kpiStatus"`
 	Role                 RoleResponse `json:"role"`
-}
-
-type GetUserListOverviewFilter struct {
-	RoleId     uint64 `query:"roleId"`
-	LocationId uint64 `query:"locationId"`
-	Page       uint64 `query:"page"`
-	Keyword    string `query:"keyword"`
 }

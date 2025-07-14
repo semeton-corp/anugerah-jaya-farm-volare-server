@@ -332,9 +332,12 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 	}
 
 	resp := dto.StoreRequestItemListPaginationResponse{
-		TotalPage:         uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData:         totalData,
 		StoreRequestItems: storeRequestItemResponses,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = totalData
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return resp, nil
@@ -739,11 +742,16 @@ func (s *StoreService) GetStoreItemHistories(filter dto.GetStoreItemHistoryFilte
 		return dto.StoreItemHistoryListPaginationResponse{}, err
 	}
 
-	return dto.StoreItemHistoryListPaginationResponse{
-		TotalPage:          uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData:          uint64(totalData),
+	resp := dto.StoreItemHistoryListPaginationResponse{
 		StoreItemHistories: response,
-	}, nil
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = uint64(totalData)
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+	}
+
+	return resp, nil
 }
 
 func (s *StoreService) GetStoreItemHistoryById(id uint64) (dto.StoreItemHistoryResponse, error) {

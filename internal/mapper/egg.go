@@ -18,7 +18,7 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 
 	response := dto.EggMonitoringResponse{
 		Id:                       eggMonitoring.Id,
-		Cage:                     CageToResponse(&eggMonitoring.ChickenCage.Cage),
+		ChickenCage:              ChickenCageToResponse(&eggMonitoring.ChickenCage),
 		Warehouse:                WarehouseToResponse(&eggMonitoring.Warehouse),
 		TotalKarpetGoodEgg:       totalKarpetGoodEgg,
 		TotalRemainingGoodEgg:    totalRemainingGoodEgg,
@@ -44,7 +44,7 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitoringListResponse {
 	response := dto.EggMonitoringListResponse{
 		Id:              eggMonitoring.Id,
-		Cage:            CageToResponse(&eggMonitoring.ChickenCage.Cage),
+		ChickenCage:     ChickenCageToResponse(&eggMonitoring.ChickenCage),
 		Warehouse:       WarehouseToResponse(&eggMonitoring.Warehouse),
 		TotalAllEgg:     eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalRejectEgg,
 		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,

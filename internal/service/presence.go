@@ -79,9 +79,12 @@ func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.
 	}
 
 	resp := dto.PresenceListPaginationResponse{
-		TotalPage: uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData: uint64(totalData),
 		Presences: presenceResponses,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+		resp.TotalData = uint64(totalData)
 	}
 
 	return resp, nil

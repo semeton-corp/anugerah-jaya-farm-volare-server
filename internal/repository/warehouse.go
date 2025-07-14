@@ -170,7 +170,7 @@ func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemId(warehouseId
 	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").Where("item_id = ? AND warehouse_id = ?", itemId, warehouseId).First(&stockWarehouseItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.WarehouseItem{}, errx.NotFound("stock warehouse item not found")
+			return entity.WarehouseItem{}, errx.NotFound("warehouse item not found")
 		}
 		return entity.WarehouseItem{}, err
 	}

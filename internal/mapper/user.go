@@ -14,7 +14,7 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 		Address:      user.Address,
 		PhotoProfile: user.PhotoProfile,
 		PhoneNumber:  user.PhoneNumber,
-		Salary:       user.Salary.String(), //Note : just base salary
+		Salary:       user.Salary.String(),
 		CreatedAt:    user.CreatedAt.Format("02 Januari 2006"),
 		Role:         RoleToResponse(&user.Role),
 		Location:     LocationToResponse(&user.Location),
@@ -29,5 +29,17 @@ func UserToListResponse(user *entity.User) dto.UserListResponse {
 			Id:   user.Role.Id,
 			Name: user.Role.Name,
 		},
+	}
+}
+
+func UserOverviewToListResponse(user *entity.User) dto.UserListOverviewResponse {
+	return dto.UserListOverviewResponse{
+		Id:                   user.Id.String(),
+		Name:                 user.Name,
+		Email:                user.Email,
+		PhotoProfile:         user.PhotoProfile,
+		Role:                 RoleToResponse(&user.Role),
+		SalaryRecommendation: user.Salary.String(),
+		KpiStatus:            "",
 	}
 }

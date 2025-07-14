@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -23,7 +24,9 @@ type IUserRepository interface {
 	GetUserById(id uuid.UUID) (entity.User, error)
 	UpdateUser(user *entity.User) error
 	GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error)
-	CountTotalUser(filter *dto.GetUserListFilter) (uint64, error)
+	CountTotalUserOverview(filter *dto.GetUserOverviewListFilter) (uint64, error)
+
+	GetUserOverview(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
 }
 
 func NewUserRepository(db *gorm.DB) IUserRepository {
@@ -90,26 +93,25 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User,
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
-	query = query.Preload("Role")
-
-	if err := query.Find(&users).Error; err != nil {
+	if err := query.Preload("Role").Find(&users).Error; err != nil {
 		return nil, err
 	}
 
 	return users, nil
 }
 
-func (r *UserRepository) CountTotalUser(filter *dto.GetUserListFilter) (uint64, error) {
+func (r *UserRepository) CountTotalUserOverview(filter *dto.GetUserOverviewListFilter) (uint64, error) {
 	var totalData int64
 
-	query := r.GetDB()
+	query := r.db.Model(&entity.User{})
 
 	if filter.RoleId > 0 {
 		query = query.Where("role_id = ?", filter.RoleId)
 	}
 
-	if filter.LocationId > 0 {
-		query = query.Where("location_id = ?", filter.LocationId)
+	if filter.Keyword != "" {
+		keyword := "%" + filter.Keyword + "%"
+		query = query.Where("name ILIKE ? OR email ILIKE ?", keyword, keyword)
 	}
 
 	err := query.Model(&entity.User{}).Count(&totalData).Error
@@ -118,4 +120,29 @@ func (r *UserRepository) CountTotalUser(filter *dto.GetUserListFilter) (uint64, 
 	}
 
 	return uint64(totalData), err
+}
+
+func (r *UserRepository) GetUserOverview(filter *dto.GetUserOverviewListFilter) ([]entity.User, error) {
+	users := make([]entity.User, 0)
+	query := r.db.Model(&entity.User{})
+
+	if filter.RoleId > 0 {
+		query = query.Where("role_id = ?", filter.RoleId)
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	if filter.Keyword != "" {
+		keyword := "%" + filter.Keyword + "%"
+		query = query.Where("name ILIKE ? OR email ILIKE ?", keyword, keyword)
+	}
+
+	err := query.Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }

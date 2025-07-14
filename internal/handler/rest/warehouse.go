@@ -199,7 +199,7 @@ func (h *WarehouseHandler) CreateWarehouseItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, res, "create stock warehouse item success")
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "create warehouse item success")
 }
 
 func (h *WarehouseHandler) GetWarehouseItems(c *fiber.Ctx) error {
@@ -211,11 +211,11 @@ func (h *WarehouseHandler) GetWarehouseItems(c *fiber.Ctx) error {
 
 	stockWarehouseItems, err := h.service.GetWarehouseItems(filter)
 	if err != nil {
-		h.log.Error("failed to get stock warehouse items", zap.Error(err))
+		h.log.Error("failed to get warehouse items", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, stockWarehouseItems, "get stock warehouse items success")
+	return response.SuccessResponse(c, fiber.StatusOK, stockWarehouseItems, "get warehouse items success")
 }
 
 func (h *WarehouseHandler) GetWarehouseItemByWarehouseIdAndItemId(c *fiber.Ctx) error {
@@ -244,7 +244,7 @@ func (h *WarehouseHandler) GetWarehouseItemByWarehouseIdAndItemId(c *fiber.Ctx) 
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "get stock warehouse item success")
+	return response.SuccessResponse(c, fiber.StatusOK, res, "get warehouse item success")
 }
 
 func (h *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
@@ -287,11 +287,11 @@ func (h *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
 
 	res, err := h.service.UpdateWarehouseItem(warehouseId, warehouseItemId, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update stock warehouse item", zap.Error(err))
+		h.log.Error("failed to update warehouse item", zap.Error(err))
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, res, "update stock warehouse item success")
+	return response.SuccessResponse(c, fiber.StatusOK, res, "update warehouse item success")
 }
 
 func (h *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {

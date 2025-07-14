@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
@@ -40,10 +41,12 @@ type IWorkRepository interface {
 
 	UpdateAdditionalWorkUserByAdditionalWorkId(id uint64, payload map[string]any) error
 	GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]entity.AdditionalWorkUser, error)
+	CountAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) (int64, error)
 
 	GetDailyWorkUserById(id uint64) (entity.DailyWorkUser, error)
 	UpdateDailyWorkUser(dailyWorkUser *entity.DailyWorkUser) error
 	GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) ([]entity.DailyWorkUser, error)
+	CountDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (int64, error)
 }
 
 func NewWorkRepository(db *gorm.DB) IWorkRepository {
@@ -142,7 +145,13 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	}
 
 	if filter.WithDeleted {
+		query = query.Where("daily_works.deleted_at IS NOT NULL AND daily_works.deleted_at IS NULL")
+	} else {
 		query = query.Where("daily_works.deleted_at IS NULL")
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int(constant.PaginationDefaultLimit-1) * int(filter.Page)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	err := query.
@@ -159,6 +168,38 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	return dailyWorkUsers, nil
 }
 
+func (r *WorkRepository) CountDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (int64, error) {
+	var count int64
+	query := r.GetDB().Model(&entity.DailyWorkUser{}).
+		Joins("JOIN daily_works ON daily_work_users.daily_work_id = daily_works.id").
+		Joins("JOIN users ON daily_work_users.user_id = users.id")
+
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
+		query = query.Where("daily_work_users.created_at >= ? AND daily_work_users.created_at <= ?", startDate, endDate)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
+	}
+
+	if filter.WithDeleted {
+		query = query.Where("daily_works.deleted_at IS NOT NULL AND daily_works.deleted_at IS NULL")
+	} else {
+		query = query.Where("daily_works.deleted_at IS NULL")
+	}
+
+	err := query.
+		Where("users.id = ?", userId).
+		Count(&count).Error
+
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
 func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) ([]entity.AdditionalWorkUser, error) {
 	var additionalWorks []entity.AdditionalWorkUser
 	query := r.GetDB().Model(&entity.AdditionalWorkUser{}).
@@ -171,11 +212,17 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	}
 
 	if filter.WithDeleted {
+		query = query.Where("additional_works.deleted_at IS NULL AND additional_works.deleted_at IS NOT NULL")
+	} else {
 		query = query.Where("additional_works.deleted_at IS NULL")
 	}
 
 	if filter.IsAdditionalWorkFull {
 		query = query.Where("additional_work_users.is_additional_work_full = ?", filter.IsAdditionalWorkFull)
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int(constant.PaginationDefaultLimit-1) * int(filter.Page)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	err := query.Where("users.id = ?", userId).
@@ -188,6 +235,36 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 		return nil, err
 	}
 	return additionalWorks, nil
+}
+
+func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) (int64, error) {
+	var count int64
+	query := r.GetDB().Model(&entity.AdditionalWorkUser{}).
+		Joins("JOIN additional_works ON additional_work_users.additional_work_id = additional_works.id").
+		Joins("JOIN users ON additional_work_users.user_id = users.id")
+
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
+		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
+		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
+	}
+
+	if filter.WithDeleted {
+		query = query.Where("additional_works.deleted_at IS NULL AND additional_works.deleted_at IS NOT NULL")
+	} else {
+		query = query.Where("additional_works.deleted_at IS NULL")
+	}
+
+	if filter.IsAdditionalWorkFull {
+		query = query.Where("additional_work_users.is_additional_work_full = ?", filter.IsAdditionalWorkFull)
+	}
+
+	err := query.Where("users.id = ?", userId).
+		Find(&count).Error
+
+	if err != nil {
+		return -1, err
+	}
+	return count, nil
 }
 
 func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {

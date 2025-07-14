@@ -242,7 +242,7 @@ func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRe
 
 	err := s.repository.CreateWarehouseItem(&stockWarehouseItem)
 	if err != nil {
-		s.log.Error("failed to create stock warehouse item", zap.Error(err))
+		s.log.Error("failed to create warehouse item", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
 
@@ -251,7 +251,7 @@ func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRe
 		stockWarehouseItem.ItemId,
 	)
 	if err != nil {
-		s.log.Error("failed to get stock warehouse item", zap.Error(err))
+		s.log.Error("failed to get warehouse item", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
 
@@ -280,7 +280,7 @@ func (s *WarehouseService) GetWarehouseItemByWarehouseIdAndItemId(warehouseId ui
 
 	stockWarehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		s.log.Error("failed to get stock warehouse item by warehouse id and item id", zap.Error(err))
+		s.log.Error("failed to get warehouse item by warehouse id and item id", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
 
@@ -340,7 +340,7 @@ func (s *WarehouseService) DeleteWarehouseItem(warehouseId uint64, warehouseItem
 
 	err := s.repository.DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId, warehouseItemId)
 	if err != nil {
-		s.log.Error("failed to delete stock warehouse item", zap.Error(err))
+		s.log.Error("failed to delete warehouse item", zap.Error(err))
 		return err
 	}
 
@@ -726,11 +726,16 @@ func (s *WarehouseService) GetWarehouseItemHistories(filter dto.GetWarehouseItem
 		return dto.WarehouseItemHistoryListPaginationResponse{}, err
 	}
 
-	return dto.WarehouseItemHistoryListPaginationResponse{
-		TotalPage:              uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData:              uint64(totalData),
+	resp := dto.WarehouseItemHistoryListPaginationResponse{
 		WarehouseItemHistories: response,
-	}, nil
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = uint64(totalData)
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+	}
+
+	return resp, nil
 }
 
 func (s *WarehouseService) GetWarehouseItemHistoryById(id uint64) (dto.WarehouseItemHistoryResponse, error) {

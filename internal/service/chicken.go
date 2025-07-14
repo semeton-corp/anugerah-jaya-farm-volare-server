@@ -77,7 +77,7 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		CreatedBy:         uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	// Todo : create if there are death chicken
+	// Todo : create if there are death chicken in chicken cage
 
 	err = s.repository.CreateChickenMonitoring(&chickenMonitoring)
 	if err != nil {

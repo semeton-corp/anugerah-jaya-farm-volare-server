@@ -233,7 +233,7 @@ func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, item
 
 	stockWarehouseItem, err := s.repository.GetItemByNameAndUnitAndType(name, unit, itemType)
 	if err != nil {
-		s.log.Error("failed to get stock warehouse item", zap.Error(err))
+		s.log.Error("failed to get item by name and unit and type", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 

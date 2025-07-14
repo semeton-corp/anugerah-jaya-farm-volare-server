@@ -2,12 +2,14 @@ package service
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
@@ -26,7 +28,7 @@ type IUserService interface {
 	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error)
 	GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResponse, error)
 
-	GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserOverviewListPaginationResponse, error)
+	GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
 	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 }
 
@@ -126,7 +128,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		dto.GetAdditionalWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
-			WithDeleted: true,
+			WithDeleted: true, // In case the user work is done but the work is deleted
 		})
 	if err != nil {
 		return dto.UserOverviewResponse{}, nil
@@ -203,7 +205,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 
 	var bonusSalary decimal.Decimal
 	var totalWorkDone uint64 = 0
-	for _, dailyWorkUser := range dailyWorkUsers {
+	for _, dailyWorkUser := range dailyWorkUsers.DailyWorkUsers {
 		week := util.FindWeek(dailyWorkUser.CreatedAt, weeks)
 		if week == 0 {
 			continue
@@ -214,7 +216,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		}
 	}
 
-	for _, additionalWorkUser := range additionalWorkUsers {
+	for _, additionalWorkUser := range additionalWorkUsers.AdditionalWorkUsers {
 		week := util.FindWeek(additionalWorkUser.CreatedAt, weeks)
 		if week == 0 {
 			continue
@@ -257,7 +259,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 
 	userWorkInformation := dto.UserWorkInformationResponse{
 		TotalWorkDone:    totalWorkDone,
-		TotalWorkNotDone: uint64(len(dailyWorkUsers) + len(additionalWorkUsers) - int(totalWorkDone)),
+		TotalWorkNotDone: uint64(len(dailyWorkUsers.DailyWorkUsers) + len(additionalWorkUsers.AdditionalWorkUsers) - int(totalWorkDone)),
 	}
 
 	userSalaryInformation := dto.UserSalaryInformationResponse{
@@ -293,6 +295,34 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 	return overviewResponse, nil
 }
 
-func (s *UserService) GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserOverviewListPaginationResponse, error) {
-	return dto.UserOverviewListPaginationResponse{}, nil
+func (s *UserService) GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	users, err := s.repository.GetUserOverview(&filter)
+	if err != nil {
+		s.log.Error("failed to get user overview", zap.Error(err))
+		return dto.UserListOverviewPaginationResponse{}, err
+	}
+
+	response := make([]dto.UserListOverviewResponse, 0)
+	for _, user := range users {
+		response = append(response, mapper.UserOverviewToListResponse(&user))
+	}
+
+	totalData, err := s.repository.CountTotalUserOverview(&filter)
+	if err != nil {
+		s.log.Error("failed count user overview", zap.Error(err))
+		return dto.UserListOverviewPaginationResponse{}, err
+	}
+
+	resp := dto.UserListOverviewPaginationResponse{
+		Users: response,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = totalData
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+	}
+
+	return resp, nil
 }
