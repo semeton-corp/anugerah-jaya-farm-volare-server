@@ -144,8 +144,8 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
 	}
 
-	if filter.WithDeleted {
-		query = query.Where("daily_works.deleted_at IS NOT NULL AND daily_works.deleted_at IS NULL")
+	if filter.WithDeleted != nil && *filter.WithDeleted {
+		query = query.Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
 	} else {
 		query = query.Where("daily_works.deleted_at IS NULL")
 	}
@@ -183,8 +183,8 @@ func (r *WorkRepository) CountDailyWorkUserByUserId(userId uuid.UUID, filter dto
 		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
 	}
 
-	if filter.WithDeleted {
-		query = query.Where("daily_works.deleted_at IS NOT NULL AND daily_works.deleted_at IS NULL")
+	if filter.WithDeleted != nil && *filter.WithDeleted {
+		query = query.Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
 	} else {
 		query = query.Where("daily_works.deleted_at IS NULL")
 	}
@@ -211,8 +211,8 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
 	}
 
-	if filter.WithDeleted {
-		query = query.Where("additional_works.deleted_at IS NULL AND additional_works.deleted_at IS NOT NULL")
+	if filter.WithDeleted != nil && *filter.WithDeleted {
+		query = query.Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
 	} else {
 		query = query.Where("additional_works.deleted_at IS NULL")
 	}
@@ -248,8 +248,8 @@ func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filte
 		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
 	}
 
-	if filter.WithDeleted {
-		query = query.Where("additional_works.deleted_at IS NULL AND additional_works.deleted_at IS NOT NULL")
+	if filter.WithDeleted != nil && *filter.WithDeleted {
+		query = query.Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
 	} else {
 		query = query.Where("additional_works.deleted_at IS NULL")
 	}
@@ -259,7 +259,7 @@ func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filte
 	}
 
 	err := query.Where("users.id = ?", userId).
-		Find(&count).Error
+		Count(&count).Error
 
 	if err != nil {
 		return -1, err

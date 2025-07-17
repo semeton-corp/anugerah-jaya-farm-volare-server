@@ -29,23 +29,23 @@ type WorkService struct {
 type IWorkService interface {
 	GetWorkOverview() (dto.WorkOveriew, error)
 
-	SaveDailyWorks(request dto.CreateDailyWorkRequest, accountId uuid.UUID) (dto.DailyWorkResponse, error)
+	SaveDailyWorks(request dto.CreateDailyWorkRequest, userId uuid.UUID) (dto.DailyWorkResponse, error)
 	GetDailyWorkSummariesBasedOnRole() ([]dto.DailyWorkListResponse, error)
 	GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkResponse, error)
 	DeleteDailyWork(id uint64) error
 	GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (dto.DailyWorkUserListPaginationResponse, error)
 
-	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
+	CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, userId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, currUser uuid.UUID) ([]dto.AdditionalWorkListResponse, error)
 	GetAdditionalWorkById(id uint64) (dto.AdditionalWorkResponse, error)
-	UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error)
+	UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, userId uuid.UUID) (dto.AdditionalWorkResponse, error)
 	DeleteAdditionalWork(id uint64) error
-	UpdateAdditionalWorkUser(id uint64, request dto.UpdateAdditionalWorkUserRequest, accountId uuid.UUID) (dto.AdditionalWorkUserResponse, error)
+	UpdateAdditionalWorkUser(id uint64, request dto.UpdateAdditionalWorkUserRequest, userId uuid.UUID) (dto.AdditionalWorkUserResponse, error)
 	TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.AdditionalWorkUserResponse, error)
 	GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto.GetAdditionalWorkUserFilter) (dto.AdditionalWorkUserListPaginationResponse, error)
 
 	GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserResponse, error)
-	UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWorkUserRequest, accountId uuid.UUID) (dto.DailyWorkUserResponse, error)
+	UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWorkUserRequest, userId uuid.UUID) (dto.DailyWorkUserResponse, error)
 	DeleteAdditionalWorkUser(id uint64) error
 }
 
@@ -204,9 +204,10 @@ func (w *WorkService) GetDailyWorksByRoleId(roleId uint64) (dto.DailyWorkRespons
 }
 
 func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserResponse, error) {
+	withDeleted := false
 	dailyWorkUsers, err := w.repository.GetDailyWorkUserByUserId(userId, dto.GetDailyWorkUserFilter{
 		Date:        param.DateParam(time.Now()),
-		WithDeleted: false,
+		WithDeleted: &withDeleted,
 	})
 	if err != nil {
 		w.log.Error("failed to get additional work user", zap.Error(err))
@@ -219,7 +220,7 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 	}
 
 	additionalWorkUsers, err := w.repository.GetAdditionalWorkUserByUserId(userId, dto.GetAdditionalWorkUserFilter{
-		WithDeleted:          false,
+		WithDeleted:          &withDeleted,
 		IsAdditionalWorkFull: true,
 	})
 	if err != nil {
@@ -238,7 +239,7 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 	}, nil
 }
 
-func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error) {
+func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkRequest, userId uuid.UUID) (dto.AdditionalWorkResponse, error) {
 	w.repository.UseTx(true)
 	defer w.repository.Rollback()
 
@@ -268,7 +269,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		Slot:         request.Slot,
 		Salary:       salary,
 		WorkDate:     workDate,
-		CreatedBy:    uuid.NullUUID{UUID: accountId, Valid: true},
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	switch locationType {
@@ -281,7 +282,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	}
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {
-		w.log.Error("[CreateAdditonalWork] failed to create additional work", zap.Error(err))
+		w.log.Error("failed to create additional work", zap.Error(err))
 		return dto.AdditionalWorkResponse{}, err
 	}
 
@@ -292,12 +293,12 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 
 	additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
 	if request.UserIds != nil {
-		for _, userId := range request.UserIds {
+		for _, userIdReq := range request.UserIds {
 			additionalWorkUsers = append(additionalWorkUsers, entity.AdditionalWorkUser{
-				UserId:               uuid.MustParse(userId),
+				UserId:               uuid.MustParse(userIdReq),
 				AdditionalWorkId:     additionalWork.Id,
 				IsAdditionalWorkFull: IsAdditionalWorkFull,
-				CreatedBy:            uuid.NullUUID{UUID: accountId, Valid: true},
+				CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
 				TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
 			})
 		}
@@ -350,7 +351,7 @@ func (w *WorkService) GetAdditionalWorkById(id uint64) (dto.AdditionalWorkRespon
 	return additionalWorkResponse, nil
 }
 
-func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, accountId uuid.UUID) (dto.AdditionalWorkResponse, error) {
+func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAdditionalWorkRequest, userId uuid.UUID) (dto.AdditionalWorkResponse, error) {
 	w.repository.UseTx(true)
 	defer w.repository.Rollback()
 
@@ -385,7 +386,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	additionalWork.Salary = salary
 	additionalWork.WorkDate = workDate
 	additionalWork.LocationType = locationType
-	additionalWork.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	additionalWork.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	switch locationType {
 	case enum.LocationWorkTypeCage:
@@ -447,7 +448,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 				UserId:               userId,
 				AdditionalWorkId:     additionalWork.Id,
 				IsAdditionalWorkFull: isAdditionalWorkFull,
-				CreatedBy:            uuid.NullUUID{UUID: accountId, Valid: true},
+				CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
 			})
 		}
 
@@ -521,7 +522,7 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, curr
 	return additionalWorkResponses, nil
 }
 
-func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAdditionalWorkUserRequest, accountId uuid.UUID) (dto.AdditionalWorkUserResponse, error) {
+func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAdditionalWorkUserRequest, userId uuid.UUID) (dto.AdditionalWorkUserResponse, error) {
 	additionalWorkUser, err := w.repository.GetAdditionalWorkUserById(id)
 	if err != nil {
 		w.log.Error("failed to get additional work user by id", zap.Error(err))
@@ -540,7 +541,7 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 
 	additionalWorkUser.IsDone = request.IsDone
 	additionalWorkUser.Note = request.Note
-	additionalWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	additionalWorkUser.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	additionalWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	if err := w.repository.UpdateAdditionalWorkUser(&additionalWorkUser); err != nil {
@@ -553,7 +554,7 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 	return additionalWorkUserResponse, nil
 }
 
-func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWorkUserRequest, accountId uuid.UUID) (dto.DailyWorkUserResponse, error) {
+func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWorkUserRequest, userId uuid.UUID) (dto.DailyWorkUserResponse, error) {
 	dailyWorkUser, err := w.repository.GetDailyWorkUserById(id)
 	if err != nil {
 		w.log.Error("failed to get daily work user by id", zap.Error(err))
@@ -567,7 +568,7 @@ func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWork
 
 	dailyWorkUser.IsDone = request.IsDone
 	dailyWorkUser.Note = request.Note
-	dailyWorkUser.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	dailyWorkUser.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	dailyWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
 
 	if err := w.repository.UpdateDailyWorkUser(&dailyWorkUser); err != nil {
@@ -671,7 +672,7 @@ func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto
 		return dto.AdditionalWorkUserListPaginationResponse{}, err
 	}
 
-	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0, len(additionalWorkUsers))
+	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0)
 	for _, additionalWork := range additionalWorkUsers {
 		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkUserToResponse(&additionalWork))
 	}
@@ -697,7 +698,6 @@ func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto
 func (w *WorkService) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.GetDailyWorkUserFilter) (dto.DailyWorkUserListPaginationResponse, error) {
 	w.repository.UseTx(false)
 
-	filter.WithDeleted = false
 	dailyWorkUsers, err := w.repository.GetDailyWorkUserByUserId(userId, filter)
 	if err != nil {
 		w.log.Error("failed to get additional work user", zap.Error(err))

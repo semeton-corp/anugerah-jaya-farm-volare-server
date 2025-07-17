@@ -103,16 +103,16 @@ type SaleUnit uint8
 
 const (
 	SaleUnitUnknown SaleUnit = 0
-	SaleUnitButir   SaleUnit = 1
-	SaleUnitIkat    SaleUnit = 2
-	SaleUnitKarpet  SaleUnit = 3
+	SaleUnitIkat    SaleUnit = 1
+	SaleUnitPlastik SaleUnit = 2
+	SaleUnitKg      SaleUnit = 3
 )
 
 var (
 	SaleUnitMap = map[SaleUnit]string{
-		SaleUnitButir:  "Butir",
-		SaleUnitIkat:   "Ikat",
-		SaleUnitKarpet: "Karpet",
+		SaleUnitIkat:    "Ikat",
+		SaleUnitPlastik: "Plastik",
+		SaleUnitKg:      "Kg",
 	}
 )
 

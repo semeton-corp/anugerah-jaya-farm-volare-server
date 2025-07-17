@@ -13,6 +13,8 @@ func New() *validator.Validate {
 	validate.RegisterValidation("chickenHealthItemType", ValidationChickenHealthItemType)
 	validate.RegisterValidation("presenceStatus", ValidationPresenceStatus)
 	validate.RegisterValidation("salaryInterval", ValidationSalaryInterval)
+	validate.RegisterValidation("customerType", ValidationCustomerType)
+	validate.RegisterValidation("phoneNumber", ValidationPhoneNumber)
 
 	return validate
 }
@@ -70,7 +72,7 @@ func ValidationPaymentType(fl validator.FieldLevel) bool {
 func ValidationSaleUnit(fl validator.FieldLevel) bool {
 	saleUnit := fl.Field().String()
 	switch saleUnit {
-	case "Butir", "Ikat", "Karpet":
+	case "Kg", "Ikat", "Plastik":
 		return true
 	default:
 		return false
@@ -105,4 +107,20 @@ func ValidationSalaryInterval(fl validator.FieldLevel) bool {
 	default:
 		return false
 	}
+}
+
+func ValidationCustomerType(fl validator.FieldLevel) bool {
+	presenceStatus := fl.Field().String()
+	switch presenceStatus {
+	case "Pelanggan Baru", "Pelanggan Lama":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationPhoneNumber(fl validator.FieldLevel) bool {
+	phoneNumber := fl.Field().String()
+
+	return phoneNumber[:2] == "08"
 }

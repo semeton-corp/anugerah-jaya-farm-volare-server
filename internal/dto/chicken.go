@@ -143,3 +143,6 @@ type ChickenOverviewResponse struct {
 	ChickenGraphs []ChickenGraphResponse  `json:"chickenGraphs"`
 	ChickenPie    ChickenBarChartResponse `json:"chickenPie"`
 }
+
+type ChickenProcurementRequest struct {
+}

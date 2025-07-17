@@ -52,13 +52,12 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 	return response
 }
 
-// Note : without payments, payment payment
+// Note : without payments
 func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	return dto.StoreSaleResponse{
 		Id:         storeSale.Id,
 		SendDate:   storeSale.SendDate.Format("02-01-2006"),
-		Customer:   storeSale.Customer,
-		Phone:      storeSale.Phone,
+		Customer:   CustomerToResponse(&storeSale.Customer),
 		Price:      storeSale.Price.String(),
 		TotalPrice: storeSale.TotalPrice.String(),
 		WarehouseItem: dto.ItemResponse{
@@ -97,14 +96,13 @@ func StoreSalePaymentToResponse(storeSalePayment *entity.StoreSalePayment) dto.S
 func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListResponse {
 	return dto.StoreSaleListResponse{
 		Id:            storeSale.Id,
+		OrderDate:     storeSale.CreatedAt.Format("02-01-2006"),
 		SendDate:      storeSale.SendDate.Format("02-01-2006"),
-		Customer:      storeSale.Customer,
-		Phone:         storeSale.Phone,
-		WarehouseItem: ItemToResponse(&storeSale.Item),
+		Customer:      CustomerToResponse(&storeSale.Customer),
+		Item:          ItemToResponse(&storeSale.Item),
 		Store:         StoreToResponse(&storeSale.Store),
 		Quantity:      storeSale.Quantity,
 		SaleUnit:      storeSale.SaleUnit.String(),
-		PaymentType:   storeSale.PaymentType.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
 	}

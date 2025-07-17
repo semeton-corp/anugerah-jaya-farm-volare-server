@@ -23,8 +23,9 @@ type PresenceHandler struct {
 func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/presences")
 
-	v1.Get("/current/me", middleware.Authentication(), h.GetCurrentUserPresence)
-	v1.Get("/me", middleware.Authentication(), h.GetCurrentUserPresences)
+	v1.Get("/current/me", middleware.Authentication(), h.GetSelfCurrentUserPresence)
+	v1.Get("/users/:userId", middleware.Authentication(), h.GetUserPresence)
+	v1.Get("/me", middleware.Authentication(), h.GetSelfCurrentUserPresences)
 	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
 
 	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
@@ -40,7 +41,7 @@ func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, valid
 	}
 }
 
-func (h *PresenceHandler) GetCurrentUserPresence(c *fiber.Ctx) error {
+func (h *PresenceHandler) GetSelfCurrentUserPresence(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
 		h.log.Error("user id not found in context")
@@ -55,7 +56,27 @@ func (h *PresenceHandler) GetCurrentUserPresence(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, userPresence, "success get current user presence")
 }
 
-func (h *PresenceHandler) GetCurrentUserPresences(c *fiber.Ctx) error {
+func (h *PresenceHandler) GetUserPresence(c *fiber.Ctx) error {
+	var filter dto.GetPresenceFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parsing query filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("failed to validate filter", zap.Error(err))
+		return err
+	}
+
+	userPresences, err := h.service.GetUserPresencesByUserId(uuid.MustParse(c.Params("userId")), filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, userPresences, "success get user presence")
+}
+
+func (h *PresenceHandler) GetSelfCurrentUserPresences(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
 		h.log.Error("user id not found in context")

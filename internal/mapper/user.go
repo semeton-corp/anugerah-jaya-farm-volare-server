@@ -32,10 +32,12 @@ func UserToListResponse(user *entity.User) dto.UserListResponse {
 	}
 }
 
+// Todo : KPI Status
 func UserOverviewToListResponse(user *entity.User) dto.UserListOverviewResponse {
 	return dto.UserListOverviewResponse{
 		Id:                   user.Id.String(),
 		Name:                 user.Name,
+		Username:             user.Username,
 		Email:                user.Email,
 		PhotoProfile:         user.PhotoProfile,
 		Role:                 RoleToResponse(&user.Role),

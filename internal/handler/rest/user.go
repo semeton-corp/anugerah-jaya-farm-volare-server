@@ -21,12 +21,15 @@ type UserHandler struct {
 func (h *UserHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/users")
 
-	v1.Put("/me", middleware.Authentication(), h.UpdateOwnProfile)
-	v1.Get("/me", middleware.Authentication(), h.GetOwnProfile)
+	v1.Put("/me", middleware.Authentication(), h.UpdateSelfUser)
+	v1.Get("/me", middleware.Authentication(), h.GetSelfUser)
+
+	v1.Get("/overviews", middleware.Authentication(), h.GetUserOverviews)
+	v1.Get("/overviews/:id", middleware.Authentication(), h.GetOverviewUser)
+
 	v1.Get("", middleware.Authentication(), h.GetUsers)
 	v1.Get("/:id", middleware.Authentication(), h.GetUserById)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateUser)
-	v1.Get("/overview/:id", middleware.Authentication(), h.GetOverviewUser)
 }
 
 func NewUserHandler(log *zap.Logger, service service.IUserService, validator *validator.Validate) *UserHandler {
@@ -53,7 +56,7 @@ func (h *UserHandler) GetUserById(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user by id")
 }
 
-func (h *UserHandler) GetOwnProfile(c *fiber.Ctx) error {
+func (h *UserHandler) GetSelfUser(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
 		h.log.Error("user id not found in context")
@@ -102,7 +105,7 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update account")
 }
 
-func (h *UserHandler) UpdateOwnProfile(c *fiber.Ctx) error {
+func (h *UserHandler) UpdateSelfUser(c *fiber.Ctx) error {
 	var request dto.UpdateUserRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
@@ -170,4 +173,19 @@ func (h *UserHandler) GetOverviewUser(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success to get overview user")
+}
+
+func (h *UserHandler) GetUserOverviews(c *fiber.Ctx) error {
+	var filter dto.GetUserOverviewListFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetUserOverviewList(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get user overview list")
 }

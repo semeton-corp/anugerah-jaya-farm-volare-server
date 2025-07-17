@@ -184,7 +184,7 @@ func (s *AuthenticationService) SignIn(request dto.SignInRequest) (dto.SignInRes
 
 	user, err := s.repository.GetUserByUsername(request.Username)
 	if err != nil {
-		s.log.Error("failed to get user by email", zap.Error(err))
+		s.log.Error("failed to get user by username", zap.Error(err))
 		return dto.SignInResponse{}, err
 	}
 

@@ -105,3 +105,52 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 		Time:        warehouseItemHistory.CreatedAt.Format("15:04"),
 	}
 }
+
+// Note : without payments, payment payment
+func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleResponse {
+	return dto.WarehouseSaleResponse{
+		Id:         warehouseSale.Id,
+		SendDate:   warehouseSale.SendDate.Format("02-01-2006"),
+		Customer:   CustomerToResponse(&warehouseSale.Customer),
+		Price:      warehouseSale.Price.String(),
+		TotalPrice: warehouseSale.TotalPrice.String(),
+		WarehouseItem: dto.ItemResponse{
+			Id:       warehouseSale.Item.Id,
+			Name:     warehouseSale.Item.Name,
+			Unit:     warehouseSale.Item.Unit,
+			Category: warehouseSale.Item.Category.String(),
+		},
+		Warehouse:     WarehouseToResponse(&warehouseSale.Warehouse),
+		Quantity:      warehouseSale.Quantity,
+		SaleUnit:      warehouseSale.SaleUnit.String(),
+		PaymentType:   warehouseSale.PaymentType.String(),
+		PaymentStatus: warehouseSale.PaymentStatus.String(),
+		IsSend:        warehouseSale.IsSend,
+	}
+}
+
+// Note : without remaining payment
+func WarehouseSalePaymentToResponse(warehouseSalePayment *entity.WarehouseSalePayment) dto.WarehouseSalePaymentResponse {
+	return dto.WarehouseSalePaymentResponse{
+		Id:            warehouseSalePayment.Id,
+		Nominal:       warehouseSalePayment.Nominal.String(),
+		PaymentProof:  warehouseSalePayment.PaymentProof,
+		PaymentMethod: warehouseSalePayment.PaymentMethod.String(),
+		Date:          warehouseSalePayment.PaymentDate.Format("02-01-2006"),
+	}
+}
+
+func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleListResponse {
+	return dto.WarehouseSaleListResponse{
+		Id:            warehouseSale.Id,
+		SendDate:      warehouseSale.SendDate.Format("02-01-2006"),
+		Customer:      CustomerToResponse(&warehouseSale.Customer),
+		WarehouseItem: ItemToResponse(&warehouseSale.Item),
+		Warehouse:     WarehouseToResponse(&warehouseSale.Warehouse),
+		Quantity:      warehouseSale.Quantity,
+		SaleUnit:      warehouseSale.SaleUnit.String(),
+		PaymentType:   warehouseSale.PaymentType.String(),
+		PaymentStatus: warehouseSale.PaymentStatus.String(),
+		IsSend:        warehouseSale.IsSend,
+	}
+}

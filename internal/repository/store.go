@@ -47,6 +47,7 @@ type IStoreRepository interface {
 	GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
 	UpdateStoreSale(storeSale *entity.StoreSale) error
 	CountTotalStoreSale(filter dto.GetStoreSaleFilter) (uint64, error)
+	DeleteStoreSale(id uint64) error
 
 	CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
@@ -284,10 +285,6 @@ func (r *StoreRepository) CountTotalStoreItemHistory(filter dto.GetStoreItemHist
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Page > 0 {
-		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
-	}
-
 	err := query.Count(&total).Error
 	if err != nil {
 		return -1, err
@@ -309,7 +306,7 @@ func (r *StoreRepository) CreateStoreSale(storeSale *entity.StoreSale) error {
 
 func (r *StoreRepository) GetStoreSaleById(id uint64) (entity.StoreSale, error) {
 	var storeSale entity.StoreSale
-	err := r.GetDB().Preload("Payments").Preload("Store.Location").Preload("WarehouseItem").First(&storeSale, id).Error
+	err := r.GetDB().Preload("Payments").Preload("Customer").Preload("Store.Location").Preload("Item").First(&storeSale, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StoreSale{}, errx.NotFound("store sale not found")
@@ -335,7 +332,7 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
 	}
 
-	err := query.Preload("Store.Location").Preload("WarehouseItem").Find(&storeSales).Order("created_at DESC").Error
+	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -403,4 +400,8 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 	}
 
 	return uint64(totalData), nil
+}
+
+func (r *StoreRepository) DeleteStoreSale(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSale{}).Error
 }

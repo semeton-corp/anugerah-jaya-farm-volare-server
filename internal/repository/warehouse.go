@@ -46,6 +46,16 @@ type IWarehouseRepository interface {
 	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error)
 	GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error)
 	CountTotalWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) (int64, error)
+
+	GetWarehouseSalePaymentById(id uint64) (entity.WarehouseSalePayment, error)
+	CreateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
+	UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
+
+	CountTotalWarehouseSale(filter dto.GetWarehouseSaleFilter) (uint64, error)
+	CreateWarehouseSale(warehouseSale *entity.WarehouseSale) error
+	GetWarehouseSaleById(id uint64) (entity.WarehouseSale, error)
+	GetWarehouseSales(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
+	UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -293,14 +303,100 @@ func (r *WarehouseRepository) CountTotalWarehouseItemHistory(filter dto.GetWareh
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Page > 0 {
-		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
-	}
-
 	err := query.Count(&total).Error
 	if err != nil {
 		return -1, err
 	}
 
 	return total, nil
+}
+
+func (r *WarehouseRepository) CountTotalWarehouseSale(filter dto.GetWarehouseSaleFilter) (uint64, error) {
+	var totalData int64
+	query := r.GetDB().Model(&entity.StoreSale{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.PaymentMethod.Value().IsValid() {
+		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	}
+
+	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(totalData), nil
+}
+
+func (r *WarehouseRepository) GetWarehouseSalePaymentById(id uint64) (entity.WarehouseSalePayment, error) {
+	var warehouseSalePayment entity.WarehouseSalePayment
+	err := r.GetDB().First(&warehouseSalePayment, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseSalePayment{}, errx.NotFound("warehouse sale payment not found")
+		}
+		return entity.WarehouseSalePayment{}, err
+	}
+	return warehouseSalePayment, nil
+}
+
+func (r *WarehouseRepository) CreateWarehouseSale(warehouseSale *entity.WarehouseSale) error {
+	if err := r.GetDB().Create(warehouseSale).Error; err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.NotFound("some resources not found")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *WarehouseRepository) GetWarehouseSaleById(id uint64) (entity.WarehouseSale, error) {
+	var warehouseSale entity.WarehouseSale
+	err := r.GetDB().Preload("Payments").Preload("Warehouse.Location").Preload("Item").First(&warehouseSale, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseSale{}, errx.NotFound("warehouse sale not found")
+		}
+		return entity.WarehouseSale{}, err
+	}
+	return warehouseSale, nil
+}
+
+func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error) {
+	var warehouseSales []entity.WarehouseSale
+	query := r.GetDB()
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	if filter.PaymentMethod.Value().IsValid() {
+		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("Item").Find(&warehouseSales).Order("created_at DESC").Error
+	if err != nil {
+		return nil, err
+	}
+	return warehouseSales, nil
+}
+
+func (r *WarehouseRepository) CreateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error {
+	return r.GetDB().Create(warehouseSalePayment).Error
+}
+
+func (r *WarehouseRepository) UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error {
+	return r.GetDB().Model(entity.WarehouseSale{}).Where("id = ?", warehouseSale.Id).Updates(warehouseSale).Error
+}
+
+func (r *WarehouseRepository) UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error {
+	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", warehouseSalePayment.Id).Updates(warehouseSalePayment).Error
 }

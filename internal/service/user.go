@@ -25,10 +25,10 @@ type UserService struct {
 
 type IUserService interface {
 	GetUserById(id uuid.UUID) (dto.UserResponse, error)
-	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error)
+	UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, userId uuid.UUID) (dto.UserResponse, error)
 	GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResponse, error)
 
-	GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
+	GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
 	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 }
 
@@ -53,7 +53,7 @@ func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 	return mapper.UserToResponse(&user), nil
 }
 
-func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, accountId uuid.UUID) (dto.UserResponse, error) {
+func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, userId uuid.UUID) (dto.UserResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -124,11 +124,12 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		return dto.UserOverviewResponse{}, nil
 	}
 
+	withDeleted := true
 	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(id,
 		dto.GetAdditionalWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
-			WithDeleted: true, // In case the user work is done but the work is deleted
+			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 		})
 	if err != nil {
 		return dto.UserOverviewResponse{}, nil
@@ -138,7 +139,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		dto.GetDailyWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
-			WithDeleted: true,
+			WithDeleted: &withDeleted,
 		})
 	if err != nil {
 		return dto.UserOverviewResponse{}, nil
@@ -295,10 +296,10 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 	return overviewResponse, nil
 }
 
-func (s *UserService) GetOverviewListUser(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {
+func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	users, err := s.repository.GetUserOverview(&filter)
+	users, err := s.repository.GetUserOverviews(&filter)
 	if err != nil {
 		s.log.Error("failed to get user overview", zap.Error(err))
 		return dto.UserListOverviewPaginationResponse{}, err

@@ -105,7 +105,7 @@ func (s *ItemService) GetItemPriceById(id uint64) (dto.ItemPriceResponse, error)
 	return mapper.ItemPriceToResponse(&eggPrice), nil
 }
 
-func (s *ItemService) UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, accountId uuid.UUID) (dto.ItemPriceResponse, error) {
+func (s *ItemService) UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, userId uuid.UUID) (dto.ItemPriceResponse, error) {
 	s.repository.UseTx(false)
 
 	eggPrice, err := s.repository.GetItemPriceById(id)
@@ -122,7 +122,7 @@ func (s *ItemService) UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequ
 
 	eggPrice.Category = request.Category
 	eggPrice.ItemId = request.ItemId
-	eggPrice.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	eggPrice.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateItemPrice(&eggPrice)
 	if err != nil {
@@ -139,7 +139,7 @@ func (s *ItemService) DeleteItemPrice(id uint64) error {
 	return s.repository.DeleteItemPrice(id)
 }
 
-func (s *ItemService) CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, accountId uuid.UUID) (dto.ItemPriceDiscountResponse, error) {
+func (s *ItemService) CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, userId uuid.UUID) (dto.ItemPriceDiscountResponse, error) {
 	s.repository.UseTx(false)
 
 	eggPriceDiscount := entity.ItemPriceDiscount{
@@ -193,7 +193,7 @@ func (s *ItemService) GetItemDiscountById(id uint64) (dto.ItemPriceDiscountRespo
 	return mapper.ItemPriceDiscountToResponse(&eggPriceDiscount), nil
 }
 
-func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, accountId uuid.UUID) (dto.ItemPriceDiscountResponse, error) {
+func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, userId uuid.UUID) (dto.ItemPriceDiscountResponse, error) {
 	s.repository.UseTx(false)
 
 	eggPriceDiscount, err := s.repository.GetItemPriceDiscountById(id)
@@ -205,7 +205,7 @@ func (s *ItemService) UpdateItemDiscount(id uint64, request dto.UpdateItemPriceD
 	eggPriceDiscount.Name = request.Name
 	eggPriceDiscount.MinimumTransactionUser = request.MinimumTransactionUser
 	eggPriceDiscount.TotalDiscount = request.TotalDiscount
-	eggPriceDiscount.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	eggPriceDiscount.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateItemPriceDiscount(&eggPriceDiscount)
 	if err != nil {
@@ -288,7 +288,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 	return warehouseItemResponses, nil
 }
 
-func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, accountId uuid.UUID) (dto.ItemResponse, error) {
+func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, userId uuid.UUID) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
 	warehouseItemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
@@ -306,7 +306,7 @@ func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemR
 	warehouseItem.Name = request.Name
 	warehouseItem.Unit = request.Unit
 	warehouseItem.Category = warehouseItemCategory
-	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: accountId, Valid: true}
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateItem(&warehouseItem)
 	if err != nil {

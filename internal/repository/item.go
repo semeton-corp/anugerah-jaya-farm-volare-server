@@ -135,8 +135,12 @@ func (r *ItemRepository) GetItems(filter dto.GetItemFilter) ([]entity.Item, erro
 
 	query := r.GetDB()
 
-	if filter.Category.Value().IsValid() {
-		query = query.Where("category = ?", filter.Category.Value())
+	if filter.Categories != nil {
+		categories := make([]enum.ItemCategory, 0)
+		for _, e := range filter.Categories {
+			categories = append(categories, e.Value())
+		}
+		query = query.Where("category IN ?", categories)
 	}
 
 	err := query.Find(&warehouseItems).Error
@@ -152,7 +156,7 @@ func (r *ItemRepository) GetItemById(id uint64) (entity.Item, error) {
 	err := r.GetDB().Where("id = ?", id).First(&warehouseItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.Item{}, errx.NotFound("warehouse item not found")
+			return entity.Item{}, errx.NotFound("item not found")
 		}
 		return entity.Item{}, err
 	}
@@ -172,7 +176,7 @@ func (r *ItemRepository) GetItemByNameAndUnit(name string, unit string) (entity.
 	err := r.GetDB().Where("name = ? AND unit = ?", name, unit).First(&warehouseItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.Item{}, errx.NotFound("warehouse item not found")
+			return entity.Item{}, errx.NotFound("item not found")
 		}
 		return entity.Item{}, err
 	}
@@ -184,7 +188,7 @@ func (r *ItemRepository) GetItemByNameAndUnitAndType(name string, unit string, c
 	err := r.GetDB().Where("name = ? AND unit = ? AND category = ?", name, unit, category).First(&warehouseItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.Item{}, errx.NotFound("warehouse item not found")
+			return entity.Item{}, errx.NotFound("item not found")
 		}
 		return entity.Item{}, err
 	}

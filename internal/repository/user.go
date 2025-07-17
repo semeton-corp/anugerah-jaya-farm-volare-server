@@ -26,7 +26,7 @@ type IUserRepository interface {
 	GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error)
 	CountTotalUserOverview(filter *dto.GetUserOverviewListFilter) (uint64, error)
 
-	GetUserOverview(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
+	GetUserOverviews(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
 }
 
 func NewUserRepository(db *gorm.DB) IUserRepository {
@@ -122,7 +122,7 @@ func (r *UserRepository) CountTotalUserOverview(filter *dto.GetUserOverviewListF
 	return uint64(totalData), err
 }
 
-func (r *UserRepository) GetUserOverview(filter *dto.GetUserOverviewListFilter) ([]entity.User, error) {
+func (r *UserRepository) GetUserOverviews(filter *dto.GetUserOverviewListFilter) ([]entity.User, error) {
 	users := make([]entity.User, 0)
 	query := r.db.Model(&entity.User{})
 
@@ -139,7 +139,7 @@ func (r *UserRepository) GetUserOverview(filter *dto.GetUserOverviewListFilter) 
 		query = query.Where("name ILIKE ? OR email ILIKE ?", keyword, keyword)
 	}
 
-	err := query.Find(&users).Error
+	err := query.Preload("Role").Find(&users).Error
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ func (h *WorkHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/works")
 	v1.Get("/overview", middleware.Authentication(), h.GetWorkOverview)
 
-	v1.Get("/me", middleware.Authentication(), h.GetOwnWorkUser)
+	v1.Get("/me", middleware.Authentication(), h.GetSelfWorkUser)
 
 	v1.Post("/dailies", middleware.Authentication(), h.SaveDailyWorks)
 	v1.Get("/dailies/summaries", middleware.Authentication(), h.GetDailyWorksSummariesBasedOnRole)
@@ -40,6 +40,9 @@ func (h *WorkHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/additionals/:id", middleware.Authentication(), h.UpdateAdditionalWork)
 	v1.Delete("/additionals/:id", middleware.Authentication(), h.DeleteAdditionalWork)
 	v1.Post("/additionals/takes/:id", middleware.Authentication(), h.TakeAdditionalWork)
+
+	v1.Get("/dailies/users/:userId", middleware.Authentication(), h.GetDailyWorkUsersByUserId)
+	v1.Get("/additionals/users/:userId", middleware.Authentication(), h.GetAdditionalWorkUsersByUserId)
 }
 
 func NewWorkHandler(log *zap.Logger, service service.IWorkService, validator *validator.Validate) *WorkHandler {
@@ -223,7 +226,7 @@ func (h *WorkHandler) DeleteAdditionalWork(c *fiber.Ctx) error {
 	return response.NoContentResponse(c)
 }
 
-func (h *WorkHandler) GetOwnWorkUser(c *fiber.Ctx) error {
+func (h *WorkHandler) GetSelfWorkUser(c *fiber.Ctx) error {
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
 		h.log.Warn("user id not found in context")
@@ -365,4 +368,44 @@ func (h *WorkHandler) DeleteAdditionalWorkUser(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *WorkHandler) GetDailyWorkUsersByUserId(c *fiber.Ctx) error {
+	var filter dto.GetDailyWorkUserFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetDailyWorkUserByUserId(uuid.MustParse(c.Params("userId")), filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get daily work user by user id")
+}
+
+func (h *WorkHandler) GetAdditionalWorkUsersByUserId(c *fiber.Ctx) error {
+	var filter dto.GetAdditionalWorkUserFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetAdditionalWorkUserByUserId(uuid.MustParse(c.Params("userId")), filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get additional work user by user id")
 }

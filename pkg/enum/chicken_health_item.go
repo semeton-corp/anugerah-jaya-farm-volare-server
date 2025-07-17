@@ -3,17 +3,17 @@ package enum
 type ChickenHealthItemType uint8
 
 const (
-	ChickenHealthItemTypeUnknown               ChickenHealthItemType = 0
-	ChickenHealthItemTypeMedicine              ChickenHealthItemType = 1
-	ChickenHealthProductTypeVaccineConditional ChickenHealthItemType = 2
-	ChickenHealthProductTypeVaccineRoutine     ChickenHealthItemType = 3
+	ChickenHealthItemTypeUnknown            ChickenHealthItemType = 0
+	ChickenHealthItemTypeMedicine           ChickenHealthItemType = 1
+	ChickenHealthItemTypeVaccineConditional ChickenHealthItemType = 2
+	ChickenHealthItemTypeVaccineRoutine     ChickenHealthItemType = 3
 )
 
 var (
 	ChickenHealthItemTypeMap = map[ChickenHealthItemType]string{
-		ChickenHealthItemTypeMedicine:              "Obat",
-		ChickenHealthProductTypeVaccineConditional: "Vaksin Kondisional",
-		ChickenHealthProductTypeVaccineRoutine:     "Vaksin Rutin",
+		ChickenHealthItemTypeMedicine:           "Obat",
+		ChickenHealthItemTypeVaccineConditional: "Vaksin Kondisional",
+		ChickenHealthItemTypeVaccineRoutine:     "Vaksin Rutin",
 	}
 )
 
