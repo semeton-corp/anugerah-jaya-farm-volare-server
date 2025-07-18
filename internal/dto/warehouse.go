@@ -142,7 +142,6 @@ type WarehouseSaleResponse struct {
 	Id               uint64                         `json:"id"`
 	SendDate         string                         `json:"sentDate"`
 	Customer         CustomerResponse               `json:"customer"`
-	Phone            string                         `json:"phone"`
 	WarehouseItem    ItemResponse                   `json:"item"`
 	Warehouse        WarehouseResponse              `json:"warehouse"`
 	Quantity         float64                        `json:"quantity"`
@@ -157,8 +156,8 @@ type WarehouseSaleResponse struct {
 }
 
 type WarehouseSaleListPaginationResponse struct {
-	TotalPage      uint64                      `json:"totalPage"`
-	TotalData      uint64                      `json:"totalData"`
+	TotalPage      uint64                      `json:"totalPage,omitempty"`
+	TotalData      uint64                      `json:"totalData,omitempty"`
 	WarehouseSales []WarehouseSaleListResponse `json:"warehouseSales"`
 }
 
@@ -172,7 +171,7 @@ type CreateWarehouseSaleRequest struct {
 	Quantity             float64                           `json:"quantity" validate:"required,number"`
 	SaleUnit             string                            `json:"saleUnit" validate:"required,saleUnit"`
 	Price                string                            `json:"price" validate:"required,number"`
-	Discount             float64                           `json:"discount" validate:"required"`
+	Discount             float64                           `json:"discount" validate:"min=0"`
 	SendDate             string                            `json:"sendDate" validate:"required"`
 	PaymentType          string                            `json:"paymentType" validate:"required,paymentType"`
 	WarehouseSalePayment CreateWarehouseSalePaymentRequest `json:"warehouseSalePayment" validate:"required"`
@@ -199,14 +198,13 @@ type UpdateWarehouseSalePaymentRequest struct {
 
 type WarehouseSaleListResponse struct {
 	Id            uint64            `json:"id"`
+	OrderDate     string            `json:"orderDate"`
 	SendDate      string            `json:"sentDate"`
 	Customer      CustomerResponse  `json:"customer"`
-	Phone         string            `json:"phone"`
-	WarehouseItem ItemResponse      `json:"warehouseItem"`
+	Item          ItemResponse      `json:"item"`
 	Warehouse     WarehouseResponse `json:"Warehouse"`
 	Quantity      float64           `json:"quantity"`
 	SaleUnit      string            `json:"saleUnit"`
-	PaymentType   string            `json:"paymentType"`
 	PaymentStatus string            `json:"paymentStatus"`
 	IsSend        bool              `json:"isSend"`
 }

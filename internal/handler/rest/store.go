@@ -37,7 +37,8 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/:id", middleware.Authentication(), h.UpdateStore)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
 	v1.Get("/:id", middleware.Authentication(), h.GetStoreDetail)
-	v1.Get("/overview/:id", middleware.Authentication(), h.GetStoreverview)
+	v1.Get("/overview/stocks/:id", middleware.Authentication(), h.GetStoreItemStocks)
+	v1.Get("/overview", middleware.Authentication(), h.GetStoreOverview)
 
 	v1.Post("/request/items", middleware.Authentication(), h.CreateStoreRequestItem)
 	v1.Get("/request/items", middleware.Authentication(), h.GetStockRequestItems)
@@ -358,20 +359,41 @@ func (h *StoreHandler) SortingStoreRequestItem(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update request store item")
 }
 
-func (h *StoreHandler) GetStoreverview(c *fiber.Ctx) error {
+func (h *StoreHandler) GetStoreItemStocks(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
 		return errx.BadRequest("invalid id param")
 	}
 
-	data, err := h.service.GetStoreOverview(id)
+	data, err := h.service.GetStoreItemStocks(id)
 	if err != nil {
 		h.log.Error("failed to get store item overview", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store item overview")
+}
+
+func (h *StoreHandler) GetStoreOverview(c *fiber.Ctx) error {
+	var filter dto.GetStoreOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreOverview(filter)
+	if err != nil {
+		h.log.Error("failed to get store overview", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store overview")
 }
 
 func (h *StoreHandler) GetStoreItem(c *fiber.Ctx) error {

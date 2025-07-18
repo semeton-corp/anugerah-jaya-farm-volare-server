@@ -55,8 +55,9 @@ type IWarehouseService interface {
 	GetWarehouseSaleById(id uint64) (dto.WarehouseSaleResponse, error)
 	GetWarehouseSales(filter dto.GetWarehouseSaleFilter) (dto.WarehouseSaleListPaginationResponse, error)
 	UpdateWarehouseSale(id uint64, request dto.UpdateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+	DeleteWarehouseSale(id uint64, userId uuid.UUID) error
 
-	CreateWarehouseSalePayment(storeSaleId uint64, request dto.CreateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+	CreateWarehouseSalePayment(warehouseSaleId uint64, request dto.CreateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 	UpdateWarehouseSalePayment(id uint64, request dto.UpdateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 
 	SendWarehouseSale(id uint64, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
@@ -716,7 +717,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 
 	err = s.repository.CreateWarehouseSale(&warehouseSale)
 	if err != nil {
-		s.log.Error("failed to create store sale", zap.Error(err))
+		s.log.Error("failed to create warehouse sale", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
 
@@ -736,7 +737,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment date format")
 		}
 
-		storeSalePayment := entity.WarehouseSalePayment{
+		warehouseSalePayment := entity.WarehouseSalePayment{
 			PaymentDate:     paymentDate,
 			WarehouseSaleId: warehouseSale.Id,
 			Nominal:         nominal,
@@ -745,16 +746,16 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 			CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
 		}
 
-		err = s.repository.CreateWarehouseSalePayment(&storeSalePayment)
+		err = s.repository.CreateWarehouseSalePayment(&warehouseSalePayment)
 		if err != nil {
-			s.log.Error("failed to create store sale payment", zap.Error(err))
+			s.log.Error("failed to create warehouse sale payment", zap.Error(err))
 			return dto.WarehouseSaleResponse{}, err
 		}
 	}
 
 	warehouseSale, err = s.repository.GetWarehouseSaleById(warehouseSale.Id)
 	if err != nil {
-		s.log.Error("failed to get store sale by id", zap.Error(err))
+		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
 
@@ -764,38 +765,38 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	storeSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
+	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 	remainingPayment := warehouseSale.TotalPrice
-	for i, storeSalePayment := range warehouseSale.Payments {
-		storeSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&storeSalePayment)
-		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
-		storeSalePayments[i].Remaining = remainingPayment.String()
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
+		warehouseSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
-	warehouseSaleResponse.Payments = storeSalePayments
+	warehouseSaleResponse.Payments = warehouseSalePayments
 	warehouseSaleResponse.RemainingPayment = remainingPayment.String()
 
 	return warehouseSaleResponse, nil
 }
 
 func (s *WarehouseService) GetWarehouseSaleById(id uint64) (dto.WarehouseSaleResponse, error) {
-	storeSale, err := s.repository.GetWarehouseSaleById(id)
+	warehouseSale, err := s.repository.GetWarehouseSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(storeSale.Payments))
+	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 
-	remainingPayment := storeSale.TotalPrice
-	for i, storeSalePayment := range storeSale.Payments {
-		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&storeSalePayment)
-		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+	remainingPayment := warehouseSale.TotalPrice
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
 		warehouseSalePayments[i].Remaining = remainingPayment.String()
 	}
 
-	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&storeSale)
+	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
 	warehouseSaleResponse.Payments = warehouseSalePayments
 	warehouseSaleResponse.RemainingPayment = remainingPayment.String()
 
@@ -803,15 +804,15 @@ func (s *WarehouseService) GetWarehouseSaleById(id uint64) (dto.WarehouseSaleRes
 }
 
 func (s *WarehouseService) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) (dto.WarehouseSaleListPaginationResponse, error) {
-	storeSales, err := s.repository.GetWarehouseSales(filter)
+	warehouseSales, err := s.repository.GetWarehouseSales(filter)
 	if err != nil {
 		s.log.Error("failed to get warehouse sales", zap.Error(err))
 		return dto.WarehouseSaleListPaginationResponse{}, err
 	}
 
-	warehouseSaleResponses := make([]dto.WarehouseSaleListResponse, len(storeSales))
-	for i, storeSale := range storeSales {
-		warehouseSaleResponses[i] = mapper.WarehouseSaleToListResponse(&storeSale)
+	warehouseSaleResponses := make([]dto.WarehouseSaleListResponse, len(warehouseSales))
+	for i, warehouseSale := range warehouseSales {
+		warehouseSaleResponses[i] = mapper.WarehouseSaleToListResponse(&warehouseSale)
 	}
 
 	totalData, err := s.repository.CountTotalWarehouseSale(
@@ -826,9 +827,12 @@ func (s *WarehouseService) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) 
 	}
 
 	resp := dto.WarehouseSaleListPaginationResponse{
-		TotalPage:      uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData:      totalData,
 		WarehouseSales: warehouseSaleResponses,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = totalData
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return resp, nil
@@ -906,17 +910,17 @@ func (s *WarehouseService) CreateWarehouseSalePayment(warehouseSaleId uint64, re
 	}
 
 	warehouseSale.Payments = append(warehouseSale.Payments, warehouseSalePayment)
-	storeSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
+	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 
 	remainingPayment := warehouseSale.TotalPrice
-	for i, storeSalePayment := range warehouseSale.Payments {
-		storeSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&storeSalePayment)
-		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
-		storeSalePayments[i].Remaining = remainingPayment.String()
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
+		warehouseSalePayments[i].Remaining = remainingPayment.String()
 	}
 
 	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
-	warehouseSaleResponse.Payments = storeSalePayments
+	warehouseSaleResponse.Payments = warehouseSalePayments
 	warehouseSaleResponse.RemainingPayment = remainingPayment.String()
 
 	return warehouseSaleResponse, nil
@@ -932,6 +936,21 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	if warehouseSale.IsSend {
 		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already sent")
+	}
+
+	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseSale.WarehouseId, warehouseSale.ItemId)
+	if err != nil {
+		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	warehouseItem.Quantity -= warehouseSale.Quantity + request.Quantity
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateWarehouseItem(&warehouseItem)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
 	}
 
 	warehouseSale.Quantity = request.Quantity
@@ -960,9 +979,9 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 
 	remainingPayment := warehouseSale.TotalPrice
-	for i, storeSalePayment := range warehouseSale.Payments {
-		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&storeSalePayment)
-		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
 		warehouseSalePayments[i].Remaining = remainingPayment.String()
 	}
 
@@ -1101,15 +1120,51 @@ func (s *WarehouseService) SendWarehouseSale(id uint64, userId uuid.UUID) (dto.W
 	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 
 	remainingPayment := warehouseSale.TotalPrice
-	for i, storeSalePayment := range warehouseSale.Payments {
-		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&storeSalePayment)
-		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
 		warehouseSalePayments[i].Remaining = remainingPayment.String()
 	}
 
-	storeSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
-	storeSaleResponse.Payments = warehouseSalePayments
-	storeSaleResponse.RemainingPayment = remainingPayment.String()
+	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
+	warehouseSaleResponse.Payments = warehouseSalePayments
+	warehouseSaleResponse.RemainingPayment = remainingPayment.String()
 
-	return storeSaleResponse, nil
+	return warehouseSaleResponse, nil
+}
+
+func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) error {
+	storeSale, err := s.repository.GetWarehouseSaleById(id)
+	if err != nil {
+		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
+		return err
+	}
+
+	if storeSale.IsSend {
+		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
+		return errx.BadRequest("store sale already send")
+	}
+
+	storeItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(storeSale.WarehouseId, storeSale.ItemId)
+	if err != nil {
+		s.log.Error("failed to get warehouse item by store id and item id", zap.Error(err))
+		return err
+	}
+
+	storeItem.Quantity += storeSale.Quantity
+	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateWarehouseItem(&storeItem)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteWarehouseSale(id)
+	if err != nil {
+		s.log.Error("failed to delete warehouse sale", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

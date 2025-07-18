@@ -38,7 +38,7 @@ type IEggService interface {
 	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
 	DeleteEggMonitoring(id uint64, userId uuid.UUID) error
 
-	GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
+	GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
 }
 
 func NewEggService(
@@ -390,7 +390,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 	return nil
 }
 
-func (s *EggService) GetOverviewEggMonitoring(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error) {
+func (s *EggService) GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error) {
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
 	currentEggMonitorings, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{

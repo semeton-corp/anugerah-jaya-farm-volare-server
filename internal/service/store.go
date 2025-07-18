@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
@@ -36,6 +38,7 @@ type IStoreService interface {
 	DeleteStore(id uint64) error
 	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
 	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
+	GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.StoreOverview, error)
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
 	CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
@@ -47,7 +50,7 @@ type IStoreService interface {
 	SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
-	GetStoreOverview(id uint64) (dto.StoreItemOverview, error)
+	GetStoreItemStocks(id uint64) (dto.StoreItemOverview, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error)
 	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
 	GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreItemSummary, error)
@@ -59,12 +62,12 @@ type IStoreService interface {
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
 	GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error)
 	UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
+	DeleteStoreSale(id uint64, userId uuid.UUID) error
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 	UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 
 	SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error)
-	DeleteStoreSale(id uint64, userId uuid.UUID) error
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService, itemService IItemService, customerService ICustomerService) IStoreService {
@@ -582,7 +585,7 @@ func (s *StoreService) GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.Store
 	return storeItemResponses, nil
 }
 
-func (s *StoreService) GetStoreOverview(id uint64) (dto.StoreItemOverview, error) {
+func (s *StoreService) GetStoreItemStocks(id uint64) (dto.StoreItemOverview, error) {
 	s.repository.UseTx(false)
 
 	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
@@ -984,9 +987,12 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSa
 	}
 
 	resp := dto.StoreSaleListPaginationResponse{
-		TotalPage:  uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit))),
-		TotalData:  totalData,
 		StoreSales: storeSaleResponses,
+	}
+
+	if filter.Page > 0 {
+		resp.TotalData = totalData
+		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return resp, nil
@@ -1332,4 +1338,213 @@ func (s *StoreService) DeleteStoreSale(id uint64, userId uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.StoreOverview, error) {
+	s.repository.UseTx(false)
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	storeSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get store sales", zap.Error(err))
+		return dto.StoreOverview{}, err
+	}
+
+	goodEggInKg := float64(0)
+	crackedEggInKg := float64(0)
+	brokenEggInPlastik := float64(0)
+
+	profit := decimal.Zero
+	income := decimal.Zero
+	receivables := decimal.Zero
+
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreOverview{}, err
+	}
+
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreOverview{}, err
+	}
+
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.StoreOverview{}, err
+	}
+
+	for _, storeSale := range storeSales {
+		if storeSale.SaleUnit.String() == constant.EggUnitKg && goodEggItem.Id == storeSale.ItemId {
+			goodEggInKg += storeSale.Quantity
+		} else if storeSale.SaleUnit.String() == constant.EggUnitIkat && goodEggItem.Id == storeSale.ItemId {
+			goodEggInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if storeSale.SaleUnit.String() == constant.EggUnitKg && crackedEggItem.Id == storeSale.ItemId {
+			crackedEggInKg += storeSale.Quantity
+		} else if storeSale.SaleUnit.String() == constant.EggUnitIkat && crackedEggItem.Id == storeSale.ItemId {
+			crackedEggInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik && brokenEggItem.Id == storeSale.ItemId {
+			brokenEggInPlastik += storeSale.Quantity
+		}
+
+		profit = profit.Add(storeSale.TotalPrice)
+
+		payment := decimal.Zero
+		for _, storeSalePayment := range storeSale.Payments {
+			payment = payment.Add(storeSalePayment.Nominal)
+		}
+
+		income = income.Add(payment)
+		receivables = receivables.Add(storeSale.TotalPrice.Sub(payment))
+	}
+
+	storeOverviewDetail := dto.StoreOverviewDetail{
+		TotalProfit:        profit.String(),
+		TotalIncome:        income.String(),
+		TotalReceivables:   receivables.String(),
+		GoodEggInKg:        goodEggInKg,
+		GoodEggInIkat:      math.Floor(goodEggInKg / float64(constant.TotalEggPerIkat)),
+		CrackedEggInKg:     crackedEggInKg,
+		CrackedEggInIkat:   math.Floor(crackedEggInKg / float64(constant.TotalEggPerIkat)),
+		BrokenEggInPlastik: brokenEggInPlastik,
+	}
+
+	storeGraphs := make([]dto.StoreGraphResponse, 0)
+	switch filter.OverviewGraphTime.Value() {
+	case enum.OverviewGraphTimeThisWeek:
+		storeGraphs, err = s.buildStoreOverviewWeeklyGraph(filter.StoreId, filter.ItemId)
+	case enum.OverviewGraphTimeThisMonth:
+		storeGraphs, err = s.buildStoreOverviewMonthlyGraph(filter.StoreId, filter.ItemId)
+	case enum.OverviewGraphTimeThisYear:
+		storeGraphs, err = s.buildStoreOverviewYearlyGraph(filter.StoreId, filter.ItemId)
+	}
+	if err != nil {
+		return dto.StoreOverview{}, err
+	}
+
+	return dto.StoreOverview{
+		StoreOverviewDetail: storeOverviewDetail,
+		StoreGraphs:         storeGraphs,
+	}, nil
+}
+
+func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint64) ([]dto.StoreGraphResponse, error) {
+	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	startDate := endDate.AddDate(0, 0, -7)
+
+	weekStoreSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+		StoreId:   storeId,
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+		ItemId:    itemId,
+	})
+	if err != nil {
+		s.log.Error("failed to get store sales weekly", zap.Error(err))
+		return nil, err
+	}
+
+	graphs := make([]dto.StoreGraphResponse, 0)
+	for day := startDate; day.Before(endDate); day = day.AddDate(0, 0, 1) {
+		var itemSale float64
+		for _, storeSale := range weekStoreSales {
+			if isSameDate(day, storeSale.CreatedAt) {
+				if storeSale.SaleUnit.String() == constant.EggUnitKg {
+					itemSale += storeSale.Quantity
+				} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+					itemSale += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+				} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+					itemSale += storeSale.Quantity
+				}
+			}
+		}
+		graphs = append(graphs, dto.StoreGraphResponse{
+			Key:   day.Format("2006-01-02"),
+			Value: itemSale,
+		})
+	}
+	return graphs, nil
+}
+
+func (s *StoreService) buildStoreOverviewMonthlyGraph(storeId uint64, itemId uint64) ([]dto.StoreGraphResponse, error) {
+	weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
+
+	monthStoreSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+		StoreId:   storeId,
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+		ItemId:    itemId,
+	})
+	if err != nil {
+		s.log.Error("failed to get store sale monthly", zap.Error(err))
+		return nil, err
+	}
+
+	itemSales := make(map[int]float64)
+	for _, storeSale := range monthStoreSales {
+		week := util.FindWeek(storeSale.CreatedAt, weekMaps)
+		if week > 0 {
+			if storeSale.SaleUnit.String() == constant.EggUnitKg {
+				itemSales[week] += storeSale.Quantity
+			} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+				itemSales[week] += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+			} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+				itemSales[week] += storeSale.Quantity
+			}
+		}
+	}
+
+	keys := util.GetSortedKeys(weekMaps)
+	graphs := make([]dto.StoreGraphResponse, 0)
+	for _, k := range keys {
+		graphs = append(graphs, dto.StoreGraphResponse{
+			Key:   fmt.Sprintf("Minggu %d", k),
+			Value: itemSales[k],
+		})
+	}
+
+	return graphs, nil
+}
+
+func (s *StoreService) buildStoreOverviewYearlyGraph(storeId uint64, itemId uint64) ([]dto.StoreGraphResponse, error) {
+	monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
+	startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
+
+	yearStoreSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+		StoreId:   storeId,
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+		ItemId:    itemId,
+	})
+	if err != nil {
+		s.log.Error("failed to get store items yearly", zap.Error(err))
+		return nil, err
+	}
+
+	itemSales := make(map[int]float64)
+	for _, storeSale := range yearStoreSales {
+		month := util.FindMonth(storeSale.CreatedAt, monthMaps)
+		if month > 0 {
+			if storeSale.SaleUnit.String() == constant.EggUnitKg {
+				itemSales[month] += storeSale.Quantity
+			} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+				itemSales[month] += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+			} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+				itemSales[month] += storeSale.Quantity
+			}
+		}
+	}
+
+	keys := util.GetSortedKeys(monthMaps)
+	graphs := make([]dto.StoreGraphResponse, 0)
+	for _, k := range keys {
+		graphs = append(graphs, dto.StoreGraphResponse{
+			Key:   util.IndoMonthName(k),
+			Value: itemSales[k],
+		})
+	}
+	return graphs, nil
 }

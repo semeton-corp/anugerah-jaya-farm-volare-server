@@ -177,7 +177,7 @@ func (h *EggHandler) GetEggOverview(c *fiber.Ctx) error {
 		return err
 	}
 
-	res, err := h.service.GetOverviewEggMonitoring(filter)
+	res, err := h.service.GetEggMonitoringOverview(filter)
 	if err != nil {
 		return err
 	}

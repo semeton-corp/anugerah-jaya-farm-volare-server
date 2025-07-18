@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+import (
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
 
 type CreateStoreRequest struct {
 	Name       string `json:"name"`
@@ -146,6 +148,10 @@ type GetStoreSaleFilter struct {
 	Date          param.DateParam          `query:"date"`
 	PaymentMethod param.PaymentMethodParam `query:"paymentMethod"`
 	Page          uint64                   `query:"page"`
+	StoreId       uint64
+	StartDate     param.DateParam
+	EndDate       param.DateParam
+	ItemId        uint64
 }
 
 type StoreSaleResponse struct {
@@ -167,8 +173,8 @@ type StoreSaleResponse struct {
 
 type StoreSaleListPaginationResponse struct {
 	TotalPage  uint64                  `json:"totalPage"`
-	TotalData  uint64                  `json:"totalData"`
-	StoreSales []StoreSaleListResponse `json:"storeSales"`
+	TotalData  uint64                  `json:"totalData,omitempty"`
+	StoreSales []StoreSaleListResponse `json:"storeSales,omitempty"`
 }
 
 type CreateStoreSaleRequest struct {
@@ -233,4 +239,33 @@ type GetStoreItemFilter struct {
 	Category  param.ItemCategoryParam `query:"category"`
 	ItemNames []string                `query:"itemNames"`
 	Units     []string                `query:"units"`
+}
+
+type StoreOverview struct {
+	StoreOverviewDetail StoreOverviewDetail  `json:"storeOverviewDetail"`
+	StoreGraphs         []StoreGraphResponse `json:"storeGraphs"`
+}
+
+type StoreOverviewDetail struct {
+	TotalReceivables   string  `json:"totalReceivables"`
+	TotalProfit        string  `json:"totalProfit"`
+	TotalIncome        string  `json:"totalIncome"`
+	GoodEggInKg        float64 `json:"goodEggInKg"`
+	GoodEggInIkat      float64 `json:"goodEggInIkat"`
+	CrackedEggInKg     float64 `json:"crackedEggInKg"`
+	CrackedEggInIkat   float64 `json:"crackedEggInIkat"`
+	BrokenEggInPlastik float64 `json:"brokenEggInPlastik"`
+}
+
+type StoreGraphResponse struct {
+	Key   string  `json:"key"`
+	Value float64 `json:"value"`
+}
+
+type GetStoreOverviewFilter struct {
+	ItemId            uint64                       `query:"itemId" validate:"required"`
+	StoreId           uint64                       `query:"storeId" validate:"required"`
+	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
+	Year              uint64                       `query:"year" validate:"required"`
+	Month             param.MonthParam             `query:"month" validate:"required"`
 }

@@ -143,13 +143,13 @@ func WarehouseSalePaymentToResponse(warehouseSalePayment *entity.WarehouseSalePa
 func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleListResponse {
 	return dto.WarehouseSaleListResponse{
 		Id:            warehouseSale.Id,
+		OrderDate:     warehouseSale.CreatedAt.Format("02-01-2006"),
 		SendDate:      warehouseSale.SendDate.Format("02-01-2006"),
 		Customer:      CustomerToResponse(&warehouseSale.Customer),
-		WarehouseItem: ItemToResponse(&warehouseSale.Item),
+		Item:          ItemToResponse(&warehouseSale.Item),
 		Warehouse:     WarehouseToResponse(&warehouseSale.Warehouse),
 		Quantity:      warehouseSale.Quantity,
 		SaleUnit:      warehouseSale.SaleUnit.String(),
-		PaymentType:   warehouseSale.PaymentType.String(),
 		PaymentStatus: warehouseSale.PaymentStatus.String(),
 		IsSend:        warehouseSale.IsSend,
 	}

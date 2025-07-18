@@ -56,6 +56,7 @@ type IWarehouseRepository interface {
 	GetWarehouseSaleById(id uint64) (entity.WarehouseSale, error)
 	GetWarehouseSales(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
 	UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error
+	DeleteWarehouseSale(id uint64) error
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -313,7 +314,7 @@ func (r *WarehouseRepository) CountTotalWarehouseItemHistory(filter dto.GetWareh
 
 func (r *WarehouseRepository) CountTotalWarehouseSale(filter dto.GetWarehouseSaleFilter) (uint64, error) {
 	var totalData int64
-	query := r.GetDB().Model(&entity.StoreSale{})
+	query := r.GetDB().Model(&entity.WarehouseSale{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
@@ -323,7 +324,7 @@ func (r *WarehouseRepository) CountTotalWarehouseSale(filter dto.GetWarehouseSal
 		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
 	}
 
-	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error
+	err := query.Count(&totalData).Error
 	if err != nil {
 		return 0, err
 	}
@@ -356,7 +357,7 @@ func (r *WarehouseRepository) CreateWarehouseSale(warehouseSale *entity.Warehous
 
 func (r *WarehouseRepository) GetWarehouseSaleById(id uint64) (entity.WarehouseSale, error) {
 	var warehouseSale entity.WarehouseSale
-	err := r.GetDB().Preload("Payments").Preload("Warehouse.Location").Preload("Item").First(&warehouseSale, id).Error
+	err := r.GetDB().Preload("Payments").Preload("Warehouse.Location").Preload("Customer").Preload("Item").First(&warehouseSale, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.WarehouseSale{}, errx.NotFound("warehouse sale not found")
@@ -382,7 +383,7 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Item").Find(&warehouseSales).Order("created_at DESC").Error
+	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Find(&warehouseSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -399,4 +400,8 @@ func (r *WarehouseRepository) UpdateWarehouseSale(warehouseSale *entity.Warehous
 
 func (r *WarehouseRepository) UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error {
 	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", warehouseSalePayment.Id).Updates(warehouseSalePayment).Error
+}
+
+func (r *WarehouseRepository) DeleteWarehouseSale(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSale{}).Error
 }

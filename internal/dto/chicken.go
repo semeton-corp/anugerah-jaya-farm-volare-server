@@ -146,3 +146,6 @@ type ChickenOverviewResponse struct {
 
 type ChickenProcurementRequest struct {
 }
+
+type ChickenPerformanceOverview struct {
+}
