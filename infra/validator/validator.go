@@ -32,7 +32,7 @@ func ValidateChickenCategory(fl validator.FieldLevel) bool {
 func ValidationRequestItemStatus(fl validator.FieldLevel) bool {
 	requestItemStatus := fl.Field().String()
 	switch requestItemStatus {
-	case "Diterima", "Menunggu", "Ditolak", "Dikirim":
+	case "Diterima", "Menunggu", "Ditolak", "Dikirim", "Dibatalkan":
 		return true
 	default:
 		return false

@@ -21,7 +21,9 @@ type ICageService interface {
 	CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error)
 	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
+	GetCageById(id uint64) (dto.CageResponse, error)
 
+	CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 }
@@ -175,6 +177,43 @@ func (s *CageService) GetChickenCageById(id uint64) (dto.ChickenCageResponse, er
 	return mapper.ChickenCageToResponse(&chickenCage), nil
 }
 
-func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateCageChickenRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error) {
+func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error) {
 	return dto.ChickenCageResponse{}, nil
+}
+
+func (s *CageService) GetCageById(id uint64) (dto.CageResponse, error) {
+	s.repository.UseTx(false)
+
+	cage, err := s.repository.GetCageById(id)
+	if err != nil {
+		s.log.Error("failed to get cage by id", zap.Error(err))
+		return dto.CageResponse{}, err
+	}
+
+	return mapper.CageToResponse(&cage), nil
+}
+
+func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCage := entity.ChickenCage{
+		CageId:               request.CageId,
+		ChickenProcurementId: request.ChickenProcurementId,
+		TotalChicken:         request.TotalChicken,
+		CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	err := s.repository.CreateChickenCage(&chickenCage)
+	if err != nil {
+		s.log.Error("failed to create chicken cage", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	chickenCage, err = s.repository.GetChickenCageById(chickenCage.Id)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	return mapper.ChickenCageToResponse(&chickenCage), err
 }

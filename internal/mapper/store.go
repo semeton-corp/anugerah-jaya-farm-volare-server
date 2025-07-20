@@ -19,6 +19,7 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 	response := dto.StoreRequestItemResponse{
 		Id:                   storeRequestItem.Id,
 		Warehouse:            WarehouseToResponse(&storeRequestItem.Warehouse),
+		Store:                StoreToResponse(&storeRequestItem.Store),
 		Item:                 ItemToResponse(&storeRequestItem.Item),
 		Quantity:             storeRequestItem.Quantity,
 		Status:               storeRequestItem.Status.String(),

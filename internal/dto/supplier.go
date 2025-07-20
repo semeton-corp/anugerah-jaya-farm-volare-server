@@ -3,7 +3,7 @@ package dto
 type CreateSupplierRequest struct {
 	ItemIds     []uint64 `json:"itemIds" validate:"required"`
 	Name        string   `json:"name" validate:"required"`
-	PhoneNumber string   `json:"phoneNumber" validate:"required"`
+	PhoneNumber string   `json:"phoneNumber" validate:"required,phoneNumber"`
 	Address     string   `json:"address" validate:"required"`
 }
 
@@ -28,3 +28,5 @@ type SupplierListResponse struct {
 	PhoneNumber string `json:"phoneNumber"`
 	Address     string `json:"address"`
 }
+
+// Todo : create filter based on type item

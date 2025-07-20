@@ -16,6 +16,7 @@ func CageToResponse(cage *entity.Cage) dto.CageResponse {
 		Name:            cage.Name,
 		Capacity:        cage.Capacity,
 		ChickenCategory: cage.ChickenCategory.String(),
+		IsUsed:          cage.IsUsed,
 		Location: dto.LocationResponse{
 			Id:   cage.Location.Id,
 			Name: cage.Location.Name,

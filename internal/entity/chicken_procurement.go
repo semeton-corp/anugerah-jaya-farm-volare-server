@@ -1,26 +1,34 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/shopspring/decimal"
 )
 
 type ChickenProcurement struct {
-	Id                  uint64        `gorm:"primaryKey;autoIncrement"`
-	Quantity            int           `gorm:"type:int;not null"`
-	SupplierId          uint64        `gorm:"type:bigint;not null"`
-	Supplier            Supplier      `gorm:"foreignKey:SupplierId;refereces:Id;constraint:OnDelete:SET NULL"`
-	TotalPrice          float64       `gorm:"type:float;not null"`
-	StatusPayment       string        `gorm:"type:varchar(255);not null"`
-	PaymentType         string        `gorm:"type:varchar(255);not null"`
-	DatePayment         string        `gorm:"type:date;not null"`
-	InvoiceUrl          string        `gorm:"type:text;not null"`
-	TakenBy             string        `gorm:"type:varchar(26);not null"`
-	EstimateArrivalDate time.Time     `gorm:"type:date;not null"`
-	Status              string        `gorm:"type:varchar(255);not null"`
-	CreatedAt           time.Time     `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy           uuid.NullUUID `gorm:"type:varchar(255)"`
-	UpdatedAt           time.Time     `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy           uuid.NullUUID `gorm:"type:varchar(255)"`
+	Id                  uint64                      `gorm:"primaryKey;autoIncrement"`
+	CageId              uint64                      `gorm:"type:bigint;not null"`
+	Cage                Cage                        `gorm:"foreignKey:CageId;refereces:Id"`
+	SupplierId          uint64                      `gorm:"type:bigint;not null"`
+	Supplier            Supplier                    `gorm:"foreignKey:SupplierId;refereces:Id;constraint:OnDelete:SET NULL"`
+	Quantity            uint64                      `gorm:"type:bigint;not null"`
+	RecieveQuantity     sql.NullInt64               `gorm:"type:bigint"`
+	Note                string                      `gorm:"type:text"`
+	Price               decimal.Decimal             `gorm:"type:decimal;not null"`
+	TotalPrice          decimal.Decimal             `gorm:"type:decimal;not null"`
+	PaymentStatus       enum.PaymentStatus          `gorm:"type:int;not null"`
+	Status              enum.ProcurementStatus      `gorm:"type:varchar(255);not null"`
+	TakenBy             uuid.NullUUID               `gorm:"type:varchar(26)"`
+	TakenAt             sql.NullTime                `gorm:"type:timestamp"`
+	IsArrived           bool                        `gorm:"type:boolean;not null;default:false"`
+	EstimateArrivalDate time.Time                   `gorm:"type:date;not null"`
+	Payments            []ChickenProcurementPayment `gorm:"foreignKey:ChickenProcurementId;references:Id"`
+	CreatedAt           time.Time                   `gorm:"type:timestamp;autoCreateTime"`
+	CreatedBy           uuid.NullUUID               `gorm:"type:varchar(255)"`
+	UpdatedAt           time.Time                   `gorm:"type:timestamp;autoUpdateTime"`
+	UpdatedBy           uuid.NullUUID               `gorm:"type:varchar(255)"`
 }

@@ -101,3 +101,13 @@ func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring
 
 	return response
 }
+
+func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto.ChickenProcurementDraftResponse {
+	return dto.ChickenProcurementDraftResponse{
+		Cage:       CageToResponse(&data.Cage),
+		Supplier:   SupplierToResponse(&data.Supplier),
+		Quantity:   data.Quantity,
+		Price:      data.Price.String(),
+		TotalPrice: data.TotalPrice.String(),
+	}
+}

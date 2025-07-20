@@ -15,6 +15,7 @@ type Cage struct {
 	Capacity        uint64               `gorm:"type:bigint;not null"`
 	ChickenCategory enum.ChickenCategory `gorm:"type:bigint;not null"`
 	CagePlacement   []CagePlacement      `gorm:"foreignKey:CageId;references:Id"`
+	IsUsed          bool                 `gorm:"type:boolean;default:false"`
 	CreatedAt       time.Time            `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time            `gorm:"type:timestamp;autoUpdateTime"`

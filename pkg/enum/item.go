@@ -8,6 +8,7 @@ const (
 	ItemCategoryEgg         ItemCategory = 2
 	ItemCategoryEquipment   ItemCategory = 3
 	ItemCategoryRawMaterial ItemCategory = 4
+	ItemCategoryChicken     ItemCategory = 5
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 		ItemCategoryEgg:         "Telur",
 		ItemCategoryEquipment:   "Barang",
 		ItemCategoryRawMaterial: "Bahan Baku",
+		ItemCategoryChicken:     "Ayam",
 	}
 )
 

@@ -5,3 +5,4 @@ INSERT INTO items (id, name, category, unit, created_at, created_by, updated_at,
 (13, 'Jagung', 4, 'Kg', NOW(), null, NOW(), null),
 (14, 'Dedak', 4, 'Kg', NOW(), null, NOW(), null),
 (15, 'Karpet', 3, 'Pcs', NOW(), null, NOW(), null);
+(16, 'Ekor', 5, 'Ekor', NOW(), null, NOW(), null);

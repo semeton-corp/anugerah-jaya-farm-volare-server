@@ -56,13 +56,13 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	return response
 }
 
-func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseOrderItem) dto.WarehouseOrderItemResponse {
-	warehouseItemResponse := dto.WarehouseOrderItemResponse{
-		Id:            warehouseOrderItem.Id,
-		TakenBy:       warehouseOrderItem.TakenBy.UUID.String(),
-		IsTaken:       warehouseOrderItem.IsTaken.Bool,
-		Warehouse:     WarehouseToResponse(&warehouseOrderItem.Warehouse),
-		WarehouseItem: ItemToResponse(&warehouseOrderItem.Item),
+func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseItemProcurement) dto.WarehouseItempProcurementResponse {
+	warehouseItemResponse := dto.WarehouseItempProcurementResponse{
+		Id:        warehouseOrderItem.Id,
+		TakenBy:   warehouseOrderItem.TakenBy.UUID.String(),
+		IsTaken:   warehouseOrderItem.IsTaken.Bool,
+		Warehouse: WarehouseToResponse(&warehouseOrderItem.Warehouse),
+		Item:      ItemToResponse(&warehouseOrderItem.Item),
 		Supplier: dto.SupplierListResponse{
 			Id:          warehouseOrderItem.Supplier.Id,
 			Name:        warehouseOrderItem.Supplier.Name,

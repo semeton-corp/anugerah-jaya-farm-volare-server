@@ -39,12 +39,14 @@ const (
 	PaymentStatusUnknown PaymentStatus = 0
 	PaymentStatusPaid    PaymentStatus = 1
 	PaymentStatusUnpaid  PaymentStatus = 2
+	PaymentStatusNotPaid PaymentStatus = 3
 )
 
 var (
 	PaymentStatusMap = map[PaymentStatus]string{
-		PaymentStatusPaid:   "Lunas",
-		PaymentStatusUnpaid: "Belum Lunas",
+		PaymentStatusPaid:    "Lunas",
+		PaymentStatusUnpaid:  "Belum Lunas",
+		PaymentStatusNotPaid: "Belum Dibayar",
 	}
 )
 

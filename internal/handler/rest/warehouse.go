@@ -345,7 +345,7 @@ func (h *WarehouseHandler) GetEggWarehouseItemSummary(c *fiber.Ctx) error {
 }
 
 func (h *WarehouseHandler) CreateWarehouseOrderItem(c *fiber.Ctx) error {
-	var request dto.CreateWarehouseOrderItemRequest
+	var request dto.CreateWarehouseItemProcurementRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
 		return err
@@ -394,7 +394,7 @@ func (h *WarehouseHandler) GetWarehouseOrderItemById(c *fiber.Ctx) error {
 }
 
 func (h *WarehouseHandler) GetWarehouseOrderItems(c *fiber.Ctx) error {
-	var filter dto.GetWarehouseOrderItemFilter
+	var filter dto.GetWarehouseItemProcurementFilter
 	if err := c.QueryParser(&filter); err != nil {
 		h.log.Error("failed to parse query", zap.Error(err))
 		return err

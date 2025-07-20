@@ -329,9 +329,7 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 		storeRequestItemResponses[i] = mapper.StoreRequestItemToResponse(&storeRequestItem)
 	}
 
-	totalData, err := s.repository.CountTotalStoreRequestItem(dto.GetStoreRequestItemFilter{
-		Date: filter.Date,
-	})
+	totalData, err := s.repository.CountTotalStoreRequestItem(filter)
 	if err != nil {
 		s.log.Error("failed to count request items", zap.Error(err))
 		return dto.StoreRequestItemListPaginationResponse{}, err
@@ -1187,6 +1185,12 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already paid")
 	}
 
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+	}
+
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed to parse payment date", zap.Error(err))
@@ -1215,6 +1219,7 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
+	storeSalePayment.PaymentMethod = paymentMethod
 	storeSalePayment.Nominal = nominal
 	storeSalePayment.PaymentProof = request.PaymentProof
 	storeSalePayment.PaymentDate = paymentDate

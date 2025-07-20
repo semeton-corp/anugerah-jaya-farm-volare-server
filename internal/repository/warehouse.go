@@ -34,11 +34,11 @@ type IWarehouseRepository interface {
 	UpdateWarehouseItem(stockWarehouseItem *entity.WarehouseItem) error
 	DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error
 
-	CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
-	GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error)
-	GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]entity.WarehouseOrderItem, error)
+	CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseItemProcurement) error
+	GetWarehouseOrderItemById(id uint64) (entity.WarehouseItemProcurement, error)
+	GetWarehouseOrderItems(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error)
 	DeleteWarehouseOrderItem(id uint64) error
-	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error
+	UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseItemProcurement) error
 
 	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (entity.Item, error)
 	CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error)
@@ -196,27 +196,27 @@ func (r *WarehouseRepository) DeleteWarehouseItemByWarehouseIdAndItemId(warehous
 	return r.GetDB().Where("warehouse_id = ? AND item_id = ?", warehouseId, itemId).Delete(&entity.WarehouseItem{}).Error
 }
 
-func (r *WarehouseRepository) CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error {
+func (r *WarehouseRepository) CreateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseItemProcurement) error {
 	return r.GetDB().Create(warehouseOrderItem).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.WarehouseOrderItem, error) {
-	var warehouseOrderItem entity.WarehouseOrderItem
+func (r *WarehouseRepository) GetWarehouseOrderItemById(id uint64) (entity.WarehouseItemProcurement, error) {
+	var warehouseOrderItem entity.WarehouseItemProcurement
 	err := r.GetDB().Preload("Warehouse.Location").Preload("WarehouseItem").Preload("Supplier", func(tx *gorm.DB) *gorm.DB {
 		return tx.Omit("ItemId")
 	}).Where("id = ?", id).First(&warehouseOrderItem).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.WarehouseOrderItem{}, errx.NotFound("warehouse order item not found")
+			return entity.WarehouseItemProcurement{}, errx.NotFound("warehouse order item not found")
 		}
-		return entity.WarehouseOrderItem{}, err
+		return entity.WarehouseItemProcurement{}, err
 	}
 	return warehouseOrderItem, nil
 }
 
-func (r *WarehouseRepository) GetWarehouseOrderItems(filter dto.GetWarehouseOrderItemFilter) ([]entity.WarehouseOrderItem, error) {
-	var warehouseOrderItems []entity.WarehouseOrderItem
-	query := r.GetDB().Model(&entity.WarehouseOrderItem{})
+func (r *WarehouseRepository) GetWarehouseOrderItems(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error) {
+	var warehouseOrderItems []entity.WarehouseItemProcurement
+	query := r.GetDB().Model(&entity.WarehouseItemProcurement{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(taken_at) = ?", filter.Date.Value())
@@ -237,11 +237,11 @@ func (r *WarehouseRepository) GetWarehouseOrderItems(filter dto.GetWarehouseOrde
 }
 
 func (r *WarehouseRepository) DeleteWarehouseOrderItem(id uint64) error {
-	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseOrderItem{}).Error
+	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemProcurement{}).Error
 }
 
-func (r *WarehouseRepository) UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseOrderItem) error {
-	return r.GetDB().Model(entity.WarehouseOrderItem{}).Where("id = ?", warehouseOrderItem.Id).Updates(&warehouseOrderItem).Error
+func (r *WarehouseRepository) UpdateWarehouseOrderItem(warehouseOrderItem *entity.WarehouseItemProcurement) error {
+	return r.GetDB().Model(entity.WarehouseItemProcurement{}).Where("id = ?", warehouseOrderItem.Id).Updates(&warehouseOrderItem).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, unit string, category enum.ItemCategory) (entity.Item, error) {

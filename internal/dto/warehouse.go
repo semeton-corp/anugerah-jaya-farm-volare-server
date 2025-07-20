@@ -57,25 +57,25 @@ type WarehouseItemResponse struct {
 	Description      string            `json:"description"`
 }
 
-type CreateWarehouseOrderItemRequest struct {
-	WarehouseId     uint64 `json:"warehouseId" validate:"required"`
-	WarehouseItemId uint64 `json:"warehouseItemId" validate:"required"`
-	SupplierId      uint64 `json:"supplierId" validate:"required"`
-	Quantity        uint64 `json:"quantity" validate:"required"`
+type CreateWarehouseItemProcurementRequest struct {
+	WarehouseId     uint64  `json:"warehouseId" validate:"required"`
+	WarehouseItemId uint64  `json:"warehouseItemId" validate:"required"`
+	SupplierId      uint64  `json:"supplierId" validate:"required"`
+	Quantity        float64 `json:"quantity" validate:"required"`
 }
 
-type WarehouseOrderItemResponse struct {
-	Id            uint64               `json:"id"`
-	Warehouse     WarehouseResponse    `json:"warehouse"`
-	WarehouseItem ItemResponse         `json:"warehouseItem"`
-	Supplier      SupplierListResponse `json:"supplier"`
-	TakenBy       string               `json:"takenBy"`
-	TakenAt       string               `json:"takenAt"`
-	IsTaken       bool                 `json:"isTaken"`
-	Quantity      uint64               `json:"quantity"`
+type WarehouseItempProcurementResponse struct {
+	Id        uint64               `json:"id"`
+	Warehouse WarehouseResponse    `json:"warehouse"`
+	Item      ItemResponse         `json:"item"`
+	Supplier  SupplierListResponse `json:"supplier"`
+	TakenBy   string               `json:"takenBy"`
+	TakenAt   string               `json:"takenAt"`
+	IsTaken   bool                 `json:"isTaken"`
+	Quantity  float64              `json:"quantity"`
 }
 
-type GetWarehouseOrderItemFilter struct {
+type GetWarehouseItemProcurementFilter struct {
 	Date    param.DateParam `query:"date"`
 	IsTaken bool
 }

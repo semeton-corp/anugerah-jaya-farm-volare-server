@@ -140,7 +140,7 @@ func (r *StoreRepository) CreateStoreRequestItem(storeRequestItem *entity.StoreR
 // Todo : join table with user using createdBy
 func (r *StoreRepository) GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error) {
 	var storeRequestItem entity.StoreRequestItem
-	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").First(&storeRequestItem, id).Error
+	err := r.GetDB().Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").First(&storeRequestItem, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StoreRequestItem{}, errx.NotFound("store request item not found")
@@ -170,7 +170,7 @@ func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFil
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Item").Find(&storeRequestItems).Order("status ASC").Error
+	err := query.Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").Find(&storeRequestItems).Order("status ASC").Error
 	if err != nil {
 		return nil, err
 	}

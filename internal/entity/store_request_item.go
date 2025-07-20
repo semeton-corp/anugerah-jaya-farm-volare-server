@@ -10,16 +10,16 @@ import (
 
 type StoreRequestItem struct {
 	Id                   uint64                 `gorm:"primaryKey;autoIncrement"`
-	WarehouseId          uint64                 `gorm:"bigint;not null"`
+	WarehouseId          uint64                 `gorm:"type:bigint;not null"`
 	Warehouse            Warehouse              `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	ItemId               uint64                 `gorm:"bigint;not null"`
+	ItemId               uint64                 `gorm:"type:bigint;not null"`
 	Item                 Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
-	StoreId              sql.NullInt64          `gorm:"bigint"`
+	StoreId              sql.NullInt64          `gorm:"type:bigint"`
 	Store                Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
-	Quantity             float64                `gorm:"bigint;not null"`
-	RecieveQuantity      float64                `gorm:"bigint;not null;default:0"`
-	WarehouseFulfillment float64                `gorm:"bigint;not null;default:-1"`
-	Status               enum.RequestItemStatus `gorm:"int;not null"`
+	Quantity             float64                `gorm:"type:bigint;not null"`
+	RecieveQuantity      float64                `gorm:"type:bigint;not null;default:0"`
+	WarehouseFulfillment float64                `gorm:"type:bigint;not null;default:-1"`
+	Status               enum.RequestItemStatus `gorm:"type:int;not null"`
 	WarehouseNote        string                 `gorm:"type:text"`
 	StoreNote            string                 `gorm:"type:text"`
 	IsSorted             bool                   `gorm:"type:boolean;default:false;not null"`

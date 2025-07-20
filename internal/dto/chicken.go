@@ -144,7 +144,54 @@ type ChickenOverviewResponse struct {
 	ChickenPie    ChickenBarChartResponse `json:"chickenPie"`
 }
 
-type ChickenProcurementRequest struct {
+type CreateChickenProcurementDraftRequest struct {
+	CageId     uint64 `json:"cageId" validate:"required"`
+	SupplierId uint64 `json:"supplierId" validate:"required"`
+	Quantity   uint64 `json:"quantity" validate:"required"`
+	Price      string `json:"price" validate:"required"`
+}
+
+type ChickenProcurementDraftResponse struct {
+	Cage       CageResponse     `json:"cage"`
+	Supplier   SupplierResponse `json:"supplier"`
+	Quantity   uint64           `json:"quantity"`
+	Price      string           `json:"price"`
+	TotalPrice string           `json:"totalPrice"`
+}
+
+type ConfirmedChickenProcurementRequest struct {
+	Quantity            uint64                                   `json:"quantity"`
+	Price               string                                   `json:"price"`
+	EstimateArrivalDate string                                   `json:"estimationArrivalDate"`
+	Payments            []CreateChickenProcurementPaymentRequest `json:"payments"`
+}
+
+type CreateChickenProcurementPaymentRequest struct {
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+}
+
+type UpdateChickenProcurementPaymentRequest struct {
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+}
+
+type ChickenProcurementPaymentResponse struct {
+	Id            uint64 `json:"id"`
+	Date          string `json:"date"`
+	Nominal       string `json:"nominal"`
+	Remaining     string `json:"remaining"`
+	PaymentMethod string `json:"paymentMethod"`
+	PaymentProof  string `json:"paymentProof"`
+}
+
+type ArrivalConfirmationChickenProcurementRequest struct {
+	Quantity uint64 `json:"quantity" validate:"required"`
+	Note     string `json:"note"`
 }
 
 type ChickenPerformanceOverview struct {
