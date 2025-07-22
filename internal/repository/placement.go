@@ -24,8 +24,8 @@ type IPlacementRepository interface {
 	CreateCagePlacementBatch(data []entity.CagePlacement) error
 
 	GetCagePlacementByUserId(userId uuid.UUID) ([]entity.CagePlacement, error)
-	GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error)
-	GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error)
+	GetStorePlacementByUserId(userId uuid.UUID) ([]entity.StorePlacement, error)
+	GetWarehousePlacementByUserId(userId uuid.UUID) ([]entity.WarehousePlacement, error)
 
 	GetCagePlacementByCageId(cageId uint64) ([]entity.CagePlacement, error)
 	GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error)
@@ -101,30 +101,32 @@ func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]enti
 	return data, nil
 }
 
-func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) (entity.StorePlacement, error) {
-	data := new(entity.StorePlacement)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Role").Preload("Store.Location").Where("user_id = ?", userId).First(&data).Error
+func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) ([]entity.StorePlacement, error) {
+	data := make([]entity.StorePlacement, 0)
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Role").Preload("Store.Location").Where("user_id = ?", userId).Find(&data).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.StorePlacement{}, errx.NotFound("user not have have placement in store")
-		}
-		return *data, err
+		return data, err
 	}
 
-	return *data, nil
+	if len(data) == 0 {
+		return nil, errx.NotFound("user not have have placement in store")
+	}
+
+	return data, nil
 }
 
-func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) (entity.WarehousePlacement, error) {
-	data := new(entity.WarehousePlacement)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Role").Preload("Warehouse.Location").Where("user_id = ?", userId).First(&data).Error
+func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) ([]entity.WarehousePlacement, error) {
+	data := make([]entity.WarehousePlacement, 0)
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Role").Preload("Warehouse.Location").Where("user_id = ?", userId).Find(&data).Error
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.WarehousePlacement{}, errx.NotFound("user not have have placement in warehouse")
-		}
-		return *data, err
+		return nil, err
 	}
 
-	return *data, nil
+	if len(data) == 0 {
+		return nil, errx.NotFound("user not have have placement in store")
+	}
+
+	return data, nil
 }
 
 func (r *PlacementRepository) DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error {

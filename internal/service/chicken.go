@@ -975,3 +975,46 @@ func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId ui
 
 	return nil
 }
+
+func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, id uint64) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	chickenProcurement, err := s.repository.GetChickenProcurementById(chickenProcurementId)
+	if err != nil {
+		s.log.Error("failed to get chicken procurement by id", zap.Error(err))
+		return err
+	}
+
+	if chickenProcurement.PaymentStatus == enum.PaymentStatusPaid {
+		return errx.BadRequest("chicken procurement is already paid")
+	}
+
+	totalPayment := decimal.Zero
+	for _, payment := range chickenProcurement.Payments {
+		if payment.Id != id {
+			totalPayment = totalPayment.Add(payment.Nominal)
+		}
+	}
+
+	if totalPayment.LessThan(chickenProcurement.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
+		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+	} else if totalPayment.LessThan(decimal.Zero) {
+		s.log.Error("delete this payment make minus", zap.Error(err))
+		return errx.BadRequest("delete this payment make minus")
+	}
+
+	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
+	if err != nil {
+		s.log.Error("failed update chicken procurement", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteChickenProcurementPayment(id)
+	if err != nil {
+		s.log.Error("failed to delete chicken procurement payment")
+		return err
+	}
+
+	return nil
+}

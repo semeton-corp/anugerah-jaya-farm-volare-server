@@ -24,6 +24,7 @@ type ICageRepository interface {
 	GetCageById(id uint64) (entity.Cage, error)
 	UpdateCage(cage *entity.Cage) error
 	DeleteCage(id uint64) error
+	GetCageByIds(ids []uint64) ([]entity.Cage, error)
 
 	CreateChickenCage(chickenCage *entity.ChickenCage) error
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error)
@@ -161,4 +162,14 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 	}
 
 	return chickenCage, nil
+}
+
+func (r *CageRepository) GetCageByIds(ids []uint64) ([]entity.Cage, error) {
+	var cages []entity.Cage
+	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Find(&cages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return cages, nil
 }

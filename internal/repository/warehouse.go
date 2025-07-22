@@ -50,6 +50,7 @@ type IWarehouseRepository interface {
 	GetWarehouseSalePaymentById(id uint64) (entity.WarehouseSalePayment, error)
 	CreateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
 	UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
+	DeleteWarehouseSalePayment(id uint64) error
 
 	CountTotalWarehouseSale(filter dto.GetWarehouseSaleFilter) (uint64, error)
 	CreateWarehouseSale(warehouseSale *entity.WarehouseSale) error
@@ -404,4 +405,8 @@ func (r *WarehouseRepository) UpdateWarehouseSalePayment(warehouseSalePayment *e
 
 func (r *WarehouseRepository) DeleteWarehouseSale(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSale{}).Error
+}
+
+func (r *WarehouseRepository) DeleteWarehouseSalePayment(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSalePayment{}).Error
 }

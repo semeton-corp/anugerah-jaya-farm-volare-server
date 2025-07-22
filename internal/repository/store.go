@@ -52,6 +52,7 @@ type IStoreRepository interface {
 	CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
 	UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
+	DeleteStoreSalePayment(id uint64) error
 }
 
 func NewStoreRepository(db *gorm.DB) IStoreRepository {
@@ -412,4 +413,8 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 
 func (r *StoreRepository) DeleteStoreSale(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSale{}).Error
+}
+
+func (r *StoreRepository) DeleteStoreSalePayment(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSalePayment{}).Error
 }

@@ -17,15 +17,15 @@ type PlacementService struct {
 
 type IPlacementService interface {
 	CreateCagePlacementForAuthentication(request []dto.CreateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error)
-	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) (dto.StorePlacementResponse, error)
-	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) (dto.WarehousePlacementResponse, error)
+	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
+	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
 	UpdateCagePlacement(request []dto.UpdateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error)
 	CreateStorePlacement(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
-	GetStorePlacementByUserId(userId uuid.UUID) (dto.StorePlacementResponse, error)
-	GetWarehousePlacementByUserId(userId uuid.UUID) (dto.WarehousePlacementResponse, error)
+	GetStorePlacementByUserId(userId uuid.UUID) ([]dto.StorePlacementResponse, error)
+	GetWarehousePlacementByUserId(userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 	GetCagePlacementByUserId(userId uuid.UUID) ([]dto.CagePlacementResponse, error)
 
 	GetStorePlacementByStoreId(storeId uint64) ([]dto.StorePlacementResponse, error)
@@ -77,7 +77,7 @@ func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.C
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) (dto.StorePlacementResponse, error) {
+func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	userId := uuid.MustParse(request.UserId)
@@ -90,19 +90,24 @@ func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.Cre
 	err := s.repository.CreateStorePlacement(&data)
 	if err != nil {
 		s.log.Error("failed to create store placement in batch", zap.Error(err))
-		return dto.StorePlacementResponse{}, err
+		return nil, err
 	}
 
-	data, err = s.repository.GetStorePlacementByUserId(userId)
+	placements, err := s.repository.GetStorePlacementByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get store placement by user id", zap.Error(err))
-		return dto.StorePlacementResponse{}, err
+		return nil, err
 	}
 
-	return mapper.StorePlacementToResponse(&data), nil
+	response := make([]dto.StorePlacementResponse, 0)
+	for _, e := range placements {
+		response = append(response, mapper.StorePlacementToResponse(&e))
+	}
+
+	return response, nil
 }
 
-func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) (dto.WarehousePlacementResponse, error) {
+func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	userId := uuid.MustParse(request.UserId)
@@ -115,16 +120,21 @@ func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto
 	err := s.repository.CreateWarehousePlacement(&data)
 	if err != nil {
 		s.log.Error("failed to create warehouse placement in batch", zap.Error(err))
-		return dto.WarehousePlacementResponse{}, err
+		return nil, err
 	}
 
-	data, err = s.repository.GetWarehousePlacementByUserId(userId)
+	placements, err := s.repository.GetWarehousePlacementByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get warehouse placement by user id", zap.Error(err))
-		return dto.WarehousePlacementResponse{}, err
+		return nil, err
 	}
 
-	return mapper.WarehousePlacementToResponse(&data), nil
+	response := make([]dto.WarehousePlacementResponse, 0)
+	for _, e := range placements {
+		response = append(response, mapper.WarehousePlacementToResponse(&e))
+	}
+
+	return response, nil
 }
 
 func (s *PlacementService) DeleteCagePlacementByUserIdAndCageId(userId uuid.UUID, cageId uint64) error {
@@ -157,28 +167,38 @@ func (s *PlacementService) DeleteWarehousePlacementByUserId(userId uuid.UUID) er
 	return nil
 }
 
-func (s *PlacementService) GetStorePlacementByUserId(userId uuid.UUID) (dto.StorePlacementResponse, error) {
+func (s *PlacementService) GetStorePlacementByUserId(userId uuid.UUID) ([]dto.StorePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	storePlacement, err := s.repository.GetStorePlacementByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get store placement by user id", zap.Error(err))
-		return dto.StorePlacementResponse{}, err
+		return nil, err
 	}
 
-	return mapper.StorePlacementToResponse(&storePlacement), nil
+	response := make([]dto.StorePlacementResponse, 0)
+	for _, e := range storePlacement {
+		response = append(response, mapper.StorePlacementToResponse(&e))
+	}
+
+	return response, nil
 }
 
-func (s *PlacementService) GetWarehousePlacementByUserId(userId uuid.UUID) (dto.WarehousePlacementResponse, error) {
+func (s *PlacementService) GetWarehousePlacementByUserId(userId uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	warehousePlacement, err := s.repository.GetWarehousePlacementByUserId(userId)
 	if err != nil {
 		s.log.Error("failed to get warehouse placement by user id", zap.Error(err))
-		return dto.WarehousePlacementResponse{}, err
+		return nil, err
 	}
 
-	return mapper.WarehousePlacementToResponse(&warehousePlacement), nil
+	response := make([]dto.WarehousePlacementResponse, 0)
+	for _, e := range warehousePlacement {
+		response = append(response, mapper.WarehousePlacementToResponse(&e))
+	}
+
+	return response, nil
 }
 
 func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.CagePlacementResponse, error) {

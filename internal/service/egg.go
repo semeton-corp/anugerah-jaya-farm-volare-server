@@ -164,7 +164,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 	_, err = s.storeService.CreateStoreRequestItemFromEggMonitoring(dto.CreateStoreRequestItemRequest{
 		WarehouseId: request.WarehouseId,
-		Quantity:    request.TotalWeightCrackedEgg,
+		Quantity:    float64(request.TotalWeightCrackedEgg) / float64(constant.TotalEggPerIkat),
 		ItemId:      crackedEggItem.Id,
 	}, createdBy)
 	if err != nil {
@@ -215,6 +215,8 @@ func (s *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 
 func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
+
+	// Todo : Check Store Request Item
 
 	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {

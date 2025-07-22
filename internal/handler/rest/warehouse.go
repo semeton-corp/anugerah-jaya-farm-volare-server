@@ -632,13 +632,13 @@ func (h *WarehouseHandler) UpdateWarehouseSale(c *fiber.Ctx) error {
 }
 
 func (h *WarehouseHandler) UpdateWarehouseSalePayment(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	if idParam == "" {
-		h.log.Error("id is required")
-		return errx.BadRequest("id is required")
+	warehouseSaleId, err := strconv.ParseUint(c.Params("warehouseSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse sale id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse sale id")
 	}
 
-	id, err := strconv.ParseUint(idParam, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
 		return errx.BadRequest("failed to parse id")
@@ -661,13 +661,40 @@ func (h *WarehouseHandler) UpdateWarehouseSalePayment(c *fiber.Ctx) error {
 		return errx.Unauthorized("no userId in context")
 	}
 
-	res, err := h.service.UpdateWarehouseSalePayment(id, request, uuid.MustParse(userId))
+	res, err := h.service.UpdateWarehouseSalePayment(warehouseSaleId, id, request, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("failed to update warehouse sale payment", zap.Error(err))
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse sale payment")
+}
+
+func (h *WarehouseHandler) DeleteWarehouseSalePayment(c *fiber.Ctx) error {
+	storeSaleId, err := strconv.ParseUint(c.Params("warehouseSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse  warehouse sale id", zap.Error(err))
+		return errx.BadRequest("failed to warehouse sale id")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("failed to get user id from context")
+		return errx.Unauthorized("no user id in context")
+	}
+
+	err = h.service.DeleteWarehouseSalePayment(storeSaleId, id, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
 
 func (h *WarehouseHandler) SendWarehouseSale(c *fiber.Ctx) error {

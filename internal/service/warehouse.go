@@ -58,7 +58,8 @@ type IWarehouseService interface {
 	DeleteWarehouseSale(id uint64, userId uuid.UUID) error
 
 	CreateWarehouseSalePayment(warehouseSaleId uint64, request dto.CreateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
-	UpdateWarehouseSalePayment(id uint64, request dto.UpdateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+	UpdateWarehouseSalePayment(warehouseSaleId uint64, id uint64, request dto.UpdateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+	DeleteWarehouseSalePayment(warehouseSaleId uint64, id uint64, userId uuid.UUID) error
 
 	SendWarehouseSale(id uint64, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 }
@@ -992,7 +993,7 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	return warehouseSaleResponse, nil
 }
 
-func (s *WarehouseService) UpdateWarehouseSalePayment(id uint64, request dto.UpdateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error) {
+func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id uint64, request dto.UpdateWarehouseSalePaymentRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -1002,7 +1003,7 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(id uint64, request dto.Upd
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	warehouseSale, err := s.repository.GetWarehouseSaleById(warehouseSalePayment.WarehouseSaleId)
+	warehouseSale, err := s.repository.GetWarehouseSaleById(warehouseSaleId)
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
@@ -1163,6 +1164,61 @@ func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) erro
 	err = s.repository.DeleteWarehouseSale(id)
 	if err != nil {
 		s.log.Error("failed to delete warehouse sale", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id uint64, userId uuid.UUID) error {
+	s.repository.UseTx(false)
+
+	warehouseSale, err := s.repository.GetWarehouseSaleById(warehouseSaleId)
+	if err != nil {
+		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
+		return err
+	}
+
+	if warehouseSale.IsSend {
+		s.log.Error("warehouse sale is already sent", zap.Uint64("id", warehouseSale.Id))
+		return errx.BadRequest("warehouse sale is already sent")
+	}
+
+	if warehouseSale.PaymentStatus == enum.PaymentStatusPaid {
+		s.log.Error("warehouse sale is already paid", zap.Uint64("id", warehouseSale.Id))
+		return errx.BadRequest("warehouse sale is already paid")
+	}
+
+	totalPayment := decimal.Zero
+	for _, payment := range warehouseSale.Payments {
+		if payment.Id != id {
+			totalPayment = totalPayment.Add(payment.Nominal)
+		}
+	}
+
+	if totalPayment.LessThan(warehouseSale.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
+		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+		warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	} else if totalPayment.LessThan(decimal.Zero) {
+		s.log.Error("delete this payment make minus", zap.Error(err))
+		return errx.BadRequest("delete this payment make minus")
+	}
+
+	err = s.repository.UpdateWarehouseSale(&warehouseSale)
+	if err != nil {
+		s.log.Error("failed to update warehouse sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteWarehouseSalePayment(id)
+	if err != nil {
+		s.log.Error("failed to update warehouse sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 

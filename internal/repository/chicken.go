@@ -53,6 +53,7 @@ type IChickenRepository interface {
 	CreateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error
 	GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error)
 	UpdateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error
+	DeleteChickenProcurementPayment(id uint64) error
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -309,4 +310,8 @@ func (r *ChickenRepository) GetChickenProcurementPaymentById(id uint64) (entity.
 	}
 
 	return chickenProcurementPayment, nil
+}
+
+func (r *ChickenRepository) DeleteChickenProcurementPayment(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenProcurementPayment{}).Error
 }

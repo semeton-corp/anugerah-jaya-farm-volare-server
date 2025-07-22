@@ -65,7 +65,8 @@ type IStoreService interface {
 	DeleteStoreSale(id uint64, userId uuid.UUID) error
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
-	UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
+	UpdateStoreSalePayment(storeSaleId uint64, id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
+	DeleteStoreSalePayment(storeSaleId uint64, id uint64, userId uuid.UUID) error
 
 	SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error)
 }
@@ -244,25 +245,19 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
-	storePlacement, err := s.placementService.GetStorePlacementByUserId(createdBy)
-	if err != nil {
-		return dto.StoreRequestItemResponse{}, err
-	}
-
 	warehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(request.WarehouseId, request.ItemId)
 	if err != nil {
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	// Note & Todo : the stock must be in Kg && fix
-	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == "Kg" {
+	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == constant.EggUnitKg {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
 	}
 
 	storeRequestItem := entity.StoreRequestItem{
 		WarehouseId: request.WarehouseId,
 		ItemId:      request.ItemId,
-		StoreId:     sql.NullInt64{Int64: int64(storePlacement.Store.Id), Valid: true},
+		StoreId:     sql.NullInt64{Int64: int64(request.StoreId), Valid: true},
 		Quantity:    request.Quantity,
 		Status:      enum.RequestItemStatusPending,
 		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
@@ -1159,7 +1154,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	return storeSaleResponse, nil
 }
 
-func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error) {
+func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -1169,7 +1164,7 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 		return dto.StoreSaleResponse{}, err
 	}
 
-	storeSale, err := s.repository.GetStoreSaleById(storeSalePayment.StoreSaleId)
+	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
 	if err != nil {
 		s.log.Error("failed to get store sale by id", zap.Error(err))
 		return dto.StoreSaleResponse{}, err
@@ -1262,6 +1257,61 @@ func (s *StoreService) UpdateStoreSalePayment(id uint64, request dto.UpdateStore
 	storeSaleResponse.RemainingPayment = remainingPayment.String()
 
 	return storeSaleResponse, nil
+}
+
+func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, userId uuid.UUID) error {
+	s.repository.UseTx(false)
+
+	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
+	if err != nil {
+		s.log.Error("failed to get store sale by id", zap.Error(err))
+		return err
+	}
+
+	if storeSale.IsSend {
+		s.log.Error("store sale is already sent", zap.Uint64("id", storeSale.Id))
+		return errx.BadRequest("store sale is already sent")
+	}
+
+	if storeSale.PaymentStatus == enum.PaymentStatusPaid {
+		s.log.Error("store sale is already paid", zap.Uint64("id", storeSale.Id))
+		return errx.BadRequest("store sale is already paid")
+	}
+
+	totalPayment := decimal.Zero
+	for _, payment := range storeSale.Payments {
+		if id != payment.Id {
+			totalPayment = totalPayment.Add(payment.Nominal)
+		}
+	}
+
+	if totalPayment.LessThan(storeSale.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	} else if totalPayment.LessThan(decimal.Zero) {
+		s.log.Error("delete this payment make minus", zap.Error(err))
+		return errx.BadRequest("delete this payment make minus")
+	}
+
+	err = s.repository.UpdateStoreSale(&storeSale)
+	if err != nil {
+		s.log.Error("failed to update store sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteStoreSalePayment(id)
+	if err != nil {
+		s.log.Error("failed to update store sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *StoreService) SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error) {

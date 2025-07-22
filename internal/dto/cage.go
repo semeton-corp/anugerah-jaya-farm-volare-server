@@ -53,3 +53,13 @@ type ChickenCageResponse struct {
 type GetChickenCageFilter struct {
 	LocationId uint64 `query:"locationid"`
 }
+
+type MoveChickenCageRequest struct {
+	SourceCageId            uint64                          `json:"sourceCageId"`
+	DestinationChickenCages []DestinationChickenCageRequest `json:"destinationChickenCages"`
+}
+
+type DestinationChickenCageRequest struct {
+	DestinationCageId uint64 `json:"destinationCageId"`
+	TotalChicken      uint64 `json:"totalChicken"`
+}

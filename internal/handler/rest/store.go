@@ -30,6 +30,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/sales/:id", middleware.Authentication(), h.DeleteStoreSale)
 	v1.Post("/sales/:storeSaleId/payments", middleware.Authentication(), h.CreateStoreSalePayment)
 	v1.Put("/sales/:storeSaleId/payments/:id", middleware.Authentication(), h.UpdateStoreSalePayment)
+	v1.Delete("/sales/:storeSaleId/payments/:id", middleware.Authentication(), h.DeleteStoreSalePayment)
 	v1.Patch("sales/:storeSaleId/send", middleware.Authentication(), h.SendStoreSale)
 
 	v1.Get("/", middleware.Authentication(), h.GetStores)
@@ -661,6 +662,12 @@ func (h *StoreHandler) UpdateStoreSale(c *fiber.Ctx) error {
 }
 
 func (h *StoreHandler) UpdateStoreSalePayment(c *fiber.Ctx) error {
+	storeSaleId, err := strconv.ParseUint(c.Params("storeSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse store sale id", zap.Error(err))
+		return errx.BadRequest("failed to store sale id")
+	}
+
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse id", zap.Error(err))
@@ -684,12 +691,39 @@ func (h *StoreHandler) UpdateStoreSalePayment(c *fiber.Ctx) error {
 		return errx.Unauthorized("no userId in context")
 	}
 
-	res, err := h.service.UpdateStoreSalePayment(id, request, uuid.MustParse(userId))
+	res, err := h.service.UpdateStoreSalePayment(storeSaleId, id, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update store sale payment")
+}
+
+func (h *StoreHandler) DeleteStoreSalePayment(c *fiber.Ctx) error {
+	storeSaleId, err := strconv.ParseUint(c.Params("storeSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse store sale id", zap.Error(err))
+		return errx.BadRequest("failed to store sale id")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("failed to get user id from context")
+		return errx.Unauthorized("no user id in context")
+	}
+
+	err = h.service.DeleteStoreSalePayment(storeSaleId, id, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
 
 func (h *StoreHandler) SendStoreSale(c *fiber.Ctx) error {

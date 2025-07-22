@@ -22,6 +22,7 @@ type ICageService interface {
 	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
 	GetCageById(id uint64) (dto.CageResponse, error)
+	GetCageByIds(ids []uint64) ([]dto.CageResponse, error)
 
 	CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
@@ -216,4 +217,20 @@ func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, us
 	}
 
 	return mapper.ChickenCageToResponse(&chickenCage), err
+}
+
+func (s *CageService) GetCageByIds(ids []uint64) ([]dto.CageResponse, error) {
+	s.repository.UseTx(false)
+
+	cages, err := s.repository.GetCageByIds(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	cageResponses := make([]dto.CageResponse, 0)
+	for _, cage := range cages {
+		cageResponses = append(cageResponses, mapper.CageToResponse(&cage))
+	}
+
+	return cageResponses, nil
 }

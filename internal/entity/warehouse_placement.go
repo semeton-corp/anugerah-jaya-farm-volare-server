@@ -9,7 +9,7 @@ import (
 type WarehousePlacement struct {
 	UserId      uuid.UUID     `gorm:"primaryKey;type:varchar(255);not null"`
 	User        User          `gorm:"foreignKey:UserId;references:Id"`
-	WarehouseId uint64        `gorm:"type:bigint;not null"`
+	WarehouseId uint64        `gorm:"primaryKey;type:bigint;not null"`
 	Warehouse   Warehouse     `gorm:"foreignKey:WarehouseId;refereces:Id;constraint:OnDelete:CASCADE"`
 	CreatedBy   uuid.NullUUID `gorm:"type:varchar(255)"`
 	CreatedAt   time.Time     `gorm:"type:timestamp;autoCreateTime"`
