@@ -1018,3 +1018,24 @@ func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, i
 
 	return nil
 }
+
+// func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) error {
+// 	s.repository.UseTx(false)
+
+// 	cageIds := make([]uint64, 0)
+
+// 	for _, e := range request.DestinationChickenCages {
+// 		cageIds = append(cageIds, e.DestinationCageId)
+// 	}
+
+// 	cages, err := s.cageService.GetCageByIds(cageIds)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	for _, cage := range cages {
+// 		if cage.IsUsed {
+// 			return errx.BadRequest(fmt.Sprintf("cage with id %d is used", cage.Id))
+// 		}
+// 	}
+// }

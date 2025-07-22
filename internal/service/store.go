@@ -616,6 +616,13 @@ func (s *StoreService) GetStoreItemStocks(id uint64) (dto.StoreItemOverview, err
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
 				Unit:     constant.EggUnitIkat,
 			})
+		case constant.BrokenEgg:
+			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
+				Name:     constant.BrokenEgg,
+				Quantity: warehouseItem.Quantity,
+				Unit:     constant.EggUnitPlastik,
+			})
+
 		}
 	}
 
