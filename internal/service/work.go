@@ -656,7 +656,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 
 func (w *WorkService) DeleteDailyWork(id uint64) error {
 	if err := w.repository.DeleteDailyWork(id); err != nil {
-		w.log.Error("[DeleteDailyWork] failed to delete daily work", zap.Error(err))
+		w.log.Error("failed to delete daily work", zap.Error(err))
 		return err
 	}
 

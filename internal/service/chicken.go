@@ -1019,23 +1019,33 @@ func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, i
 	return nil
 }
 
-// func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) error {
-// 	s.repository.UseTx(false)
+func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) error {
+	s.repository.UseTx(false)
 
-// 	cageIds := make([]uint64, 0)
+	cageIds := make([]uint64, 0)
 
-// 	for _, e := range request.DestinationChickenCages {
-// 		cageIds = append(cageIds, e.DestinationCageId)
-// 	}
+	for _, e := range request.DestinationChickenCages {
+		cageIds = append(cageIds, e.DestinationCageId)
+	}
 
-// 	cages, err := s.cageService.GetCageByIds(cageIds)
-// 	if err != nil {
-// 		return err
-// 	}
+	chickenCages, err := s.cageService.GetChickenCagesByCageIds(cageIds)
+	if err != nil {
+		return err
+	}
 
-// 	for _, cage := range cages {
-// 		if cage.IsUsed {
-// 			return errx.BadRequest(fmt.Sprintf("cage with id %d is used", cage.Id))
-// 		}
-// 	}
-// }
+	for _, chickenCage := range chickenCages {
+		if chickenCage.Cage.IsUsed {
+			return errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
+		}
+	}
+
+	chickenCage := make([]entity.ChickenCage, 0)
+	for _, e := range request.DestinationChickenCages {
+		chickenCage = append(chickenCage, entity.ChickenCage{
+			CageId:       e.DestinationCageId,
+			TotalChicken: e.TotalChicken,
+		})
+	}
+
+	return nil
+}

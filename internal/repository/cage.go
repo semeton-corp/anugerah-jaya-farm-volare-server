@@ -24,11 +24,12 @@ type ICageRepository interface {
 	GetCageById(id uint64) (entity.Cage, error)
 	UpdateCage(cage *entity.Cage) error
 	DeleteCage(id uint64) error
-	GetCageByIds(ids []uint64) ([]entity.Cage, error)
+	GetCagesByIds(ids []uint64) ([]entity.Cage, error)
 
 	CreateChickenCage(chickenCage *entity.ChickenCage) error
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error)
 	GetChickenCageById(id uint64) (entity.ChickenCage, error)
+	GetChickenCagesByIds(ids []uint64) ([]entity.ChickenCage, error)
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -164,7 +165,7 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 	return chickenCage, nil
 }
 
-func (r *CageRepository) GetCageByIds(ids []uint64) ([]entity.Cage, error) {
+func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	var cages []entity.Cage
 	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Find(&cages).Error
 	if err != nil {
@@ -172,4 +173,14 @@ func (r *CageRepository) GetCageByIds(ids []uint64) ([]entity.Cage, error) {
 	}
 
 	return cages, nil
+}
+
+func (r *CageRepository) GetChickenCagesByIds(ids []uint64) ([]entity.ChickenCage, error) {
+	var chickenCages []entity.ChickenCage
+	err := r.GetDB().Model(&entity.ChickenCage{}).Preload("Cage.CagePlacement").Where("cage_id IN ?", ids).Find(&chickenCages).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return chickenCages, nil
 }

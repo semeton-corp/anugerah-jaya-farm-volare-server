@@ -22,11 +22,12 @@ type ICageService interface {
 	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
 	GetCageById(id uint64) (dto.CageResponse, error)
-	GetCageByIds(ids []uint64) ([]dto.CageResponse, error)
+	GetCagesByIds(ids []uint64) ([]dto.CageResponse, error)
 
 	CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
+	GetChickenCagesByCageIds(cageIds []uint64) ([]dto.ChickenCageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
@@ -219,10 +220,10 @@ func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, us
 	return mapper.ChickenCageToResponse(&chickenCage), err
 }
 
-func (s *CageService) GetCageByIds(ids []uint64) ([]dto.CageResponse, error) {
+func (s *CageService) GetCagesByIds(ids []uint64) ([]dto.CageResponse, error) {
 	s.repository.UseTx(false)
 
-	cages, err := s.repository.GetCageByIds(ids)
+	cages, err := s.repository.GetCagesByIds(ids)
 	if err != nil {
 		return nil, err
 	}
@@ -233,4 +234,20 @@ func (s *CageService) GetCageByIds(ids []uint64) ([]dto.CageResponse, error) {
 	}
 
 	return cageResponses, nil
+}
+
+func (s *CageService) GetChickenCagesByCageIds(ids []uint64) ([]dto.ChickenCageResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCages, err := s.repository.GetChickenCagesByIds(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]dto.ChickenCageResponse, 0)
+	for _, chickenCage := range chickenCages {
+		response = append(response, mapper.ChickenCageToResponse(&chickenCage))
+	}
+
+	return response, nil
 }

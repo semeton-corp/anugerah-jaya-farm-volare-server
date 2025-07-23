@@ -622,7 +622,6 @@ func (s *StoreService) GetStoreItemStocks(id uint64) (dto.StoreItemOverview, err
 				Quantity: warehouseItem.Quantity,
 				Unit:     constant.EggUnitPlastik,
 			})
-
 		}
 	}
 

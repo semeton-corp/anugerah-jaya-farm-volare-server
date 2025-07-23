@@ -114,7 +114,7 @@ func (r *WorkRepository) GetAdditionalWorkById(id uint64) (entity.AdditionalWork
 	err := r.GetDB().
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").
-		Preload("Cage").
+		Preload("Cage.CagePlacement").
 		Preload("Warehouse").
 		Preload("Store").
 		Where("id = ? AND deleted_at IS NULL", id).
@@ -277,12 +277,13 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
-	query := r.GetDB().Model(&entity.AdditionalWork{}).Joins("JOIN additional_work_users ON additional_works.id = additional_work_users.additional_work_id")
+	// query := r.GetDB().Model(&entity.AdditionalWork{}).Joins("JOIN additional_work_users ON additional_works.id = additional_work_users.additional_work_id")
+	query := r.GetDB().Model(&entity.AdditionalWork{})
 
 	err := query.
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").
-		Preload("Cage").
+		Preload("Cage.CagePlacement").
 		Preload("Warehouse").
 		Preload("Store").
 		Where("deleted_at IS NULL").
