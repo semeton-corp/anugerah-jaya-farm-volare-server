@@ -280,6 +280,10 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	// query := r.GetDB().Model(&entity.AdditionalWork{}).Joins("JOIN additional_work_users ON additional_works.id = additional_work_users.additional_work_id")
 	query := r.GetDB().Model(&entity.AdditionalWork{})
 
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
 	err := query.
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").

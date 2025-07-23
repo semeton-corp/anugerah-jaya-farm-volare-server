@@ -143,7 +143,8 @@ type AdditionalWorkListResponse struct {
 }
 
 type GetAdditonalWorkFilter struct {
-	Status string `query:"status"`
+	Status     string `query:"status"`
+	LocationId uint64 `query:"locationId"`
 }
 
 type UpdateAdditionalWorkUserRequest struct {
