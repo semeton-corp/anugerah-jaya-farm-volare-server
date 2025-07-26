@@ -271,3 +271,25 @@ type GetStoreOverviewFilter struct {
 	Year              uint64                       `query:"year" validate:"required"`
 	Month             param.MonthParam             `query:"month" validate:"required"`
 }
+
+type CreateStoreSaleQueueRequest struct {
+	CustomerId          uint64  `json:"customerId"`
+	CustomerName        string  `json:"customerName"`
+	CustomerPhoneNumber string  `json:"customerPhoneNumber"`
+	CustomerType        string  `json:"customerType" validate:"required,customerType"`
+	ItemId              uint64  `json:"itemId" validate:"required,number"`
+	StoreId             uint64  `json:"storeId" validate:"required,number"`
+	Quantity            float64 `json:"quantity" validate:"required,number"`
+	SaleUnit            string  `json:"saleUnit" validate:"required,saleUnit"`
+	SendDate            string  `json:"sendDate" validate:"required"`
+}
+
+type StoreSaleQueueResponse struct {
+	OrderPriority uint64           `json:"OrderPriority"`
+	Id            uint64           `json:"id"`
+	Quantity      uint64           `json:"quantity"`
+	Item          ItemResponse     `json:"item"`
+	Store         StoreResponse    `json:"store"`
+	SaleUnit      string           `json:"saleUnit"`
+	Customer      CustomerResponse `json:"customer"`
+}

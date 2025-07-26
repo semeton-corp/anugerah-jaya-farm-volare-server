@@ -54,6 +54,12 @@ type IChickenRepository interface {
 	GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error)
 	UpdateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error
 	DeleteChickenProcurementPayment(id uint64) error
+
+	CreateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error
+	GetAfkirChickenCustomers() ([]entity.AfkirChickenCustomer, error)
+	GetAfkirChickenCustomer(id uint64) (entity.AfkirChickenCustomer, error)
+	UpdateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error
+	DeleteAfkirChickenCustomer(id uint64) error
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -314,4 +320,36 @@ func (r *ChickenRepository) GetChickenProcurementPaymentById(id uint64) (entity.
 
 func (r *ChickenRepository) DeleteChickenProcurementPayment(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenProcurementPayment{}).Error
+}
+
+func (r *ChickenRepository) CreateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error {
+	return r.GetDB().Model(&entity.AfkirChickenCustomer{}).Create(data).Error
+}
+
+func (r *ChickenRepository) GetAfkirChickenCustomers() ([]entity.AfkirChickenCustomer, error) {
+	var data []entity.AfkirChickenCustomer
+	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) GetAfkirChickenCustomer(id uint64) (entity.AfkirChickenCustomer, error) {
+	var data entity.AfkirChickenCustomer
+	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Preload("AfkirChickenSales").Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.AfkirChickenCustomer{}, nil
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) UpdateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error {
+	return r.GetDB().Model(&entity.AfkirChickenCustomer{}).Where("id = ?", data.Id).Updates(&data).Error
+}
+
+func (r *ChickenRepository) DeleteAfkirChickenCustomer(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenCustomer{}).Error
 }

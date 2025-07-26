@@ -103,3 +103,11 @@ type UserListOverviewResponse struct {
 	KpiStatus            string       `json:"kpiStatus"`
 	Role                 RoleResponse `json:"role"`
 }
+
+type UserPerformanceOverview struct {
+	// Todo : overview user performance in (owner)
+}
+
+type UserSalaryOverview struct {
+	// Todo : overview user salary in (owner)
+}

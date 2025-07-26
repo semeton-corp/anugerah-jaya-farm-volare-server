@@ -111,3 +111,34 @@ func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto
 		TotalPrice: data.TotalPrice.String(),
 	}
 }
+
+func AfkirChickenCustomerToListResponse(data *entity.AfkirChickenCustomer) dto.AfkirChickenCustomerListResponse {
+	return dto.AfkirChickenCustomerListResponse{
+		Id:          data.Id,
+		Name:        data.Name,
+		PhoneNumber: data.PhoneNumber,
+		Address:     data.Address,
+		LatestPrice: data.LatestPrice.String(),
+	}
+}
+
+func AfkirChickenCustomerToResponse(data *entity.AfkirChickenCustomer) dto.AfkirChickenCustomerResponse {
+	response := dto.AfkirChickenCustomerResponse{Id: data.Id,
+		Name:        data.Name,
+		PhoneNumber: data.PhoneNumber,
+		Address:     data.Address,
+		LatestPrice: data.LatestPrice.String(),
+	}
+
+	afkirChickenSales := make([]dto.AfkirChickenSaleListResponse, 0)
+	for _, e := range data.AfkirChickenSales {
+		afkirChickenSales = append(afkirChickenSales, AfkirChickenSaleToListResponse(&e))
+	}
+
+	response.AfkirChickenSales = afkirChickenSales
+	return response
+}
+
+func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleListResponse {
+	return dto.AfkirChickenSaleListResponse{}
+}

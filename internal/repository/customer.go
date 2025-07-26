@@ -1,7 +1,10 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
 
@@ -62,7 +65,15 @@ func (r *CustomerRepository) GetCustomers() ([]entity.Customer, error) {
 }
 
 func (r *CustomerRepository) CreateCustomer(data *entity.Customer) error {
-	return r.GetDB().Model(entity.Customer{}).Create(data).Error
+	err := r.GetDB().Model(entity.Customer{}).Create(data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errx.BadRequest("customer already exist")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *CustomerRepository) GetCustomerById(id uint64) (entity.Customer, error) {

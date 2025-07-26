@@ -217,3 +217,25 @@ type WarehouseSalePaymentResponse struct {
 	PaymentMethod string `json:"paymentMethod"`
 	PaymentProof  string `json:"paymentProof"`
 }
+
+type CreateWarehouseSaleQueueRequest struct {
+	CustomerId          uint64  `json:"customerId"`
+	CustomerName        string  `json:"customerName"`
+	CustomerPhoneNumber string  `json:"customerPhoneNumber"`
+	CustomerType        string  `json:"customerType" validate:"required,customerType"`
+	ItemId              uint64  `json:"itemId" validate:"required,number"`
+	WarehouseId         uint64  `json:"warehouseId" validate:"required,number"`
+	Quantity            float64 `json:"quantity" validate:"required,number"`
+	SaleUnit            string  `json:"saleUnit" validate:"required,saleUnit"`
+	SendDate            string  `json:"sendDate" validate:"required"`
+}
+
+type WarehouseSaleQueueResponse struct {
+	OrderPriority uint64            `json:"OrderPriority"`
+	Id            uint64            `json:"id"`
+	Quantity      uint64            `json:"quantity"`
+	Item          ItemResponse      `json:"item"`
+	Warehouse     WarehouseResponse `json:"warehouse"`
+	SaleUnit      string            `json:"saleUnit"`
+	Customer      CustomerResponse  `json:"customer"`
+}

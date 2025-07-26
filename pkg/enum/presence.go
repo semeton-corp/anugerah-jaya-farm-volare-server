@@ -48,7 +48,7 @@ const (
 )
 
 var (
-	WarehouseSubmissionPresenceStatusMap = map[SubmissionPresenceStatus]string{
+	SubmissionPresenceStatusMap = map[SubmissionPresenceStatus]string{
 		SubmissionPresenceStatusAccepted:     "Disetujui",
 		SubmissionPresenceStatusPending:      "Menunggu",
 		SubmissionPresenceStatusRejected:     "Ditolak",
@@ -57,11 +57,11 @@ var (
 )
 
 func (c SubmissionPresenceStatus) String() string {
-	return WarehouseSubmissionPresenceStatusMap[c]
+	return SubmissionPresenceStatusMap[c]
 }
 
 func ValueOfWarehouseSubmissionPresenceStatus(value string) SubmissionPresenceStatus {
-	for k, v := range WarehouseSubmissionPresenceStatusMap {
+	for k, v := range SubmissionPresenceStatusMap {
 		if v == value {
 			return k
 		}
@@ -70,6 +70,6 @@ func ValueOfWarehouseSubmissionPresenceStatus(value string) SubmissionPresenceSt
 }
 
 func (c SubmissionPresenceStatus) IsValid() bool {
-	_, ok := WarehouseSubmissionPresenceStatusMap[c]
+	_, ok := SubmissionPresenceStatusMap[c]
 	return ok
 }

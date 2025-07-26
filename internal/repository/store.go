@@ -53,6 +53,11 @@ type IStoreRepository interface {
 	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
 	UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 	DeleteStoreSalePayment(id uint64) error
+
+	CreateStoreSaleQueue(data *entity.StoreSaleQueue) error
+	GetStoreSaleQueueById(id uint64) (entity.StoreSaleQueue, error)
+	GetStoreSaleQueues() ([]entity.StoreSaleQueue, error)
+	DeleteStoreSaleQueue(id uint64) error
 }
 
 func NewStoreRepository(db *gorm.DB) IStoreRepository {
@@ -417,4 +422,32 @@ func (r *StoreRepository) DeleteStoreSale(id uint64) error {
 
 func (r *StoreRepository) DeleteStoreSalePayment(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSalePayment{}).Error
+}
+
+func (r *StoreRepository) CreateStoreSaleQueue(data *entity.StoreSaleQueue) error {
+	return r.GetDB().Model(&entity.StoreSaleQueue{}).Create(data).Error
+}
+
+func (r *StoreRepository) GetStoreSaleQueueById(id uint64) (entity.StoreSaleQueue, error) {
+	var storeSaleQueue entity.StoreSaleQueue
+	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Preload("Store").Preload("Item").Preload("Customer").Where("id = ?", id).First(&storeSaleQueue).Error
+	if err != nil {
+		return entity.StoreSaleQueue{}, err
+	}
+
+	return storeSaleQueue, nil
+}
+
+func (r *StoreRepository) DeleteStoreSaleQueue(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSaleQueue{}).Error
+}
+
+func (r *StoreRepository) GetStoreSaleQueues() ([]entity.StoreSaleQueue, error) {
+	var storeSaleQueues []entity.StoreSaleQueue
+	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Find(&storeSaleQueues).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return storeSaleQueues, nil
 }

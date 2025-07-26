@@ -10,8 +10,8 @@ const (
 
 var (
 	CustomerTypeMap = map[CustomerType]string{
-		CustomerTypeOld: "Baru",
-		CustomerTypeNew: "Lama",
+		CustomerTypeOld: "Pelanggan Baru",
+		CustomerTypeNew: "Pelanggan Lama",
 	}
 )
 

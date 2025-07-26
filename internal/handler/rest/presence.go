@@ -135,7 +135,7 @@ func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
 }
 
 func (s *PresenceHandler) GetLocationPresenceSummaries(c *fiber.Ctx) error {
-	data, err := s.service.GetLocationPresenceSummaries()
+	data, err := s.service.GetRoleLocationPresenceSummaries()
 	if err != nil {
 		return err
 	}

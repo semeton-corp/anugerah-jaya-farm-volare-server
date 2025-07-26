@@ -58,6 +58,11 @@ type IWarehouseRepository interface {
 	GetWarehouseSales(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
 	UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error
 	DeleteWarehouseSale(id uint64) error
+
+	CreateWarehouseSaleQueue(data *entity.WarehouseSaleQueue) error
+	GetWarehouseSaleQueueById(id uint64) (entity.WarehouseSaleQueue, error)
+	GetWarehouseSaleQueues() ([]entity.WarehouseSaleQueue, error)
+	DeleteWarehouseSaleQueue(id uint64) error
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -409,4 +414,32 @@ func (r *WarehouseRepository) DeleteWarehouseSale(id uint64) error {
 
 func (r *WarehouseRepository) DeleteWarehouseSalePayment(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSalePayment{}).Error
+}
+
+func (r *WarehouseRepository) CreateWarehouseSaleQueue(data *entity.WarehouseSaleQueue) error {
+	return r.GetDB().Model(&entity.WarehouseSaleQueue{}).Create(data).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseSaleQueueById(id uint64) (entity.WarehouseSaleQueue, error) {
+	var warehouseSaleQueue entity.WarehouseSaleQueue
+	err := r.GetDB().Model(&entity.WarehouseSaleQueue{}).Preload("Store").Preload("Item").Preload("Customer").Where("id = ?", id).First(&warehouseSaleQueue).Error
+	if err != nil {
+		return entity.WarehouseSaleQueue{}, err
+	}
+
+	return warehouseSaleQueue, nil
+}
+
+func (r *WarehouseRepository) DeleteWarehouseSaleQueue(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseSaleQueue{}).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseSaleQueues() ([]entity.WarehouseSaleQueue, error) {
+	var warehouseSaleQueues []entity.WarehouseSaleQueue
+	err := r.GetDB().Model(&entity.WarehouseSaleQueue{}).Find(&warehouseSaleQueues).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return warehouseSaleQueues, nil
 }

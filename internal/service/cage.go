@@ -28,6 +28,7 @@ type ICageService interface {
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 	GetChickenCagesByCageIds(cageIds []uint64) ([]dto.ChickenCageResponse, error)
+	CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
@@ -239,7 +240,43 @@ func (s *CageService) GetCagesByIds(ids []uint64) ([]dto.CageResponse, error) {
 func (s *CageService) GetChickenCagesByCageIds(ids []uint64) ([]dto.ChickenCageResponse, error) {
 	s.repository.UseTx(false)
 
-	chickenCages, err := s.repository.GetChickenCagesByIds(ids)
+	chickenCages, err := s.repository.GetChickenCagesByCageIds(ids)
+	if err != nil {
+		return nil, err
+	}
+
+	response := make([]dto.ChickenCageResponse, 0)
+	for _, chickenCage := range chickenCages {
+		response = append(response, mapper.ChickenCageToResponse(&chickenCage))
+	}
+
+	return response, nil
+}
+
+func (s *CageService) CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCages := make([]entity.ChickenCage, 0)
+	for _, req := range request {
+		chickenCages = append(chickenCages, entity.ChickenCage{
+			CageId:               req.CageId,
+			ChickenProcurementId: req.ChickenProcurementId,
+			TotalChicken:         req.TotalChicken,
+		})
+	}
+
+	err := s.repository.CreateChickenCageInBatch(&chickenCages)
+	if err != nil {
+		s.log.Error("failed create chicken cage in batch", zap.Error(err))
+		return nil, err
+	}
+
+	chickenCageIds := make([]uint64, 0)
+	for _, chichickenCage := range chickenCages {
+		chickenCageIds = append(chickenCageIds, chichickenCage.Id)
+	}
+
+	chickenCages, err = s.repository.GetChickenCageByIds(chickenCageIds)
 	if err != nil {
 		return nil, err
 	}

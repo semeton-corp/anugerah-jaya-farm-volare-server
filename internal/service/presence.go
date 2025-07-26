@@ -30,9 +30,10 @@ type IPresenceService interface {
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
 
-	GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error)
+	GetRoleLocationPresenceSummaries() ([]dto.RoleLocationPresenceSummaryResponse, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
 	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
+	ApprovalUserPresence(request dto.ApprovalPresenceRequest, userId uuid.UUID) ([]dto.PresenceResponse, error)
 }
 
 func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
@@ -161,15 +162,17 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 	return mapper.PresenceToResponse(&userPresence), nil
 }
 
-func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresenceSummaryResponse, error) {
+func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocationPresenceSummaryResponse, error) {
 	s.repository.UseTx(false)
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	processPresenceSummaries := func(summaries []entity.LocationPresenceSummary, placeType string) map[uint64]dto.LocationPresenceSummaryResponse {
-		result := make(map[uint64]dto.LocationPresenceSummaryResponse)
+	processPresenceSummaries := func(summaries []entity.LocationPresenceSummary, placeType string) map[uint64]dto.RoleLocationPresenceSummaryResponse {
+		result := make(map[uint64]dto.RoleLocationPresenceSummaryResponse)
 		for _, e := range summaries {
 			summary := result[e.PlaceId]
 			if summary.PlaceName == "" {
+				summary.RoleId = e.RoleId
+				summary.RoleName = e.RoleName
 				summary.PlaceId = e.PlaceId
 				summary.PlaceType = placeType
 				summary.PlaceName = placeType + " " + e.PlaceName
@@ -218,7 +221,7 @@ func (s *PresenceService) GetLocationPresenceSummaries() ([]dto.LocationPresence
 	}
 	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationWorkTypeWarehouse.String())
 
-	response := make([]dto.LocationPresenceSummaryResponse, 0,
+	response := make([]dto.RoleLocationPresenceSummaryResponse, 0,
 		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap))
 
 	for _, v := range cagePresenceMap {
@@ -301,4 +304,73 @@ func (s *PresenceService) GetUserPresenceWorkDetailSummaries(filter dto.GetUserP
 	}
 
 	return response, nil
+}
+
+func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceRequest, userId uuid.UUID) ([]dto.PresenceResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	userIds := make([]uuid.UUID, 0)
+	for _, userId := range request.AcceptedUserIds {
+		userIds = append(userIds, uuid.MustParse(userId))
+	}
+
+	for _, userId := range request.RejectedUserIds {
+		userIds = append(userIds, uuid.MustParse(userId))
+	}
+
+	userPresences, err := s.repository.GetUserPresences(dto.GetUserPresenceFilter{
+		UserIds: userIds,
+		Date:    param.DateParam(time.Now()),
+	})
+	if err != nil {
+		s.log.Error("failed to get user presences", zap.Error(err))
+		return nil, err
+	}
+
+	acceptedUserPresenceIds := make([]uint64, 0)
+	rejectedUserPresenceIds := make([]uint64, 0)
+
+	for _, userPresence := range userPresences {
+		for _, acceptedUserId := range request.AcceptedUserIds {
+			if uuid.MustParse(acceptedUserId) == userPresence.UserId {
+				userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusAccepted
+				acceptedUserPresenceIds = append(acceptedUserPresenceIds, userPresence.Id)
+				break
+			}
+		}
+
+		for _, rejectedUserId := range request.RejectedUserIds {
+			if uuid.MustParse(rejectedUserId) == userPresence.UserId {
+				userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusRejected
+				rejectedUserPresenceIds = append(rejectedUserPresenceIds, userPresence.Id)
+				break
+			}
+		}
+	}
+
+	err = s.repository.UpdateSubmissionPresenceStatusUserIds(acceptedUserPresenceIds, enum.SubmissionPresenceStatusAccepted)
+	if err != nil {
+		s.log.Error("failed update submission presence status by ids", zap.Error(err))
+		return nil, err
+	}
+
+	err = s.repository.UpdateSubmissionPresenceStatusUserIds(rejectedUserPresenceIds, enum.SubmissionPresenceStatusRejected)
+	if err != nil {
+		s.log.Error("failed update submission presence status by ids", zap.Error(err))
+		return nil, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	userPresenceResponses := make([]dto.PresenceResponse, 0)
+	for _, userPresence := range userPresences {
+		userPresenceResponses = append(userPresenceResponses, mapper.PresenceToResponse(&userPresence))
+	}
+
+	return userPresenceResponses, nil
 }

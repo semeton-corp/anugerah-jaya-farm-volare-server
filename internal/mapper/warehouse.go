@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
 func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
@@ -153,4 +154,24 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 		PaymentStatus: warehouseSale.PaymentStatus.String(),
 		IsSend:        warehouseSale.IsSend,
 	}
+}
+
+func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto.WarehouseSaleQueueResponse {
+	response := dto.WarehouseSaleQueueResponse{
+		Id:        storeSaleQueue.Id,
+		Item:      ItemToResponse(&storeSaleQueue.Item),
+		Warehouse: WarehouseToResponse(&storeSaleQueue.Warehouse),
+		SaleUnit:  storeSaleQueue.SaleUnit.String(),
+	}
+
+	if storeSaleQueue.CustomerType == enum.CustomerTypeNew {
+		response.Customer = dto.CustomerResponse{
+			Name:        storeSaleQueue.CustomerName.String,
+			PhoneNumber: storeSaleQueue.CustomerPhoneNumber.String,
+		}
+	} else {
+		response.Customer = CustomerToResponse(&storeSaleQueue.Customer)
+	}
+
+	return response
 }

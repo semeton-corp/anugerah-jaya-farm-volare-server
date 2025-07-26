@@ -117,3 +117,19 @@ func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
 func (p LocationWorkTypeParam) Value() enum.LocationWorkType {
 	return enum.LocationWorkType(p)
 }
+
+type PresenceStatusParam enum.PresenceStatus
+
+func (p *PresenceStatusParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfPresenceStatus(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid presence status")
+	}
+
+	*p = PresenceStatusParam(parsedFilter)
+	return nil
+}
+
+func (p PresenceStatusParam) Value() enum.PresenceStatus {
+	return enum.PresenceStatus(p)
+}

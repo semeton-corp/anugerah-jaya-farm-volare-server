@@ -195,4 +195,43 @@ type ArrivalConfirmationChickenProcurementRequest struct {
 }
 
 type ChickenPerformanceOverview struct {
+	// Todo : overview chicken performance in (owner, kepala kandang)
+}
+
+type CreateAfkirChickenCustomerRequest struct {
+	Name        string `json:"name" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required"`
+	Address     string `json:"address" validate:"required"`
+}
+
+type UpdateAfkirChickenCustomerRequest struct {
+	Name        string `json:"name" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required"`
+	Address     string `json:"address" validate:"required"`
+}
+
+type AfkirChickenCustomerListResponse struct {
+	Id          uint64 `json:"id"`
+	Name        string `json:"name"`
+	PhoneNumber string `json:"phoneNumber"`
+	Address     string `json:"address"`
+	LatestPrice string `json:"latestPrice"`
+}
+
+type AfkirChickenCustomerResponse struct {
+	Id                uint64                         `json:"id"`
+	Name              string                         `json:"name"`
+	PhoneNumber       string                         `json:"phoneNumber"`
+	Address           string                         `json:"address"`
+	LatestPrice       string                         `json:"latestPrice"`
+	AfkirChickenSales []AfkirChickenSaleListResponse `json:"afkirChickenSales"`
+}
+
+type AfkirChickenSaleListResponse struct {
+	SellDate         string `json:"sellDate"`
+	ChickenAge       uint64 `json:"chickenAge"`
+	TotalSellChicken uint64 `json:"totalSellChicken"`
+	Price            string `json:"price"`
+	TotalPrice       string `json:"totalPrice"`
+	PaymentStatus    string `json:"paymentStatus"`
 }

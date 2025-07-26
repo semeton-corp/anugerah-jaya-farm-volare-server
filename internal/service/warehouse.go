@@ -1224,3 +1224,103 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 
 	return nil
 }
+
+func (s *WarehouseService) CreateWarehouseSaleQueue(request dto.CreateWarehouseSaleQueueRequest, userId uuid.UUID) (dto.WarehouseSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	sendDate, err := time.Parse("02-01-2006", request.SendDate)
+	if err != nil {
+		s.log.Error("failed to parse send date", zap.Error(err))
+		return dto.WarehouseSaleQueueResponse{}, err
+	}
+
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.WarehouseSaleQueueResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	customerType := enum.ValueOfCustomerType(request.CustomerType)
+	if !customerType.IsValid() {
+		return dto.WarehouseSaleQueueResponse{}, errx.BadRequest("invalid customer type")
+	}
+
+	data := entity.WarehouseSaleQueue{
+		ItemId:       request.ItemId,
+		WarehouseId:  request.WarehouseId,
+		SaleUnit:     saleUnit,
+		SendDate:     sendDate,
+		CustomerType: customerType,
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if customerType == enum.CustomerTypeNew {
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.WarehouseSaleQueueResponse{}, errx.BadRequest("customer name and phone number is required")
+		}
+
+		data.CustomerName = sql.NullString{String: request.CustomerName, Valid: true}
+		data.CustomerPhoneNumber = sql.NullString{String: request.CustomerPhoneNumber, Valid: true}
+
+	} else {
+		if request.CustomerId < 1 {
+			return dto.WarehouseSaleQueueResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		data.CustomerId = sql.NullInt64{Int64: int64(request.CustomerId), Valid: true}
+	}
+
+	err = s.repository.CreateWarehouseSaleQueue(&data)
+	if err != nil {
+		s.log.Error("failed create Warehouse sale queue", zap.Error(err))
+		return dto.WarehouseSaleQueueResponse{}, err
+	}
+
+	data, err = s.repository.GetWarehouseSaleQueueById(data.Id)
+	if err != nil {
+		return dto.WarehouseSaleQueueResponse{}, err
+	}
+
+	return mapper.WarehouseSaleQueueToResponse(&data), nil
+}
+
+func (s *WarehouseService) GetWarehouseSaleQueue(id uint64) (dto.WarehouseSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetWarehouseSaleQueueById(id)
+	if err != nil {
+		s.log.Error("failed get Warehouse sale queue by id", zap.Error(err))
+		return dto.WarehouseSaleQueueResponse{}, err
+	}
+
+	return mapper.WarehouseSaleQueueToResponse(&data), nil
+}
+
+func (s *WarehouseService) GetWarehouseSaleQueues() ([]dto.WarehouseSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	// Todo : formula for integrated planning
+	WarehouseSaleQueues, err := s.repository.GetWarehouseSaleQueues()
+	if err != nil {
+		s.log.Error("failed get Warehouse sale queues", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.WarehouseSaleQueueResponse, 0)
+	for _, WarehouseSaleQueue := range WarehouseSaleQueues {
+		response = append(response, mapper.WarehouseSaleQueueToResponse(&WarehouseSaleQueue))
+	}
+
+	return response, nil
+}
+
+func (s *WarehouseService) DeleteWarehouseSaleQueue(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteWarehouseSaleQueue(id)
+	if err != nil {
+		s.log.Error("failed delete Warehouse sale queue", zap.Error(err))
+		return err
+	}
+
+	return nil
+}

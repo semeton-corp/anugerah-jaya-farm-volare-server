@@ -1019,33 +1019,97 @@ func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, i
 	return nil
 }
 
-func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) error {
+func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
 	s.repository.UseTx(false)
 
 	cageIds := make([]uint64, 0)
-
 	for _, e := range request.DestinationChickenCages {
 		cageIds = append(cageIds, e.DestinationCageId)
 	}
 
 	chickenCages, err := s.cageService.GetChickenCagesByCageIds(cageIds)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	for _, chickenCage := range chickenCages {
 		if chickenCage.Cage.IsUsed {
-			return errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
+			return nil, errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
 		}
 	}
 
-	chickenCage := make([]entity.ChickenCage, 0)
-	for _, e := range request.DestinationChickenCages {
-		chickenCage = append(chickenCage, entity.ChickenCage{
-			CageId:       e.DestinationCageId,
-			TotalChicken: e.TotalChicken,
-		})
+	newChickenCages := make([]dto.CreateChickenCageRequest, 0)
+	for _, destinationChickenCage := range request.DestinationChickenCages {
+		newChickenCage := dto.CreateChickenCageRequest{
+			CageId:       destinationChickenCage.DestinationCageId,
+			TotalChicken: destinationChickenCage.TotalChicken,
+		}
+
+		for _, chickenCage := range chickenCages {
+			if chickenCage.Cage.Id == destinationChickenCage.DestinationCageId {
+				newChickenCage.ChickenProcurementId = chickenCage.ChickenProcurementId
+			}
+		}
+
+		newChickenCages = append(newChickenCages, newChickenCage)
 	}
 
-	return nil
+	response, err := s.cageService.CreateChickenCageInBatch(newChickenCages, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+func (s *ChickenService) CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error) {
+	s.repository.UseTx(false)
+
+	data := entity.AfkirChickenCustomer{
+		Name:        request.Name,
+		PhoneNumber: request.PhoneNumber,
+		Address:     request.Address,
+	}
+
+	err := s.repository.CreateAfkirChickenCustomer(&data)
+	if err != nil {
+		s.log.Error("failed create afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenCustomerResponse{}, err
+	}
+
+	data, err = s.repository.GetAfkirChickenCustomer(data.Id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenCustomerResponse{}, err
+	}
+
+	return mapper.AfkirChickenCustomerToResponse(&data), nil
+}
+
+func (s *ChickenService) GetAfkirChickenCustomers() ([]dto.AfkirChickenCustomerListResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenCustomers()
+	if err != nil {
+		s.log.Error("failed get afkir chicken customers", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.AfkirChickenCustomerListResponse, 0)
+	for _, e := range data {
+		response = append(response, mapper.AfkirChickenCustomerToListResponse(&e))
+	}
+
+	return response, nil
+}
+
+func (s *ChickenService) GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCustomerResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenCustomer(id)
+	if err != nil {
+		return dto.AfkirChickenCustomerResponse{}, err
+	}
+
+	return mapper.AfkirChickenCustomerToResponse(&data), nil
 }

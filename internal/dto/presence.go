@@ -35,10 +35,11 @@ type PresenceResponse struct {
 }
 
 type GetPresenceFilter struct {
-	UserId uuid.UUID
-	Page   uint64           `query:"page"`
-	Month  param.MonthParam `query:"month" validate:"required"`
-	Year   uint64           `query:"year" validate:"required"`
+	UserId         uuid.UUID
+	Page           uint64                    `query:"page"`
+	PresenceStatus param.PresenceStatusParam `query:"presenceStatus"`
+	Month          param.MonthParam          `query:"month" validate:"required"`
+	Year           uint64                    `query:"year" validate:"required"`
 }
 
 type UpdateUserPresenceRequest struct {
@@ -57,7 +58,9 @@ type PresenceListPaginationResponse struct {
 	Presences []PresenceListResponse `json:"presences"`
 }
 
-type LocationPresenceSummaryResponse struct {
+type RoleLocationPresenceSummaryResponse struct {
+	RoleId              uint64 `json:"roleId"`
+	RoleName            string `json:"roleName"`
 	PlaceId             uint64 `json:"placeId"`
 	PlaceName           string `json:"placeName"`
 	PlaceType           string `json:"placeType"`
@@ -73,6 +76,7 @@ type GetLocationPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceSummaryFilter struct {
+	RoleId    uint64                      `query:"roleId" validate:"roleId"`
 	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                      `query:"placeId" validate:"required"`
 	Month     param.MonthParam            `query:"month" validate:"required"`
@@ -80,6 +84,7 @@ type GetUserPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {
+	RoleId    uint64                      `query:"roleId" validate:"roleId"`
 	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                      `query:"placeId" validate:"required"`
 	Date      param.DateParam             `query:"date"`
@@ -107,4 +112,14 @@ type UserPresenceWorkDetailSummaryResponse struct {
 	ArrivedTime        string  `json:"arrivedTime"`
 	DepartureTime      string  `json:"departureTime"`
 	WorkDonePercentage float64 `json:"WorkDonePercentage"`
+}
+
+type ApprovalPresenceRequest struct {
+	AcceptedUserIds []string `json:"acceptedUserIds"`
+	RejectedUserIds []string `json:"rejectedUserIds"`
+}
+
+type GetUserPresenceFilter struct {
+	UserIds []uuid.UUID     `query:"userIds"`
+	Date    param.DateParam `query:"date"`
 }

@@ -27,9 +27,11 @@ type ICageRepository interface {
 	GetCagesByIds(ids []uint64) ([]entity.Cage, error)
 
 	CreateChickenCage(chickenCage *entity.ChickenCage) error
+	CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error)
 	GetChickenCageById(id uint64) (entity.ChickenCage, error)
-	GetChickenCagesByIds(ids []uint64) ([]entity.ChickenCage, error)
+	GetChickenCagesByCageIds(ids []uint64) ([]entity.ChickenCage, error)
+	GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error)
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -109,7 +111,7 @@ func (r *CageRepository) DeleteCage(id uint64) error {
 func (r *CageRepository) GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error) {
 	var chickenCage entity.ChickenCage
 	// Find the newest chicken in the cage
-	err := r.GetDB().Model(&entity.ChickenCage{}).Where("cage_id = ?", cageId).Order("created_at  DESC").First(&chickenCage).Error
+	err := r.GetDB().Model(&entity.ChickenCage{}).Where("cage_id = ?", cageId).Order("created_at DESC").First(&chickenCage).Error
 
 	if err != nil {
 		return entity.ChickenCage{}, err
@@ -175,12 +177,40 @@ func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	return cages, nil
 }
 
-func (r *CageRepository) GetChickenCagesByIds(ids []uint64) ([]entity.ChickenCage, error) {
+func (r *CageRepository) GetChickenCagesByCageIds(cageIds []uint64) ([]entity.ChickenCage, error) {
 	var chickenCages []entity.ChickenCage
-	err := r.GetDB().Model(&entity.ChickenCage{}).Preload("Cage.CagePlacement").Where("cage_id IN ?", ids).Find(&chickenCages).Error
+
+	subQuery := r.GetDB().
+		Model(entity.ChickenCage{}).
+		Select("DISTINCT ON (cage_id) *").
+		Where("cage_id IN ?", cageIds).
+		Order("created_at DESC").
+		Table("chicken_cages")
+
+	err := r.GetDB().
+		Model(entity.ChickenCage{}).
+		Preload("Cage.CagePlacement.User.Role").
+		Table("(?) as chicken_cages", subQuery).
+		Find(&chickenCages).Error
+
 	if err != nil {
 		return nil, err
 	}
 
 	return chickenCages, nil
+}
+
+func (r *CageRepository) GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error) {
+	var chickenCages []entity.ChickenCage
+
+	err := r.GetDB().Model(entity.ChickenCage{}).Where("id IN ?", ids).Preload("Cage.CagePlacement.User.Role").Find(&chickenCages).Order("created_at DESC").Error
+	if err != nil {
+		return nil, err
+	}
+
+	return chickenCages, nil
+}
+
+func (r *CageRepository) CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error {
+	return r.GetDB().Model(&entity.ChickenCage{}).CreateInBatches(&chickenCage, len(*chickenCage)).Error
 }

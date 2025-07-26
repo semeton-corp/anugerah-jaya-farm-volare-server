@@ -26,6 +26,8 @@ type UserPresence struct {
 }
 
 type LocationPresenceSummary struct {
+	RoleId         uint64              `gorm:"column:role_id"`
+	RoleName       string              `gorm:"column:role_name"`
 	PlaceId        uint64              `gorm:"column:place_id"`
 	PlaceName      string              `gorm:"column:place_name"`
 	UserId         uuid.UUID           `gorm:"column:user_id"`

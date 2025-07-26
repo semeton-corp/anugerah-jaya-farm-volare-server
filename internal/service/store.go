@@ -63,12 +63,16 @@ type IStoreService interface {
 	GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error)
 	UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 	DeleteStoreSale(id uint64, userId uuid.UUID) error
+	SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error)
 
 	CreateStoreSalePayment(storeSaleId uint64, request dto.CreateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 	UpdateStoreSalePayment(storeSaleId uint64, id uint64, request dto.UpdateStoreSalePaymentRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 	DeleteStoreSalePayment(storeSaleId uint64, id uint64, userId uuid.UUID) error
 
-	SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error)
+	CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequest, userId uuid.UUID) (dto.StoreSaleQueueResponse, error)
+	GetStoreSaleQueue(id uint64) (dto.StoreSaleQueueResponse, error)
+	GetStoreSaleQueues() ([]dto.StoreSaleQueueResponse, error)
+	DeleteStoreSaleQueue(id uint64) error
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService, itemService IItemService, customerService ICustomerService) IStoreService {
@@ -809,6 +813,8 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	}
 
 	totalPrice := price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount))
+	totalPrice = totalPrice.Sub(discountPrice)
 
 	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
 	if !saleUnit.IsValid() {
@@ -849,6 +855,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
 
+		// Saga pattern
 		resp, err := s.customerService.CreateCustomer(customer)
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
@@ -1116,7 +1123,9 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	}
 
 	storeSale.Quantity = request.Quantity
-	storeSale.TotalPrice = storeSale.Price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+	totalPrice := storeSale.Price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(storeSale.Discount))
+	storeSale.TotalPrice = totalPrice.Sub(discountPrice)
 
 	storeSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
 	if err != nil {
@@ -1608,4 +1617,104 @@ func (s *StoreService) buildStoreOverviewYearlyGraph(storeId uint64, itemId uint
 		})
 	}
 	return graphs, nil
+}
+
+func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequest, userId uuid.UUID) (dto.StoreSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	sendDate, err := time.Parse("02-01-2006", request.SendDate)
+	if err != nil {
+		s.log.Error("failed to parse send date", zap.Error(err))
+		return dto.StoreSaleQueueResponse{}, err
+	}
+
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.StoreSaleQueueResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	customerType := enum.ValueOfCustomerType(request.CustomerType)
+	if !customerType.IsValid() {
+		return dto.StoreSaleQueueResponse{}, errx.BadRequest("invalid customer type")
+	}
+
+	data := entity.StoreSaleQueue{
+		ItemId:       request.ItemId,
+		StoreId:      request.StoreId,
+		SaleUnit:     saleUnit,
+		SendDate:     sendDate,
+		CustomerType: customerType,
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if customerType == enum.CustomerTypeNew {
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.StoreSaleQueueResponse{}, errx.BadRequest("customer name and phone number is required")
+		}
+
+		data.CustomerName = sql.NullString{String: request.CustomerName, Valid: true}
+		data.CustomerPhoneNumber = sql.NullString{String: request.CustomerPhoneNumber, Valid: true}
+
+	} else {
+		if request.CustomerId < 1 {
+			return dto.StoreSaleQueueResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		data.CustomerId = sql.NullInt64{Int64: int64(request.CustomerId), Valid: true}
+	}
+
+	err = s.repository.CreateStoreSaleQueue(&data)
+	if err != nil {
+		s.log.Error("failed create store sale queue", zap.Error(err))
+		return dto.StoreSaleQueueResponse{}, err
+	}
+
+	data, err = s.repository.GetStoreSaleQueueById(data.Id)
+	if err != nil {
+		return dto.StoreSaleQueueResponse{}, err
+	}
+
+	return mapper.StoreSaleQueueToResponse(&data), nil
+}
+
+func (s *StoreService) GetStoreSaleQueue(id uint64) (dto.StoreSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetStoreSaleQueueById(id)
+	if err != nil {
+		s.log.Error("failed get store sale queue by id", zap.Error(err))
+		return dto.StoreSaleQueueResponse{}, err
+	}
+
+	return mapper.StoreSaleQueueToResponse(&data), nil
+}
+
+func (s *StoreService) GetStoreSaleQueues() ([]dto.StoreSaleQueueResponse, error) {
+	s.repository.UseTx(false)
+
+	// Todo : formula for integrated planning
+	storeSaleQueues, err := s.repository.GetStoreSaleQueues()
+	if err != nil {
+		s.log.Error("failed get store sale queues", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.StoreSaleQueueResponse, 0)
+	for _, storeSaleQueue := range storeSaleQueues {
+		response = append(response, mapper.StoreSaleQueueToResponse(&storeSaleQueue))
+	}
+
+	return response, nil
+}
+
+func (s *StoreService) DeleteStoreSaleQueue(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteStoreSaleQueue(id)
+	if err != nil {
+		s.log.Error("failed delete store sale queue", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

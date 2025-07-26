@@ -41,6 +41,7 @@ type CreateChickenCageRequest struct {
 type ChickenCageResponse struct {
 	Cage                 CageResponse `json:"cage"`
 	Id                   uint64       `json:"id"`
+	ChickenProcurementId uint64       `json:"chickenProcurementId"`
 	BatchId              string       `json:"batchId"`
 	ChickenCategory      string       `json:"chickenCategory"`
 	ChickenAge           uint64       `json:"chickenAge"`
