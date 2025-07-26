@@ -1069,6 +1069,7 @@ func (s *ChickenService) CreateAfkirChickenCustomer(request dto.CreateAfkirChick
 		Name:        request.Name,
 		PhoneNumber: request.PhoneNumber,
 		Address:     request.Address,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateAfkirChickenCustomer(&data)
@@ -1112,4 +1113,39 @@ func (s *ChickenService) GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCus
 	}
 
 	return mapper.AfkirChickenCustomerToResponse(&data), nil
+}
+
+func (s *ChickenService) UpdateAfkirChickenCustomer(id uint64, request dto.UpdateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error) {
+	s.repository.UseTx(false)
+
+	afkirChickenCustomer, err := s.repository.GetAfkirChickenCustomer(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenCustomerResponse{}, err
+	}
+
+	afkirChickenCustomer.Name = request.Name
+	afkirChickenCustomer.PhoneNumber = request.PhoneNumber
+	afkirChickenCustomer.Address = request.Address
+	afkirChickenCustomer.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateAfkirChickenCustomer(&afkirChickenCustomer)
+	if err != nil {
+		s.log.Error("failed update afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenCustomerResponse{}, err
+	}
+
+	return mapper.AfkirChickenCustomerToResponse(&afkirChickenCustomer), nil
+}
+
+func (s *ChickenService) DeleteAfkirChickenCustomer(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteAfkirChickenCustomer(id)
+	if err != nil {
+		s.log.Error("failed delete afkir chicken customer", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

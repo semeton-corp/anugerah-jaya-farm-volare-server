@@ -813,7 +813,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	}
 
 	totalPrice := price.Mul(decimal.NewFromInt(int64(request.Quantity)))
-	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
 	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
@@ -1124,7 +1124,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 
 	storeSale.Quantity = request.Quantity
 	totalPrice := storeSale.Price.Mul(decimal.NewFromInt(int64(request.Quantity)))
-	discountPrice := totalPrice.Mul(decimal.NewFromFloat(storeSale.Discount))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(storeSale.Discount / 100.0))
 	storeSale.TotalPrice = totalPrice.Sub(discountPrice)
 
 	storeSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)

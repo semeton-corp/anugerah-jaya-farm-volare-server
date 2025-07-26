@@ -200,13 +200,13 @@ type ChickenPerformanceOverview struct {
 
 type CreateAfkirChickenCustomerRequest struct {
 	Name        string `json:"name" validate:"required"`
-	PhoneNumber string `json:"phoneNumber" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required,phoneNumber"`
 	Address     string `json:"address" validate:"required"`
 }
 
 type UpdateAfkirChickenCustomerRequest struct {
 	Name        string `json:"name" validate:"required"`
-	PhoneNumber string `json:"phoneNumber" validate:"required"`
+	PhoneNumber string `json:"phoneNumber" validate:"required,phoneNumber"`
 	Address     string `json:"address" validate:"required"`
 }
 
