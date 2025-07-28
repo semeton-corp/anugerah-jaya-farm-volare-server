@@ -104,35 +104,35 @@ type UserListOverviewResponse struct {
 	Role                 RoleResponse `json:"role"`
 }
 
-type UserPerformanceGraph struct {
+type UserPerformanceGraphResponse struct {
 	Key                   string  `json:"key"`
 	KPIChickenPerformance float64 `json:"kpiChickenPerformance"`
 	KPIUserPerformance    float64 `json:"kpiUserPerformance"`
 }
 
-type UserPerformanceSummary struct {
+type UserPerformanceSummaryResponse struct {
 	TotalUser  uint64  `json:"totalUser"`
 	KPIAll     float64 `json:"kpiAll"`
 	KPIUser    float64 `json:"kpiUser"`
 	KPIChicken float64 `json:"kpiChicken"`
 }
 
-type UserPerformanceOverview struct {
-	UserPerformanceDetail UserPerformanceSummary `json:"userPerformanceSummary"`
-	UserPerformanceGraphs []UserPerformanceGraph `json:"userPerformanceGraphs"`
+type UserPerformanceOverviewResponse struct {
+	UserPerformanceDetail UserPerformanceSummaryResponse `json:"userPerformanceSummary"`
+	UserPerformanceGraphs []UserPerformanceGraphResponse `json:"userPerformanceGraphs"`
 	// Todo : overview user performance in (owner)
 }
 
-type UserSalarySummary struct {
+type UserSalarySummaryResponse struct {
 	TotalUser uint64 `json:"totalUser"`
 }
 
-type UserSalaryGraph struct {
+type UserSalaryGraphResponse struct {
 	Key    string `json:"key"`
 	Salary string `json:"kpiChickenPerformance"`
 }
 
-type UserSalaryOverview struct {
+type UserSalaryOverviewResponse struct {
 	// Todo : overview user salary in (owner)
-	UserSalaryGraph []UserSalaryGraph `json:"userSalaryGraph"`
+	UserSalaryGraph []UserSalaryGraphResponse `json:"userSalaryGraph"`
 }
