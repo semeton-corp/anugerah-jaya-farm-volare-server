@@ -250,7 +250,6 @@ type StoreOverview struct {
 
 type StoreOverviewDetail struct {
 	TotalReceivables   string  `json:"totalReceivables"`
-	TotalProfit        string  `json:"totalProfit"`
 	TotalIncome        string  `json:"totalIncome"`
 	GoodEggInKg        float64 `json:"goodEggInKg"`
 	GoodEggInIkat      float64 `json:"goodEggInIkat"`

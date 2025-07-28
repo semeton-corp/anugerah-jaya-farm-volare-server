@@ -829,6 +829,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		Price:       price,
 		TotalPrice:  totalPrice,
 		SendDate:    sendDate,
+		Discount:    request.Discount,
 		IsSend:      false,
 		SaleUnit:    saleUnit,
 		PaymentType: paymentType,
@@ -1428,7 +1429,6 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 	crackedEggInKg := float64(0)
 	brokenEggInPlastik := float64(0)
 
-	profit := decimal.Zero
 	income := decimal.Zero
 	receivables := decimal.Zero
 
@@ -1460,8 +1460,6 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 			brokenEggInPlastik += storeSale.Quantity
 		}
 
-		profit = profit.Add(storeSale.TotalPrice)
-
 		payment := decimal.Zero
 		for _, storeSalePayment := range storeSale.Payments {
 			payment = payment.Add(storeSalePayment.Nominal)
@@ -1472,7 +1470,6 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 	}
 
 	storeOverviewDetail := dto.StoreOverviewDetail{
-		TotalProfit:        profit.String(),
 		TotalIncome:        income.String(),
 		TotalReceivables:   receivables.String(),
 		GoodEggInKg:        goodEggInKg,

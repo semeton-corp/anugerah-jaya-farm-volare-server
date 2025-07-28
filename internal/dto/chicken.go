@@ -202,10 +202,30 @@ type ChickenPerformanceSummaryResponse struct {
 	AverageMortality float64 `json:"averageMortality"`
 }
 
+type ChickenCagePerformanceSummaryResponse struct {
+	TotalProductiveCage uint64 `json:"totalProductiveCage"`
+	TotalCheckCage      uint64 `json:"totalCheckCage"`
+	TotalNotSafeCage    uint64 `json:"totalNotSafeCage"`
+}
+
+type CompanyPerformanceBarChartResponse struct {
+	Key   string  `json:"key"`
+	Value float64 `json:"value"`
+}
+
 type ChickenPerformanceOverviewResponse struct {
-	ChickenPerformanceSummary ChickenPerformanceSummaryResponse `json:"chickenPerformanceSummary"`
-	ChickenBarChart           ChickenBarChartResponse           `json:"chickenBarChart"`
+	ChickenPerformanceSummary     ChickenPerformanceSummaryResponse     `json:"chickenPerformanceSummary"`
+	ChickenBarChart               ChickenBarChartResponse               `json:"chickenBarChart"`
+	CompanyPerformanceBarChart    CompanyPerformanceBarChartResponse    `json:"companyPerformanceBarChart"`
+	ChickenCagePerformanceSummary ChickenCagePerformanceSummaryResponse `json:"chickenCagePerformanceSummary"`
 	// Todo : overview chicken performance in (owner, kepala kandang)
+}
+
+type GetChickenPerformanceOverviewFilter struct {
+	LocationId              uint64                       `query:"locationId"`
+	CageId                  uint64                       `query:"cageId"`
+	LabelCompanyPerformance string                       `query:"labelCompanyPerformance"`
+	OverviewGraphTime       param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
 }
 
 type CreateAfkirChickenCustomerRequest struct {
