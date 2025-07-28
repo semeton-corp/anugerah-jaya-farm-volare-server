@@ -142,3 +142,18 @@ func AfkirChickenCustomerToResponse(data *entity.AfkirChickenCustomer) dto.Afkir
 func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleListResponse {
 	return dto.AfkirChickenSaleListResponse{}
 }
+
+func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleResponse {
+	return dto.AfkirChickenSaleResponse{}
+}
+
+func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.AfkirChickenSaleDraftResponse {
+	return dto.AfkirChickenSaleDraftResponse{
+		Id:                   data.Id,
+		ChickenCage:          ChickenCageToResponse(&data.ChickenCage),
+		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
+		TotalSellChicken:     data.TotalSellChicken,
+		PricePerChicken:      data.PricePerChicken.String(),
+		TotalPrice:           data.TotalPrice.String(),
+	}
+}

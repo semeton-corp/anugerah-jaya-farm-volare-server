@@ -6,6 +6,7 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -60,6 +61,23 @@ type IChickenRepository interface {
 	GetAfkirChickenCustomer(id uint64) (entity.AfkirChickenCustomer, error)
 	UpdateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error
 	DeleteAfkirChickenCustomer(id uint64) error
+
+	CreateAfkirChickenSaleDraft(data *entity.AfkirChickenSaleDraft) error
+	GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSaleDraft, error)
+	GetAfkirChickenSaleDraft(id uint64) (entity.AfkirChickenSaleDraft, error)
+	UpdateAfkirChickenSaleDraft(data *entity.AfkirChickenSaleDraft) error
+	DeleteAfkirChickenSaleDraft(id uint64) error
+
+	CreateAfkirChickenSale(data *entity.AfkirChickenSale) error
+	CountChickenAfkirChickenSale(filter dto.GetAfkirChickenSaleFilter) (int64, error)
+	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) ([]entity.AfkirChickenSale, error)
+	GetAfkirChickenSale(id uint64) (entity.AfkirChickenSale, error)
+	UpdateAfkirChickenSale(data *entity.AfkirChickenSale) error
+
+	DeleteAfkirChickenSalePayment(id uint64) error
+	CreateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error
+	GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error)
+	UpdateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -352,4 +370,107 @@ func (r *ChickenRepository) UpdateAfkirChickenCustomer(data *entity.AfkirChicken
 
 func (r *ChickenRepository) DeleteAfkirChickenCustomer(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenCustomer{}).Error
+}
+
+func (r *ChickenRepository) CreateAfkirChickenSaleDraft(data *entity.AfkirChickenSaleDraft) error {
+	return r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Create(data).Error
+}
+
+func (r *ChickenRepository) GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSaleDraft, error) {
+	var data []entity.AfkirChickenSaleDraft
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) GetAfkirChickenSaleDraft(id uint64) (entity.AfkirChickenSaleDraft, error) {
+	var data entity.AfkirChickenSaleDraft
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.AfkirChickenSaleDraft{}, err
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) UpdateAfkirChickenSaleDraft(data *entity.AfkirChickenSaleDraft) error {
+	return r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Where("id = ?", data.Id).Updates(data).Error
+}
+
+func (r *ChickenRepository) DeleteAfkirChickenSaleDraft(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenSaleDraft{}).Error
+}
+
+func (r *ChickenRepository) CreateAfkirChickenSale(data *entity.AfkirChickenSale) error {
+	return r.GetDB().Model(&entity.AfkirChickenSale{}).Create(data).Error
+}
+
+func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) ([]entity.AfkirChickenSale, error) {
+	var data []entity.AfkirChickenSale
+	query := r.GetDB().Model(&entity.AfkirChickenSale{})
+
+	if filter.Page > 0 {
+		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) CountChickenAfkirChickenSale(filter dto.GetAfkirChickenSaleFilter) (int64, error) {
+	var count int64
+	err := r.GetDB().Model(entity.AfkirChickenSale{}).Count(&count).Error
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
+}
+
+func (r *ChickenRepository) GetAfkirChickenSale(id uint64) (entity.AfkirChickenSale, error) {
+	var data entity.AfkirChickenSale
+	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).Preload("Payments").Preload("AfkirChickenCustomer").Preload("ChickenCage").First(&data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not fount")
+		}
+		return entity.AfkirChickenSale{}, nil
+	}
+
+	return data, nil
+}
+
+func (r *ChickenRepository) DeleteAfkirChickenSalePayment(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenSalePayment{}).Error
+}
+
+func (r *ChickenRepository) CreateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error {
+	return r.GetDB().Model(&entity.AfkirChickenSalePayment{}).Create(afkirChickenSalePayment).Error
+}
+
+func (r *ChickenRepository) GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error) {
+	var afkirChickenSalePayment entity.AfkirChickenSalePayment
+	err := r.GetDB().Model(&entity.AfkirChickenSalePayment{}).First(&afkirChickenSalePayment, id).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AfkirChickenSalePayment{}, errx.NotFound("afkir chicken sale payment not found")
+		}
+		return entity.AfkirChickenSalePayment{}, err
+	}
+	return afkirChickenSalePayment, nil
+}
+
+func (r *ChickenRepository) UpdateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error {
+	return r.GetDB().Model(entity.AfkirChickenSalePayment{}).Where("id = ?", afkirChickenSalePayment.Id).Updates(afkirChickenSalePayment).Error
+}
+
+func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale) error {
+	return r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", data.Id).Updates(data).Error
 }

@@ -650,7 +650,9 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid price format")
 	}
 
-	totalPrice := price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
+	totalPrice = totalPrice.Sub(discountPrice)
 
 	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
 	if !saleUnit.IsValid() {
@@ -955,7 +957,9 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	}
 
 	warehouseSale.Quantity = request.Quantity
-	warehouseSale.TotalPrice = warehouseSale.Price.Mul(decimal.NewFromInt(int64(request.Quantity)))
+	totalPrice := warehouseSale.Price.Mul(decimal.NewFromFloat(request.Quantity))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(warehouseSale.Discount / 100.0))
+	warehouseSale.TotalPrice = totalPrice.Sub(discountPrice)
 
 	warehouseSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
 	if err != nil {

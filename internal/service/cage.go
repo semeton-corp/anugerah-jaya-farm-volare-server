@@ -29,6 +29,7 @@ type ICageService interface {
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 	GetChickenCagesByCageIds(cageIds []uint64) ([]dto.ChickenCageResponse, error)
 	CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
+	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {

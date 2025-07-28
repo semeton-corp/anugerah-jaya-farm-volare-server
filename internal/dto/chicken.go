@@ -235,3 +235,69 @@ type AfkirChickenSaleListResponse struct {
 	TotalPrice       string `json:"totalPrice"`
 	PaymentStatus    string `json:"paymentStatus"`
 }
+
+type AfkirChickenSaleListPaginationResponse struct {
+	TotalPage         uint64                         `json:"totalPage,omitempty"`
+	TotalData         uint64                         `json:"totalData,omitempty"`
+	AfkirChickenSales []AfkirChickenSaleListResponse `json:"afkirChickenSales"`
+}
+
+type CreateAfkirChickenSaleDraftRequest struct {
+	ChickenCageId          uint64 `json:"chickenCageId" validate:"required"`
+	AfkirChickenCustomerId uint64 `json:"afkirChickenCustomerId" validate:"required"`
+	TotalSellChicken       uint64 `json:"totalSellChicken" validate:"required"`
+	PricePerChicken        string `json:"pricePerChicken" validate:"required"`
+}
+
+type UpdateAfkirChickenSaleDraftRequest struct {
+	ChickenCageId          uint64 `json:"chickenCageId" validate:"required"`
+	AfkirChickenCustomerId uint64 `json:"afkirChickenCustomerId" validate:"required"`
+	TotalSellChicken       uint64 `json:"totalSellChicken" validate:"required"`
+	PricePerChicken        string `json:"pricePerChicken" validate:"required"`
+}
+
+type AfkirChickenSaleDraftResponse struct {
+	Id                   uint64                           `json:"id"`
+	ChickenCage          ChickenCageResponse              `json:"chickenCage"`
+	AfkirChickenCustomer AfkirChickenCustomerListResponse `json:"afkirChickenCustomer"`
+	TotalSellChicken     uint64                           `json:"totalSellChicken"`
+	PricePerChicken      string                           `json:"pricePerChicken"`
+	TotalPrice           string                           `json:"totalPrice"`
+}
+
+type CreateAfkirChickenSaleRequest struct {
+	AfkirChickenCustomerId  uint64                                `json:"afkirChickenCustomerId" validate:"required"`
+	ChickenCageId           uint64                                `json:"chickenCageId" validate:"required"`
+	TotalSellChicken        uint64                                `json:"totalSellChicken" validate:"required"`
+	PricePerChicken         string                                `json:"pricePerChicken" validate:"required"`
+	PaymentType             string                                `json:"paymentType" validate:"required,paymentType"`
+	AfkirChickenSalePayment *CreateAfkirChickenSalePaymentRequest `json:"afkirChickenSalePayment"`
+}
+
+type AfkirChickenSaleResponse struct {
+	Id                   uint64                           `json:"id"`
+	AfkirChickenCustomer AfkirChickenCustomerListResponse `json:"afkirChickenCustomer"`
+	ChickenCage          ChickenCageResponse              `json:"chickenCageId"`
+	TotalSellChicken     uint64                           `json:"totalSellChicken"`
+	PricePerChicken      string                           `json:"pricePerChicken"`
+	TotalPrice           string                           `json:"totalPrice"`
+	ChickenAge           string                           `json:"chickenAge"`
+}
+
+type CreateAfkirChickenSalePaymentRequest struct {
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+}
+
+type UpdateAfkirChickenSalePaymentRequest struct {
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+}
+
+type GetAfkirChickenSaleFilter struct {
+	Page uint64 `query:"page"`
+}

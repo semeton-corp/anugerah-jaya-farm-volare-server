@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
@@ -643,7 +644,7 @@ func (s *ChickenService) CreateChickenProcurementDraft(request dto.CreateChicken
 		SupplierId: request.SupplierId,
 		Quantity:   request.Quantity,
 		Price:      price,
-		TotalPrice: price.Mul(decimal.NewFromInt(int64(request.Quantity))),
+		TotalPrice: price.Mul(decimal.NewFromUint64(request.Quantity)),
 		CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -715,7 +716,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		SupplierId:          chickenProcurementDraft.SupplierId,
 		Quantity:            request.Quantity,
 		Price:               price,
-		TotalPrice:          price.Mul(decimal.NewFromInt(int64(request.Quantity))),
+		TotalPrice:          price.Mul(decimal.NewFromUint64(request.Quantity)),
 		Status:              enum.ProcurementStatusSentOff,
 		PaymentStatus:       enum.PaymentStatusNotPaid,
 		EstimateArrivalDate: estimateArrivalDate,
@@ -1144,6 +1145,466 @@ func (s *ChickenService) DeleteAfkirChickenCustomer(id uint64) error {
 	err := s.repository.DeleteAfkirChickenCustomer(id)
 	if err != nil {
 		s.log.Error("failed delete afkir chicken customer", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *ChickenService) CreateAkfirChickenSaleDraft(request dto.CreateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
+	if err != nil {
+		s.log.Error("failed parse price from string", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+
+	data := entity.AfkirChickenSaleDraft{
+		ChickenCageId:          request.ChickenCageId,
+		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
+		TotalSellChicken:       request.TotalSellChicken,
+		PricePerChicken:        pricePerChicken,
+		TotalPrice:             totalPrice,
+	}
+
+	err = s.repository.CreateAfkirChickenSaleDraft(&data)
+	if err != nil {
+		s.log.Error("failed create afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	data, err = s.repository.GetAfkirChickenSaleDraft(data.Id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleDraftToResponse(&data), nil
+}
+
+func (s *ChickenService) GetAfkirChickenSaleDrafts() ([]dto.AfkirChickenSaleDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenSaleDrafts()
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale drafts", zap.Error(err))
+		return nil, err
+	}
+
+	response := make([]dto.AfkirChickenSaleDraftResponse, 0)
+	for _, e := range data {
+		response = append(response, mapper.AfkirChickenSaleDraftToResponse(&e))
+	}
+
+	return response, nil
+}
+
+func (s *ChickenService) GetAfkirChickenSaleDraft(id uint64) (dto.AfkirChickenSaleDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleDraftToResponse(&data), nil
+}
+
+func (s *ChickenService) UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
+	if err != nil {
+		s.log.Error("failed parse price from string", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	data.ChickenCageId = request.ChickenCageId
+	data.AfkirChickenCustomerId = request.AfkirChickenCustomerId
+	data.TotalSellChicken = request.TotalSellChicken
+	data.PricePerChicken = pricePerChicken
+	data.TotalPrice = pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+
+	err = s.repository.UpdateAfkirChickenSaleDraft(&data)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleDraftToResponse(&data), nil
+}
+
+func (s *ChickenService) DeleteAfkirChickenSaleDraft(id uint64) error {
+	s.repository.UseTx(false)
+
+	err := s.repository.DeleteAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed delete afkir chickan sale draft", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid price format")
+	}
+
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type : %s", request.PaymentType))
+	}
+
+	data := entity.AfkirChickenSale{
+		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
+		ChickenCageId:          request.ChickenCageId,
+		TotalSellChicken:       request.TotalSellChicken,
+		PricePerChicken:        pricePerChicken,
+		TotalPrice:             pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken)),
+		ChickenAge:             chickenCage.ChickenAge,
+		PaymentStatus:          enum.PaymentStatusNotPaid,
+		PaymentType:            paymentType,
+		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.AfkirChickenSalePayment != nil {
+		nominal, err := decimal.NewFromString(request.AfkirChickenSalePayment.Nominal)
+		if err != nil {
+			s.log.Error("failed parse nominal from string", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+
+		paymentDate, err := time.Parse("02-01-2006", request.AfkirChickenSalePayment.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+
+		paymentMethod := enum.ValueOfPaymentMethod(request.AfkirChickenSalePayment.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.AfkirChickenSalePayment.PaymentMethod))
+		}
+
+		if data.TotalPrice.Equal(nominal) {
+			data.PaymentStatus = enum.PaymentStatusPaid
+		} else if nominal.GreaterThan(decimal.Zero) {
+			data.PaymentStatus = enum.PaymentStatusUnpaid
+		}
+
+		err = s.repository.CreateAfkirChickenSale(&data)
+		if err != nil {
+			s.log.Error("failed create afkir chicken sale", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, nil
+		}
+
+		payment := entity.AfkirChickenSalePayment{
+			AfkirChickenSaleId: data.AfkirChickenCustomerId,
+			Nominal:            nominal,
+			PaymentDate:        paymentDate,
+			PaymentMethod:      paymentMethod,
+			PaymentProof:       request.AfkirChickenSalePayment.PaymentProof,
+			CreatedBy:          uuid.NullUUID{UUID: userId, Valid: true},
+		}
+
+		err = s.repository.CreateAfkirChickenSalePayment(&payment)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+	} else {
+		err = s.repository.CreateAfkirChickenSale(&data)
+		if err != nil {
+			s.log.Error("failed create afkir chicken sale", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, nil
+		}
+	}
+
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
+		IsUsed: false,
+	}, userId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	data, err = s.repository.GetAfkirChickenSale(data.Id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleToResponse(&data), nil
+}
+
+func (s *ChickenService) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenSales(filter)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sales", zap.Error(err))
+		return dto.AfkirChickenSaleListPaginationResponse{}, err
+	}
+
+	totalData, err := s.repository.CountChickenAfkirChickenSale(filter)
+	if err != nil {
+		return dto.AfkirChickenSaleListPaginationResponse{}, err
+	}
+
+	afkirChickenSaleResponse := make([]dto.AfkirChickenSaleListResponse, 0)
+	for _, e := range data {
+		afkirChickenSaleResponse = append(afkirChickenSaleResponse, mapper.AfkirChickenSaleToListResponse(&e))
+	}
+
+	response := dto.AfkirChickenSaleListPaginationResponse{
+		AfkirChickenSales: afkirChickenSaleResponse,
+	}
+	if filter.Page > 0 {
+		response.TotalData = uint64(totalData)
+		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+	}
+
+	return response, nil
+}
+
+func (s *ChickenService) GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetAfkirChickenSale(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleToResponse(&data), nil
+}
+
+func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	afkirChickenSale, err := s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		s.log.Error("failed parse nominal from string", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
+	if err != nil {
+		s.log.Error("failed parse payment date", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.PaymentMethod))
+	}
+
+	payment := entity.AfkirChickenSalePayment{
+		AfkirChickenSaleId: afkirChickenSaleId,
+		Nominal:            nominal,
+		PaymentDate:        paymentDate,
+		PaymentMethod:      paymentMethod,
+		PaymentProof:       request.PaymentProof,
+		CreatedBy:          uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	totalCurrentPayment := decimal.Zero
+	for _, e := range afkirChickenSale.Payments {
+		totalCurrentPayment = totalCurrentPayment.Add(e.Nominal)
+	}
+
+	if totalCurrentPayment.Add(nominal).Equal(afkirChickenSale.TotalPrice) {
+		afkirChickenSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalCurrentPayment.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
+		s.log.Error("total payment is greater than total price", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+	}
+
+	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.CreateAfkirChickenSalePayment(&payment)
+	if err != nil {
+		s.log.Error("failed create afkir chicken sale payment", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	afkirChickenSale, err = s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleToResponse(&afkirChickenSale), nil
+}
+
+func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	afkirChickenSalePayment, err := s.repository.GetAfkirChickenSalePaymentById(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale payment", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	afkirChickenSale, err := s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		s.log.Error("failed parse nominal from string", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
+	if err != nil {
+		s.log.Error("failed parse payment date", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.PaymentMethod))
+	}
+
+	afkirChickenSalePayment.Nominal = nominal
+	afkirChickenSalePayment.PaymentDate = paymentDate
+	afkirChickenSalePayment.PaymentMethod = paymentMethod
+	afkirChickenSalePayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	totalCurrentPrice := decimal.Zero
+	for _, e := range afkirChickenSale.Payments {
+		if e.Id != afkirChickenSalePayment.Id {
+			totalCurrentPrice = totalCurrentPrice.Add(e.Nominal)
+		}
+	}
+
+	if totalCurrentPrice.Add(nominal).LessThan(afkirChickenSale.TotalPrice) {
+		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
+	} else if totalCurrentPrice.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is greater than total price")
+	}
+
+	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.UpdateAfkirChickenSalePayment(&afkirChickenSalePayment)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale payment", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	afkirChickenSale, err = s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleToResponse(&afkirChickenSale), nil
+}
+
+func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	afkirChickenSalePayment, err := s.repository.GetAfkirChickenSalePaymentById(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale payment", zap.Error(err))
+		return err
+	}
+
+	afkirChickenSale, err := s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return err
+	}
+
+	totalCurrentPrice := decimal.Zero
+	for _, e := range afkirChickenSale.Payments {
+		if e.Id != afkirChickenSalePayment.Id {
+			totalCurrentPrice = totalCurrentPrice.Add(e.Nominal)
+		}
+	}
+
+	if totalCurrentPrice.LessThan(afkirChickenSale.TotalPrice) {
+		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
+	} else if totalCurrentPrice.LessThan(decimal.Zero) {
+		return errx.BadRequest("nominal is less than 0")
+	}
+
+	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteAfkirChickenSalePayment(id)
+	if err != nil {
+		s.log.Error("failed delete afkir chicken sale payment", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return err
+	}
+
+	afkirChickenSale, err = s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return err
 	}
 
