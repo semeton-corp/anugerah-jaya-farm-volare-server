@@ -180,6 +180,8 @@ type CreateWarehouseSaleRequest struct {
 type UpdateWarehouseSaleRequest struct {
 	Quantity float64 `json:"quantity" validate:"required,number"`
 	SendDate string  `json:"sendDate" validate:"required"`
+	Price    string  `json:"price" validate:"required"`
+	Discount float64 `json:"disount" validate:"required"`
 }
 
 type CreateWarehouseSalePaymentRequest struct {

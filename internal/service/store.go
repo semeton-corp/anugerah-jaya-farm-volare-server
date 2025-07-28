@@ -1123,10 +1123,18 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, err
 	}
 
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed parse price from string", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
 	storeSale.Quantity = request.Quantity
-	totalPrice := storeSale.Price.Mul(decimal.NewFromFloat(request.Quantity))
-	discountPrice := totalPrice.Mul(decimal.NewFromFloat(storeSale.Discount / 100.0))
+	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	storeSale.TotalPrice = totalPrice.Sub(discountPrice)
+	storeSale.Price = price
+	storeSale.Discount = request.Discount
 
 	storeSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
 	if err != nil {

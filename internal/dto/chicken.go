@@ -208,6 +208,12 @@ type ChickenCagePerformanceSummaryResponse struct {
 	TotalNotSafeCage    uint64 `json:"totalNotSafeCage"`
 }
 
+type WarehouseItemSummaryResponse struct {
+	TotalSafeItem    uint64 `json:"totalSafeItem"`
+	TotalNotSafeItem uint64 `json:"totalNotSafeItem"`
+	TotalSentOffItem uint64 `json:"totalSentOffItem"`
+}
+
 type CompanyPerformanceBarChartResponse struct {
 	Key   string  `json:"key"`
 	Value float64 `json:"value"`
@@ -215,9 +221,11 @@ type CompanyPerformanceBarChartResponse struct {
 
 type ChickenPerformanceOverviewResponse struct {
 	ChickenPerformanceSummary     ChickenPerformanceSummaryResponse     `json:"chickenPerformanceSummary"`
-	ChickenBarChart               ChickenBarChartResponse               `json:"chickenBarChart"`
-	CompanyPerformanceBarChart    CompanyPerformanceBarChartResponse    `json:"companyPerformanceBarChart"`
+	ChickenBarCharts              ChickenBarChartResponse               `json:"chickenBarCharts"`
+	CompanyPerformanceBarCharts   CompanyPerformanceBarChartResponse    `json:"companyPerformanceBarCharts"`
 	ChickenCagePerformanceSummary ChickenCagePerformanceSummaryResponse `json:"chickenCagePerformanceSummary"`
+	WarehouseItemSummary          WarehouseItemSummaryResponse          `json:"warehouseItemSummary"`
+	ChickenGraphs                 ChickenGraphResponse                  `json:"chickenGraphs"`
 	// Todo : overview chicken performance in (owner, kepala kandang)
 }
 
