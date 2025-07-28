@@ -194,6 +194,14 @@ type ArrivalConfirmationChickenProcurementRequest struct {
 	Note     string `json:"note"`
 }
 
+type ChickenPerformanceSummary struct {
+	FeedConsumption  float64 `json:"foodConsumption"`
+	AverageEggWeight float64 `json:"averageEggWeight"`
+	AverageFCS       float64 `json:"averageFCS"`
+	AverageHDP       float64 `json:"averageHDP"`
+	AverageMortality float64 `json:"averageMortality"`
+}
+
 type ChickenPerformanceOverview struct {
 	// Todo : overview chicken performance in (owner, kepala kandang)
 }

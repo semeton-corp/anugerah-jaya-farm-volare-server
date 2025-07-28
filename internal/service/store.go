@@ -1113,7 +1113,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, err
 	}
 
-	storeItem.Quantity -= storeSale.Quantity + request.Quantity
+	storeItem.Quantity += storeSale.Quantity - request.Quantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)

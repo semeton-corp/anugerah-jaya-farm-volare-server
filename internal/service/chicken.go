@@ -1522,7 +1522,9 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 		}
 	}
 
-	if totalCurrentPrice.Add(nominal).LessThan(afkirChickenSale.TotalPrice) {
+	if totalCurrentPrice.Add(nominal).Equal(afkirChickenSale.TotalPrice) {
+		afkirChickenSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalCurrentPrice.Add(nominal).LessThan(afkirChickenSale.TotalPrice) {
 		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
 	} else if totalCurrentPrice.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is greater than total price")

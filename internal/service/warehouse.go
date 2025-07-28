@@ -947,7 +947,7 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	warehouseItem.Quantity -= warehouseSale.Quantity + request.Quantity
+	warehouseItem.Quantity += warehouseSale.Quantity - request.Quantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
