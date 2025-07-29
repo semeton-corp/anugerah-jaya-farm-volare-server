@@ -3,21 +3,23 @@ package enum
 type ItemCategory uint8
 
 const (
-	ItemCategoryUnknown     ItemCategory = 0
-	ItemCategoryFeed        ItemCategory = 1
-	ItemCategoryEgg         ItemCategory = 2
-	ItemCategoryEquipment   ItemCategory = 3
-	ItemCategoryRawMaterial ItemCategory = 4
-	ItemCategoryChicken     ItemCategory = 5
+	ItemCategoryUnknown        ItemCategory = 0
+	ItemCategoryReadyToEatFeed ItemCategory = 1
+	ItemCategoryEgg            ItemCategory = 2
+	ItemCategoryEquipment      ItemCategory = 3
+	ItemCategoryRawMaterial    ItemCategory = 4
+	ItemCategoryChicken        ItemCategory = 5
+	ItemCategoryCornMaterial   ItemCategory = 6
 )
 
 var (
 	ItemCategoryMap = map[ItemCategory]string{
-		ItemCategoryFeed:        "Pakan",
-		ItemCategoryEgg:         "Telur",
-		ItemCategoryEquipment:   "Barang",
-		ItemCategoryRawMaterial: "Bahan Baku",
-		ItemCategoryChicken:     "Ayam",
+		ItemCategoryEgg:            "Telur",
+		ItemCategoryEquipment:      "Barang",
+		ItemCategoryRawMaterial:    "Bahan Baku Adukan",
+		ItemCategoryChicken:        "Ayam",
+		ItemCategoryCornMaterial:   "Bahan Baku Adukan - Jagung",
+		ItemCategoryReadyToEatFeed: "Pakan Jadi",
 	}
 )
 

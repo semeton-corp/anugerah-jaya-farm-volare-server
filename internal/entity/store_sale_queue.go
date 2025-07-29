@@ -11,16 +11,17 @@ import (
 type StoreSaleQueue struct {
 	Id                  uint64            `gorm:"primaryKey;autoIncrement"`
 	CustomerId          sql.NullInt64     `gorm:"type:bigint"`
-	Customer            Customer          `gorm:"foreignKey:CustomerId;references:Id"`
+	Customer            Customer          `gorm:"foreignKey:CustomerId;references:Id;constraint:OnDelete:CASCADE"`
 	CustomerName        sql.NullString    `gorm:"type:varchar(255)"`
 	CustomerPhoneNumber sql.NullString    `gorm:"type:varchar(255)"`
-	CustomerType        enum.CustomerType `gorm:"type:varchar(255);not null"`
+	CustomerType        enum.CustomerType `gorm:"type:int;not null"`
 	ItemId              uint64            `gorm:"type:bigint;not null"`
-	Item                Item              `gorm:"type:foreignKey:ItemId;references:Id"`
+	Item                Item              `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	StoreId             uint64            `gorm:"type:bigint;not null"`
-	Store               Store             `gorm:"foreignKey:StoreId;references:Id"`
-	SaleUnit            enum.SaleUnit     `gorm:"type:varchar(255);not null"`
+	Store               Store             `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
+	SaleUnit            enum.SaleUnit     `gorm:"type:int;not null"`
 	SendDate            time.Time         `gorm:"timestamp;not null"`
+	Quantity            float64           `gorm:"type:decimal;not null;default:0"`
 	CreatedAt           time.Time         `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy           uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time         `gorm:"type:timestamp;autoUpdateTime"`

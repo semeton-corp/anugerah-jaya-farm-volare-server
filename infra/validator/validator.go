@@ -1,6 +1,8 @@
 package validator
 
-import "github.com/go-playground/validator/v10"
+import (
+	"github.com/go-playground/validator/v10"
+)
 
 func New() *validator.Validate {
 	validate := validator.New()
@@ -15,6 +17,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("salaryInterval", ValidationSalaryInterval)
 	validate.RegisterValidation("customerType", ValidationCustomerType)
 	validate.RegisterValidation("phoneNumber", ValidationPhoneNumber)
+	validate.RegisterValidation("eggType", ValidationEggType)
 
 	return validate
 }
@@ -123,4 +126,14 @@ func ValidationPhoneNumber(fl validator.FieldLevel) bool {
 	phoneNumber := fl.Field().String()
 
 	return phoneNumber[:2] == "08"
+}
+
+func ValidationEggType(fl validator.FieldLevel) bool {
+	eggType := fl.Field().String()
+	switch eggType {
+	case "Telur OK", "Telur Retak", "Telur Bonyok":
+		return true
+	default:
+		return false
+	}
 }

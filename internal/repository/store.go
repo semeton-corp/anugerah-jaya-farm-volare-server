@@ -343,7 +343,7 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Find(&storeSales).Order("created_at DESC").Error
@@ -430,8 +430,11 @@ func (r *StoreRepository) CreateStoreSaleQueue(data *entity.StoreSaleQueue) erro
 
 func (r *StoreRepository) GetStoreSaleQueueById(id uint64) (entity.StoreSaleQueue, error) {
 	var storeSaleQueue entity.StoreSaleQueue
-	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Preload("Store").Preload("Item").Preload("Customer").Where("id = ?", id).First(&storeSaleQueue).Error
+	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Preload("Store.Location").Preload("Item").Preload("Customer").Where("id = ?", id).First(&storeSaleQueue).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StoreSaleQueue{}, errx.NotFound("store sale queue not found")
+		}
 		return entity.StoreSaleQueue{}, err
 	}
 
@@ -444,7 +447,7 @@ func (r *StoreRepository) DeleteStoreSaleQueue(id uint64) error {
 
 func (r *StoreRepository) GetStoreSaleQueues() ([]entity.StoreSaleQueue, error) {
 	var storeSaleQueues []entity.StoreSaleQueue
-	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Find(&storeSaleQueues).Error
+	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Preload("Store.Location").Preload("Item").Preload("Customer").Find(&storeSaleQueues).Error
 	if err != nil {
 		return nil, err
 	}

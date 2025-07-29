@@ -286,11 +286,16 @@ type CreateStoreSaleQueueRequest struct {
 }
 
 type StoreSaleQueueResponse struct {
-	OrderPriority uint64           `json:"OrderPriority"`
+	OrderPriority uint64           `json:"orderPriority"`
 	Id            uint64           `json:"id"`
-	Quantity      uint64           `json:"quantity"`
+	Quantity      float64          `json:"quantity"`
 	Item          ItemResponse     `json:"item"`
 	Store         StoreResponse    `json:"store"`
 	SaleUnit      string           `json:"saleUnit"`
 	Customer      CustomerResponse `json:"customer"`
+}
+
+type StoreItemSummaryResponse struct {
+	TotalSafeStock    uint64 `json:"totalSafeStock"`
+	TotalNotSafeStock uint64 `json:"totalNotSafeStock"`
 }

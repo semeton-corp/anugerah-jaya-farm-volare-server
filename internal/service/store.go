@@ -1646,6 +1646,7 @@ func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequ
 	data := entity.StoreSaleQueue{
 		ItemId:       request.ItemId,
 		StoreId:      request.StoreId,
+		Quantity:     request.Quantity,
 		SaleUnit:     saleUnit,
 		SendDate:     sendDate,
 		CustomerType: customerType,

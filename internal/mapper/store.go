@@ -142,6 +142,7 @@ func StoreSaleQueueToResponse(storeSaleQueue *entity.StoreSaleQueue) dto.StoreSa
 		Id:       storeSaleQueue.Id,
 		Item:     ItemToResponse(&storeSaleQueue.Item),
 		Store:    StoreToResponse(&storeSaleQueue.Store),
+		Quantity: storeSaleQueue.Quantity,
 		SaleUnit: storeSaleQueue.SaleUnit.String(),
 	}
 

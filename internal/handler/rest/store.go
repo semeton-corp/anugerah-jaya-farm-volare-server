@@ -23,6 +23,13 @@ type StoreHandler struct {
 func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/stores")
 
+	v1.Post("/queues", middleware.Authentication(), h.CreateStoreSaleQueue)
+	v1.Get("/queues", middleware.Authentication(), h.GetStoreSaleQueues)
+	v1.Get("/queues/:id", middleware.Authentication(), h.GetStoreSaleQueue)
+	v1.Delete("/queues/:id", middleware.Authentication(), h.DeleteStoreSaleQueue)
+
+	v1.Get("/overview", middleware.Authentication(), h.GetStoreOverview)
+
 	v1.Post("/sales", middleware.Authentication(), h.CreateStoreSale)
 	v1.Get("/sales/:id", middleware.Authentication(), h.GetStoreSaleById)
 	v1.Get("/sales", middleware.Authentication(), h.GetStoreSales)
@@ -39,7 +46,6 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteStore)
 	v1.Get("/:id", middleware.Authentication(), h.GetStoreDetail)
 	v1.Get("/overview/stocks/:id", middleware.Authentication(), h.GetStoreItemStocks)
-	v1.Get("/overview", middleware.Authentication(), h.GetStoreOverview)
 
 	v1.Post("/request/items", middleware.Authentication(), h.CreateStoreRequestItem)
 	v1.Get("/request/items", middleware.Authentication(), h.GetStockRequestItems)
@@ -751,4 +757,68 @@ func (h *StoreHandler) SendStoreSale(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success send store sale")
+}
+
+func (h *StoreHandler) CreateStoreSaleQueue(c *fiber.Ctx) error {
+	var request dto.CreateStoreSaleQueueRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request bory", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateStoreSaleQueue(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success created store sale queue")
+}
+
+func (h *StoreHandler) GetStoreSaleQueues(c *fiber.Ctx) error {
+	data, err := h.service.GetStoreSaleQueues()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store sale queues")
+}
+
+func (h *StoreHandler) GetStoreSaleQueue(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreSaleQueue(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store sale")
+}
+
+func (h *StoreHandler) DeleteStoreSaleQueue(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return err
+	}
+
+	err = h.service.DeleteStoreSaleQueue(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
