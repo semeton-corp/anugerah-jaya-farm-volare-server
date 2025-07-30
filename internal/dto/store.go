@@ -148,7 +148,7 @@ type StoreItemHistoryListPaginationResponse struct {
 
 type GetStoreSaleFilter struct {
 	Date          param.DateParam          `query:"date"`
-	PaymentMethod param.PaymentMethodParam `query:"paymentMethod"`
+	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
 	Page          uint64                   `query:"page"`
 	StoreId       uint64
 	StartDate     param.DateParam
@@ -293,6 +293,7 @@ type StoreSaleQueueResponse struct {
 	Store         StoreResponse    `json:"store"`
 	SaleUnit      string           `json:"saleUnit"`
 	Customer      CustomerResponse `json:"customer"`
+	CustomerType  string           `json:"customerType"`
 }
 
 type StoreItemSummaryResponse struct {

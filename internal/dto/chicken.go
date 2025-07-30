@@ -159,11 +159,45 @@ type ChickenProcurementDraftResponse struct {
 	TotalPrice string           `json:"totalPrice"`
 }
 
-type ConfirmedChickenProcurementRequest struct {
+type ConfirmationChickenProcurementRequest struct {
 	Quantity            uint64                                   `json:"quantity"`
 	Price               string                                   `json:"price"`
 	EstimateArrivalDate string                                   `json:"estimationArrivalDate"`
 	Payments            []CreateChickenProcurementPaymentRequest `json:"payments"`
+}
+
+type ChickenProcurementResponse struct {
+	Id                    uint64                              `json:"id"`
+	OrderDate             string                              `json:"orderDate"`
+	Cage                  CageResponse                        `json:"cage"`
+	Supplier              SupplierListResponse                `json:"supplier"`
+	Quantity              uint64                              `json:"quantity"`
+	TotalPrice            string                              `json:"totalPrice"`
+	EstimationArrivalDate string                              `json:"estimationArrivalDate"`
+	Payments              []ChickenProcurementPaymentResponse `json:"payments"`
+	PaymentStatus         string                              `json:"paymentStatus"`
+	RemainingPayment      string                              `json:"remainingPayment"`
+}
+
+type ChickenProcurementListResponse struct {
+	Id                    uint64               `json:"id"`
+	OrderDate             string               `json:"orderDate"`
+	Quantity              uint64               `json:"quantity"`
+	Supplier              SupplierListResponse `json:"supplier"`
+	EstimationArrivalDate string               `json:"estimationArrivalDate"`
+	PaymentStatus         string               `json:"paymentStatus"`
+	IsArrived             bool                 `json:"IsArrived"`
+}
+
+type ChickenProcurementListPaginationResponse struct {
+	TotalPage           uint64                           `json:"totalPage,omitempty"`
+	TotalData           uint64                           `json:"totalData,omitempty"`
+	ChickenProcurements []ChickenProcurementListResponse `json:"chickenProcurements"`
+}
+
+type GetChickenProcurementFilter struct {
+	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
+	Page          uint64                   `query:"page"`
 }
 
 type CreateChickenProcurementPaymentRequest struct {

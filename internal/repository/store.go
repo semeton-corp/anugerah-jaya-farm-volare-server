@@ -334,8 +334,8 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	if filter.PaymentMethod.Value().IsValid() {
-		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
 	}
 
 	if filter.ItemId > 0 {
@@ -404,8 +404,8 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	if filter.PaymentMethod.Value().IsValid() {
-		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_method = ?", filter.PaymentStatus.Value())
 	}
 
 	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error

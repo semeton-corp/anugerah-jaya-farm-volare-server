@@ -139,11 +139,12 @@ func StoreItemHistoryToListResponse(storeItemHistory *entity.StoreItemHistory) d
 
 func StoreSaleQueueToResponse(storeSaleQueue *entity.StoreSaleQueue) dto.StoreSaleQueueResponse {
 	response := dto.StoreSaleQueueResponse{
-		Id:       storeSaleQueue.Id,
-		Item:     ItemToResponse(&storeSaleQueue.Item),
-		Store:    StoreToResponse(&storeSaleQueue.Store),
-		Quantity: storeSaleQueue.Quantity,
-		SaleUnit: storeSaleQueue.SaleUnit.String(),
+		Id:           storeSaleQueue.Id,
+		Item:         ItemToResponse(&storeSaleQueue.Item),
+		Store:        StoreToResponse(&storeSaleQueue.Store),
+		Quantity:     storeSaleQueue.Quantity,
+		CustomerType: storeSaleQueue.CustomerType.String(),
+		SaleUnit:     storeSaleQueue.SaleUnit.String(),
 	}
 
 	if storeSaleQueue.CustomerType == enum.CustomerTypeNew {

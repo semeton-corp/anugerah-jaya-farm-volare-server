@@ -48,6 +48,8 @@ type IChickenRepository interface {
 
 	CreateChickenProcurement(data *entity.ChickenProcurement) error
 	CreateChickenProcurementPaymentInBatch(data *[]entity.ChickenProcurementPayment) error
+	GetChickenProcurements(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error)
+	CountChickenProcurement(filter dto.GetChickenProcurementFilter) (int64, error)
 	GetChickenProcurementById(id uint64) (entity.ChickenProcurement, error)
 	UpdateChickenProcurement(data *entity.ChickenProcurement) error
 
@@ -473,4 +475,40 @@ func (r *ChickenRepository) UpdateAfkirChickenSalePayment(afkirChickenSalePaymen
 
 func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale) error {
 	return r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", data.Id).Updates(data).Error
+}
+
+func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error) {
+	var chickenProcurements []entity.ChickenProcurement
+	query := r.GetDB().Model(&entity.ChickenProcurement{})
+
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.Page > 0 {
+		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
+	}
+
+	err := query.Find(&chickenProcurements).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return chickenProcurements, nil
+}
+
+func (r *ChickenRepository) CountChickenProcurement(filter dto.GetChickenProcurementFilter) (int64, error) {
+	var count int64
+	query := r.GetDB().Model(&entity.ChickenProcurement{})
+
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	err := query.Count(&count).Error
+	if err != nil {
+		return -1, err
+	}
+
+	return count, nil
 }

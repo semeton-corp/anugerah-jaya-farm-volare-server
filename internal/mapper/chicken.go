@@ -157,3 +157,38 @@ func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.Afk
 		TotalPrice:           data.TotalPrice.String(),
 	}
 }
+
+// Note : without payment and remaining payment
+func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenProcurementResponse {
+	return dto.ChickenProcurementResponse{
+		Id:                    data.Id,
+		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		Quantity:              data.Quantity,
+		Supplier:              SupplierToListResponse(&data.Supplier),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		PaymentStatus:         data.PaymentStatus.String(),
+	}
+}
+
+func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.ChickenProcurementListResponse {
+	return dto.ChickenProcurementListResponse{
+		Id:                    data.Id,
+		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		Quantity:              data.Quantity,
+		Supplier:              SupplierToListResponse(&data.Supplier),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		PaymentStatus:         data.PaymentStatus.String(),
+		IsArrived:             data.IsArrived,
+	}
+}
+
+// Note : Without remaining
+func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment) dto.ChickenProcurementPaymentResponse {
+	return dto.ChickenProcurementPaymentResponse{
+		Id:            data.Id,
+		Date:          data.CreatedAt.Format("02 Jan 2006"),
+		Nominal:       data.Nominal.String(),
+		PaymentMethod: data.PaymentMethod.String(),
+		PaymentProof:  data.PaymentProof,
+	}
+}

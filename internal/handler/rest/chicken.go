@@ -41,6 +41,22 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/healths/monitorings/:id", middleware.Authentication(), h.GetChickenHealthMonitoringById)
 	v1.Put("/healths/monitorings/:id", middleware.Authentication(), h.UpdateChickenHealthMonitoring)
 	v1.Delete("/healths/monitorings/:id", middleware.Authentication(), h.DeleteChickenHealthMonitoring)
+
+	v1.Post("/procurements/drafts", middleware.Authentication(), h.CreateChickenProcurementDraft)
+	v1.Get("/procurements/drafts", middleware.Authentication(), h.GetChickenProcurementDrafts)
+
+	v1.Post("/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationChickenProcurementDraft)
+	v1.Post("/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationChickenProcurement)
+
+	v1.Post("/procurements/:chickenProcurementId/payments", middleware.Authentication(), h.CreateChickenProcurementPayment)
+	v1.Put("/procurements/:chickenProcurementId/payments/:id", middleware.Authentication(), h.UpdateChickenProcurementPayment)
+	v1.Delete("/procurements/:chickenProcurementId/payments", middleware.Authentication(), h.DeleteChickenProcurementPayment)
+
+	v1.Post("/afkir/customers", middleware.Authentication(), h.CreateAfkirChickenCustomer)
+	v1.Get("/afkir/customers", middleware.Authentication(), h.GetAfkirChickenCustomers)
+	v1.Get("/afkir/customers/:id", middleware.Authentication(), h.GetAfkirChickenCustomer)
+	v1.Put("/afkir/customers/:id", middleware.Authentication(), h.UpdateAfkirChickenCustomer)
+	v1.Delete("/afkir/customers/:id", middleware.Authentication(), h.DeleteAfkirChickenCustomer)
 }
 
 func NewChickenHandler(log *zap.Logger, service service.IChickenService, validator *validator.Validate) *ChickenHandler {
@@ -389,4 +405,297 @@ func (h *ChickenHandler) GetChickenOverview(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken overview")
+}
+
+func (h *ChickenHandler) CreateChickenProcurementDraft(c *fiber.Ctx) error {
+	var request dto.CreateChickenProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateChickenProcurementDraft(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success created chicken procurement")
+}
+
+func (h *ChickenHandler) GetChickenProcurementDrafts(c *fiber.Ctx) error {
+	data, err := h.service.GetChickenProcurementDrafts()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "get chicken procurement drafts")
+}
+
+func (h *ChickenHandler) ConfirmationChickenProcurementDraft(c *fiber.Ctx) error {
+	var request dto.ConfirmationChickenProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	data, err := h.service.ConfirmationChickenProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success confirm chicken procurement draft")
+}
+
+func (h *ChickenHandler) ArrivalConfirmationChickenProcurement(c *fiber.Ctx) error {
+	var request dto.ArrivalConfirmationChickenProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	data, err := h.service.ArrivalConfirmationChickenProcurement(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success arrival confirmation chicken procurement")
+}
+
+func (h *ChickenHandler) CreateChickenProcurementPayment(c *fiber.Ctx) error {
+	var request dto.CreateChickenProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	chickenProcurementId, err := strconv.ParseUint(c.Params("chickenProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse chicken procurement id", zap.Error(err))
+		return errx.BadRequest("invaid chicken procurement id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	data, err := h.service.CreateChickenProcurementPayment(chickenProcurementId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create chicken procurement payment")
+}
+
+func (h *ChickenHandler) UpdateChickenProcurementPayment(c *fiber.Ctx) error {
+	var request dto.UpdateChickenProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	chickenProcurementId, err := strconv.ParseUint(c.Params("chickenProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse chicken procurement id", zap.Error(err))
+		return errx.BadRequest("invaid chicken procurement id")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	data, err := h.service.UpdateChickenProcurementPayment(chickenProcurementId, id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success update chicken procurement payment")
+}
+
+func (h *ChickenHandler) DeleteChickenProcurementPayment(c *fiber.Ctx) error {
+	chickenProcurementId, err := strconv.ParseUint(c.Params("chickenProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse chicken procurement id", zap.Error(err))
+		return errx.BadRequest("invaid chicken procurement id")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	err = h.service.DeleteChickenProcurementPayment(chickenProcurementId, id, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) CreateAfkirChickenCustomer(c *fiber.Ctx) error {
+	var request dto.CreateAfkirChickenCustomerRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	data, err := h.service.CreateAfkirChickenCustomer(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken customer")
+}
+
+func (h *ChickenHandler) GetAfkirChickenCustomers(c *fiber.Ctx) error {
+	data, err := h.service.GetAfkirChickenCustomers()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get afkir chicken customers")
+}
+
+func (h *ChickenHandler) GetAfkirChickenCustomer(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	data, err := h.service.GetAfkirChickenCustomer(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success afkir chicken customer")
+}
+
+func (h *ChickenHandler) UpdateAfkirChickenCustomer(c *fiber.Ctx) error {
+	var request dto.UpdateAfkirChickenCustomerRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found context")
+		return errx.BadRequest("user id not found in context")
+	}
+
+	data, err := h.service.UpdateAfkirChickenCustomer(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken customer")
+}
+
+func (h *ChickenHandler) DeleteAfkirChickenCustomer(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	err = h.service.DeleteAfkirChickenCustomer(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }

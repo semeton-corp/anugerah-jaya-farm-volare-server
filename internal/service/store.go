@@ -985,7 +985,7 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSa
 	totalData, err := s.repository.CountTotalStoreSale(
 		dto.GetStoreSaleFilter{
 			Date:          filter.Date,
-			PaymentMethod: filter.PaymentMethod,
+			PaymentStatus: filter.PaymentStatus,
 		},
 	)
 	if err != nil {

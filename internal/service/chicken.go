@@ -46,6 +46,39 @@ type IChickenService interface {
 	GetChickenHealthMonitoringById(id uint64) (dto.ChickenHealthMonitoringResponse, error)
 
 	GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error)
+
+	CreateChickenProcurementDraft(request dto.CreateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error)
+	GetChickenProcurementDrafts() ([]dto.ChickenProcurementDraftResponse, error)
+
+	GetChickenProcurements(filter dto.GetChickenProcurementFilter) (dto.ChickenProcurementListPaginationResponse, error)
+	GetChickenProcurement(id uint64) (dto.ChickenProcurementResponse, error)
+	ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
+	ArrivalConfirmationChickenProcurement(id uint64, request dto.ArrivalConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
+
+	CreateChickenProcurementPayment(chickenProcurementId uint64, request dto.CreateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
+	UpdateChickenProcurementPayment(chickenProcurementId uint64, id uint64, request dto.UpdateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
+	DeleteChickenProcurementPayment(chickenProcurementId uint64, id uint64, userId uuid.UUID) error
+
+	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
+
+	CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error)
+	GetAfkirChickenCustomers() ([]dto.AfkirChickenCustomerListResponse, error)
+	GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCustomerResponse, error)
+	UpdateAfkirChickenCustomer(id uint64, request dto.UpdateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error)
+	DeleteAfkirChickenCustomer(id uint64) error 
+
+	CreateAkfirChickenSaleDraft(request dto.CreateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
+	GetAfkirChickenSaleDrafts() ([]dto.AfkirChickenSaleDraftResponse, error)
+	UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
+	DeleteAfkirChickenSaleDraft(id uint64) error
+
+	CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
+	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error)
+	GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleResponse, error)
+
+	CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
+	UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
+	DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error
 }
 
 func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService) IChickenService {
@@ -679,22 +712,77 @@ func (s *ChickenService) GetChickenProcurementDrafts() ([]dto.ChickenProcurement
 	return response, nil
 }
 
-func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmedChickenProcurementRequest, userId uuid.UUID) error {
+func (s *ChickenService) GetChickenProcurements(filter dto.GetChickenProcurementFilter) (dto.ChickenProcurementListPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetChickenProcurements(filter)
+	if err != nil {
+		s.log.Error("failed get chicken procurements", zap.Error(err))
+		return dto.ChickenProcurementListPaginationResponse{}, err
+	}
+
+	chickenProcurementResponse := make([]dto.ChickenProcurementListResponse, 0)
+	for _, e := range data {
+		chickenProcurementResponse = append(chickenProcurementResponse, mapper.ChickenProcurementToListResponse(&e))
+	}
+
+	count, err := s.repository.CountChickenProcurement(filter)
+	if err != nil {
+		s.log.Error("failed count chicken procurement", zap.Error(err))
+		return dto.ChickenProcurementListPaginationResponse{}, err
+	}
+
+	response := dto.ChickenProcurementListPaginationResponse{
+		ChickenProcurements: chickenProcurementResponse,
+	}
+
+	if filter.Page > 0 {
+		response.TotalData = uint64(count)
+		response.TotalPage = uint64(count) / constant.PaginationDefaultLimit
+	}
+
+	return response, nil
+}
+
+func (s *ChickenService) GetChickenProcurement(id uint64) (dto.ChickenProcurementResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenProcurement, err := s.repository.GetChickenProcurementById(id)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
+	totalPrice := chickenProcurement.TotalPrice
+	for _, payment := range chickenProcurement.Payments {
+		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
+		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+
+		paymentResponses = append(paymentResponses, newPaymentResponse)
+	}
+
+	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
+	chickenProcurementResponse.Payments = paymentResponses
+
+	return chickenProcurementResponse, nil
+}
+
+func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	chickenProcurementDraft, err := s.repository.GetChickenProcurementDraftById(id)
 	if err != nil {
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	cage, err := s.cageService.GetCageById(chickenProcurementDraft.CageId)
 	if err != nil {
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if cage.IsUsed {
-		return errx.BadRequest("cage is in used by another chicken")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("cage is in used by another chicken")
 	}
 
 	chickenProcurementDraft.IsConfirmed = true
@@ -702,25 +790,25 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
 		s.log.Error("failed to parse price from string", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	estimateArrivalDate, err := time.Parse("02-01-2006", request.EstimateArrivalDate)
 	if err != nil {
 		s.log.Error("failed to parse estimate arrival date", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	chickenProcurement := entity.ChickenProcurement{
-		CageId:              chickenProcurementDraft.CageId,
-		SupplierId:          chickenProcurementDraft.SupplierId,
-		Quantity:            request.Quantity,
-		Price:               price,
-		TotalPrice:          price.Mul(decimal.NewFromUint64(request.Quantity)),
-		Status:              enum.ProcurementStatusSentOff,
-		PaymentStatus:       enum.PaymentStatusNotPaid,
-		EstimateArrivalDate: estimateArrivalDate,
-		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+		CageId:                chickenProcurementDraft.CageId,
+		SupplierId:            chickenProcurementDraft.SupplierId,
+		Quantity:              request.Quantity,
+		Price:                 price,
+		TotalPrice:            price.Mul(decimal.NewFromUint64(request.Quantity)),
+		Status:                enum.ProcurementStatusSentOff,
+		PaymentStatus:         enum.PaymentStatusNotPaid,
+		EstimationArrivalDate: estimateArrivalDate,
+		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	chickenProcurementPayments := make([]entity.ChickenProcurementPayment, 0)
@@ -729,19 +817,19 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		paymentDate, err := time.Parse("02-01-2006", payment.PaymentDate)
 		if err != nil {
 			s.log.Error("failed to parse payment date", zap.Error(err))
-			return err
+			return dto.ChickenProcurementResponse{}, err
 		}
 
 		nominal, err := decimal.NewFromString(payment.Nominal)
 		if err != nil {
 			s.log.Error("failed to parse nominal from string", zap.Error(err))
-			return err
+			return dto.ChickenProcurementResponse{}, err
 		}
 
 		paymentMethod := enum.ValueOfPaymentMethod(payment.PaymentMethod)
 		if !paymentMethod.IsValid() {
 			s.log.Error("invalid payment method", zap.String("paymentMethod", payment.PaymentMethod))
-			return errx.BadRequest("invalid payment method")
+			return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment method")
 		}
 
 		chickenProcurementPayments = append(chickenProcurementPayments, entity.ChickenProcurementPayment{
@@ -764,13 +852,13 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 	err = s.repository.UpdateChickenProcurementDraft(&chickenProcurementDraft)
 	if err != nil {
 		s.log.Error("failed to update chicken procurement draft", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	err = s.repository.CreateChickenProcurement(&chickenProcurement)
 	if err != nil {
 		s.log.Error("failed to create chicken procurement", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if chickenProcurementPayments != nil {
@@ -781,25 +869,42 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		err = s.repository.CreateChickenProcurementPaymentInBatch(&chickenProcurementPayments)
 		if err != nil {
 			s.log.Error("failed to create chicken procurement in batch", zap.Error(err))
-			return err
+			return dto.ChickenProcurementResponse{}, err
 		}
 	}
 
 	err = s.repository.Commit()
 	if err != nil {
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
-	return nil
+	chickenProcurement, err = s.repository.GetChickenProcurementById(chickenProcurement.Id)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
+	totalPrice := chickenProcurement.TotalPrice
+	for _, payment := range chickenProcurement.Payments {
+		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
+		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+
+		paymentResponses = append(paymentResponses, newPaymentResponse)
+	}
+
+	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
+	chickenProcurementResponse.Payments = paymentResponses
+
+	return chickenProcurementResponse, nil
 }
 
-func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, request dto.ArrivalConfirmationChickenProcurementRequest, userId uuid.UUID) error {
+func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, request dto.ArrivalConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenProcurement, err := s.repository.GetChickenProcurementById(id)
 	if err != nil {
 		s.log.Error("failed to get chicken procurement by id", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	chickenProcurement.RecieveQuantity = sql.NullInt64{Int64: int64(request.Quantity), Valid: true}
@@ -809,51 +914,72 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	chickenProcurement.IsArrived = true
 	chickenProcurement.Status = enum.ProcurementStatusArrived
 
-	// Sage pattern
-	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{}, userId)
+	// Todo : Sage pattern
+	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
+		CageId:               chickenProcurement.CageId,
+		ChickenProcurementId: chickenProcurement.Id,
+		TotalChicken:         chickenProcurement.Quantity,
+	}, userId)
 	if err != nil {
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
 	if err != nil {
 		s.log.Error("failed update chicken procurement", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
-	return nil
+	chickenProcurement, err = s.repository.GetChickenProcurementById(chickenProcurement.Id)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
+	totalPrice := chickenProcurement.TotalPrice
+	for _, payment := range chickenProcurement.Payments {
+		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
+		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+
+		paymentResponses = append(paymentResponses, newPaymentResponse)
+	}
+
+	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
+	chickenProcurementResponse.Payments = paymentResponses
+
+	return chickenProcurementResponse, nil
 }
 
-func (s *ChickenService) CreateChickenProcurementPayment(chickenProcurementId uint64, request dto.CreateChickenProcurementPaymentRequest, userId uuid.UUID) error {
+func (s *ChickenService) CreateChickenProcurementPayment(chickenProcurementId uint64, request dto.CreateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	chickenProcurement, err := s.repository.GetChickenProcurementById(chickenProcurementId)
 	if err != nil {
 		s.log.Error("failed to get chicken procurement by id", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if chickenProcurement.PaymentStatus == enum.PaymentStatusPaid {
-		return errx.BadRequest("chicken procurement is already paid")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("chicken procurement is already paid")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
 	if !paymentMethod.IsValid() {
 		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
-		return errx.BadRequest("invalid payment method")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment method")
 	}
 
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed to parse payment date", zap.Error(err))
-		return errx.BadRequest("invalid payment date format")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment date format")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)
 	if err != nil {
 		s.log.Error("failed to parse nominal", zap.Error(err))
-		return errx.BadRequest("invalid nominal format")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid nominal format")
 	}
 
 	chickenProcurementPayment := entity.ChickenProcurementPayment{
@@ -874,65 +1000,82 @@ func (s *ChickenService) CreateChickenProcurementPayment(chickenProcurementId ui
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
 	} else if totalPayment.GreaterThan(chickenProcurement.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
-		return errx.BadRequest("total payment is greater than total price")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("total payment is greater than total price")
 	}
 
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
 	if err != nil {
 		s.log.Error("failed update chicken procurement", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	err = s.repository.CreateChickenProcurementPayment(&chickenProcurementPayment)
 	if err != nil {
 		s.log.Error("failed create chicken procurement payment", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
-	return nil
+	chickenProcurement, err = s.repository.GetChickenProcurementById(chickenProcurement.Id)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
+	totalPrice := chickenProcurement.TotalPrice
+	for _, payment := range chickenProcurement.Payments {
+		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
+		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+
+		paymentResponses = append(paymentResponses, newPaymentResponse)
+	}
+
+	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
+	chickenProcurementResponse.Payments = paymentResponses
+
+	return chickenProcurementResponse, nil
 }
 
-func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId uint64, id uint64, request dto.UpdateChickenProcurementPaymentRequest, userId uuid.UUID) error {
+func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId uint64, id uint64, request dto.UpdateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	chickenProcurement, err := s.repository.GetChickenProcurementById(chickenProcurementId)
 	if err != nil {
 		s.log.Error("failed to get chicken procurement by id", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	chickenProcurementPayment, err := s.repository.GetChickenProcurementPaymentById(id)
 	if err != nil {
 		s.log.Error("failed to get chicken procurement payment by id", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if chickenProcurement.PaymentStatus == enum.PaymentStatusPaid {
-		return errx.BadRequest("chicken procurement is already paid")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("chicken procurement is already paid")
 	}
 
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed to parse payment date", zap.Error(err))
-		return errx.BadRequest("invalid payment date format")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment date format")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)
 	if err != nil {
 		s.log.Error("failed to parse nominal", zap.Error(err))
-		return errx.BadRequest("invalid nominal format")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid nominal format")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
 	if !paymentMethod.IsValid() {
 		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
-		return errx.BadRequest("invalid payment method")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment method")
 	}
 
 	totalPayment := nominal
@@ -946,7 +1089,7 @@ func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId ui
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
 	} else if totalPayment.GreaterThan(chickenProcurement.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
-		return errx.BadRequest("total payment is greater than total price")
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("total payment is greater than total price")
 	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
 	}
@@ -960,24 +1103,41 @@ func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId ui
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
 	if err != nil {
 		s.log.Error("failed update chicken procurement", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	err = s.repository.UpdateChickenProcurementPayment(&chickenProcurementPayment)
 	if err != nil {
 		s.log.Error("failed create chicken procurement payment", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
 	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
-		return err
+		return dto.ChickenProcurementResponse{}, err
 	}
 
-	return nil
+	chickenProcurement, err = s.repository.GetChickenProcurementById(chickenProcurement.Id)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
+	totalPrice := chickenProcurement.TotalPrice
+	for _, payment := range chickenProcurement.Payments {
+		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
+		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+
+		paymentResponses = append(paymentResponses, newPaymentResponse)
+	}
+
+	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
+	chickenProcurementResponse.Payments = paymentResponses
+
+	return chickenProcurementResponse, nil
 }
 
-func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, id uint64) error {
+func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId uint64, id uint64, userId uuid.UUID) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -1000,6 +1160,7 @@ func (s *ChickenService) DeleteChickenProcurement(chickenProcurementId uint64, i
 
 	if totalPayment.LessThan(chickenProcurement.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	} else if totalPayment.LessThan(decimal.Zero) {
 		s.log.Error("delete this payment make minus", zap.Error(err))
 		return errx.BadRequest("delete this payment make minus")

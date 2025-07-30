@@ -133,3 +133,19 @@ func (p *PresenceStatusParam) UnmarshalText(text []byte) error {
 func (p PresenceStatusParam) Value() enum.PresenceStatus {
 	return enum.PresenceStatus(p)
 }
+
+type PaymentStatusParam enum.PaymentStatus
+
+func (p *PaymentStatusParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfPaymentStatus(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid payment status")
+	}
+
+	*p = PaymentStatusParam(parsedFilter)
+	return nil
+}
+
+func (p PaymentStatusParam) Value() enum.PaymentStatus {
+	return enum.PaymentStatus(p)
+}
