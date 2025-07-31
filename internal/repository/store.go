@@ -56,7 +56,7 @@ type IStoreRepository interface {
 
 	CreateStoreSaleQueue(data *entity.StoreSaleQueue) error
 	GetStoreSaleQueueById(id uint64) (entity.StoreSaleQueue, error)
-	GetStoreSaleQueues() ([]entity.StoreSaleQueue, error)
+	GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]entity.StoreSaleQueue, error)
 	DeleteStoreSaleQueue(id uint64) error
 }
 
@@ -445,9 +445,15 @@ func (r *StoreRepository) DeleteStoreSaleQueue(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSaleQueue{}).Error
 }
 
-func (r *StoreRepository) GetStoreSaleQueues() ([]entity.StoreSaleQueue, error) {
+func (r *StoreRepository) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]entity.StoreSaleQueue, error) {
 	var storeSaleQueues []entity.StoreSaleQueue
-	err := r.GetDB().Model(&entity.StoreSaleQueue{}).Preload("Store.Location").Preload("Item").Preload("Customer").Find(&storeSaleQueues).Error
+	query := r.GetDB().Model(&entity.StoreSaleQueue{})
+
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
+	}
+
+	err := query.Preload("Store.Location").Preload("Item").Preload("Customer").Find(&storeSaleQueues).Error
 	if err != nil {
 		return nil, err
 	}

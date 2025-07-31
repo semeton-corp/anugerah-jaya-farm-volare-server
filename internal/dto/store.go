@@ -156,6 +156,10 @@ type GetStoreSaleFilter struct {
 	ItemId        uint64
 }
 
+type GetStoreSaleQueueFilter struct {
+	StoreId uint64 `query:"storeId"`
+}
+
 type StoreSaleResponse struct {
 	Id               uint64                     `json:"id"`
 	SendDate         string                     `json:"sentDate"`
@@ -282,13 +286,13 @@ type CreateStoreSaleQueueRequest struct {
 	StoreId             uint64  `json:"storeId" validate:"required,number"`
 	Quantity            float64 `json:"quantity" validate:"required,number"`
 	SaleUnit            string  `json:"saleUnit" validate:"required,saleUnit"`
-	SendDate            string  `json:"sendDate" validate:"required"`
 }
 
 type StoreSaleQueueResponse struct {
 	OrderPriority uint64           `json:"orderPriority"`
 	Id            uint64           `json:"id"`
 	Quantity      float64          `json:"quantity"`
+	SendDate      string           `json:"sendDate"`
 	Item          ItemResponse     `json:"item"`
 	Store         StoreResponse    `json:"store"`
 	SaleUnit      string           `json:"saleUnit"`

@@ -58,7 +58,7 @@ type IStoreService interface {
 	GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) (dto.StoreItemHistoryListPaginationResponse, error)
 	GetStoreItemHistoryById(id uint64) (dto.StoreItemHistoryResponse, error)
 
-	CreateStoreSale(request dto.CreateStoreSaleRequest, createdBy uuid.UUID) (dto.StoreSaleResponse, error)
+	CreateStoreSale(request dto.CreateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 	GetStoreSaleById(id uint64) (dto.StoreSaleResponse, error)
 	GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSaleListPaginationResponse, error)
 	UpdateStoreSale(id uint64, request dto.UpdateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
@@ -71,8 +71,9 @@ type IStoreService interface {
 
 	CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequest, userId uuid.UUID) (dto.StoreSaleQueueResponse, error)
 	GetStoreSaleQueue(id uint64) (dto.StoreSaleQueueResponse, error)
-	GetStoreSaleQueues() ([]dto.StoreSaleQueueResponse, error)
+	GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]dto.StoreSaleQueueResponse, error)
 	DeleteStoreSaleQueue(id uint64) error
+	AllocateStoreSaleQueue(id uint64, request dto.CreateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService, itemService IItemService, customerService ICustomerService) IStoreService {
@@ -1627,12 +1628,6 @@ func (s *StoreService) buildStoreOverviewYearlyGraph(storeId uint64, itemId uint
 func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequest, userId uuid.UUID) (dto.StoreSaleQueueResponse, error) {
 	s.repository.UseTx(false)
 
-	sendDate, err := time.Parse("02-01-2006", request.SendDate)
-	if err != nil {
-		s.log.Error("failed to parse send date", zap.Error(err))
-		return dto.StoreSaleQueueResponse{}, err
-	}
-
 	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
 	if !saleUnit.IsValid() {
 		return dto.StoreSaleQueueResponse{}, errx.BadRequest("invalid sale unit")
@@ -1648,7 +1643,6 @@ func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequ
 		StoreId:      request.StoreId,
 		Quantity:     request.Quantity,
 		SaleUnit:     saleUnit,
-		SendDate:     sendDate,
 		CustomerType: customerType,
 		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1669,7 +1663,7 @@ func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequ
 		data.CustomerId = sql.NullInt64{Int64: int64(request.CustomerId), Valid: true}
 	}
 
-	err = s.repository.CreateStoreSaleQueue(&data)
+	err := s.repository.CreateStoreSaleQueue(&data)
 	if err != nil {
 		s.log.Error("failed create store sale queue", zap.Error(err))
 		return dto.StoreSaleQueueResponse{}, err
@@ -1695,11 +1689,11 @@ func (s *StoreService) GetStoreSaleQueue(id uint64) (dto.StoreSaleQueueResponse,
 	return mapper.StoreSaleQueueToResponse(&data), nil
 }
 
-func (s *StoreService) GetStoreSaleQueues() ([]dto.StoreSaleQueueResponse, error) {
+func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]dto.StoreSaleQueueResponse, error) {
 	s.repository.UseTx(false)
 
 	// Todo : formula for integrated planning
-	storeSaleQueues, err := s.repository.GetStoreSaleQueues()
+	storeSaleQueues, err := s.repository.GetStoreSaleQueues(filter)
 	if err != nil {
 		s.log.Error("failed get store sale queues", zap.Error(err))
 		return nil, err
@@ -1723,4 +1717,181 @@ func (s *StoreService) DeleteStoreSaleQueue(id uint64) error {
 	}
 
 	return nil
+}
+
+func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	err := s.repository.DeleteStoreSaleQueue(id)
+	if err != nil {
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(request.StoreId, request.ItemId)
+	if err != nil {
+		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeItem.Quantity -= request.Quantity
+	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateStoreItem(&storeItem)
+	if err != nil {
+		s.log.Error("failed to update store item", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	sendDate, err := time.Parse("02-01-2006", request.SendDate)
+	if err != nil {
+		s.log.Error("failed to parse sent date", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sent date format")
+	}
+
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed to parse price", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid price format")
+	}
+
+	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
+	totalPrice = totalPrice.Sub(discountPrice)
+
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	storeSale := entity.StoreSale{
+		StoreId:     request.StoreId,
+		ItemId:      request.ItemId,
+		Quantity:    request.Quantity,
+		Price:       price,
+		TotalPrice:  totalPrice,
+		SendDate:    sendDate,
+		Discount:    request.Discount,
+		IsSend:      false,
+		SaleUnit:    saleUnit,
+		PaymentType: paymentType,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		storeSale.CustomerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if request.CustomerPhoneNumber[:2] != "08" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		// Saga pattern
+		resp, err := s.customerService.CreateCustomer(customer)
+		if err != nil {
+			return dto.StoreSaleResponse{}, err
+		}
+
+		storeSale.CustomerId = resp.Id
+	}
+
+	nominal, err := decimal.NewFromString(request.StoreSalePayment.Nominal)
+	if err != nil {
+		s.log.Error("failed to parse nominal", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+	}
+
+	if paymentType == enum.PaymentTypePaidOff {
+		if !storeSale.TotalPrice.Equal(nominal) {
+			s.log.Error("nominal is not equal to total price", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
+		}
+
+		storeSale.PaymentStatus = enum.PaymentStatusPaid
+	} else {
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	err = s.repository.CreateStoreSale(&storeSale)
+	if err != nil {
+		s.log.Error("failed to create store sale", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	if request.StoreSalePayment.Nominal != "" &&
+		request.StoreSalePayment.PaymentDate != "" &&
+		request.StoreSalePayment.PaymentProof != "" &&
+		request.StoreSalePayment.PaymentMethod != "" {
+		paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			s.log.Error("invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+		}
+
+		paymentDate, err := time.Parse("02-01-2006", request.StoreSalePayment.PaymentDate)
+		if err != nil {
+			s.log.Error("failed to parse payment date", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+		}
+
+		storeSalePayment := entity.StoreSalePayment{
+			PaymentDate:   paymentDate,
+			StoreSaleId:   storeSale.Id,
+			Nominal:       nominal,
+			PaymentProof:  request.StoreSalePayment.PaymentProof,
+			PaymentMethod: paymentMethod,
+			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
+		}
+
+		err = s.repository.CreateStoreSalePayment(&storeSalePayment)
+		if err != nil {
+			s.log.Error("failed to create store sale payment", zap.Error(err))
+			return dto.StoreSaleResponse{}, err
+		}
+	}
+
+	storeSale, err = s.repository.GetStoreSaleById(storeSale.Id)
+	if err != nil {
+		s.log.Error("failed to get store sale by id", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.StoreSaleResponse{}, err
+	}
+
+	storeSalePayments := make([]dto.StoreSalePaymentResponse, len(storeSale.Payments))
+	remainingPayment := storeSale.TotalPrice
+	for i, storeSalePayment := range storeSale.Payments {
+		storeSalePayments[i] = mapper.StoreSalePaymentToResponse(&storeSalePayment)
+		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		storeSalePayments[i].Remaining = remainingPayment.String()
+	}
+
+	storeSaleResponse := mapper.StoreSaleToResponse(&storeSale)
+	storeSaleResponse.Payments = storeSalePayments
+	storeSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return storeSaleResponse, nil
 }

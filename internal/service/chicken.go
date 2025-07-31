@@ -65,7 +65,7 @@ type IChickenService interface {
 	GetAfkirChickenCustomers() ([]dto.AfkirChickenCustomerListResponse, error)
 	GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCustomerResponse, error)
 	UpdateAfkirChickenCustomer(id uint64, request dto.UpdateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error)
-	DeleteAfkirChickenCustomer(id uint64) error 
+	DeleteAfkirChickenCustomer(id uint64) error
 
 	CreateAkfirChickenSaleDraft(request dto.CreateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
 	GetAfkirChickenSaleDrafts() ([]dto.AfkirChickenSaleDraftResponse, error)

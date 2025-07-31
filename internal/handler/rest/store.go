@@ -27,6 +27,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/queues", middleware.Authentication(), h.GetStoreSaleQueues)
 	v1.Get("/queues/:id", middleware.Authentication(), h.GetStoreSaleQueue)
 	v1.Delete("/queues/:id", middleware.Authentication(), h.DeleteStoreSaleQueue)
+	v1.Post("/queues/:id/allocates", middleware.Authentication(), h.AllocateStoreSaleQueue)
 
 	v1.Get("/overview", middleware.Authentication(), h.GetStoreOverview)
 
@@ -763,7 +764,7 @@ func (h *StoreHandler) CreateStoreSaleQueue(c *fiber.Ctx) error {
 	var request dto.CreateStoreSaleQueueRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed parse request bory", zap.Error(err))
-		return err
+		return errx.BadRequest(err.Error())
 	}
 
 	if err := h.validator.Struct(&request); err != nil {
@@ -785,7 +786,18 @@ func (h *StoreHandler) CreateStoreSaleQueue(c *fiber.Ctx) error {
 }
 
 func (h *StoreHandler) GetStoreSaleQueues(c *fiber.Ctx) error {
-	data, err := h.service.GetStoreSaleQueues()
+	var filter dto.GetStoreSaleQueueFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failde parse query filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreSaleQueues(filter)
 	if err != nil {
 		return err
 	}
@@ -821,4 +833,36 @@ func (h *StoreHandler) DeleteStoreSaleQueue(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *StoreHandler) AllocateStoreSaleQueue(c *fiber.Ctx) error {
+	var request dto.CreateStoreSaleRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.AllocateStoreSaleQueue(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success allocate store sale queue")
 }

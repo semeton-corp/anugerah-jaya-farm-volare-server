@@ -57,6 +57,19 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/afkir/customers/:id", middleware.Authentication(), h.GetAfkirChickenCustomer)
 	v1.Put("/afkir/customers/:id", middleware.Authentication(), h.UpdateAfkirChickenCustomer)
 	v1.Delete("/afkir/customers/:id", middleware.Authentication(), h.DeleteAfkirChickenCustomer)
+
+	v1.Post("/afkir/sales", middleware.Authentication(), h.CreateAfkirChickenSale)
+	v1.Get("/afkir/sales", middleware.Authentication(), h.GetAfkirChickenSales)
+	v1.Get("/afkir/sales/:id", middleware.Authentication(), h.GetAfkirChickenSale)
+
+	v1.Post("/afkir/sales/:afkirChickenSaleId/payments", middleware.Authentication(), h.CreateAfkirChickenSalePayment)
+	v1.Put("/afkir/sales/:afkirChickenSaleId/payments/:id", middleware.Authentication(), h.UpdateAfkirChickenSalePayment)
+	v1.Delete("/afkir/sales/:afkirChickenSaleId/payments/:id", middleware.Authentication(), h.DeleteAfkirChickenSalePayment)
+
+	v1.Post("/afkir/sales/drafts", middleware.Authentication(), h.CreateAfkirChickenSaleDraft)
+	v1.Get("/afkir/sales/drafts", middleware.Authentication(), h.GetAfkirChickenSaleDrafts)
+	v1.Put("/afkir/sales/drafts/:id", middleware.Authentication(), h.UpdateAfkirChickenSaleDraft)
+	v1.Delete("/afkir/sales/drafts/:id", middleware.Authentication(), h.DeleteAfkirChickenSaleDraft)
 }
 
 func NewChickenHandler(log *zap.Logger, service service.IChickenService, validator *validator.Validate) *ChickenHandler {
@@ -693,6 +706,237 @@ func (h *ChickenHandler) DeleteAfkirChickenCustomer(c *fiber.Ctx) error {
 	}
 
 	err = h.service.DeleteAfkirChickenCustomer(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) CreateAfkirChickenSaleDraft(c *fiber.Ctx) error {
+	var request dto.CreateAfkirChickenSaleDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateAkfirChickenSaleDraft(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale draft")
+}
+
+func (h *ChickenHandler) GetAfkirChickenSaleDrafts(c *fiber.Ctx) error {
+	data, err := h.service.GetAfkirChickenSaleDrafts()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken sale drafts")
+}
+
+func (h *ChickenHandler) UpdateAfkirChickenSaleDraft(c *fiber.Ctx) error {
+	var request dto.UpdateAfkirChickenSaleDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.
+			Error(err))
+		return err
+	}
+
+	data, err := h.service.UpdateAfkirChickenSaleDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale draft")
+}
+
+func (h *ChickenHandler) DeleteAfkirChickenSaleDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.
+			Error(err))
+		return err
+	}
+
+	err = h.service.DeleteAfkirChickenSaleDraft(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) CreateAfkirChickenSale(c *fiber.Ctx) error {
+	var request dto.CreateAfkirChickenSaleRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateAfkirChickenSale(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale")
+}
+
+func (h *ChickenHandler) GetAfkirChickenSales(c *fiber.Ctx) error {
+	var filter dto.GetAfkirChickenSaleFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed get afkir chicken sales", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetAfkirChickenSales(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get afkir chicken sale")
+}
+
+func (h *ChickenHandler) GetAfkirChickenSale(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetAkfirChickenSale(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get afkir chicken sale")
+}
+
+func (h *ChickenHandler) CreateAfkirChickenSalePayment(c *fiber.Ctx) error {
+	var request dto.CreateAfkirChickenSalePaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	afkirChickenSaleId, err := strconv.ParseUint(c.Params("afkirChickenSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse afkir chicken sale id", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateAfkirChickenSalePayment(afkirChickenSaleId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale payment")
+}
+
+func (h *ChickenHandler) UpdateAfkirChickenSalePayment(c *fiber.Ctx) error {
+	var request dto.UpdateAfkirChickenSalePaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	afkirChickenSaleId, err := strconv.ParseUint(c.Params("afkirChickenSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse afkir chicken sale id", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.UpdateAfkirChickenSalePayment(afkirChickenSaleId, id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale payment")
+}
+
+func (h *ChickenHandler) DeleteAfkirChickenSalePayment(c *fiber.Ctx) error {
+	afkirChickenSaleId, err := strconv.ParseUint(c.Params("afkirChickenSaleId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse afkir chicken sale id", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.Error(err))
+		return err
+	}
+
+	err = h.service.DeleteAfkirChickenSalePayment(afkirChickenSaleId, id)
 	if err != nil {
 		return err
 	}
