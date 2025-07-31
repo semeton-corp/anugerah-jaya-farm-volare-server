@@ -62,6 +62,12 @@ type IWarehouseService interface {
 	DeleteWarehouseSalePayment(warehouseSaleId uint64, id uint64, userId uuid.UUID) error
 
 	SendWarehouseSale(id uint64, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+
+	CreateWarehouseSaleQueue(request dto.CreateWarehouseSaleQueueRequest, userId uuid.UUID) (dto.WarehouseSaleQueueResponse, error)
+	DeleteWarehouseSaleQueue(id uint64) error
+	GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]dto.WarehouseSaleQueueResponse, error)
+	GetWarehouseSaleQueue(id uint64) (dto.WarehouseSaleQueueResponse, error)
+	AllocateWarehouseSaleQueue(id uint64, request dto.CreateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -414,7 +420,7 @@ func (s *WarehouseService) CreateWarehouseOrderItem(request dto.CreateWarehouseI
 		SupplierId:  request.SupplierId,
 		ItemId:      request.WarehouseItemId,
 		Quantity:    request.Quantity,
-		Status:      enum.WarehouseOrderStatusInSend,
+		Status:      enum.ProcurementStatusArrived,
 		TakenAt:     sql.NullTime{},
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -496,12 +502,12 @@ func (s *WarehouseService) TakeWarehouseOrderItem(id uint64, userId uuid.UUID) (
 		return dto.WarehouseItempProcurementResponse{}, err
 	}
 
-	if warehouseOrderItem.IsTaken.Bool {
-		s.log.Error("[TakeWarehouseOrderItem] warehouse order item already taken", zap.Error(err))
+	if warehouseOrderItem.IsArrived {
+		s.log.Error("warehouse order item already taken", zap.Error(err))
 		return dto.WarehouseItempProcurementResponse{}, errx.BadRequest("warehouse order item already taken")
 	}
 
-	warehouseOrderItem.IsTaken = sql.NullBool{Bool: true, Valid: true}
+	warehouseOrderItem.IsArrived = true
 	warehouseOrderItem.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	warehouseOrderItem.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	warehouseOrderItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
@@ -623,7 +629,21 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	warehouseItem.Quantity -= request.Quantity
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if warehouseItem.Quantity < realQuantity {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	warehouseItem.Quantity -= realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
@@ -653,12 +673,6 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
-
-	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
-	if !saleUnit.IsValid() {
-		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
-	}
 
 	warehouseSale := entity.WarehouseSale{
 		WarehouseId: request.WarehouseId,
@@ -948,7 +962,21 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	warehouseItem.Quantity += warehouseSale.Quantity - request.Quantity
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if warehouseItem.Quantity < realQuantity {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	warehouseItem.Quantity += warehouseSale.Quantity - realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
@@ -969,6 +997,19 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	warehouseSale.TotalPrice = totalPrice.Sub(discountPrice)
 	warehouseSale.Price = price
 	warehouseSale.Discount = request.Discount
+
+	totalPayment := decimal.Zero
+	for _, payment := range warehouseSale.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	if totalPayment.Equal(warehouseSale.TotalPrice) {
+		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalPayment.LessThan(warehouseSale.TotalPrice) {
+		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+	} else if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("quantity can't be lower")
+	}
 
 	warehouseSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
 	if err != nil {
@@ -1159,16 +1200,16 @@ func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) erro
 		return errx.BadRequest("store sale already send")
 	}
 
-	storeItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(storeSale.WarehouseId, storeSale.ItemId)
+	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(storeSale.WarehouseId, storeSale.ItemId)
 	if err != nil {
 		s.log.Error("failed to get warehouse item by store id and item id", zap.Error(err))
 		return err
 	}
 
-	storeItem.Quantity += storeSale.Quantity
-	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	warehouseItem.Quantity += storeSale.Quantity
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
-	err = s.repository.UpdateWarehouseItem(&storeItem)
+	err = s.repository.UpdateWarehouseItem(&warehouseItem)
 	if err != nil {
 		s.log.Error("failed to update store item", zap.Error(err))
 		return err
@@ -1241,12 +1282,6 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 func (s *WarehouseService) CreateWarehouseSaleQueue(request dto.CreateWarehouseSaleQueueRequest, userId uuid.UUID) (dto.WarehouseSaleQueueResponse, error) {
 	s.repository.UseTx(false)
 
-	sendDate, err := time.Parse("02-01-2006", request.SendDate)
-	if err != nil {
-		s.log.Error("failed to parse send date", zap.Error(err))
-		return dto.WarehouseSaleQueueResponse{}, err
-	}
-
 	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
 	if !saleUnit.IsValid() {
 		return dto.WarehouseSaleQueueResponse{}, errx.BadRequest("invalid sale unit")
@@ -1261,7 +1296,6 @@ func (s *WarehouseService) CreateWarehouseSaleQueue(request dto.CreateWarehouseS
 		ItemId:       request.ItemId,
 		WarehouseId:  request.WarehouseId,
 		SaleUnit:     saleUnit,
-		SendDate:     sendDate,
 		CustomerType: customerType,
 		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1282,7 +1316,7 @@ func (s *WarehouseService) CreateWarehouseSaleQueue(request dto.CreateWarehouseS
 		data.CustomerId = sql.NullInt64{Int64: int64(request.CustomerId), Valid: true}
 	}
 
-	err = s.repository.CreateWarehouseSaleQueue(&data)
+	err := s.repository.CreateWarehouseSaleQueue(&data)
 	if err != nil {
 		s.log.Error("failed create Warehouse sale queue", zap.Error(err))
 		return dto.WarehouseSaleQueueResponse{}, err
@@ -1308,18 +1342,18 @@ func (s *WarehouseService) GetWarehouseSaleQueue(id uint64) (dto.WarehouseSaleQu
 	return mapper.WarehouseSaleQueueToResponse(&data), nil
 }
 
-func (s *WarehouseService) GetWarehouseSaleQueues() ([]dto.WarehouseSaleQueueResponse, error) {
+func (s *WarehouseService) GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]dto.WarehouseSaleQueueResponse, error) {
 	s.repository.UseTx(false)
 
 	// Todo : formula for integrated planning
-	WarehouseSaleQueues, err := s.repository.GetWarehouseSaleQueues()
+	warehouseSaleQueues, err := s.repository.GetWarehouseSaleQueues(filter)
 	if err != nil {
 		s.log.Error("failed get Warehouse sale queues", zap.Error(err))
 		return nil, err
 	}
 
 	response := make([]dto.WarehouseSaleQueueResponse, 0)
-	for _, WarehouseSaleQueue := range WarehouseSaleQueues {
+	for _, WarehouseSaleQueue := range warehouseSaleQueues {
 		response = append(response, mapper.WarehouseSaleQueueToResponse(&WarehouseSaleQueue))
 	}
 
@@ -1336,4 +1370,184 @@ func (s *WarehouseService) DeleteWarehouseSaleQueue(id uint64) error {
 	}
 
 	return nil
+}
+
+func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.CreateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	err := s.repository.DeleteWarehouseSaleQueue(id)
+	if err != nil {
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(request.WarehouseId, request.ItemId)
+	if err != nil {
+		s.log.Error("failed to get warehouse item by warehouse id and item id", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	if warehouseItem.Quantity < request.Quantity {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	warehouseItem.Quantity -= request.Quantity
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateWarehouseItem(&warehouseItem)
+	if err != nil {
+		s.log.Error("failed to update warehouse item", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	sendDate, err := time.Parse("02-01-2006", request.SendDate)
+	if err != nil {
+		s.log.Error("failed to parse sent date", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sent date format")
+	}
+
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed to parse price", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid price format")
+	}
+
+	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
+	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
+	totalPrice = totalPrice.Sub(discountPrice)
+
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	warehouseSale := entity.WarehouseSale{
+		WarehouseId: request.WarehouseId,
+		ItemId:      request.ItemId,
+		Quantity:    request.Quantity,
+		Price:       price,
+		TotalPrice:  totalPrice,
+		SendDate:    sendDate,
+		Discount:    request.Discount,
+		IsSend:      false,
+		SaleUnit:    saleUnit,
+		PaymentType: paymentType,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		warehouseSale.CustomerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if request.CustomerPhoneNumber[:2] != "08" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer)
+		if err != nil {
+			return dto.WarehouseSaleResponse{}, err
+		}
+
+		warehouseSale.CustomerId = resp.Id
+	}
+
+	nominal, err := decimal.NewFromString(request.WarehouseSalePayment.Nominal)
+	if err != nil {
+		s.log.Error("failed to parse nominal", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+	}
+
+	if paymentType == enum.PaymentTypePaidOff {
+		if !warehouseSale.TotalPrice.Equal(nominal) {
+			s.log.Error("nominal is not equal to total price", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
+		}
+
+		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+	} else {
+		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	err = s.repository.CreateWarehouseSale(&warehouseSale)
+	if err != nil {
+		s.log.Error("failed to create warehouse sale", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	if request.WarehouseSalePayment.Nominal != "" &&
+		request.WarehouseSalePayment.PaymentDate != "" &&
+		request.WarehouseSalePayment.PaymentProof != "" &&
+		request.WarehouseSalePayment.PaymentMethod != "" {
+		paymentMethod := enum.ValueOfPaymentMethod(request.WarehouseSalePayment.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			s.log.Error("invalid payment method", zap.String("paymentMethod", request.WarehouseSalePayment.PaymentMethod))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment method")
+		}
+
+		paymentDate, err := time.Parse("02-01-2006", request.WarehouseSalePayment.PaymentDate)
+		if err != nil {
+			s.log.Error("failed to parse payment date", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment date format")
+		}
+
+		warehouseSalePayment := entity.WarehouseSalePayment{
+			PaymentDate:     paymentDate,
+			WarehouseSaleId: warehouseSale.Id,
+			Nominal:         nominal,
+			PaymentProof:    request.WarehouseSalePayment.PaymentProof,
+			PaymentMethod:   paymentMethod,
+			CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
+		}
+
+		err = s.repository.CreateWarehouseSalePayment(&warehouseSalePayment)
+		if err != nil {
+			s.log.Error("failed to create warehouse sale payment", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, err
+		}
+	}
+
+	warehouseSale, err = s.repository.GetWarehouseSaleById(warehouseSale.Id)
+	if err != nil {
+		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
+	remainingPayment := warehouseSale.TotalPrice
+	for i, warehouseSalePayment := range warehouseSale.Payments {
+		warehouseSalePayments[i] = mapper.WarehouseSalePaymentToResponse(&warehouseSalePayment)
+		remainingPayment = remainingPayment.Sub(warehouseSalePayment.Nominal)
+		warehouseSalePayments[i].Remaining = remainingPayment.String()
+	}
+
+	warehouseSaleResponse := mapper.WarehouseSaleToResponse(&warehouseSale)
+	warehouseSaleResponse.Payments = warehouseSalePayments
+	warehouseSaleResponse.RemainingPayment = remainingPayment.String()
+
+	return warehouseSaleResponse, nil
 }

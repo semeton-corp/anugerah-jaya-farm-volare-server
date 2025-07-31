@@ -785,7 +785,11 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("cage is in used by another chicken")
 	}
 
-	chickenProcurementDraft.IsConfirmed = true
+	err = s.repository.DeleteAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed delete afkir chicken sale draft", zap.Error(err))
+		return dto.ChickenProcurementResponse{}, err
+	}
 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {

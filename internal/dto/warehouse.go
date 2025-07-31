@@ -181,7 +181,8 @@ type UpdateWarehouseSaleRequest struct {
 	Quantity float64 `json:"quantity" validate:"required,number"`
 	SendDate string  `json:"sendDate" validate:"required"`
 	Price    string  `json:"price" validate:"required"`
-	Discount float64 `json:"disount" validate:"required"`
+	Discount float64 `json:"discount" validate:"required"`
+	SaleUnit string  `json:"saleUnit" validate:"required,saleUnit"`
 }
 
 type CreateWarehouseSalePaymentRequest struct {
@@ -229,7 +230,6 @@ type CreateWarehouseSaleQueueRequest struct {
 	WarehouseId         uint64  `json:"warehouseId" validate:"required,number"`
 	Quantity            float64 `json:"quantity" validate:"required,number"`
 	SaleUnit            string  `json:"saleUnit" validate:"required,saleUnit"`
-	SendDate            string  `json:"sendDate" validate:"required"`
 }
 
 type WarehouseSaleQueueResponse struct {
@@ -240,4 +240,8 @@ type WarehouseSaleQueueResponse struct {
 	Warehouse     WarehouseResponse `json:"warehouse"`
 	SaleUnit      string            `json:"saleUnit"`
 	Customer      CustomerResponse  `json:"customer"`
+}
+
+type GetWarehouseSaleQueueFilter struct {
+	WarehouseId uint64 `query:"warehouseId"`
 }

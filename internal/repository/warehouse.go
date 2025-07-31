@@ -61,7 +61,7 @@ type IWarehouseRepository interface {
 
 	CreateWarehouseSaleQueue(data *entity.WarehouseSaleQueue) error
 	GetWarehouseSaleQueueById(id uint64) (entity.WarehouseSaleQueue, error)
-	GetWarehouseSaleQueues() ([]entity.WarehouseSaleQueue, error)
+	GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]entity.WarehouseSaleQueue, error)
 	DeleteWarehouseSaleQueue(id uint64) error
 }
 
@@ -434,9 +434,15 @@ func (r *WarehouseRepository) DeleteWarehouseSaleQueue(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseSaleQueue{}).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseSaleQueues() ([]entity.WarehouseSaleQueue, error) {
+func (r *WarehouseRepository) GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]entity.WarehouseSaleQueue, error) {
 	var warehouseSaleQueues []entity.WarehouseSaleQueue
-	err := r.GetDB().Model(&entity.WarehouseSaleQueue{}).Find(&warehouseSaleQueues).Error
+	query := r.GetDB().Model(&entity.WarehouseSaleQueue{})
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	err := query.Preload("Customer").Preload("Item").Find(&warehouseSaleQueues).Error
 	if err != nil {
 		return nil, err
 	}

@@ -786,7 +786,21 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		return dto.StoreSaleResponse{}, err
 	}
 
-	storeItem.Quantity -= request.Quantity
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if storeItem.Quantity < realQuantity {
+		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	storeItem.Quantity -= realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
@@ -816,12 +830,6 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	totalPrice := price.Mul(decimal.NewFromFloat(request.Quantity))
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
-
-	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
-	if !saleUnit.IsValid() {
-		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
-		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
-	}
 
 	storeSale := entity.StoreSale{
 		StoreId:     request.StoreId,
@@ -1115,7 +1123,21 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, err
 	}
 
-	storeItem.Quantity += storeSale.Quantity - request.Quantity
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if storeItem.Quantity < realQuantity {
+		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	storeItem.Quantity += storeSale.Quantity - realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
@@ -1136,6 +1158,19 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	storeSale.TotalPrice = totalPrice.Sub(discountPrice)
 	storeSale.Price = price
 	storeSale.Discount = request.Discount
+
+	totalPayment := decimal.Zero
+	for _, payment := range storeSale.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	if totalPayment.Equal(storeSale.TotalPrice) {
+		storeSale.PaymentStatus = enum.PaymentStatusPaid
+	} else if totalPayment.LessThan(storeSale.TotalPrice) {
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
+		return dto.StoreSaleResponse{}, errx.BadRequest("quantity can't be lower")
+	}
 
 	storeSale.SendDate, err = time.Parse("02-01-2006", request.SendDate)
 	if err != nil {

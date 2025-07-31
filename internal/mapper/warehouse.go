@@ -61,7 +61,7 @@ func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseItemProcur
 	warehouseItemResponse := dto.WarehouseItempProcurementResponse{
 		Id:        warehouseOrderItem.Id,
 		TakenBy:   warehouseOrderItem.TakenBy.UUID.String(),
-		IsTaken:   warehouseOrderItem.IsTaken.Bool,
+		IsTaken:   warehouseOrderItem.IsArrived,
 		Warehouse: WarehouseToResponse(&warehouseOrderItem.Warehouse),
 		Item:      ItemToResponse(&warehouseOrderItem.Item),
 		Supplier: dto.SupplierListResponse{

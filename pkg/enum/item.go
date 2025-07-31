@@ -40,36 +40,3 @@ func (c ItemCategory) IsValid() bool {
 	_, ok := ItemCategoryMap[c]
 	return ok
 }
-
-type WarehouseOrderStatus uint8
-
-const (
-	WarehouseOrderStatusUnknown WarehouseOrderStatus = 0
-	WarehouseOrderStatusInSend  WarehouseOrderStatus = 1
-	WarehouseOrderStatusDone    WarehouseOrderStatus = 2
-)
-
-var (
-	WarehouseOrderStatusMap = map[WarehouseOrderStatus]string{
-		WarehouseOrderStatusInSend: "Sedang Dikirim",
-		WarehouseOrderStatusDone:   "Selesai",
-	}
-)
-
-func (c WarehouseOrderStatus) String() string {
-	return WarehouseOrderStatusMap[c]
-}
-
-func ValueOfWarehouseOrderStatus(value string) WarehouseOrderStatus {
-	for k, v := range WarehouseOrderStatusMap {
-		if v == value {
-			return k
-		}
-	}
-	return WarehouseOrderStatusUnknown
-}
-
-func (c WarehouseOrderStatus) IsValid() bool {
-	_, ok := WarehouseOrderStatusMap[c]
-	return ok
-}
