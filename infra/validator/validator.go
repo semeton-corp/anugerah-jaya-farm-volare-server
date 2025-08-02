@@ -55,7 +55,7 @@ func ValidationPaymentMethod(fl validator.FieldLevel) bool {
 func ValidationItemCategory(fl validator.FieldLevel) bool {
 	warehouseItemCategory := fl.Field().String()
 	switch warehouseItemCategory {
-	case "Pakan", "Barang", "Telur", "Bahan Baku":
+	case "Telur", "Barang", "Bahan Baku Adukan", "Bahan Baku Adukan - Jagung", "Ayam", "Pakan Jadi":
 		return true
 	default:
 		return false

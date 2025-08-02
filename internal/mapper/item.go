@@ -5,34 +5,40 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 )
 
-func ItemToResponse(warehouseItem *entity.Item) dto.ItemResponse {
-	return dto.ItemResponse{
-		Id:       warehouseItem.Id,
-		Name:     warehouseItem.Name,
-		Category: warehouseItem.Category.String(),
-		Unit:     warehouseItem.Unit,
+func ItemToResponse(item *entity.Item) dto.ItemResponse {
+	response := dto.ItemResponse{
+		Id:       item.Id,
+		Name:     item.Name,
+		Category: item.Category.String(),
+		Unit:     item.Unit,
 	}
+
+	if item.DailySpending.Valid {
+		response.DailySpending = &item.DailySpending.Float64
+	}
+
+	return response
 }
 
-func ItemPriceToResponse(eggPrice *entity.ItemPrice) dto.ItemPriceResponse {
+func ItemPriceToResponse(itemPrice *entity.ItemPrice) dto.ItemPriceResponse {
 	return dto.ItemPriceResponse{
-		Id:       eggPrice.Id,
-		Category: eggPrice.Category,
+		Id:       itemPrice.Id,
+		Category: itemPrice.Category,
 		Item: dto.ItemResponse{
-			Id:       eggPrice.ItemId,
-			Name:     eggPrice.Item.Name,
-			Unit:     eggPrice.Item.Unit,
-			Category: eggPrice.Item.Category.String(),
+			Id:       itemPrice.ItemId,
+			Name:     itemPrice.Item.Name,
+			Unit:     itemPrice.Item.Unit,
+			Category: itemPrice.Item.Category.String(),
 		},
-		Price: eggPrice.Price.String(),
+		Price: itemPrice.Price.String(),
 	}
 }
 
-func ItemPriceDiscountToResponse(eggPriceDiscount *entity.ItemPriceDiscount) dto.ItemPriceDiscountResponse {
+func ItemPriceDiscountToResponse(itemPriceDiscount *entity.ItemPriceDiscount) dto.ItemPriceDiscountResponse {
 	return dto.ItemPriceDiscountResponse{
-		Id:                     eggPriceDiscount.Id,
-		Name:                   eggPriceDiscount.Name,
-		MinimumTransactionUser: eggPriceDiscount.MinimumTransactionUser,
-		TotalDiscount:          eggPriceDiscount.TotalDiscount,
+		Id:                     itemPriceDiscount.Id,
+		Name:                   itemPriceDiscount.Name,
+		MinimumTransactionUser: itemPriceDiscount.MinimumTransactionUser,
+		TotalDiscount:          itemPriceDiscount.TotalDiscount,
 	}
 }

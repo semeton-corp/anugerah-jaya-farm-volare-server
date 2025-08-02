@@ -3,15 +3,17 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type CreateItemRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Unit     string `json:"unit" validate:"required"`
-	Category string `json:"category" validate:"required,itemCategory"`
+	Name          string   `json:"name" validate:"required"`
+	Unit          string   `json:"unit" validate:"required"`
+	Category      string   `json:"category" validate:"required,itemCategory"`
+	DailySpending *float64 `json:"dailySpending"`
 }
 
 type UpdateItemRequest struct {
-	Name     string `json:"name" validate:"required"`
-	Unit     string `json:"unit" validate:"required"`
-	Category string `json:"category" validate:"required,itemCategory"`
+	Name          string   `json:"name" validate:"required"`
+	Unit          string   `json:"unit" validate:"required"`
+	Category      string   `json:"category" validate:"required,itemCategory"`
+	DailySpending *float64 `json:"dailySpending"`
 }
 
 type GetItemFilter struct {
@@ -19,10 +21,11 @@ type GetItemFilter struct {
 }
 
 type ItemResponse struct {
-	Id       uint64 `json:"id"`
-	Name     string `json:"name"`
-	Unit     string `json:"unit"`
-	Category string `json:"category"`
+	Id            uint64   `json:"id"`
+	Name          string   `json:"name"`
+	Unit          string   `json:"unit"`
+	Category      string   `json:"category"`
+	DailySpending *float64 `json:"dailySpending"`
 }
 
 type CreateItemPriceRequest struct {

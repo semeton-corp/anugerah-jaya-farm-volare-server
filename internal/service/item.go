@@ -1,6 +1,8 @@
 package service
 
 import (
+	"database/sql"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -241,47 +243,50 @@ func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, item
 	return warehouseStockItemResponse, nil
 }
 
-func (s *ItemService) CreateItem(request dto.CreateItemRequest, createdBy uuid.UUID) (dto.ItemResponse, error) {
+func (s *ItemService) CreateItem(request dto.CreateItemRequest, userId uuid.UUID) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
-	if !warehouseItemCategory.IsValid() {
+	itemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
+	if !itemCategory.IsValid() {
 		s.log.Error("invalid warehouse item category", zap.String("category", request.Category))
 		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
 	}
 
-	if !warehouseItemCategory.IsValid() {
-		s.log.Error("invalid warehouse item category", zap.String("category", request.Category))
-		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
+	if (itemCategory != enum.ItemCategoryEgg && itemCategory != enum.ItemCategoryChicken) && request.DailySpending == nil {
+		return dto.ItemResponse{}, errx.BadRequest("daily spending is required")
 	}
 
-	warehouseItem := entity.Item{
+	item := entity.Item{
 		Name:      request.Name,
 		Unit:      request.Unit,
-		Category:  warehouseItemCategory,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		Category:  itemCategory,
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	err := s.repository.CreateItem(&warehouseItem)
+	if request.DailySpending != nil {
+		item.DailySpending = sql.NullFloat64{Float64: *request.DailySpending, Valid: true}
+	}
+
+	err := s.repository.CreateItem(&item)
 	if err != nil {
 		s.log.Error("failed to create warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 
-	return mapper.ItemToResponse(&warehouseItem), nil
+	return mapper.ItemToResponse(&item), nil
 }
 
 func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItems, err := s.repository.GetItems(filter)
+	items, err := s.repository.GetItems(filter)
 	if err != nil {
 		s.log.Error("failed to get warehouse items", zap.Error(err))
 		return nil, err
 	}
 
-	warehouseItemResponses := make([]dto.ItemResponse, 0, len(warehouseItems))
-	for _, item := range warehouseItems {
+	warehouseItemResponses := make([]dto.ItemResponse, 0, len(items))
+	for _, item := range items {
 		warehouseItemResponses = append(warehouseItemResponses, mapper.ItemToResponse(&item))
 	}
 
@@ -291,46 +296,61 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, userId uuid.UUID) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
-	if !warehouseItemCategory.IsValid() {
+	itemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
+	if !itemCategory.IsValid() {
 		s.log.Error("invalid warehouse item category", zap.String("category", request.Category))
 		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
 	}
 
-	warehouseItem, err := s.repository.GetItemById(warehouseItemId)
+	if (itemCategory != enum.ItemCategoryEgg && itemCategory != enum.ItemCategoryChicken) && request.DailySpending == nil {
+		return dto.ItemResponse{}, errx.BadRequest("daily spending is required")
+	}
+
+	item, err := s.repository.GetItemById(warehouseItemId)
 	if err != nil {
 		s.log.Error("failed to get warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 
-	warehouseItem.Name = request.Name
-	warehouseItem.Unit = request.Unit
-	warehouseItem.Category = warehouseItemCategory
-	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	item.Name = request.Name
+	item.Unit = request.Unit
+	item.Category = itemCategory
 
-	err = s.repository.UpdateItem(&warehouseItem)
+	item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if request.DailySpending != nil {
+		item.DailySpending = sql.NullFloat64{Float64: *request.DailySpending, Valid: true}
+	}
+
+	err = s.repository.UpdateItem(&item)
 	if err != nil {
 		s.log.Error("failed to update warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 
-	return mapper.ItemToResponse(&warehouseItem), nil
+	return mapper.ItemToResponse(&item), nil
 }
 
 func (s *ItemService) GetItemById(id uint64) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	warehouseItem, err := s.repository.GetItemById(id)
+	item, err := s.repository.GetItemById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse item", zap.Error(err))
 		return dto.ItemResponse{}, err
 	}
 
-	warehouseItemResponse := mapper.ItemToResponse(&warehouseItem)
+	warehouseItemResponse := mapper.ItemToResponse(&item)
 	return warehouseItemResponse, nil
 }
 
 func (s *ItemService) DeleteItem(id uint64) error {
 	s.repository.UseTx(false)
-	return s.repository.DeleteItem(id)
+	err := s.repository.DeleteItem(id)
+	if err != nil {
+		s.log.Error("failed delete item", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
