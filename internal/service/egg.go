@@ -92,7 +92,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		CreatedBy:             uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -125,7 +125,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -224,7 +224,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -256,7 +256,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -320,7 +320,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		return err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return err
 	}
@@ -352,7 +352,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		return err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return err
 	}
@@ -550,15 +550,15 @@ func (s *EggService) buildEggOverviewDetails(
 	totalGoodEggInKg, totalCrackedEggInKg float64) []dto.EggOverviewDetailResponse {
 
 	details := []dto.EggOverviewDetailResponse{
-		{Name: constant.GoodEgg, Quantity: float64(totalGoodEggInButir), Unit: constant.EggUnitButir},
-		{Name: constant.GoodEgg, Quantity: math.Ceil(float64(totalGoodEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.EggUnitKarpet},
-		{Name: constant.CrackedEgg, Quantity: float64(totalCrackedEggInButir), Unit: constant.EggUnitButir},
-		{Name: constant.CrackedEgg, Quantity: math.Ceil(float64(totalCrackedEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.EggUnitKarpet},
-		{Name: constant.GoodEgg, Quantity: totalGoodEggInKg, Unit: constant.EggUnitKg},
-		{Name: constant.GoodEgg, Quantity: math.Ceil(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
-		{Name: constant.CrackedEgg, Quantity: totalCrackedEggInKg, Unit: constant.EggUnitKg},
-		{Name: constant.CrackedEgg, Quantity: math.Ceil(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.EggUnitIkat},
-		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.EggUnitButir},
+		{Name: constant.GoodEgg, Quantity: float64(totalGoodEggInButir), Unit: constant.UnitButir},
+		{Name: constant.GoodEgg, Quantity: math.Ceil(float64(totalGoodEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
+		{Name: constant.CrackedEgg, Quantity: float64(totalCrackedEggInButir), Unit: constant.UnitButir},
+		{Name: constant.CrackedEgg, Quantity: math.Ceil(float64(totalCrackedEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
+		{Name: constant.GoodEgg, Quantity: totalGoodEggInKg, Unit: constant.UnitKg},
+		{Name: constant.GoodEgg, Quantity: math.Ceil(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
+		{Name: constant.CrackedEgg, Quantity: totalCrackedEggInKg, Unit: constant.UnitKg},
+		{Name: constant.CrackedEgg, Quantity: math.Ceil(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
+		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.UnitButir},
 	}
 	return details
 }

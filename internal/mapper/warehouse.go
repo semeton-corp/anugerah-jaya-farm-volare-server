@@ -12,8 +12,9 @@ import (
 
 func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	return dto.WarehouseResponse{
-		Id:   warehouse.Id,
-		Name: warehouse.Name,
+		Id:           warehouse.Id,
+		Name:         warehouse.Name,
+		CornCapacity: warehouse.CornCapacity,
 		Location: dto.LocationResponse{
 			Id:   warehouse.Location.Id,
 			Name: warehouse.Location.Name,

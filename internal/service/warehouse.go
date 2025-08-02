@@ -29,9 +29,9 @@ type WarehouseService struct {
 
 type IWarehouseService interface {
 	GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseResponse, error)
-	CreateWarehouse(request dto.CreateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
+	CreateWarehouse(request dto.CreateWarehouseRequest, userId uuid.UUID) (dto.WarehouseResponse, error)
 	DeleteWarehouse(id uint64) error
-	UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error)
+	UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, userId uuid.UUID) (dto.WarehouseResponse, error)
 	GetWarehouseDetailById(id uint64) (dto.WarehouseDetailResponse, error)
 	GetWarehouseOverview(id uint64) (dto.WarehouseOverview, error)
 
@@ -119,6 +119,7 @@ func (s *WarehouseService) UpdateWarehouse(id uint64, request dto.UpdateWarehous
 
 	warehouse.Name = request.Name
 	warehouse.LocationId = request.LocationId
+	warehouse.CornCapacity = request.CornCapacity
 	warehouse.UpdatedBy = uuid.NullUUID{UUID: updateBy, Valid: true}
 
 	err = s.repository.UpdateWarehouse(&warehouse)
@@ -141,9 +142,10 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 	defer s.repository.Rollback()
 
 	warehouse := entity.Warehouse{
-		Name:       request.Name,
-		LocationId: request.LocationId,
-		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
+		Name:         request.Name,
+		LocationId:   request.LocationId,
+		CornCapacity: request.CornCapacity,
+		CreatedBy:    uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
 	err := s.repository.CreateWarehouse(&warehouse)
@@ -152,18 +154,23 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 		return dto.WarehouseResponse{}, err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.WarehouseResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.WarehouseResponse{}, err
 
 	}
 
-	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.UnitPlastik, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.WarehouseResponse{}, err
+	}
+
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
 	if err != nil {
 		return dto.WarehouseResponse{}, err
 	}
@@ -184,6 +191,12 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      brokenEggItem.Id,
+		Quantity:    0,
+	})
+
+	warehouseItems = append(warehouseItems, entity.WarehouseItem{
+		WarehouseId: warehouse.Id,
+		ItemId:      cornItem.Id,
 		Quantity:    0,
 	})
 
@@ -580,7 +593,7 @@ func (s *WarehouseService) GetEggWarehouseItemSummary(warehouseId uint64) ([]dto
 	warehouseItems, err := s.repository.GetWarehouseItems(dto.GetWarehouseItemFilter{
 		WarehouseId: warehouseId,
 		ItemNames:   []string{constant.GoodEgg, constant.CrackedEgg},
-		Units:       []string{constant.EggUnitKg},
+		Units:       []string{constant.UnitKg},
 	})
 	if err != nil {
 		s.log.Error("failed to get warehouse items", zap.Error(err))
@@ -593,25 +606,25 @@ func (s *WarehouseService) GetEggWarehouseItemSummary(warehouseId uint64) ([]dto
 			response = append(response, dto.EggWarehouseItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			response = append(response, dto.EggWarehouseItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		case constant.CrackedEgg:
 			response = append(response, dto.EggWarehouseItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			response = append(response, dto.EggWarehouseItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		}
 	}

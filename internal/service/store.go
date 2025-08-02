@@ -106,18 +106,18 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uui
 		return dto.StoreResponse{}, err
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreResponse{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreResponse{}, err
 
 	}
 
-	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.UnitPlastik, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreResponse{}, err
 	}
@@ -255,7 +255,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == constant.EggUnitKg {
+	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == constant.UnitKg {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
 	}
 
@@ -509,7 +509,7 @@ func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingSto
 		StoreId:   uint64(storeRequestItem.StoreId.Int64),
 		Category:  param.ItemCategoryParam(enum.ItemCategoryEgg),
 		ItemNames: []string{constant.CrackedEgg, constant.BrokenEgg},
-		Units:     []string{constant.EggUnitPlastik, constant.EggUnitKg},
+		Units:     []string{constant.UnitPlastik, constant.UnitKg},
 	})
 
 	if err != nil {
@@ -601,31 +601,31 @@ func (s *StoreService) GetStoreItemStocks(id uint64) (dto.StoreItemOverview, err
 			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		case constant.CrackedEgg:
 			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		case constant.BrokenEgg:
 			eggStoreItemSummaries = append(eggStoreItemSummaries, dto.EggStoreItemSummary{
 				Name:     constant.BrokenEgg,
 				Quantity: warehouseItem.Quantity,
-				Unit:     constant.EggUnitPlastik,
+				Unit:     constant.UnitPlastik,
 			})
 		}
 	}
@@ -687,7 +687,7 @@ func (s *StoreService) GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreIte
 	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
 		StoreId:   storeId,
 		ItemNames: []string{constant.GoodEgg, constant.CrackedEgg, constant.BrokenEgg},
-		Units:     []string{constant.EggUnitKg, constant.EggUnitPlastik},
+		Units:     []string{constant.UnitKg, constant.UnitPlastik},
 	})
 	if err != nil {
 		s.log.Error("failed to get store items", zap.Error(err))
@@ -700,31 +700,31 @@ func (s *StoreService) GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreIte
 			response = append(response, dto.EggStoreItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: storeItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			response = append(response, dto.EggStoreItemSummary{
 				Name:     constant.GoodEgg,
 				Quantity: storeItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		case constant.CrackedEgg:
 			response = append(response, dto.EggStoreItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: storeItem.Quantity,
-				Unit:     constant.EggUnitKg,
+				Unit:     constant.UnitKg,
 			})
 
 			response = append(response, dto.EggStoreItemSummary{
 				Name:     constant.CrackedEgg,
 				Quantity: storeItem.Quantity / float64(constant.TotalEggPerIkat),
-				Unit:     constant.EggUnitIkat,
+				Unit:     constant.UnitIkat,
 			})
 		case constant.BrokenEgg:
 			response = append(response, dto.EggStoreItemSummary{
 				Name:     constant.BrokenEgg,
 				Quantity: storeItem.Quantity,
-				Unit:     constant.EggUnitPlastik,
+				Unit:     constant.UnitPlastik,
 			})
 		}
 	}
@@ -1476,31 +1476,31 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 	income := decimal.Zero
 	receivables := decimal.Zero
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreOverview{}, err
 	}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.EggUnitKg, enum.ItemCategoryEgg)
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreOverview{}, err
 	}
 
-	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.EggUnitPlastik, enum.ItemCategoryEgg)
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.UnitPlastik, enum.ItemCategoryEgg)
 	if err != nil {
 		return dto.StoreOverview{}, err
 	}
 
 	for _, storeSale := range storeSales {
-		if storeSale.SaleUnit.String() == constant.EggUnitKg && goodEggItem.Id == storeSale.ItemId {
+		if storeSale.SaleUnit.String() == constant.UnitKg && goodEggItem.Id == storeSale.ItemId {
 			goodEggInKg += storeSale.Quantity
-		} else if storeSale.SaleUnit.String() == constant.EggUnitIkat && goodEggItem.Id == storeSale.ItemId {
+		} else if storeSale.SaleUnit.String() == constant.UnitIkat && goodEggItem.Id == storeSale.ItemId {
 			goodEggInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-		} else if storeSale.SaleUnit.String() == constant.EggUnitKg && crackedEggItem.Id == storeSale.ItemId {
+		} else if storeSale.SaleUnit.String() == constant.UnitKg && crackedEggItem.Id == storeSale.ItemId {
 			crackedEggInKg += storeSale.Quantity
-		} else if storeSale.SaleUnit.String() == constant.EggUnitIkat && crackedEggItem.Id == storeSale.ItemId {
+		} else if storeSale.SaleUnit.String() == constant.UnitIkat && crackedEggItem.Id == storeSale.ItemId {
 			crackedEggInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-		} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik && brokenEggItem.Id == storeSale.ItemId {
+		} else if storeSale.SaleUnit.String() == constant.UnitPlastik && brokenEggItem.Id == storeSale.ItemId {
 			brokenEggInPlastik += storeSale.Quantity
 		}
 
@@ -1562,11 +1562,11 @@ func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint
 		var itemSale float64
 		for _, storeSale := range weekStoreSales {
 			if isSameDate(day, storeSale.CreatedAt) {
-				if storeSale.SaleUnit.String() == constant.EggUnitKg {
+				if storeSale.SaleUnit.String() == constant.UnitKg {
 					itemSale += storeSale.Quantity
-				} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+				} else if storeSale.SaleUnit.String() == constant.UnitIkat {
 					itemSale += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-				} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+				} else if storeSale.SaleUnit.String() == constant.UnitPlastik {
 					itemSale += storeSale.Quantity
 				}
 			}
@@ -1598,11 +1598,11 @@ func (s *StoreService) buildStoreOverviewMonthlyGraph(storeId uint64, itemId uin
 	for _, storeSale := range monthStoreSales {
 		week := util.FindWeek(storeSale.CreatedAt, weekMaps)
 		if week > 0 {
-			if storeSale.SaleUnit.String() == constant.EggUnitKg {
+			if storeSale.SaleUnit.String() == constant.UnitKg {
 				itemSales[week] += storeSale.Quantity
-			} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+			} else if storeSale.SaleUnit.String() == constant.UnitIkat {
 				itemSales[week] += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-			} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+			} else if storeSale.SaleUnit.String() == constant.UnitPlastik {
 				itemSales[week] += storeSale.Quantity
 			}
 		}
@@ -1639,11 +1639,11 @@ func (s *StoreService) buildStoreOverviewYearlyGraph(storeId uint64, itemId uint
 	for _, storeSale := range yearStoreSales {
 		month := util.FindMonth(storeSale.CreatedAt, monthMaps)
 		if month > 0 {
-			if storeSale.SaleUnit.String() == constant.EggUnitKg {
+			if storeSale.SaleUnit.String() == constant.UnitKg {
 				itemSales[month] += storeSale.Quantity
-			} else if storeSale.SaleUnit.String() == constant.EggUnitIkat {
+			} else if storeSale.SaleUnit.String() == constant.UnitIkat {
 				itemSales[month] += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-			} else if storeSale.SaleUnit.String() == constant.EggUnitPlastik {
+			} else if storeSale.SaleUnit.String() == constant.UnitPlastik {
 				itemSales[month] += storeSale.Quantity
 			}
 		}
