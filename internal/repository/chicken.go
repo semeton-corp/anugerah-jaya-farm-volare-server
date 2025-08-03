@@ -45,6 +45,7 @@ type IChickenRepository interface {
 	GetChickenProcurementDrafts() ([]entity.ChickenProcurementDraft, error)
 	GetChickenProcurementDraftById(id uint64) (entity.ChickenProcurementDraft, error)
 	UpdateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error
+	DeleteChickenProcurementDraft(id uint64) error
 
 	CreateChickenProcurement(data *entity.ChickenProcurement) error
 	CreateChickenProcurementPaymentInBatch(data *[]entity.ChickenProcurementPayment) error
@@ -296,6 +297,10 @@ func (r *ChickenRepository) GetChickenProcurementDraftById(id uint64) (entity.Ch
 
 func (r *ChickenRepository) UpdateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error {
 	return r.GetDB().Model(&entity.ChickenProcurementDraft{}).Updates(data).Error
+}
+
+func (r *ChickenRepository) DeleteChickenProcurementDraft(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.ChickenProcurementDraft{}).Error
 }
 
 func (r *ChickenRepository) CreateChickenProcurement(data *entity.ChickenProcurement) error {

@@ -16,6 +16,7 @@ type WarehouseItemProcurementDraft struct {
 	Supplier      Supplier      `gorm:"foreignKey:SupplierId;references:Id"`
 	DailySpending float64       `gorm:"type:decimal;not null"`
 	DaysNeed      uint64        `gorm:"type:int;not null"`
+	TotalOrder    float64       `gorm:"type:decimal;not null"`
 	CreatedAt     time.Time     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy     uuid.NullUUID `gorm:"type:varchar(255)"`
 	UpdatedAt     time.Time     `gorm:"type:timestamp;autoUpdateTime"`

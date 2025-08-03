@@ -48,6 +48,7 @@ type IChickenService interface {
 	GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error)
 
 	CreateChickenProcurementDraft(request dto.CreateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error)
+	UpdateChickenProcurementDraft(id uint64, request dto.UpdateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error)
 	GetChickenProcurementDrafts() ([]dto.ChickenProcurementDraftResponse, error)
 
 	GetChickenProcurements(filter dto.GetChickenProcurementFilter) (dto.ChickenProcurementListPaginationResponse, error)
@@ -71,6 +72,7 @@ type IChickenService interface {
 	GetAfkirChickenSaleDrafts() ([]dto.AfkirChickenSaleDraftResponse, error)
 	UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
 	DeleteAfkirChickenSaleDraft(id uint64) error
+	AllocateAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 
 	CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error)
@@ -695,6 +697,52 @@ func (s *ChickenService) CreateChickenProcurementDraft(request dto.CreateChicken
 	return mapper.ChickenProcurementDraftToResponse(&chickenProcurementDraft), nil
 }
 
+func (s *ChickenService) UpdateChickenProcurementDraft(id uint64, request dto.UpdateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	cage, err := s.cageService.GetCageById(request.CageId)
+	if err != nil {
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	if cage.IsUsed {
+		return dto.ChickenProcurementDraftResponse{}, errx.BadRequest("cage is in used by another chicken")
+	}
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed to parse price from string", zap.Error(err))
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	chickenProcurementDraft, err := s.repository.GetChickenProcurementDraftById(id)
+	if err != nil {
+		s.log.Error("failed get chicken procurement by id", zap.Error(err))
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	chickenProcurementDraft.CageId = request.CageId
+	chickenProcurementDraft.SupplierId = request.SupplierId
+	chickenProcurementDraft.Quantity = request.Quantity
+	chickenProcurementDraft.Price = price
+	chickenProcurementDraft.TotalPrice = price.Mul(decimal.NewFromUint64(request.Quantity))
+	chickenProcurementDraft.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateChickenProcurementDraft(&chickenProcurementDraft)
+	if err != nil {
+		s.log.Error("failed update chicken procurement draft", zap.Error(err))
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	chickenProcurementDraft, err = s.repository.GetChickenProcurementDraftById(id)
+	if err != nil {
+		s.log.Error("failed to created chicken procurement draft", zap.Error(err))
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	return mapper.ChickenProcurementDraftToResponse(&chickenProcurementDraft), nil
+}
+
 func (s *ChickenService) GetChickenProcurementDrafts() ([]dto.ChickenProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
@@ -770,6 +818,12 @@ func (s *ChickenService) GetChickenProcurement(id uint64) (dto.ChickenProcuremen
 func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
+
+	err := s.repository.DeleteChickenProcurementDraft(id)
+	if err != nil {
+		s.log.Error("failed delete chicekn procurement draft", zap.Error(err))
+		return dto.ChickenProcurementResponse{}, err
+	}
 
 	chickenProcurementDraft, err := s.repository.GetChickenProcurementDraftById(id)
 	if err != nil {
@@ -1776,4 +1830,114 @@ func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64
 	}
 
 	return nil
+}
+
+func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	err := s.repository.DeleteAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed delete afkir chickens sale draft")
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid price format")
+	}
+
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type : %s", request.PaymentType))
+	}
+
+	data := entity.AfkirChickenSale{
+		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
+		ChickenCageId:          request.ChickenCageId,
+		TotalSellChicken:       request.TotalSellChicken,
+		PricePerChicken:        pricePerChicken,
+		TotalPrice:             pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken)),
+		ChickenAge:             chickenCage.ChickenAge,
+		PaymentStatus:          enum.PaymentStatusNotPaid,
+		PaymentType:            paymentType,
+		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.AfkirChickenSalePayment != nil {
+		nominal, err := decimal.NewFromString(request.AfkirChickenSalePayment.Nominal)
+		if err != nil {
+			s.log.Error("failed parse nominal from string", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+
+		paymentDate, err := time.Parse("02-01-2006", request.AfkirChickenSalePayment.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+
+		paymentMethod := enum.ValueOfPaymentMethod(request.AfkirChickenSalePayment.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.AfkirChickenSalePayment.PaymentMethod))
+		}
+
+		if data.TotalPrice.Equal(nominal) {
+			data.PaymentStatus = enum.PaymentStatusPaid
+		} else if nominal.GreaterThan(decimal.Zero) {
+			data.PaymentStatus = enum.PaymentStatusUnpaid
+		}
+
+		err = s.repository.CreateAfkirChickenSale(&data)
+		if err != nil {
+			s.log.Error("failed create afkir chicken sale", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, nil
+		}
+
+		payment := entity.AfkirChickenSalePayment{
+			AfkirChickenSaleId: data.AfkirChickenCustomerId,
+			Nominal:            nominal,
+			PaymentDate:        paymentDate,
+			PaymentMethod:      paymentMethod,
+			PaymentProof:       request.AfkirChickenSalePayment.PaymentProof,
+			CreatedBy:          uuid.NullUUID{UUID: userId, Valid: true},
+		}
+
+		err = s.repository.CreateAfkirChickenSalePayment(&payment)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+	} else {
+		err = s.repository.CreateAfkirChickenSale(&data)
+		if err != nil {
+			s.log.Error("failed create afkir chicken sale", zap.Error(err))
+			return dto.AfkirChickenSaleResponse{}, nil
+		}
+	}
+
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
+		IsUsed: false,
+	}, userId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	data, err = s.repository.GetAfkirChickenSale(data.Id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	return mapper.AfkirChickenSaleToResponse(&data), nil
 }

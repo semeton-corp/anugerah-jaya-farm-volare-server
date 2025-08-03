@@ -151,6 +151,13 @@ type CreateChickenProcurementDraftRequest struct {
 	Price      string `json:"price" validate:"required"`
 }
 
+type UpdateChickenProcurementDraftRequest struct {
+	CageId     uint64 `json:"cageId" validate:"required"`
+	SupplierId uint64 `json:"supplierId" validate:"required"`
+	Quantity   uint64 `json:"quantity" validate:"required"`
+	Price      string `json:"price" validate:"required"`
+}
+
 type ChickenProcurementDraftResponse struct {
 	Cage       CageResponse     `json:"cage"`
 	Supplier   SupplierResponse `json:"supplier"`

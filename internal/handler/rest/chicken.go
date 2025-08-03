@@ -43,6 +43,7 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/healths/monitorings/:id", middleware.Authentication(), h.DeleteChickenHealthMonitoring)
 
 	v1.Post("/procurements/drafts", middleware.Authentication(), h.CreateChickenProcurementDraft)
+	v1.Post("/procurements/drafts/:id", middleware.Authentication(), h.CreateChickenProcurementDraft)
 	v1.Get("/procurements/drafts", middleware.Authentication(), h.GetChickenProcurementDrafts)
 
 	v1.Post("/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationChickenProcurementDraft)
@@ -453,6 +454,38 @@ func (h *ChickenHandler) GetChickenProcurementDrafts(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "get chicken procurement drafts")
+}
+
+func (h *ChickenHandler) UpdateChickenProcurementDraft(c *fiber.Ctx) error {
+	var request dto.UpdateChickenProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.UpdateChickenProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success update chicken procurement draft")
 }
 
 func (h *ChickenHandler) ConfirmationChickenProcurementDraft(c *fiber.Ctx) error {

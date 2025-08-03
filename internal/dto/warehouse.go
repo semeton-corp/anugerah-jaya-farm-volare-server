@@ -248,3 +248,14 @@ type WarehouseSaleQueueResponse struct {
 type GetWarehouseSaleQueueFilter struct {
 	WarehouseId uint64 `query:"warehouseId"`
 }
+
+type CreateWarehouseItemProcurementDraftRequest struct {
+	WarehouseId   uint64   `json:"warehouseId" validate:"required"`
+	ItemId        uint64   `json:"itemId" validate:"required"`
+	SupplierId    uint64   `json:"supplierId" validate:"required"`
+	DailySpending *float64 `json:"dailySpending"`
+	TotalDayNeed  uint64   `json:"totalDayNeed" validate:"required"`
+}
+
+type WarehouseItemProcurementDraftResponse struct {
+}
