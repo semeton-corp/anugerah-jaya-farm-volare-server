@@ -250,11 +250,11 @@ type GetWarehouseSaleQueueFilter struct {
 }
 
 type CreateWarehouseItemProcurementDraftRequest struct {
-	WarehouseId   uint64   `json:"warehouseId" validate:"required"`
-	ItemId        uint64   `json:"itemId" validate:"required"`
-	SupplierId    uint64   `json:"supplierId" validate:"required"`
-	DailySpending *float64 `json:"dailySpending"`
-	TotalDayNeed  uint64   `json:"totalDayNeed" validate:"required"`
+	WarehouseId   uint64  `json:"warehouseId" validate:"required"`
+	ItemId        uint64  `json:"itemId" validate:"required"`
+	SupplierId    uint64  `json:"supplierId" validate:"required"`
+	DailySpending float64 `json:"dailySpending" validate:"required"`
+	DaysNeed      uint64  `json:"daysNeed" validate:"required"`
 }
 
 type WarehouseItemProcurementDraftResponse struct {
