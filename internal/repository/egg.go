@@ -92,6 +92,10 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 		query = query.Where("DATE(egg_monitorings.created_at) = ?", filter.Date.Value())
 	}
 
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(egg_monitorings.created_at) >= ? AND DATE(egg_monitorings.created_at) < ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
 	if filter.LocationId > 0 {
 		query = query.Where("cages.location_id = ?", filter.LocationId)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/shopspring/decimal"
 )
 
 func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
@@ -58,8 +59,8 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	return response
 }
 
-func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseItemProcurement) dto.WarehouseItempProcurementResponse {
-	warehouseItemResponse := dto.WarehouseItempProcurementResponse{
+func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementListResponse {
+	warehouseItemResponse := dto.WarehouseItemProcurementListResponse{
 		Id:        warehouseOrderItem.Id,
 		TakenBy:   warehouseOrderItem.TakenBy.UUID.String(),
 		IsTaken:   warehouseOrderItem.IsArrived,
@@ -175,4 +176,47 @@ func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto
 	}
 
 	return response
+}
+
+func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcurementDraft) dto.WarehouseItemProcurementDraftResponse {
+	return dto.WarehouseItemProcurementDraftResponse{
+		Warehouse:     WarehouseToResponse(&data.Warehouse),
+		Item:          ItemToResponse(&data.Item),
+		Supplier:      SupplierToListResponse(&data.Supplier),
+		DailySpending: data.DailySpending,
+		DaysNeed:      data.DaysNeed,
+		TotalOrder:    data.DailySpending * float64(data.DaysNeed),
+	}
+}
+
+func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementResponse {
+	return dto.WarehouseItemProcurementResponse{}
+}
+
+func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementListResponse {
+	return dto.WarehouseItemProcurementListResponse{}
+}
+
+// Note : without remaining payment
+func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.WarehouseItemProcurementPayment) dto.WarehouseItemProcurementPaymentResponse {
+	return dto.WarehouseItemProcurementPaymentResponse{
+		Id:            storeSalePayment.Id,
+		Nominal:       storeSalePayment.Nominal.String(),
+		PaymentProof:  storeSalePayment.PaymentProof,
+		PaymentMethod: storeSalePayment.PaymentMethod.String(),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
+	}
+}
+
+func WarehouseItemCornProcurementDraft(warehouseItemCornProcurementDraft *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
+	return dto.WarehouseItemCornProcurementDraftResponse{
+		Warehouse:                 WarehouseToResponse(&warehouseItemCornProcurementDraft.Warehouse),
+		Supplier:                  SupplierToListResponse(&warehouseItemCornProcurementDraft.Supplier),
+		Item:                      cornItem,
+		OvenCondition:             warehouseItemCornProcurementDraft.OvenCondition.String(),
+		CornWaterLevel:            warehouseItemCornProcurementDraft.CornWaterLevel.String(),
+		IsOvenCanOperateInNearDay: &warehouseItemCornProcurementDraft.IsOvenCanOperateInNearDay,
+		Quantity:                  warehouseItemCornProcurementDraft.Quantity,
+		TotalPrice:                warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Quantity)).String(),
+	}
 }

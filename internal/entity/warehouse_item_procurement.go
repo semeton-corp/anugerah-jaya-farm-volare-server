@@ -10,27 +10,29 @@ import (
 )
 
 type WarehouseItemProcurement struct {
-	Id               uint64                            `gorm:"primaryKey;autoIncrement"`
-	WarehouseId      uint64                            `gorm:"type:bigint;not null"`
-	Warehouse        Warehouse                         `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	ItemId           uint64                            `gorm:"type:bigint;not null"`
-	Item             Item                              `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
-	SupplierId       uint64                            `gorm:"type:bigint;not null"`
-	Supplier         Supplier                          `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
-	Quantity         float64                           `gorm:"type:decimal;not null"`
-	RecieveQuantity  float64                           `gorm:"type:decimal;not null;default:0"`
-	Note             string                            `gorm:"type:text"`
-	Price            decimal.Decimal                   `gorm:"type:decimal;not null"`
-	TotalPrice       decimal.Decimal                   `gorm:"type:decimal;not null"`
-	EstimationRunOut sql.NullTime                      `gorm:"type:date"`
-	IsArrived        bool                              `gorm:"type:boolean;default:false"`
-	TakenAt          sql.NullTime                      `gorm:"type:timestamp"`
-	TakenBy          uuid.NullUUID                     `gorm:"type:varchar(255)"`
-	Status           enum.ProcurementStatus            `gorm:"type:int;not null"`
-	PaymentStatus    enum.PaymentStatus                `gorm:"type:int;not null"`
-	Payments         []WarehouseItemProcurementPayment `gorm:"foreignKey:WarehouseItemProcurementId;references:Id"`
-	CreatedAt        time.Time                         `gorm:"type:timestamp;autoCreateTime"`
-	CreatedBy        uuid.NullUUID                     `gorm:"type:varchar(255)"`
-	UpdatedAt        time.Time                         `gorm:"type:timestamp;autoUpdateTime"`
-	UpdatedBy        uuid.NullUUID                     `gorm:"type:varchar(255)"`
+	Id                uint64                            `gorm:"primaryKey;autoIncrement"`
+	WarehouseId       uint64                            `gorm:"type:bigint;not null"`
+	Warehouse         Warehouse                         `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
+	ItemId            uint64                            `gorm:"type:bigint;not null"`
+	Item              Item                              `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
+	SupplierId        uint64                            `gorm:"type:bigint;not null"`
+	Supplier          Supplier                          `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
+	DailySpending     float64                           `gorm:"type:decimal;not null"`
+	DaysNeed          uint64                            `gorm:"type:int;not null"`
+	Quantity          float64                           `gorm:"type:decimal;not null"`
+	RecieveQuantity   sql.NullFloat64                   `gorm:"type:decimal;not null;default:0"`
+	Note              string                            `gorm:"type:text"`
+	Price             decimal.Decimal                   `gorm:"type:decimal;not null"`
+	TotalPrice        decimal.Decimal                   `gorm:"type:decimal;not null"`
+	EstimationArrived time.Time                         `gorm:"type:date;not null"`
+	IsArrived         bool                              `gorm:"type:boolean;default:false"`
+	TakenAt           sql.NullTime                      `gorm:"type:timestamp"`
+	TakenBy           uuid.NullUUID                     `gorm:"type:varchar(255)"`
+	Status            enum.ProcurementStatus            `gorm:"type:int;not null"`
+	PaymentStatus     enum.PaymentStatus                `gorm:"type:int;not null"`
+	Payments          []WarehouseItemProcurementPayment `gorm:"foreignKey:WarehouseItemProcurementId;references:Id"`
+	CreatedAt         time.Time                         `gorm:"type:timestamp;autoCreateTime"`
+	CreatedBy         uuid.NullUUID                     `gorm:"type:varchar(255)"`
+	UpdatedAt         time.Time                         `gorm:"type:timestamp;autoUpdateTime"`
+	UpdatedBy         uuid.NullUUID                     `gorm:"type:varchar(255)"`
 }

@@ -50,6 +50,7 @@ type IChickenService interface {
 	CreateChickenProcurementDraft(request dto.CreateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error)
 	UpdateChickenProcurementDraft(id uint64, request dto.UpdateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error)
 	GetChickenProcurementDrafts() ([]dto.ChickenProcurementDraftResponse, error)
+	GetChickenProcurementDraft(id uint64) (dto.ChickenProcurementDraftResponse, error)
 
 	GetChickenProcurements(filter dto.GetChickenProcurementFilter) (dto.ChickenProcurementListPaginationResponse, error)
 	GetChickenProcurement(id uint64) (dto.ChickenProcurementResponse, error)
@@ -300,7 +301,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 
 func (c *ChickenService) buildWeeklyGraph() ([]dto.ChickenGraphResponse, error) {
 	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	startDate := endDate.AddDate(0, 0, -7)
+	startDate := endDate.AddDate(0, 0, -6)
 
 	weekMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
 		StartDate: param.DateParam(startDate),
@@ -312,7 +313,7 @@ func (c *ChickenService) buildWeeklyGraph() ([]dto.ChickenGraphResponse, error) 
 	}
 
 	graphs := make([]dto.ChickenGraphResponse, 0)
-	for day := startDate; day.Before(endDate); day = day.AddDate(0, 0, 1) {
+	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var sickSum, deathSum uint64
 		for _, cm := range weekMonitorings {
 			if isSameDate(day, cm.CreatedAt) {
@@ -697,6 +698,18 @@ func (s *ChickenService) CreateChickenProcurementDraft(request dto.CreateChicken
 	return mapper.ChickenProcurementDraftToResponse(&chickenProcurementDraft), nil
 }
 
+func (s *ChickenService) GetChickenProcurementDraft(id uint64) (dto.ChickenProcurementDraftResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetChickenProcurementDraftById(id)
+	if err != nil {
+		s.log.Error("failed get chicken procurement draft", zap.Error(err))
+		return dto.ChickenProcurementDraftResponse{}, err
+	}
+
+	return mapper.ChickenProcurementDraftToResponse(&data), nil
+}
+
 func (s *ChickenService) UpdateChickenProcurementDraft(id uint64, request dto.UpdateChickenProcurementDraftRequest, userId uuid.UUID) (dto.ChickenProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
@@ -970,7 +983,12 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	chickenProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	chickenProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	chickenProcurement.IsArrived = true
-	chickenProcurement.Status = enum.ProcurementStatusArrived
+
+	if chickenProcurement.Quantity != request.Quantity {
+		chickenProcurement.Status = enum.ProcurementStatusArrivedNotOk
+	} else {
+		chickenProcurement.Status = enum.ProcurementStatusArrivedOk
+	}
 
 	// Todo : Sage pattern
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{

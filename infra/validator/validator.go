@@ -137,3 +137,23 @@ func ValidationEggType(fl validator.FieldLevel) bool {
 		return false
 	}
 }
+
+func ValidationOvenCondition(fl validator.FieldLevel) bool {
+	eggType := fl.Field().String()
+	switch eggType {
+	case "Hidup", "Mati":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationCornWaterLevel(fl validator.FieldLevel) bool {
+	eggType := fl.Field().String()
+	switch eggType {
+	case "<= 16%", "> 16%":
+		return true
+	default:
+		return false
+	}
+}

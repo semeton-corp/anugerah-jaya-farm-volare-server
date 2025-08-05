@@ -43,7 +43,8 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/healths/monitorings/:id", middleware.Authentication(), h.DeleteChickenHealthMonitoring)
 
 	v1.Post("/procurements/drafts", middleware.Authentication(), h.CreateChickenProcurementDraft)
-	v1.Post("/procurements/drafts/:id", middleware.Authentication(), h.CreateChickenProcurementDraft)
+	v1.Put("/procurements/drafts/:id", middleware.Authentication(), h.UpdateChickenProcurementDraft)
+	v1.Get("/procurements/drafts/:id", middleware.Authentication(), h.GetChickenProcurementDraft)
 	v1.Get("/procurements/drafts", middleware.Authentication(), h.GetChickenProcurementDrafts)
 
 	v1.Post("/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationChickenProcurementDraft)
@@ -444,7 +445,7 @@ func (h *ChickenHandler) CreateChickenProcurementDraft(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, data, "success created chicken procurement")
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success created chicken procurement draft")
 }
 
 func (h *ChickenHandler) GetChickenProcurementDrafts(c *fiber.Ctx) error {
@@ -454,6 +455,21 @@ func (h *ChickenHandler) GetChickenProcurementDrafts(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "get chicken procurement drafts")
+}
+
+func (h *ChickenHandler) GetChickenProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed get chicken procurement draft", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "get chicken procurement draft")
 }
 
 func (h *ChickenHandler) UpdateChickenProcurementDraft(c *fiber.Ctx) error {

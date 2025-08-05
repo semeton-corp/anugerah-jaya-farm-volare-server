@@ -277,7 +277,7 @@ func (r *ChickenRepository) CreateChickenProcurementDraft(data *entity.ChickenPr
 
 func (r *ChickenRepository) GetChickenProcurementDrafts() ([]entity.ChickenProcurementDraft, error) {
 	chickenProcurementDrafts := make([]entity.ChickenProcurementDraft, 0)
-	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Order("total_price ASC").Find(&chickenProcurementDrafts).Error
+	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Preload("Cage.Location").Preload("Supplier").Order("total_price ASC").Find(&chickenProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func (r *ChickenRepository) GetChickenProcurementDraftById(id uint64) (entity.Ch
 }
 
 func (r *ChickenRepository) UpdateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error {
-	return r.GetDB().Model(&entity.ChickenProcurementDraft{}).Updates(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurementDraft{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
 func (r *ChickenRepository) DeleteChickenProcurementDraft(id uint64) error {

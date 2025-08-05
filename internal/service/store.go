@@ -1320,7 +1320,8 @@ func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, req
 }
 
 func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, userId uuid.UUID) error {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
 	storeSale, err := s.repository.GetStoreSaleById(storeSaleId)
 	if err != nil {
@@ -1544,7 +1545,7 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 
 func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint64) ([]dto.StoreGraphResponse, error) {
 	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	startDate := endDate.AddDate(0, 0, -7)
+	startDate := endDate.AddDate(0, 0, -6)
 
 	weekStoreSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
 		StoreId:   storeId,
@@ -1558,7 +1559,7 @@ func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint
 	}
 
 	graphs := make([]dto.StoreGraphResponse, 0)
-	for day := startDate; day.Before(endDate); day = day.AddDate(0, 0, 1) {
+	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var itemSale float64
 		for _, storeSale := range weekStoreSales {
 			if isSameDate(day, storeSale.CreatedAt) {
