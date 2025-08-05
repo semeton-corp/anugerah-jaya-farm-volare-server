@@ -93,7 +93,7 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(egg_monitorings.created_at) >= ? AND DATE(egg_monitorings.created_at) < ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(egg_monitorings.created_at) >= ? AND DATE(egg_monitorings.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
