@@ -208,7 +208,7 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 	}
 }
 
-func WarehouseItemCornProcurementDraft(warehouseItemCornProcurementDraft *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
+func WarehouseItemCornProcurementDraftToResponse(warehouseItemCornProcurementDraft *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
 	return dto.WarehouseItemCornProcurementDraftResponse{
 		Warehouse:                 WarehouseToResponse(&warehouseItemCornProcurementDraft.Warehouse),
 		Supplier:                  SupplierToListResponse(&warehouseItemCornProcurementDraft.Supplier),
@@ -219,4 +219,23 @@ func WarehouseItemCornProcurementDraft(warehouseItemCornProcurementDraft *entity
 		Quantity:                  warehouseItemCornProcurementDraft.Quantity,
 		TotalPrice:                warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Quantity)).String(),
 	}
+}
+
+// Note : without remaining payment
+func WarehouseItemCornProcurementPaymentToResponse(storeSalePayment *entity.WarehouseItemCornProcurementPayment) dto.WarehouseItemCornProcurementPaymentResponse {
+	return dto.WarehouseItemCornProcurementPaymentResponse{
+		Id:            storeSalePayment.Id,
+		Nominal:       storeSalePayment.Nominal.String(),
+		PaymentProof:  storeSalePayment.PaymentProof,
+		PaymentMethod: storeSalePayment.PaymentMethod.String(),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
+	}
+}
+
+func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcurement) dto.WarehouseItemCornProcurementResponse {
+	return dto.WarehouseItemCornProcurementResponse{}
+}
+
+func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornProcurement) dto.WarehouseItemCornProcurementListResponse {
+	return dto.WarehouseItemCornProcurementListResponse{}
 }

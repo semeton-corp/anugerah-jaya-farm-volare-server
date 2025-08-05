@@ -91,7 +91,10 @@ type IWarehouseRepository interface {
 
 	CreateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error
 	UpdateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error
+	GetWarehouseItemCornProcurementPayment(id uint64) (entity.WarehouseItemCornProcurementPayment, error)
 	DeleteWarehouseItemCornProcurementPayment(id uint64) error
+
+	CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -641,10 +644,44 @@ func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementPayment(data *en
 	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", data.Id).Updates(&data).Error
 }
 
+func (r *WarehouseRepository) GetWarehouseItemCornProcurementPayment(id uint64) (entity.WarehouseItemCornProcurementPayment, error) {
+	var warehouseItemCornProcurementPayment entity.WarehouseItemCornProcurementPayment
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", id).First(warehouseItemCornProcurementPayment).Error
+	if err != nil {
+		return entity.WarehouseItemCornProcurementPayment{}, err
+	}
+
+	return warehouseItemCornProcurementPayment, nil
+}
+
 func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementPayment(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemCornProcurementPayment{}).Error
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error {
 	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Create(&data).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseItemCorns() ([]entity.WarehouseItemCorn, error) {
+	var warehouseItemCorns []entity.WarehouseItemCorn
+	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Find(&warehouseItemCorns).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return warehouseItemCorns, nil
+}
+
+func (r *WarehouseRepository) UpdateWarehouseItemCorn(data *entity.WarehouseItemCorn) error {
+	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Where("id = ?", data.Id).Updates(&data).Error
+}
+
+func (r *WarehouseRepository) GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error) {
+	var warehouseItemCorn entity.WarehouseItemCorn
+	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Where("id = ?", id).First(&warehouseItemCorn).Error
+	if err != nil {
+		return entity.WarehouseItemCorn{}, err
+	}
+
+	return warehouseItemCorn, nil
 }

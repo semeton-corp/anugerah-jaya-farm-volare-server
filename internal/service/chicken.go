@@ -165,16 +165,6 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	count, err := s.repository.CountChickenMonitoringByChickenCageIdToday(request.ChickenCageId)
-	if err != nil {
-		s.log.Error("failed count chicken monitoring by chicken cage id today", zap.Error(err))
-		return dto.ChickenMonitoringResponse{}, err
-	}
-
-	if count > 0 {
-		return dto.ChickenMonitoringResponse{}, errx.BadRequest("chicken cage id is already use for another monitoring")
-	}
-
 	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
