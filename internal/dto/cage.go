@@ -64,3 +64,36 @@ type DestinationChickenCageRequest struct {
 	DestinationCageId uint64 `json:"destinationCageId"`
 	TotalChicken      uint64 `json:"totalChicken"`
 }
+
+type CreateCageFeedRequest struct {
+	ChickenCategory string                  `json:"chickenCategory" validate:"required,chickenCategory"`
+	FeedType        string                  `json:"feedType" validate:"required,feedType"`
+	TotalFeed       float64                 `json:"totalFeed" validate:"required"`
+	CageFeedDetails []CageFeedDetailRequest `json:"cageFeedDetails"`
+}
+
+type UpdateCageFeedRequest struct {
+	ChickenCategory string                  `json:"chickenCategory" validate:"required,chickenCategory"`
+	TotalFeed       float64                 `json:"totalFeed" validate:"required"`
+	FeedType        string                  `json:"feedType" validate:"required,feedType"`
+	CageFeedDetails []CageFeedDetailRequest `json:"cageFeedDetails"`
+}
+
+type CageFeedDetailRequest struct {
+	Id         uint64  `json:"id"`
+	ItemId     uint64  `json:"itemId" validate:"required"`
+	Percentage float64 `json:"percentage" validate:"required"`
+}
+
+type CageFeedResponse struct {
+	Id              uint64                   `json:"id"`
+	ChickenCategory string                   `json:"chickenCategory"`
+	TotalFeed       float64                  `json:"totalFeed"`
+	FeedType        string                   `json:"feedType"`
+	CageFeedDetails []CageFeedDetailResponse `json:"cageFeedDetails"`
+}
+type CageFeedDetailResponse struct {
+	Id         uint64       `json:"id"`
+	Item       ItemResponse `json:"item"`
+	Percentage float64      `json:"percentage"`
+}

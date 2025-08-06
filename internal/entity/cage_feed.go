@@ -1,10 +1,20 @@
 package entity
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+import (
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+)
 
 type CageFeed struct {
 	Id              uint64               `gorm:"primaryKey;autoIncrement"`
-	CageId          uint64               `gorm:"type:bigint;not null"`
-	Cage            Cage                 `gorm:"foreignKey:CageId;references:Id;constraint:OnDelete:CASCADE"`
 	ChickenCategory enum.ChickenCategory `gorm:"type:int;not null"`
+	FeedType        enum.FeedType        `gorm:"type:int;not null"`
+	TotalFeed       float64              `gorm:"type:decimal;not null"`
+	CageFeedDetails []CageFeedDetail     `gorm:"foreignKey:CageFeedId;references:Id;constraint:OnDelete:CASCADE"`
+	CreatedAt       time.Time            `gorm:"type:timestamp;autoCreateTime"`
+	CreatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
+	UpdatedAt       time.Time            `gorm:"type:timestamp;autoUpdateTime"`
+	UpdatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
 }

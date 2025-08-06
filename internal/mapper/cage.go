@@ -66,3 +66,20 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 
 	return response
 }
+
+func CageFeedToResponse(data *entity.CageFeed) dto.CageFeedResponse {
+	return dto.CageFeedResponse{
+		Id:              data.Id,
+		ChickenCategory: data.ChickenCategory.String(),
+		FeedType:        data.FeedType.String(),
+		TotalFeed:       data.TotalFeed,
+	}
+}
+
+func CageFeedDetailToResponse(data *entity.CageFeedDetail) dto.CageFeedDetailResponse {
+	return dto.CageFeedDetailResponse{
+		Id:         data.Id,
+		Item:       ItemToResponse(&data.Item),
+		Percentage: data.Percentage,
+	}
+}

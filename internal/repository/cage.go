@@ -32,6 +32,16 @@ type ICageRepository interface {
 	GetChickenCageById(id uint64) (entity.ChickenCage, error)
 	GetChickenCagesByCageIds(ids []uint64) ([]entity.ChickenCage, error)
 	GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error)
+
+	CreateCageFeed(data *entity.CageFeed) error
+	GetCageFeeds() ([]entity.CageFeed, error)
+	UpdateCageFeed(data *entity.CageFeed) error
+	GetCageFeed(id uint64) (entity.CageFeed, error)
+	CreateCageFeedDetail(data *entity.CageFeedDetail) error
+	UpdateCageFeedDetail(data *entity.CageFeedDetail) error
+	CreateCageFeedDetails(details *[]entity.CageFeedDetail) error
+	DeleteCageFeedDetailsNotIn(cageFeedId uint64, ids []uint64) error
+	UpsertCageFeedDetails(details *[]entity.CageFeedDetail) error
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -213,4 +223,73 @@ func (r *CageRepository) GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage
 
 func (r *CageRepository) CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error {
 	return r.GetDB().Model(&entity.ChickenCage{}).CreateInBatches(&chickenCage, len(*chickenCage)).Error
+}
+
+func (r *CageRepository) CreateCageFeed(data *entity.CageFeed) error {
+	return r.GetDB().Model(&entity.CageFeed{}).Create(&data).Error
+}
+
+func (r *CageRepository) GetCageFeeds() ([]entity.CageFeed, error) {
+	var cageFeeds []entity.CageFeed
+	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails").Find(&cageFeeds).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return cageFeeds, nil
+}
+
+func (r *CageRepository) UpdateCageFeed(data *entity.CageFeed) error {
+	return r.GetDB().Model(&entity.CageFeed{}).Updates(&data).Error
+}
+
+func (r *CageRepository) GetCageFeed(id uint64) (entity.CageFeed, error) {
+	var cageFeed entity.CageFeed
+	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails").Find(&cageFeed).Error
+	if err != nil {
+		return entity.CageFeed{}, err
+	}
+
+	return cageFeed, nil
+}
+
+func (r *CageRepository) CreateCageFeedDetail(data *entity.CageFeedDetail) error {
+	return r.GetDB().Model(&entity.CageFeedDetail{}).Create(&data).Error
+}
+
+func (r *CageRepository) UpdateCageFeedDetail(data *entity.CageFeedDetail) error {
+	return r.GetDB().Model(&entity.CageFeedDetail{}).Updates(&data).Error
+}
+
+func (r *CageRepository) CreateCageFeedDetails(details *[]entity.CageFeedDetail) error {
+	return r.GetDB().Model(&entity.CageFeedDetail{}).Create(details).Error
+}
+
+func (r *CageRepository) DeleteCageFeedDetailsNotIn(cageFeedId uint64, ids []uint64) error {
+	query := r.GetDB().Where("cage_feed_id = ?", cageFeedId)
+	if len(ids) > 0 {
+		query = query.Where("id NOT IN ?", ids)
+	}
+	return query.Delete(&entity.CageFeedDetail{}).Error
+}
+
+func (r *CageRepository) UpsertCageFeedDetails(details *[]entity.CageFeedDetail) error {
+	for _, detail := range *details {
+		var existing entity.CageFeedDetail
+		err := r.GetDB().Where("id = ?", detail.Id).First(&existing).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				if err := r.GetDB().Create(&detail).Error; err != nil {
+					return err
+				}
+			} else {
+				return err
+			}
+		} else {
+			if err := r.GetDB().Model(&entity.CageFeedDetail{}).Where("id = ?", detail.Id).Updates(&detail).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

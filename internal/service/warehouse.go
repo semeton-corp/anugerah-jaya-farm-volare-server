@@ -62,6 +62,38 @@ type IWarehouseService interface {
 	GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]dto.WarehouseSaleQueueResponse, error)
 	GetWarehouseSaleQueue(id uint64) (dto.WarehouseSaleQueueResponse, error)
 	AllocateWarehouseSaleQueue(id uint64, request dto.CreateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
+
+	CreateWarehouseItemProcurementDraft(request dto.CreateWarehouseItemProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemProcurementDraftResponse, error)
+	GetWarehouseItemProcurementDrafts() ([]dto.WarehouseItemProcurementDraftResponse, error)
+	GetWarehouseItemProcurementDraft(id uint64) (dto.WarehouseItemProcurementDraftResponse, error)
+	UpdateWarehouseItemProcurementDraft(id uint64, request dto.UpdateWarehouseItemProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemProcurementDraftResponse, error)
+	DeleteWarehouseItemProcurementDraft(id uint64) error
+	AllocateWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+
+	CreateWarehouseItemProcurement(request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+	GetWarehouseItemProcurements(filter dto.GetWarehouseItemProcurementFilter) (dto.WarehouseItemProcurementListPaginationResponse, error)
+	GetWarehouseItemProcurement(id uint64) (dto.WarehouseItemProcurementResponse, error)
+	ArrivalConfirmationWarehouseItemProcurement(id uint64, request dto.ArrivalConfirmationWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+
+	CreateWarehouseItemProcurementPayment(warehouseItemProcurementId uint64, request dto.CreateWarehouseItemProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+	UpdateWarehouseItemProcurementPayment(id uint64, warehouseItemProcurementId uint64, request dto.UpdateWarehouseItemProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+	DeleteWarehouseItemProcurementPayment(id uint64, warehouseItemProcurementId uint64, userId uuid.UUID) error
+
+	CreateWarehouseItemCornProcurementDraft(request dto.CreateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error)
+	GetWarehouseItemCornProcurementDrafts() ([]dto.WarehouseItemCornProcurementDraftResponse, error)
+	GetWarehouseItemCornProcurementDraft(id uint64) (dto.WarehouseItemCornProcurementDraftResponse, error)
+	UpdateWarehouseItemCornProcurementDraft(id uint64, request dto.UpdateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error)
+	DeleteWarehouseItemCornProcurementDraft(id uint64) error
+	AllocateWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+
+	CreateWarehouseItemCornProcurement(request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+	GetWarehouseItemCornProcurements(filter dto.GetWarehouseItemCornProcurementFilter) (dto.WarehouseItemCornProcurementListPaginationResponse, error)
+	GetWarehouseItemCornProcurement(id uint64) (dto.WarehouseItemCornProcurementResponse, error)
+	ArrivalConfirmationWarehouseItemCornProcurement(id uint64, request dto.ArrivalConfirmationWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+
+	CreateWarehouseItemCornProcurementPayment(warehouseItemCornProcurementId uint64, request dto.CreateWarehouseItemCornProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+	UpdateWarehouseItemCornProcurementPayment(id uint64, warehouseItemCornProcurementId uint64, request dto.UpdateWarehouseItemCornProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+	DeleteWarehouseItemCornProcurementPayment(id uint64, warehouseItemProcurementId uint64, userId uuid.UUID) error
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -1543,6 +1575,108 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementDraft(id uint64, reques
 	return mapper.WarehouseItemProcurementDraftToResponse(&warehouseItemProcurementDraft), nil
 }
 
+func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	err := s.repository.DeleteWarehouseItemProcurement(id)
+	if err != nil {
+		s.log.Error("failed delete warehouse item procurement", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed parse price", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	estimationArrived, err := time.Parse("02-06-2006", request.EstimationArrived)
+	if err != nil {
+		s.log.Error("failed parse time", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	data := entity.WarehouseItemProcurement{
+		WarehouseId:       request.WarehouseId,
+		SupplierId:        request.SupplierId,
+		ItemId:            request.ItemId,
+		DailySpending:     request.DailySpending,
+		DaysNeed:          request.DaysNeed,
+		Price:             price,
+		TotalPrice:        price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
+		Quantity:          request.DailySpending * float64(request.DaysNeed),
+		EstimationArrived: estimationArrived,
+		Status:            enum.ProcurementStatusSentOff,
+		PaymentStatus:     enum.PaymentStatusNotPaid,
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment method")
+	}
+
+	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
+	if err != nil {
+		s.log.Error("failed parse payment nominal", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
+	if err != nil {
+		s.log.Error("failed parse payment date", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	if price.Equal(data.TotalPrice) {
+		data.PaymentStatus = enum.PaymentStatusPaid
+	} else if price.LessThan(data.TotalPrice) {
+		data.PaymentStatus = enum.PaymentStatusUnpaid
+	} else {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("nominal more than total price")
+	}
+
+	err = s.repository.CreateWarehouseItemProcurement(&data)
+	if err != nil {
+		s.log.Error("failed create warehouse item procurement", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	payment := entity.WarehouseItemProcurementPayment{
+		WarehouseItemProcurementId: data.Id,
+		PaymentDate:                paymentPaymentDate,
+		Nominal:                    paymentNominal,
+		PaymentProof:               request.Payment.PaymentProof,
+		PaymentMethod:              paymentMethod,
+	}
+
+	err = s.repository.CreateWarehouseItemProcurementPayment(&payment)
+	if err != nil {
+		s.log.Error("failed create warehouse procurement payment", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	data, err = s.repository.GetWarehouseItemProcurement(data.Id)
+	if err != nil {
+		s.log.Error("failed get warehouse item procurement", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	payments := make([]dto.WarehouseItemProcurementPaymentResponse, 0)
+	remainingPayment := data.TotalPrice
+	for _, e := range data.Payments {
+		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
+		remainingPayment := remainingPayment.Sub(e.Nominal)
+		payment.Remaining = remainingPayment.String()
+		payments = append(payments, payment)
+	}
+
+	response := mapper.WarehouseItemProcurementToResponse(&data)
+	response.Payments = payments
+
+	return response, nil
+}
+
 func (s *WarehouseService) DeleteWarehouseItemProcurementDraft(id uint64) error {
 	s.repository.UseTx(false)
 
@@ -2142,6 +2276,117 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	}
 
 	return mapper.WarehouseItemCornProcurementDraftToResponse(&data, cornItem), nil
+}
+
+func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	err := s.repository.DeleteWarehouseItemCornProcurement(id)
+	if err != nil {
+		s.log.Error("failed delete warehouse item corn procurement", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed parse price", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	cornWaterLevel := enum.ValueOfCornWaterLevel(request.CornWaterLevel)
+	if !cornWaterLevel.IsValid() {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid corn water level")
+	}
+
+	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
+	if !ovenCondition.IsValid() {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
+	}
+
+	expiredAt, err := time.Parse("02-01-2006", request.ExpiredAt)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid expired at")
+	}
+
+	data := entity.WarehouseItemCornProcurement{
+		WarehouseId:               request.WarehouseId,
+		SupplierId:                request.SupplierId,
+		ExpiredAt:                 expiredAt,
+		Price:                     price,
+		TotalPrice:                price.Mul(decimal.NewFromFloat(request.Quantity)),
+		Quantity:                  request.Quantity,
+		Status:                    enum.ProcurementStatusSentOff,
+		PaymentStatus:             enum.PaymentStatusNotPaid,
+		CornWaterLevel:            cornWaterLevel,
+		OvenCondition:             ovenCondition,
+		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment method")
+	}
+
+	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
+	if err != nil {
+		s.log.Error("failed parse payment nominal", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
+	if err != nil {
+		s.log.Error("failed parse payment date", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	if price.Equal(data.TotalPrice) {
+		data.PaymentStatus = enum.PaymentStatusPaid
+	} else if price.LessThan(data.TotalPrice) {
+		data.PaymentStatus = enum.PaymentStatusUnpaid
+	} else {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal more than total price")
+	}
+
+	err = s.repository.CreateWarehouseItemCornProcurement(&data)
+	if err != nil {
+		s.log.Error("failed create warehouse item procurement", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	payment := entity.WarehouseItemCornProcurementPayment{
+		WarehouseItemCornProcurementId: data.Id,
+		PaymentDate:                    paymentPaymentDate,
+		Nominal:                        paymentNominal,
+		PaymentProof:                   request.Payment.PaymentProof,
+		PaymentMethod:                  paymentMethod,
+	}
+
+	err = s.repository.CreateWarehouseItemCornProcurementPayment(&payment)
+	if err != nil {
+		s.log.Error("failed create warehouse item corn procurement payment", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	data, err = s.repository.GetWarehouseItemCornProcurement(data.Id)
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurement", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	payments := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
+	remainingPayment := data.TotalPrice
+	for _, e := range data.Payments {
+		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
+		remainingPayment := remainingPayment.Sub(e.Nominal)
+		payment.Remaining = remainingPayment.String()
+		payments = append(payments, payment)
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	response.Payments = payments
+
+	return response, nil
 }
 
 func (s *WarehouseService) DeleteWarehouseItemCornProcurementDraft(id uint64) error {

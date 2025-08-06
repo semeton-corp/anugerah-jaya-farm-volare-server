@@ -30,6 +30,11 @@ type ICageService interface {
 	GetChickenCagesByCageIds(cageIds []uint64) ([]dto.ChickenCageResponse, error)
 	CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
+
+	CreateCageFeed(request dto.CreateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
+	UpdateCageFeed(id uint64, request dto.UpdateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
+	GetCageFeeds() ([]dto.CageFeedResponse, error)
+	GetCageFeed(id uint64) (dto.CageFeedResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
@@ -286,6 +291,197 @@ func (s *CageService) CreateChickenCageInBatch(request []dto.CreateChickenCageRe
 	for _, chickenCage := range chickenCages {
 		response = append(response, mapper.ChickenCageToResponse(&chickenCage))
 	}
+
+	return response, nil
+}
+
+func (s *CageService) CreateCageFeed(request dto.CreateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
+	if !chickenCategory.IsValid() {
+		return dto.CageFeedResponse{}, errx.BadRequest("invalid chicken category")
+	}
+
+	feedType := enum.ValueOfFeedType(request.FeedType)
+	if !feedType.IsValid() {
+		return dto.CageFeedResponse{}, errx.BadRequest("invalid feed type")
+	}
+
+	cageFeed := entity.CageFeed{
+		ChickenCategory: chickenCategory,
+		FeedType:        feedType,
+		TotalFeed:       request.TotalFeed,
+		CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if err := s.repository.CreateCageFeed(&cageFeed); err != nil {
+		s.log.Error("failed to save cage feed", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	cageFeedDetails := make([]entity.CageFeedDetail, 0, len(request.CageFeedDetails))
+	for _, e := range request.CageFeedDetails {
+		cageFeedDetails = append(cageFeedDetails, entity.CageFeedDetail{
+			CageFeedId: cageFeed.Id,
+			ItemId:     e.ItemId,
+			Percentage: e.Percentage,
+			CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
+		})
+	}
+
+	if len(cageFeedDetails) > 0 {
+		if err := s.repository.CreateCageFeedDetails(&cageFeedDetails); err != nil {
+			s.log.Error("failed to save cage feed details", zap.Error(err))
+			return dto.CageFeedResponse{}, err
+		}
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	data, err := s.repository.GetCageFeed(cageFeed.Id)
+	if err != nil {
+		s.log.Error("failed get cage feed", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	response := mapper.CageFeedToResponse(&data)
+
+	cageFeedDetailResponses := make([]dto.CageFeedDetailResponse, 0)
+	for _, e := range data.CageFeedDetails {
+		cageFeedDetailResponses = append(cageFeedDetailResponses, mapper.CageFeedDetailToResponse(&e))
+	}
+
+	response.CageFeedDetails = cageFeedDetailResponses
+
+	return response, nil
+}
+
+func (s *CageService) UpdateCageFeed(id uint64, request dto.UpdateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
+	if !chickenCategory.IsValid() {
+		return dto.CageFeedResponse{}, errx.BadRequest("invalid chicken category")
+	}
+
+	feedType := enum.ValueOfFeedType(request.FeedType)
+	if !feedType.IsValid() {
+		return dto.CageFeedResponse{}, errx.BadRequest("invalid feed type")
+	}
+
+	// Get existing cage feed
+	cageFeed, err := s.repository.GetCageFeed(id)
+	if err != nil {
+		s.log.Error("failed to get cage feed by id", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	// Update main cage feed fields
+	cageFeed.ChickenCategory = chickenCategory
+	cageFeed.FeedType = feedType
+	cageFeed.TotalFeed = request.TotalFeed
+	cageFeed.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if err := s.repository.UpdateCageFeed(&cageFeed); err != nil {
+		s.log.Error("failed to update cage feed", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	newDetails := make([]entity.CageFeedDetail, 0, len(request.CageFeedDetails))
+	newItemIds := make([]uint64, 0, len(request.CageFeedDetails))
+	for _, d := range request.CageFeedDetails {
+		newDetails = append(newDetails, entity.CageFeedDetail{
+			CageFeedId: cageFeed.Id,
+			ItemId:     d.ItemId,
+			Percentage: d.Percentage,
+			CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
+		})
+		newItemIds = append(newItemIds, d.ItemId)
+	}
+
+	if err := s.repository.DeleteCageFeedDetailsNotIn(cageFeed.Id, newItemIds); err != nil {
+		s.log.Error("failed to delete old cage feed details", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	if len(newDetails) > 0 {
+		if err := s.repository.UpsertCageFeedDetails(&newDetails); err != nil {
+			s.log.Error("failed to upsert cage feed details", zap.Error(err))
+			return dto.CageFeedResponse{}, err
+		}
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	data, err := s.repository.GetCageFeed(cageFeed.Id)
+	if err != nil {
+		s.log.Error("failed get cage feed", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	response := mapper.CageFeedToResponse(&data)
+
+	cageFeedDetailResponses := make([]dto.CageFeedDetailResponse, 0)
+	for _, e := range data.CageFeedDetails {
+		cageFeedDetailResponses = append(cageFeedDetailResponses, mapper.CageFeedDetailToResponse(&e))
+	}
+
+	response.CageFeedDetails = cageFeedDetailResponses
+
+	return response, nil
+}
+
+func (s *CageService) GetCageFeeds() ([]dto.CageFeedResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetCageFeeds()
+	if err != nil {
+		s.log.Error("failed get cage feed", zap.Error(err))
+		return nil, err
+	}
+
+	responses := make([]dto.CageFeedResponse, 0)
+	for _, cageFeed := range data {
+		response := mapper.CageFeedToResponse(&cageFeed)
+		cageFeedDetailResponses := make([]dto.CageFeedDetailResponse, 0)
+		for _, e := range cageFeed.CageFeedDetails {
+			cageFeedDetailResponses = append(cageFeedDetailResponses, mapper.CageFeedDetailToResponse(&e))
+		}
+
+		response.CageFeedDetails = cageFeedDetailResponses
+
+		responses = append(responses, response)
+	}
+
+	return responses, nil
+}
+
+func (s *CageService) GetCageFeed(id uint64) (dto.CageFeedResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetCageFeed(id)
+	if err != nil {
+		s.log.Error("failed get cage feed", zap.Error(err))
+		return dto.CageFeedResponse{}, err
+	}
+
+	response := mapper.CageFeedToResponse(&data)
+
+	cageFeedDetailResponses := make([]dto.CageFeedDetailResponse, 0)
+	for _, e := range data.CageFeedDetails {
+		cageFeedDetailResponses = append(cageFeedDetailResponses, mapper.CageFeedDetailToResponse(&e))
+	}
+
+	response.CageFeedDetails = cageFeedDetailResponses
 
 	return response, nil
 }

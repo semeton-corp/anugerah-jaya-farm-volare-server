@@ -29,6 +29,11 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
 	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
+
+	v1.Post("/feeds", middleware.Authentication())
+	v1.Get("/feeds", middleware.Authentication())
+	v1.Get("/feeds/:id", middleware.Authentication())
+	v1.Put("/feeds/:id", middleware.Authentication())
 }
 
 func NewCageHandler(log *zap.Logger, service service.ICageService, validator *validator.Validate) *CageHandler {
@@ -155,4 +160,84 @@ func (h *CageHandler) GetChickenCageById(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success get chicken cage by id")
+}
+
+func (h *CageHandler) CreateCageFeed(c *fiber.Ctx) error {
+	var request dto.CreateCageFeedRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.CreateCageFeed(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create cage feed")
+}
+
+func (h *CageHandler) UpdateCageFeed(c *fiber.Ctx) error {
+	var request dto.UpdateCageFeedRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.UpdateCageFeed(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success udpate cage feed")
+}
+
+func (h *CageHandler) GetCageFeeds(c *fiber.Ctx) error {
+	data, err := h.service.GetCageFeeds()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feeds")
+}
+
+func (h *CageHandler) GetCageFeed(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id param", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetCageFeed(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feeds")
 }

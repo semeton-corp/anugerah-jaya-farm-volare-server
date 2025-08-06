@@ -56,6 +56,38 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/items/histories", middleware.Authentication(), h.GetWarehouseItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetWarehouseItemHistory)
+
+	v1.Post("/items/procurements/drafts", middleware.Authentication(), h.CreateWarehouseItemProcurementDraft)
+	v1.Get("/items/procurements/drafts/:id", middleware.Authentication(), h.GetWarehouseItemProcurementDraft)
+	v1.Get("/items/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemProcurementDrafts)
+	v1.Put("/items/procurements/drafts/:id", middleware.Authentication(), h.UpdateWarehouseItemProcurementDraft)
+	v1.Delete("/items/procurements/drafts/:id", middleware.Authentication(), h.DeleteWarehouseItemProcurementDraft)
+	v1.Post("/items/procurements/drafts/:id/allocate", middleware.Authentication(), h.AllocateWarehouseItemProcurementDraft)
+
+	v1.Post("/items/procurements", middleware.Authentication(), h.CreateWarehouseItemProcurement)
+	v1.Get("/items/procurements", middleware.Authentication(), h.GetWarehouseItemProcurements)
+	v1.Get("/items/procurements/:id", middleware.Authentication(), h.GetWarehouseItemProcurement)
+	v1.Put("/items/procurements/:id/confirmations", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemProcurement)
+
+	v1.Post("/items/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
+	v1.Put("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
+	v1.Delete("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
+
+	v1.Post("/items/corns/procurements/drafts", middleware.Authentication(), h.CreateWarehouseItemCornProcurementDraft)
+	v1.Get("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.GetWarehouseItemCornProcurementDraft)
+	v1.Get("/items/corns/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemCornProcurementDrafts)
+	v1.Put("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementDraft)
+	v1.Delete("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementDraft)
+	v1.Post("/items/corns/procurements/drafts/:id/allocate", middleware.Authentication(), h.AllocateWarehouseItemCornProcurementDraft)
+
+	v1.Post("/items/corns/procurements", middleware.Authentication(), h.CreateWarehouseItemCornProcurement)
+	v1.Get("/items/corns/procurements", middleware.Authentication(), h.GetWarehouseItemCornProcurements)
+	v1.Get("/items/corns/procurements/:id", middleware.Authentication(), h.GetWarehouseItemCornProcurement)
+	v1.Put("/items/corns/procurements/:id/confirmations", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemCornProcurement)
+
+	v1.Post("/items/corns/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
+	v1.Put("/items/corns/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
+	v1.Delete("/items/corns/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -726,4 +758,593 @@ func (h *WarehouseHandler) AllocateWarehouseSaleQueue(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success allocate store sale queue")
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseItemProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemProcurementDraft(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item procurement draft")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemProcurementDrafts(c *fiber.Ctx) error {
+	res, err := h.service.GetWarehouseItemProcurementDrafts()
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item procurement drafts")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	res, err := h.service.GetWarehouseItemProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item procurement draft")
+}
+
+func (h *WarehouseHandler) UpdateWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.UpdateWarehouseItemProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.UpdateWarehouseItemProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse item procurement draft")
+}
+
+func (h *WarehouseHandler) AllocateWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.CreateWarehouseItemProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.AllocateWarehouseItemProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success allocate warehouse item procurement draft")
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemProcurement(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseItemProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemProcurement(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item procurement")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemProcurements(c *fiber.Ctx) error {
+	var filter dto.GetWarehouseItemProcurementFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetWarehouseItemProcurements(filter)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item procurements")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemProcurement(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	res, err := h.service.GetWarehouseItemProcurement(id)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item procurement")
+}
+
+func (h *WarehouseHandler) DeleteWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	err = h.service.DeleteWarehouseItemProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+	return response.NoContentResponse(c)
+}
+
+
+func (h *WarehouseHandler) ArrivalConfirmationWarehouseItemProcurement(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.ArrivalConfirmationWarehouseItemProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.ArrivalConfirmationWarehouseItemProcurement(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success arrival confirmation warehouse item procurement")
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemProcurementPayment(c *fiber.Ctx) error {
+	warehouseItemProcurementId, err := strconv.ParseUint(c.Params("warehouseItemProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item procurement id")
+	}
+
+	var request dto.CreateWarehouseItemProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemProcurementPayment(warehouseItemProcurementId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item procurement payment")
+}
+
+func (h *WarehouseHandler) UpdateWarehouseItemProcurementPayment(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	warehouseItemProcurementId, err := strconv.ParseUint(c.Params("warehouseItemProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item procurement id")
+	}
+
+	var request dto.UpdateWarehouseItemProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.UpdateWarehouseItemProcurementPayment(id, warehouseItemProcurementId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse item procurement payment")
+}
+
+func (h *WarehouseHandler) DeleteWarehouseItemProcurementPayment(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	warehouseItemProcurementId, err := strconv.ParseUint(c.Params("warehouseItemProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item procurement id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	err = h.service.DeleteWarehouseItemProcurementPayment(id, warehouseItemProcurementId, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.NoContentResponse(c)
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseItemCornProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemCornProcurementDraft(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item corn procurement draft")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemCornProcurementDrafts(c *fiber.Ctx) error {
+	res, err := h.service.GetWarehouseItemCornProcurementDrafts()
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item corn procurement drafts")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	res, err := h.service.GetWarehouseItemCornProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item corn procurement draft")
+}
+
+func (h *WarehouseHandler) UpdateWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.UpdateWarehouseItemCornProcurementDraftRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.UpdateWarehouseItemCornProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse item corn procurement draft")
+}
+
+func (h *WarehouseHandler) DeleteWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	err = h.service.DeleteWarehouseItemCornProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+	return response.NoContentResponse(c)
+}
+
+func (h *WarehouseHandler) AllocateWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.CreateWarehouseItemCornProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.AllocateWarehouseItemCornProcurementDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success allocate warehouse item corn procurement draft")
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemCornProcurement(c *fiber.Ctx) error {
+	var request dto.CreateWarehouseItemCornProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemCornProcurement(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item corn procurement")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemCornProcurements(c *fiber.Ctx) error {
+	var filter dto.GetWarehouseItemCornProcurementFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetWarehouseItemCornProcurements(filter)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item corn procurements")
+}
+
+func (h *WarehouseHandler) GetWarehouseItemCornProcurement(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	res, err := h.service.GetWarehouseItemCornProcurement(id)
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success get warehouse item corn procurement")
+}
+
+func (h *WarehouseHandler) ArrivalConfirmationWarehouseItemCornProcurement(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	var request dto.ArrivalConfirmationWarehouseItemCornProcurementRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.ArrivalConfirmationWarehouseItemCornProcurement(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success arrival confirmation warehouse item corn procurement")
+}
+
+func (h *WarehouseHandler) CreateWarehouseItemCornProcurementPayment(c *fiber.Ctx) error {
+	warehouseItemCornProcurementId, err := strconv.ParseUint(c.Params("warehouseItemCornProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item corn procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item corn procurement id")
+	}
+
+	var request dto.CreateWarehouseItemCornProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.CreateWarehouseItemCornProcurementPayment(warehouseItemCornProcurementId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success create warehouse item corn procurement payment")
+}
+
+func (h *WarehouseHandler) UpdateWarehouseItemCornProcurementPayment(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	warehouseItemCornProcurementId, err := strconv.ParseUint(c.Params("warehouseItemCornProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item corn procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item corn procurement id")
+	}
+
+	var request dto.UpdateWarehouseItemCornProcurementPaymentRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	res, err := h.service.UpdateWarehouseItemCornProcurementPayment(id, warehouseItemCornProcurementId, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse item corn procurement payment")
+}
+
+func (h *WarehouseHandler) DeleteWarehouseItemCornProcurementPayment(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("failed to parse id")
+	}
+
+	warehouseItemCornProcurementId, err := strconv.ParseUint(c.Params("warehouseItemProcurementId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse item corn procurement id", zap.Error(err))
+		return errx.BadRequest("failed to parse warehouse item corn procurement id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	err = h.service.DeleteWarehouseItemCornProcurementPayment(id, warehouseItemCornProcurementId, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+	return response.NoContentResponse(c)
 }
