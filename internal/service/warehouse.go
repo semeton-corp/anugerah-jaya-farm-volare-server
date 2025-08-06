@@ -94,6 +94,8 @@ type IWarehouseService interface {
 	CreateWarehouseItemCornProcurementPayment(warehouseItemCornProcurementId uint64, request dto.CreateWarehouseItemCornProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
 	UpdateWarehouseItemCornProcurementPayment(id uint64, warehouseItemCornProcurementId uint64, request dto.UpdateWarehouseItemCornProcurementPaymentRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
 	DeleteWarehouseItemCornProcurementPayment(id uint64, warehouseItemProcurementId uint64, userId uuid.UUID) error
+
+	GetWarehouseItemCornPrices() ([]dto.WarehouseItemCornPriceResponse, error)
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -1628,9 +1630,9 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	if price.Equal(data.TotalPrice) {
+	if paymentNominal.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if price.LessThan(data.TotalPrice) {
+	} else if paymentNominal.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("nominal more than total price")
@@ -2167,6 +2169,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		Quantity:                  request.Quantity,
 		Price:                     price,
+		Discount:                  request.Discount,
 		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -2257,6 +2260,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	data.OvenCondition = ovenCondition
 	data.Price = price
 	data.Quantity = request.Quantity
+	data.Discount = request.Discount
 	data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItemCornProcurementDraft(&data)
@@ -2314,14 +2318,17 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 		SupplierId:                request.SupplierId,
 		ExpiredAt:                 expiredAt,
 		Price:                     price,
-		TotalPrice:                price.Mul(decimal.NewFromFloat(request.Quantity)),
 		Quantity:                  request.Quantity,
 		Status:                    enum.ProcurementStatusSentOff,
+		Discount:                  request.Discount,
 		PaymentStatus:             enum.PaymentStatusNotPaid,
 		CornWaterLevel:            cornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 	}
+
+	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
+	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
 	if !paymentMethod.IsValid() {
@@ -2340,9 +2347,9 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	if price.Equal(data.TotalPrice) {
+	if paymentNominal.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if price.LessThan(data.TotalPrice) {
+	} else if paymentNominal.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal more than total price")
@@ -2431,14 +2438,17 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		SupplierId:                request.SupplierId,
 		ExpiredAt:                 expiredAt,
 		Price:                     price,
-		TotalPrice:                price.Mul(decimal.NewFromFloat(request.Quantity)),
 		Quantity:                  request.Quantity,
+		Discount:                  request.Discount,
 		Status:                    enum.ProcurementStatusSentOff,
 		PaymentStatus:             enum.PaymentStatusNotPaid,
 		CornWaterLevel:            cornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 	}
+
+	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
+	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
 	if !paymentMethod.IsValid() {
@@ -2457,9 +2467,9 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	if price.Equal(data.TotalPrice) {
+	if paymentNominal.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if price.LessThan(data.TotalPrice) {
+	} else if paymentNominal.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal more than total price")
@@ -2856,4 +2866,19 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 	response.Payments = payments
 
 	return response, nil
+}
+
+func (s *WarehouseService) GetWarehouseItemCornPrices() ([]dto.WarehouseItemCornPriceResponse, error) {
+	data, err := s.repository.GetWarehouseItemCornPrices()
+	if err != nil {
+		s.log.Error("failed get warehouse item corn prices", zap.Error(err))
+		return nil, err
+	}
+
+	responses := make([]dto.WarehouseItemCornPriceResponse, 0)
+	for _, e := range data {
+		responses = append(responses, mapper.WarehouseItemCornPriceToResponse(&e))
+	}
+
+	return responses, nil
 }

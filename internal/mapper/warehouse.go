@@ -209,7 +209,7 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 }
 
 func WarehouseItemCornProcurementDraftToResponse(warehouseItemCornProcurementDraft *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
-	return dto.WarehouseItemCornProcurementDraftResponse{
+	response := dto.WarehouseItemCornProcurementDraftResponse{
 		Warehouse:                 WarehouseToResponse(&warehouseItemCornProcurementDraft.Warehouse),
 		Supplier:                  SupplierToListResponse(&warehouseItemCornProcurementDraft.Supplier),
 		Item:                      cornItem,
@@ -219,6 +219,11 @@ func WarehouseItemCornProcurementDraftToResponse(warehouseItemCornProcurementDra
 		Quantity:                  warehouseItemCornProcurementDraft.Quantity,
 		TotalPrice:                warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Quantity)).String(),
 	}
+
+	discountPrice := warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Discount))
+	response.TotalPrice = warehouseItemCornProcurementDraft.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+
+	return response
 }
 
 // Note : without remaining payment
@@ -238,4 +243,13 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 
 func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornProcurement) dto.WarehouseItemCornProcurementListResponse {
 	return dto.WarehouseItemCornProcurementListResponse{}
+}
+
+func WarehouseItemCornPriceToResponse(data *entity.WarehouseItemCornPrice) dto.WarehouseItemCornPriceResponse {
+	return dto.WarehouseItemCornPriceResponse{
+		Id:          data.Id,
+		BottomLimit: data.BottomLimit,
+		UpperLimit:  data.UpperLimit,
+		Discount:    data.Discount,
+	}
 }

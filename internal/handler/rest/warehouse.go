@@ -73,6 +73,8 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
 	v1.Delete("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
 
+	v1.Get("items/corns/prices", middleware.Authentication(), h.GetWarehouseItemCornPrices)
+
 	v1.Post("/items/corns/procurements/drafts", middleware.Authentication(), h.CreateWarehouseItemCornProcurementDraft)
 	v1.Get("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.GetWarehouseItemCornProcurementDraft)
 	v1.Get("/items/corns/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemCornProcurementDrafts)
@@ -933,7 +935,6 @@ func (h *WarehouseHandler) DeleteWarehouseItemProcurementDraft(c *fiber.Ctx) err
 	return response.NoContentResponse(c)
 }
 
-
 func (h *WarehouseHandler) ArrivalConfirmationWarehouseItemProcurement(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
@@ -1347,4 +1348,13 @@ func (h *WarehouseHandler) DeleteWarehouseItemCornProcurementPayment(c *fiber.Ct
 		return err
 	}
 	return response.NoContentResponse(c)
+}
+
+func (h *WarehouseHandler) GetWarehouseItemCornPrices(c *fiber.Ctx) error {
+	data, err := h.service.GetWarehouseItemCornPrices()
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse item corn prices")
 }

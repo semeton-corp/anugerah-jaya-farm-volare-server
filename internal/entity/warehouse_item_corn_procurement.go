@@ -30,6 +30,7 @@ type WarehouseItemCornProcurement struct {
 	CornWaterLevel            enum.CornWaterLevel                   `gorm:"type:int;not null"`
 	IsOvenCanOperateInNearDay bool                                  `gorm:"type:bool;not null"`
 	ExpiredAt                 time.Time                             `gorm:"timestamp;not null"`
+	Discount                  float64                               `gorm:"decimal;not null"`
 	CreatedAt                 time.Time                             `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                 uuid.NullUUID                         `gorm:"type:varchar(255)"`
 	UpdatedAt                 time.Time                             `gorm:"type:timestamp;autoUpdateTime"`

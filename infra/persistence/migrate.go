@@ -46,6 +46,7 @@ func Migrate(db *gorm.DB) {
 		&entity.StoreSaleQueue{},
 		&entity.WarehouseSaleQueue{},
 		&entity.ChickenProcurementDraft{},
+		&entity.WarehouseItemCornPrice{},
 	)
 }
 
@@ -90,5 +91,6 @@ func Rollback(db *gorm.DB) {
 		&entity.StoreSaleQueue{},
 		&entity.WarehouseSaleQueue{},
 		&entity.ChickenProcurementDraft{},
+		&entity.WarehouseItemCornPrice{},
 	)
 }

@@ -95,6 +95,8 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemCornProcurementPayment(id uint64) error
 
 	CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
+
+	GetWarehouseItemCornPrices() ([]entity.WarehouseItemCornPrice, error)
 }
 
 func NewWarehouseRepository(db *gorm.DB) IWarehouseRepository {
@@ -684,4 +686,14 @@ func (r *WarehouseRepository) GetWarehouseItemCorn(id uint64) (entity.WarehouseI
 	}
 
 	return warehouseItemCorn, nil
+}
+
+func (r *WarehouseRepository) GetWarehouseItemCornPrices() ([]entity.WarehouseItemCornPrice, error) {
+	var warehouseItemCornPrices []entity.WarehouseItemCornPrice
+	err := r.GetDB().Model(&entity.WarehouseItemCornPrice{}).Find(&warehouseItemCornPrices).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return warehouseItemCornPrices, nil
 }
