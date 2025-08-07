@@ -45,14 +45,17 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/procurements/drafts", middleware.Authentication(), h.CreateChickenProcurementDraft)
 	v1.Put("/procurements/drafts/:id", middleware.Authentication(), h.UpdateChickenProcurementDraft)
 	v1.Get("/procurements/drafts/:id", middleware.Authentication(), h.GetChickenProcurementDraft)
+	v1.Delete("/procurements/drafts/:id", middleware.Authentication(), h.DeleteChickenProcurementDraft)
 	v1.Get("/procurements/drafts", middleware.Authentication(), h.GetChickenProcurementDrafts)
-
 	v1.Post("/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationChickenProcurementDraft)
+
+	v1.Get("/procurements/", middleware.Authentication(), h.GetChickenProcurements)
+	v1.Get("/procurements/:id", middleware.Authentication(), h.GetChickenProcurement)
 	v1.Post("/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationChickenProcurement)
 
 	v1.Post("/procurements/:chickenProcurementId/payments", middleware.Authentication(), h.CreateChickenProcurementPayment)
 	v1.Put("/procurements/:chickenProcurementId/payments/:id", middleware.Authentication(), h.UpdateChickenProcurementPayment)
-	v1.Delete("/procurements/:chickenProcurementId/payments", middleware.Authentication(), h.DeleteChickenProcurementPayment)
+	v1.Delete("/procurements/:chickenProcurementId/payments/:id", middleware.Authentication(), h.DeleteChickenProcurementPayment)
 
 	v1.Post("/afkir/customers", middleware.Authentication(), h.CreateAfkirChickenCustomer)
 	v1.Get("/afkir/customers", middleware.Authentication(), h.GetAfkirChickenCustomers)
@@ -504,6 +507,21 @@ func (h *ChickenHandler) UpdateChickenProcurementDraft(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success update chicken procurement draft")
 }
 
+func (h *ChickenHandler) DeleteChickenProcurementDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse id", zap.Error(err))
+		return errx.BadRequest("invaid id")
+	}
+
+	err = h.service.DeleteChickenProcurementDraft(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
+}
+
 func (h *ChickenHandler) ConfirmationChickenProcurementDraft(c *fiber.Ctx) error {
 	var request dto.ConfirmationChickenProcurementRequest
 	if err := c.BodyParser(&request); err != nil {
@@ -533,7 +551,7 @@ func (h *ChickenHandler) ConfirmationChickenProcurementDraft(c *fiber.Ctx) error
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, data, "success confirm chicken procurement draft")
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success confirm chicken procurement draft")
 }
 
 func (h *ChickenHandler) ArrivalConfirmationChickenProcurement(c *fiber.Ctx) error {
@@ -566,6 +584,41 @@ func (h *ChickenHandler) ArrivalConfirmationChickenProcurement(c *fiber.Ctx) err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success arrival confirmation chicken procurement")
+}
+
+func (h *ChickenHandler) GetChickenProcurements(c *fiber.Ctx) error {
+	var filter dto.GetChickenProcurementFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenProcurements(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken procurements")
+}
+
+func (h *ChickenHandler) GetChickenProcurement(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse request", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenProcurement(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken procurement")
 }
 
 func (h *ChickenHandler) CreateChickenProcurementPayment(c *fiber.Ctx) error {

@@ -104,6 +104,7 @@ func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring
 
 func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto.ChickenProcurementDraftResponse {
 	return dto.ChickenProcurementDraftResponse{
+		Id:         data.Id,
 		Cage:       CageToResponse(&data.Cage),
 		Supplier:   SupplierToResponse(&data.Supplier),
 		Quantity:   data.Quantity,
@@ -164,9 +165,11 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		Id:                    data.Id,
 		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
 		Quantity:              data.Quantity,
+		Cage:                  CageToResponse(&data.Cage),
 		Supplier:              SupplierToListResponse(&data.Supplier),
 		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
+		TotalPrice:            data.TotalPrice.String(),
 	}
 }
 

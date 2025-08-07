@@ -27,7 +27,7 @@ func (c ItemCategory) String() string {
 	return ItemCategoryMap[c]
 }
 
-func ValueOfWarehouseItemCategory(value string) ItemCategory {
+func ValueOfItemCategory(value string) ItemCategory {
 	for k, v := range ItemCategoryMap {
 		if v == value {
 			return k

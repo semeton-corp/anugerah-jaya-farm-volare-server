@@ -159,6 +159,7 @@ type UpdateChickenProcurementDraftRequest struct {
 }
 
 type ChickenProcurementDraftResponse struct {
+	Id         uint64           `json:"id"`
 	Cage       CageResponse     `json:"cage"`
 	Supplier   SupplierResponse `json:"supplier"`
 	Quantity   uint64           `json:"quantity"`

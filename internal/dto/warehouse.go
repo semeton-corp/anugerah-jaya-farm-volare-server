@@ -61,14 +61,14 @@ type WarehouseItemResponse struct {
 }
 
 type CreateWarehouseItemProcurementRequest struct {
-	WarehouseId       uint64                                       `json:"warehouseId" validate:"required"`
-	ItemId            uint64                                       `json:"itemId" validate:"required"`
-	SupplierId        uint64                                       `json:"supplierId" validate:"required"`
-	DailySpending     float64                                      `json:"dailySpending" validate:"required"`
-	DaysNeed          uint64                                       `json:"daysNeed" validate:"required"`
-	Price             string                                       `json:"price" validate:"required"`
-	EstimationArrived string                                       `json:"estimationArrived" validate:"required"`
-	Payment           CreateWarehouseItemProcurementPaymentRequest `json:"payment" validate:"required"`
+	WarehouseId           uint64                                       `json:"warehouseId" validate:"required"`
+	ItemId                uint64                                       `json:"itemId" validate:"required"`
+	SupplierId            uint64                                       `json:"supplierId" validate:"required"`
+	DailySpending         float64                                      `json:"dailySpending" validate:"required"`
+	DaysNeed              uint64                                       `json:"daysNeed" validate:"required"`
+	Price                 string                                       `json:"price" validate:"required"`
+	EstimationArrivalDate string                                       `json:"estimationArrivalDate" validate:"required"`
+	Payment               CreateWarehouseItemProcurementPaymentRequest `json:"payment" validate:"required"`
 }
 
 type CreateWarehouseItemProcurementPaymentRequest struct {

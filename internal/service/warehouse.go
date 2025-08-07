@@ -1593,24 +1593,24 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	estimationArrived, err := time.Parse("02-06-2006", request.EstimationArrived)
+	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
 	data := entity.WarehouseItemProcurement{
-		WarehouseId:       request.WarehouseId,
-		SupplierId:        request.SupplierId,
-		ItemId:            request.ItemId,
-		DailySpending:     request.DailySpending,
-		DaysNeed:          request.DaysNeed,
-		Price:             price,
-		TotalPrice:        price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
-		Quantity:          request.DailySpending * float64(request.DaysNeed),
-		EstimationArrived: estimationArrived,
-		Status:            enum.ProcurementStatusSentOff,
-		PaymentStatus:     enum.PaymentStatusNotPaid,
+		WarehouseId:           request.WarehouseId,
+		SupplierId:            request.SupplierId,
+		ItemId:                request.ItemId,
+		DailySpending:         request.DailySpending,
+		DaysNeed:              request.DaysNeed,
+		Price:                 price,
+		TotalPrice:            price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
+		Quantity:              request.DailySpending * float64(request.DaysNeed),
+		EstimationArrivalDate: estimationArrivalDate,
+		Status:                enum.ProcurementStatusSentOff,
+		PaymentStatus:         enum.PaymentStatusNotPaid,
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
@@ -1701,24 +1701,24 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	estimationArrived, err := time.Parse("02-06-2006", request.EstimationArrived)
+	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
 	data := entity.WarehouseItemProcurement{
-		WarehouseId:       request.WarehouseId,
-		SupplierId:        request.SupplierId,
-		ItemId:            request.ItemId,
-		DailySpending:     request.DailySpending,
-		DaysNeed:          request.DaysNeed,
-		Price:             price,
-		TotalPrice:        price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
-		Quantity:          request.DailySpending * float64(request.DaysNeed),
-		EstimationArrived: estimationArrived,
-		Status:            enum.ProcurementStatusSentOff,
-		PaymentStatus:     enum.PaymentStatusNotPaid,
+		WarehouseId:           request.WarehouseId,
+		SupplierId:            request.SupplierId,
+		ItemId:                request.ItemId,
+		DailySpending:         request.DailySpending,
+		DaysNeed:              request.DaysNeed,
+		Price:                 price,
+		TotalPrice:            price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
+		Quantity:              request.DailySpending * float64(request.DaysNeed),
+		EstimationArrivalDate: estimationArrivalDate,
+		Status:                enum.ProcurementStatusSentOff,
+		PaymentStatus:         enum.PaymentStatusNotPaid,
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)

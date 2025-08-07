@@ -25,7 +25,7 @@ func (cd DateParam) Value() time.Time {
 type ItemCategoryParam enum.ItemCategory
 
 func (w *ItemCategoryParam) UnmarshalText(text []byte) error {
-	parsedCategory := enum.ValueOfWarehouseItemCategory(string(text))
+	parsedCategory := enum.ValueOfItemCategory(string(text))
 	if !parsedCategory.IsValid() {
 		return errx.BadRequest("invalid warehouse item category")
 	}

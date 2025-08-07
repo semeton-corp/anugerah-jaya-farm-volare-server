@@ -43,7 +43,7 @@ type IChickenRepository interface {
 
 	CreateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error
 	GetChickenProcurementDrafts() ([]entity.ChickenProcurementDraft, error)
-	GetChickenProcurementDraftById(id uint64) (entity.ChickenProcurementDraft, error)
+	GetChickenProcurementDraft(id uint64) (entity.ChickenProcurementDraft, error)
 	UpdateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error
 	DeleteChickenProcurementDraft(id uint64) error
 
@@ -51,11 +51,11 @@ type IChickenRepository interface {
 	CreateChickenProcurementPaymentInBatch(data *[]entity.ChickenProcurementPayment) error
 	GetChickenProcurements(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error)
 	CountChickenProcurement(filter dto.GetChickenProcurementFilter) (int64, error)
-	GetChickenProcurementById(id uint64) (entity.ChickenProcurement, error)
+	GetChickenProcurement(id uint64) (entity.ChickenProcurement, error)
 	UpdateChickenProcurement(data *entity.ChickenProcurement) error
 
 	CreateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error
-	GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error)
+	GetChickenProcurementPayment(id uint64) (entity.ChickenProcurementPayment, error)
 	UpdateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error
 	DeleteChickenProcurementPayment(id uint64) error
 
@@ -285,10 +285,13 @@ func (r *ChickenRepository) GetChickenProcurementDrafts() ([]entity.ChickenProcu
 	return chickenProcurementDrafts, nil
 }
 
-func (r *ChickenRepository) GetChickenProcurementDraftById(id uint64) (entity.ChickenProcurementDraft, error) {
+func (r *ChickenRepository) GetChickenProcurementDraft(id uint64) (entity.ChickenProcurementDraft, error) {
 	var chickenProcurementDraft entity.ChickenProcurementDraft
 	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Where("id = ?", id).Preload("Cage.Location").Preload("Supplier").First(&chickenProcurementDraft).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenProcurementDraft{}, errx.NotFound("chicken procurement draft not found")
+		}
 		return entity.ChickenProcurementDraft{}, err
 	}
 
@@ -312,13 +315,16 @@ func (r *ChickenRepository) CreateChickenProcurementPaymentInBatch(data *[]entit
 }
 
 func (r *ChickenRepository) UpdateChickenProcurement(data *entity.ChickenProcurement) error {
-	return r.GetDB().Model(&entity.ChickenProcurement{}).Updates(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
-func (r *ChickenRepository) GetChickenProcurementById(id uint64) (entity.ChickenProcurement, error) {
+func (r *ChickenRepository) GetChickenProcurement(id uint64) (entity.ChickenProcurement, error) {
 	var chickenProcurement entity.ChickenProcurement
-	err := r.GetDB().Model(&entity.ChickenProcurement{}).Preload("Payments").Where("id = ?", id).First(&chickenProcurement).Error
+	err := r.GetDB().Model(&entity.ChickenProcurement{}).Preload("Cage.Location").Preload("Supplier").Preload("Payments").Where("id = ?", id).First(&chickenProcurement).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenProcurement{}, errx.NotFound("chicken procurement not found")
+		}
 		return entity.ChickenProcurement{}, err
 	}
 
@@ -326,16 +332,16 @@ func (r *ChickenRepository) GetChickenProcurementById(id uint64) (entity.Chicken
 }
 
 func (r *ChickenRepository) CreateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error {
-	return r.GetDB().Model(&entity.ChickenProcurement{}).Create(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Create(&data).Error
 }
 
 func (r *ChickenRepository) UpdateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error {
-	return r.GetDB().Model(&entity.ChickenProcurement{}).Updates(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
-func (r *ChickenRepository) GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error) {
+func (r *ChickenRepository) GetChickenProcurementPayment(id uint64) (entity.ChickenProcurementPayment, error) {
 	var chickenProcurementPayment entity.ChickenProcurementPayment
-	err := r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id).First(&chickenProcurementPayment).Error
+	err := r.GetDB().Model(&entity.ChickenProcurementPayment{}).Where("id = ?", id).First(&chickenProcurementPayment).Error
 	if err != nil {
 		return entity.ChickenProcurementPayment{}, err
 	}
@@ -446,7 +452,7 @@ func (r *ChickenRepository) GetAfkirChickenSale(id uint64) (entity.AfkirChickenS
 	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).Preload("Payments").Preload("AfkirChickenCustomer").Preload("ChickenCage").First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not fount")
+			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not found")
 		}
 		return entity.AfkirChickenSale{}, nil
 	}
@@ -494,7 +500,7 @@ func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurem
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Find(&chickenProcurements).Error
+	err := query.Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
 	if err != nil {
 		return nil, err
 	}

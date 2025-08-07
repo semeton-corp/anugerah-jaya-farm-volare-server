@@ -246,7 +246,7 @@ func (s *ItemService) GetItemByNameAndUnitAndType(name string, unit string, item
 func (s *ItemService) CreateItem(request dto.CreateItemRequest, userId uuid.UUID) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	itemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
+	itemCategory := enum.ValueOfItemCategory(request.Category)
 	if !itemCategory.IsValid() {
 		s.log.Error("invalid warehouse item category", zap.String("category", request.Category))
 		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
@@ -296,7 +296,7 @@ func (s *ItemService) GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, er
 func (s *ItemService) UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, userId uuid.UUID) (dto.ItemResponse, error) {
 	s.repository.UseTx(false)
 
-	itemCategory := enum.ValueOfWarehouseItemCategory(request.Category)
+	itemCategory := enum.ValueOfItemCategory(request.Category)
 	if !itemCategory.IsValid() {
 		s.log.Error("invalid warehouse item category", zap.String("category", request.Category))
 		return dto.ItemResponse{}, errx.BadRequest("invalid warehouse item category")
