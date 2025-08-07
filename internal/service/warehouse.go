@@ -616,44 +616,49 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		if request.CustomerId < 1 {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
 		}
-
 		warehouseSale.CustomerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
 			Name:        request.CustomerName,
 			PhoneNumber: request.CustomerPhoneNumber,
 		}
-
 		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
 		}
-
-		if request.CustomerPhoneNumber[:2] != "08" {
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
-
 		resp, err := s.customerService.CreateCustomer(customer)
 		if err != nil {
 			return dto.WarehouseSaleResponse{}, err
 		}
-
 		warehouseSale.CustomerId = resp.Id
 	}
 
-	nominal, err := decimal.NewFromString(request.WarehouseSalePayment.Nominal)
-	if err != nil {
-		s.log.Error("failed to parse nominal", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+	if len(request.WarehouseSalePayment) == 0 {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouseSalePayment is required")
+	}
+
+	totalPayment := decimal.Zero
+	for _, paymentReq := range request.WarehouseSalePayment {
+		nominal, err := decimal.NewFromString(paymentReq.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		totalPayment = totalPayment.Add(nominal)
 	}
 
 	if paymentType == enum.PaymentTypePaidOff {
-		if !warehouseSale.TotalPrice.Equal(nominal) {
-			s.log.Error("nominal is not equal to total price", zap.Error(err))
+		if !warehouseSale.TotalPrice.Equal(totalPayment) {
+			s.log.Error("nominal is not equal to total price")
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
-
 		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
 	} else {
+		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		}
 		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
@@ -663,34 +668,37 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	if request.WarehouseSalePayment.Nominal != "" &&
-		request.WarehouseSalePayment.PaymentDate != "" &&
-		request.WarehouseSalePayment.PaymentProof != "" &&
-		request.WarehouseSalePayment.PaymentMethod != "" {
-		paymentMethod := enum.ValueOfPaymentMethod(request.WarehouseSalePayment.PaymentMethod)
+	payments := make([]entity.WarehouseSalePayment, 0, len(request.WarehouseSalePayment))
+	for _, paymentReq := range request.WarehouseSalePayment {
+		paymentMethod := enum.ValueOfPaymentMethod(paymentReq.PaymentMethod)
 		if !paymentMethod.IsValid() {
-			s.log.Error("invalid payment method", zap.String("paymentMethod", request.WarehouseSalePayment.PaymentMethod))
+			s.log.Error("invalid payment method", zap.String("paymentMethod", paymentReq.PaymentMethod))
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment method")
 		}
-
-		paymentDate, err := time.Parse("02-01-2006", request.WarehouseSalePayment.PaymentDate)
+		paymentDate, err := time.Parse("02-01-2006", paymentReq.PaymentDate)
 		if err != nil {
 			s.log.Error("failed to parse payment date", zap.Error(err))
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment date format")
 		}
-
-		warehouseSalePayment := entity.WarehouseSalePayment{
+		nominal, err := decimal.NewFromString(paymentReq.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		payments = append(payments, entity.WarehouseSalePayment{
 			PaymentDate:     paymentDate,
 			WarehouseSaleId: warehouseSale.Id,
 			Nominal:         nominal,
-			PaymentProof:    request.WarehouseSalePayment.PaymentProof,
+			PaymentProof:    paymentReq.PaymentProof,
 			PaymentMethod:   paymentMethod,
 			CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
-		}
+		})
+	}
 
-		err = s.repository.CreateWarehouseSalePayment(&warehouseSalePayment)
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseSalePaymentInBatch(&payments)
 		if err != nil {
-			s.log.Error("failed to create warehouse sale payment", zap.Error(err))
+			s.log.Error("failed to create warehouse sale payment in batch", zap.Error(err))
 			return dto.WarehouseSaleResponse{}, err
 		}
 	}
@@ -1312,11 +1320,21 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	if warehouseItem.Quantity < request.Quantity {
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if warehouseItem.Quantity < realQuantity {
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
-	warehouseItem.Quantity -= request.Quantity
+	warehouseItem.Quantity -= realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
@@ -1347,12 +1365,6 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
-	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
-	if !saleUnit.IsValid() {
-		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid sale unit")
-	}
-
 	warehouseSale := entity.WarehouseSale{
 		WarehouseId: request.WarehouseId,
 		ItemId:      request.ItemId,
@@ -1371,44 +1383,49 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		if request.CustomerId < 1 {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
 		}
-
 		warehouseSale.CustomerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
 			Name:        request.CustomerName,
 			PhoneNumber: request.CustomerPhoneNumber,
 		}
-
 		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
 		}
-
-		if request.CustomerPhoneNumber[:2] != "08" {
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
-
 		resp, err := s.customerService.CreateCustomer(customer)
 		if err != nil {
 			return dto.WarehouseSaleResponse{}, err
 		}
-
 		warehouseSale.CustomerId = resp.Id
 	}
 
-	nominal, err := decimal.NewFromString(request.WarehouseSalePayment.Nominal)
-	if err != nil {
-		s.log.Error("failed to parse nominal", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+	if len(request.WarehouseSalePayment) == 0 {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouseSalePayment is required")
+	}
+
+	totalPayment := decimal.Zero
+	for _, paymentReq := range request.WarehouseSalePayment {
+		nominal, err := decimal.NewFromString(paymentReq.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		totalPayment = totalPayment.Add(nominal)
 	}
 
 	if paymentType == enum.PaymentTypePaidOff {
-		if !warehouseSale.TotalPrice.Equal(nominal) {
-			s.log.Error("nominal is not equal to total price", zap.Error(err))
+		if !warehouseSale.TotalPrice.Equal(totalPayment) {
+			s.log.Error("nominal is not equal to total price")
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
-
 		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
 	} else {
+		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		}
 		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
@@ -1418,34 +1435,37 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	if request.WarehouseSalePayment.Nominal != "" &&
-		request.WarehouseSalePayment.PaymentDate != "" &&
-		request.WarehouseSalePayment.PaymentProof != "" &&
-		request.WarehouseSalePayment.PaymentMethod != "" {
-		paymentMethod := enum.ValueOfPaymentMethod(request.WarehouseSalePayment.PaymentMethod)
+	payments := make([]entity.WarehouseSalePayment, 0, len(request.WarehouseSalePayment))
+	for _, paymentReq := range request.WarehouseSalePayment {
+		paymentMethod := enum.ValueOfPaymentMethod(paymentReq.PaymentMethod)
 		if !paymentMethod.IsValid() {
-			s.log.Error("invalid payment method", zap.String("paymentMethod", request.WarehouseSalePayment.PaymentMethod))
+			s.log.Error("invalid payment method", zap.String("paymentMethod", paymentReq.PaymentMethod))
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment method")
 		}
-
-		paymentDate, err := time.Parse("02-01-2006", request.WarehouseSalePayment.PaymentDate)
+		paymentDate, err := time.Parse("02-01-2006", paymentReq.PaymentDate)
 		if err != nil {
 			s.log.Error("failed to parse payment date", zap.Error(err))
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment date format")
 		}
-
-		warehouseSalePayment := entity.WarehouseSalePayment{
+		nominal, err := decimal.NewFromString(paymentReq.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		payments = append(payments, entity.WarehouseSalePayment{
 			PaymentDate:     paymentDate,
 			WarehouseSaleId: warehouseSale.Id,
 			Nominal:         nominal,
-			PaymentProof:    request.WarehouseSalePayment.PaymentProof,
+			PaymentProof:    paymentReq.PaymentProof,
 			PaymentMethod:   paymentMethod,
 			CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
-		}
+		})
+	}
 
-		err = s.repository.CreateWarehouseSalePayment(&warehouseSalePayment)
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseSalePaymentInBatch(&payments)
 		if err != nil {
-			s.log.Error("failed to create warehouse sale payment", zap.Error(err))
+			s.log.Error("failed to create warehouse sale payment in batch", zap.Error(err))
 			return dto.WarehouseSaleResponse{}, err
 		}
 	}
@@ -1613,29 +1633,45 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 	}
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
-	if !paymentMethod.IsValid() {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment method")
+	// Validate payments
+	if len(request.Payments) == 0 {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("payments are required")
 	}
 
-	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
-	if err != nil {
-		s.log.Error("failed parse payment nominal", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+	payments := make([]entity.WarehouseItemProcurementPayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment method")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed parse payment nominal", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.WarehouseItemProcurementPayment{
+			PaymentDate:                paymentDate,
+			Nominal:                    nominal,
+			PaymentProof:               p.PaymentProof,
+			PaymentMethod:              paymentMethod,
+			WarehouseItemProcurementId: data.Id,
+			CreatedBy:                  uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
-	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
-	if err != nil {
-		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
-	}
-
-	if paymentNominal.Equal(data.TotalPrice) {
+	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if paymentNominal.LessThan(data.TotalPrice) {
+	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("nominal more than total price")
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("total payment more than total price")
 	}
 
 	err = s.repository.CreateWarehouseItemProcurement(&data)
@@ -1644,17 +1680,13 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	payment := entity.WarehouseItemProcurementPayment{
-		WarehouseItemProcurementId: data.Id,
-		PaymentDate:                paymentPaymentDate,
-		Nominal:                    paymentNominal,
-		PaymentProof:               request.Payment.PaymentProof,
-		PaymentMethod:              paymentMethod,
+	for i := range payments {
+		payments[i].WarehouseItemProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemProcurementPayment(&payment)
+	err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
 	if err != nil {
-		s.log.Error("failed create warehouse procurement payment", zap.Error(err))
+		s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
@@ -1664,17 +1696,17 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	payments := make([]dto.WarehouseItemProcurementPaymentResponse, 0)
+	paymentResponses := make([]dto.WarehouseItemProcurementPaymentResponse, 0)
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
-		payments = append(payments, payment)
+		paymentResponses = append(paymentResponses, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
-	response.Payments = payments
+	response.Payments = paymentResponses
 
 	return response, nil
 }
@@ -1719,31 +1751,47 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		EstimationArrivalDate: estimationArrivalDate,
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
+		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
-	if !paymentMethod.IsValid() {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment method")
+	if len(request.Payments) == 0 {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("payments are required")
 	}
 
-	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
-	if err != nil {
-		s.log.Error("failed parse payment nominal", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+	payments := make([]entity.WarehouseItemProcurementPayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment method")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed parse payment nominal", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.WarehouseItemProcurementPayment{
+			PaymentDate:                paymentDate,
+			Nominal:                    nominal,
+			PaymentProof:               p.PaymentProof,
+			PaymentMethod:              paymentMethod,
+			WarehouseItemProcurementId: data.Id,
+			CreatedBy:                  uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
-	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
-	if err != nil {
-		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
-	}
-
-	if price.Equal(data.TotalPrice) {
+	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if price.LessThan(data.TotalPrice) {
+	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("nominal more than total price")
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("total payment more than total price")
 	}
 
 	err = s.repository.CreateWarehouseItemProcurement(&data)
@@ -1752,17 +1800,19 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	payment := entity.WarehouseItemProcurementPayment{
-		WarehouseItemProcurementId: data.Id,
-		PaymentDate:                paymentPaymentDate,
-		Nominal:                    paymentNominal,
-		PaymentProof:               request.Payment.PaymentProof,
-		PaymentMethod:              paymentMethod,
+	for i := range payments {
+		payments[i].WarehouseItemProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemProcurementPayment(&payment)
+	err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
 	if err != nil {
-		s.log.Error("failed create warehouse procurement payment", zap.Error(err))
+		s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
@@ -1772,17 +1822,17 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	payments := make([]dto.WarehouseItemProcurementPaymentResponse, 0)
+	paymentResponses := make([]dto.WarehouseItemProcurementPaymentResponse, 0)
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
-		payments = append(payments, payment)
+		paymentResponses = append(paymentResponses, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
-	response.Payments = payments
+	response.Payments = paymentResponses
 
 	return response, nil
 }
@@ -2330,29 +2380,44 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
-	if !paymentMethod.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment method")
+	if len(request.Payments) == 0 {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("payments are required")
 	}
 
-	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
-	if err != nil {
-		s.log.Error("failed parse payment nominal", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+	payments := make([]entity.WarehouseItemCornProcurementPayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment method")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed parse payment nominal", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.WarehouseItemCornProcurementPayment{
+			PaymentDate:                    paymentDate,
+			Nominal:                        nominal,
+			PaymentProof:                   p.PaymentProof,
+			PaymentMethod:                  paymentMethod,
+			WarehouseItemCornProcurementId: data.Id,
+			CreatedBy:                      uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
-	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
-	if err != nil {
-		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
-	}
-
-	if paymentNominal.Equal(data.TotalPrice) {
+	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if paymentNominal.LessThan(data.TotalPrice) {
+	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal more than total price")
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("total payment more than total price")
 	}
 
 	err = s.repository.CreateWarehouseItemCornProcurement(&data)
@@ -2361,17 +2426,13 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	payment := entity.WarehouseItemCornProcurementPayment{
-		WarehouseItemCornProcurementId: data.Id,
-		PaymentDate:                    paymentPaymentDate,
-		Nominal:                        paymentNominal,
-		PaymentProof:                   request.Payment.PaymentProof,
-		PaymentMethod:                  paymentMethod,
+	for i := range payments {
+		payments[i].WarehouseItemCornProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemCornProcurementPayment(&payment)
+	err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
 	if err != nil {
-		s.log.Error("failed create warehouse item corn procurement payment", zap.Error(err))
+		s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
@@ -2381,17 +2442,17 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	payments := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
+	paymentResponses := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
-		payments = append(payments, payment)
+		paymentResponses = append(paymentResponses, payment)
 	}
 
 	response := mapper.WarehouseItemCornProcurementToResponse(&data)
-	response.Payments = payments
+	response.Payments = paymentResponses
 
 	return response, nil
 }
@@ -2450,29 +2511,44 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
-	paymentMethod := enum.ValueOfPaymentMethod(request.Payment.PaymentMethod)
-	if !paymentMethod.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment method")
+	if len(request.Payments) == 0 {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("payments are required")
 	}
 
-	paymentNominal, err := decimal.NewFromString(request.Payment.Nominal)
-	if err != nil {
-		s.log.Error("failed parse payment nominal", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+	payments := make([]entity.WarehouseItemCornProcurementPayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment method")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed parse payment nominal", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed parse payment date", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.WarehouseItemCornProcurementPayment{
+			PaymentDate:                    paymentDate,
+			Nominal:                        nominal,
+			PaymentProof:                   p.PaymentProof,
+			PaymentMethod:                  paymentMethod,
+			WarehouseItemCornProcurementId: data.Id,
+			CreatedBy:                      uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
-	paymentPaymentDate, err := time.Parse("02-01-2006", request.Payment.PaymentDate)
-	if err != nil {
-		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
-	}
-
-	if paymentNominal.Equal(data.TotalPrice) {
+	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
-	} else if paymentNominal.LessThan(data.TotalPrice) {
+	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal more than total price")
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("total payment more than total price")
 	}
 
 	err = s.repository.CreateWarehouseItemCornProcurement(&data)
@@ -2481,17 +2557,13 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	payment := entity.WarehouseItemCornProcurementPayment{
-		WarehouseItemCornProcurementId: data.Id,
-		PaymentDate:                    paymentPaymentDate,
-		Nominal:                        paymentNominal,
-		PaymentProof:                   request.Payment.PaymentProof,
-		PaymentMethod:                  paymentMethod,
+	for i := range payments {
+		payments[i].WarehouseItemCornProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemCornProcurementPayment(&payment)
+	err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
 	if err != nil {
-		s.log.Error("failed create warehouse item corn procurement payment", zap.Error(err))
+		s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
@@ -2501,17 +2573,17 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	payments := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
+	paymentResponses := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
-		payments = append(payments, payment)
+		paymentResponses = append(paymentResponses, payment)
 	}
 
 	response := mapper.WarehouseItemCornProcurementToResponse(&data)
-	response.Payments = payments
+	response.Payments = paymentResponses
 
 	return response, nil
 }

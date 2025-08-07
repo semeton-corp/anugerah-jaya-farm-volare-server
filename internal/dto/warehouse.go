@@ -61,14 +61,14 @@ type WarehouseItemResponse struct {
 }
 
 type CreateWarehouseItemProcurementRequest struct {
-	WarehouseId           uint64                                       `json:"warehouseId" validate:"required"`
-	ItemId                uint64                                       `json:"itemId" validate:"required"`
-	SupplierId            uint64                                       `json:"supplierId" validate:"required"`
-	DailySpending         float64                                      `json:"dailySpending" validate:"required"`
-	DaysNeed              uint64                                       `json:"daysNeed" validate:"required"`
-	Price                 string                                       `json:"price" validate:"required"`
-	EstimationArrivalDate string                                       `json:"estimationArrivalDate" validate:"required"`
-	Payment               CreateWarehouseItemProcurementPaymentRequest `json:"payment" validate:"required"`
+	WarehouseId           uint64                                         `json:"warehouseId" validate:"required"`
+	ItemId                uint64                                         `json:"itemId" validate:"required"`
+	SupplierId            uint64                                         `json:"supplierId" validate:"required"`
+	DailySpending         float64                                        `json:"dailySpending" validate:"required"`
+	DaysNeed              uint64                                         `json:"daysNeed" validate:"required"`
+	Price                 string                                         `json:"price" validate:"required"`
+	EstimationArrivalDate string                                         `json:"estimationArrivalDate" validate:"required"`
+	Payments              []CreateWarehouseItemProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
 
 type CreateWarehouseItemProcurementPaymentRequest struct {
@@ -216,19 +216,19 @@ type WarehouseSaleListPaginationResponse struct {
 }
 
 type CreateWarehouseSaleRequest struct {
-	CustomerId           uint64                            `json:"customerId"`
-	CustomerName         string                            `json:"customerName"`
-	CustomerPhoneNumber  string                            `json:"customerPhoneNumber" validate:"phoneNumber"`
-	CustomerType         string                            `json:"customerType" validate:"required,customerType"`
-	ItemId               uint64                            `json:"itemId" validate:"required,number"`
-	WarehouseId          uint64                            `json:"warehouseId" validate:"required,number"`
-	Quantity             float64                           `json:"quantity" validate:"required,number"`
-	SaleUnit             string                            `json:"saleUnit" validate:"required,saleUnit"`
-	Price                string                            `json:"price" validate:"required,number"`
-	Discount             float64                           `json:"discount" validate:"min=0"`
-	SendDate             string                            `json:"sendDate" validate:"required"`
-	PaymentType          string                            `json:"paymentType" validate:"required,paymentType"`
-	WarehouseSalePayment CreateWarehouseSalePaymentRequest `json:"warehouseSalePayment" validate:"required"`
+	CustomerId           uint64                              `json:"customerId"`
+	CustomerName         string                              `json:"customerName"`
+	CustomerPhoneNumber  string                              `json:"customerPhoneNumber" validate:"phoneNumber"`
+	CustomerType         string                              `json:"customerType" validate:"required,customerType"`
+	ItemId               uint64                              `json:"itemId" validate:"required,number"`
+	WarehouseId          uint64                              `json:"warehouseId" validate:"required,number"`
+	Quantity             float64                             `json:"quantity" validate:"required,number"`
+	SaleUnit             string                              `json:"saleUnit" validate:"required,saleUnit"`
+	Price                string                              `json:"price" validate:"required,number"`
+	Discount             float64                             `json:"discount" validate:"min=0"`
+	SendDate             string                              `json:"sendDate" validate:"required"`
+	PaymentType          string                              `json:"paymentType" validate:"required,paymentType"`
+	WarehouseSalePayment []CreateWarehouseSalePaymentRequest `json:"warehouseSalePayment" validate:"required,dive"`
 }
 
 type UpdateWarehouseSaleRequest struct {
@@ -364,16 +364,16 @@ type WarehouseItemCornProcurementDraftResponse struct {
 }
 
 type CreateWarehouseItemCornProcurementRequest struct {
-	WarehouseId               uint64                                           `json:"warehouseId" validate:"required"`
-	SupplierId                uint64                                           `json:"supplierId" validate:"required"`
-	OvenCondition             string                                           `json:"oveCondition" validate:"required,ovenCondition"`
-	CornWaterLevel            string                                           `json:"cornWaterLevel" validate:"required,cornWaterLevel"`
-	IsOvenCanOperateInNearDay *bool                                            `json:"isOvenCanOperateInNearDay" validate:"required"`
-	Quantity                  float64                                          `json:"quantity" validate:"required"`
-	Price                     string                                           `json:"price" validate:"required"`
-	ExpiredAt                 string                                           `json:"expiredAt" validate:"required"`
-	Discount                  float64                                          `json:"discount" validate:"required"`
-	Payment                   CreateWarehouseItemCornProcurementPaymentRequest `json:"payment" validate:"required"`
+	WarehouseId               uint64                                             `json:"warehouseId" validate:"required"`
+	SupplierId                uint64                                             `json:"supplierId" validate:"required"`
+	OvenCondition             string                                             `json:"oveCondition" validate:"required,ovenCondition"`
+	CornWaterLevel            string                                             `json:"cornWaterLevel" validate:"required,cornWaterLevel"`
+	IsOvenCanOperateInNearDay *bool                                              `json:"isOvenCanOperateInNearDay" validate:"required"`
+	Quantity                  float64                                            `json:"quantity" validate:"required"`
+	Price                     string                                             `json:"price" validate:"required"`
+	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
+	Discount                  float64                                            `json:"discount" validate:"required"`
+	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
 
 type WarehouseItemCornProcurementListResponse struct {

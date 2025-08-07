@@ -42,6 +42,7 @@ type IWarehouseRepository interface {
 	CountTotalWarehouseItemHistory(filter dto.GetWarehouseItemHistoryFilter) (int64, error)
 
 	GetWarehouseSalePaymentById(id uint64) (entity.WarehouseSalePayment, error)
+	CreateWarehouseSalePaymentInBatch(data *[]entity.WarehouseSalePayment) error
 	CreateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
 	UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error
 	DeleteWarehouseSalePayment(id uint64) error
@@ -71,6 +72,7 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemProcurement(id uint64) error
 	CountWarehouseItemProcurement(filter dto.GetWarehouseItemProcurementFilter) (int64, error)
 
+	CreateWarehouseItemProcurementPaymentInBatch(data *[]entity.WarehouseItemProcurementPayment) error
 	CreateWarehouseItemProcurementPayment(data *entity.WarehouseItemProcurementPayment) error
 	GetWarehouseItemProcurementPayment(id uint64) (entity.WarehouseItemProcurementPayment, error)
 	UpdateWarehouseItemProcurementPayment(data *entity.WarehouseItemProcurementPayment) error
@@ -89,6 +91,7 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemCornProcurement(id uint64) error
 	CountWarehouseItemCornProcurement(filter dto.GetWarehouseItemCornProcurementFilter) (int64, error)
 
+	CreateWarehouseItemCornProcurementPaymentInBatch(data *[]entity.WarehouseItemCornProcurementPayment) error
 	CreateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error
 	UpdateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error
 	GetWarehouseItemCornProcurementPayment(id uint64) (entity.WarehouseItemCornProcurementPayment, error)
@@ -382,8 +385,12 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 	return warehouseSales, nil
 }
 
+func (r *WarehouseRepository) CreateWarehouseSalePaymentInBatch(data *[]entity.WarehouseSalePayment) error {
+	return r.GetDB().Model(&entity.WarehouseSalePayment{}).CreateInBatches(data, len(*data)).Error
+}
+
 func (r *WarehouseRepository) CreateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error {
-	return r.GetDB().Create(warehouseSalePayment).Error
+	return r.GetDB().Model(&entity.WarehouseSalePayment{}).Create(warehouseSalePayment).Error
 }
 
 func (r *WarehouseRepository) UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error {
@@ -403,7 +410,7 @@ func (r *WarehouseRepository) DeleteWarehouseSalePayment(id uint64) error {
 }
 
 func (r *WarehouseRepository) CreateWarehouseSaleQueue(data *entity.WarehouseSaleQueue) error {
-	return r.GetDB().Model(&entity.WarehouseSaleQueue{}).Create(data).Error
+	return r.GetDB().Model(&entity.WarehouseSaleQueue{}).Create(&data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseSaleQueueById(id uint64) (entity.WarehouseSaleQueue, error) {
@@ -526,6 +533,10 @@ func (r *WarehouseRepository) DeleteWarehouseItemProcurement(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemProcurement{}).Error
 }
 
+func (r *WarehouseRepository) CreateWarehouseItemProcurementPaymentInBatch(data *[]entity.WarehouseItemProcurementPayment) error {
+	return r.GetDB().Model(&entity.WarehouseItemProcurementPayment{}).CreateInBatches(data, len(*data)).Error
+}
+
 func (r *WarehouseRepository) CreateWarehouseItemProcurementPayment(data *entity.WarehouseItemProcurementPayment) error {
 	return r.GetDB().Model(&entity.WarehouseItemProcurementPayment{}).Create(&data).Error
 }
@@ -636,6 +647,10 @@ func (r *WarehouseRepository) CountWarehouseItemCornProcurement(filter dto.GetWa
 
 func (r *WarehouseRepository) DeleteWarehouseItemCornProcurement(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemCornProcurement{}).Error
+}
+
+func (r *WarehouseRepository) CreateWarehouseItemCornProcurementPaymentInBatch(data *[]entity.WarehouseItemCornProcurementPayment) error {
+	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).CreateInBatches(data, len(*data)).Error
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error {

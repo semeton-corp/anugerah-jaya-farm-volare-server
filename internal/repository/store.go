@@ -49,6 +49,7 @@ type IStoreRepository interface {
 	CountTotalStoreSale(filter dto.GetStoreSaleFilter) (uint64, error)
 	DeleteStoreSale(id uint64) error
 
+	CreateStoreSalePaymentInBatch(data *[]entity.StoreSalePayment) error
 	CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
 	GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error)
 	UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error
@@ -353,12 +354,16 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 	return storeSales, nil
 }
 
+func (r *StoreRepository) CreateStoreSalePaymentInBatch(data *[]entity.StoreSalePayment) error {
+	return r.GetDB().Model(&entity.StoreSalePayment{}).CreateInBatches(data, len(*data)).Error
+}
+
 func (r *StoreRepository) CreateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error {
-	return r.GetDB().Create(storeSalePayment).Error
+	return r.GetDB().Model(&entity.StoreSalePayment{}).Create(&storeSalePayment).Error
 }
 
 func (r *StoreRepository) UpdateStoreSale(storeSale *entity.StoreSale) error {
-	return r.GetDB().Model(entity.StoreSale{}).Where("id = ?", storeSale.Id).Updates(storeSale).Error
+	return r.GetDB().Model(entity.StoreSale{}).Where("id = ?", storeSale.Id).Updates(&storeSale).Error
 }
 
 func (r *StoreRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error) {

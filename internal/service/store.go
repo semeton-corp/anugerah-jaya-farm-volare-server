@@ -849,7 +849,6 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		if request.CustomerId < 1 {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
 		}
-
 		storeSale.CustomerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
@@ -861,34 +860,60 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
 		}
 
-		if request.CustomerPhoneNumber[:2] != "08" {
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
 
-		// Saga pattern
 		resp, err := s.customerService.CreateCustomer(customer)
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}
-
 		storeSale.CustomerId = resp.Id
 	}
 
-	nominal, err := decimal.NewFromString(request.StoreSalePayment.Nominal)
-	if err != nil {
-		s.log.Error("failed to parse nominal", zap.Error(err))
-		return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+	payments := make([]entity.StoreSalePayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			s.log.Error("invalid payment method", zap.String("paymentMethod", p.PaymentMethod))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed to parse payment date", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.StoreSalePayment{
+			StoreSaleId:   0,
+			PaymentDate:   paymentDate,
+			PaymentMethod: paymentMethod,
+			Nominal:       nominal,
+			PaymentProof:  p.PaymentProof,
+			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
 	if paymentType == enum.PaymentTypePaidOff {
-		if !storeSale.TotalPrice.Equal(nominal) {
+		if !storeSale.TotalPrice.Equal(totalPayment) {
 			s.log.Error("nominal is not equal to total price", zap.Error(err))
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
-
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
 	} else {
-		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		if totalPayment.GreaterThan(decimal.Zero) && totalPayment.LessThan(storeSale.TotalPrice) {
+			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		} else if totalPayment.Equal(storeSale.TotalPrice) {
+			storeSale.PaymentStatus = enum.PaymentStatusPaid
+		} else {
+			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
@@ -897,34 +922,13 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		return dto.StoreSaleResponse{}, err
 	}
 
-	if request.StoreSalePayment.Nominal != "" &&
-		request.StoreSalePayment.PaymentDate != "" &&
-		request.StoreSalePayment.PaymentProof != "" &&
-		request.StoreSalePayment.PaymentMethod != "" {
-		paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
-		if !paymentMethod.IsValid() {
-			s.log.Error("invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
-			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
-		}
-
-		paymentDate, err := time.Parse("02-01-2006", request.StoreSalePayment.PaymentDate)
+	for i := range payments {
+		payments[i].StoreSaleId = storeSale.Id
+	}
+	if len(payments) > 0 {
+		err = s.repository.CreateStoreSalePaymentInBatch(&payments)
 		if err != nil {
-			s.log.Error("failed to parse payment date", zap.Error(err))
-			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
-		}
-
-		storeSalePayment := entity.StoreSalePayment{
-			PaymentDate:   paymentDate,
-			StoreSaleId:   storeSale.Id,
-			Nominal:       nominal,
-			PaymentProof:  request.StoreSalePayment.PaymentProof,
-			PaymentMethod: paymentMethod,
-			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
-		}
-
-		err = s.repository.CreateStoreSalePayment(&storeSalePayment)
-		if err != nil {
-			s.log.Error("failed to create store sale payment", zap.Error(err))
+			s.log.Error("failed to create store sale payments in batch", zap.Error(err))
 			return dto.StoreSaleResponse{}, err
 		}
 	}
@@ -1770,7 +1774,22 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		return dto.StoreSaleResponse{}, err
 	}
 
-	storeItem.Quantity -= request.Quantity
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	realQuantity := request.Quantity
+	if saleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if storeItem.Quantity < realQuantity {
+		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
+	}
+
+	storeItem.Quantity -= realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
@@ -1801,12 +1820,6 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
-	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
-	if !saleUnit.IsValid() {
-		s.log.Error("invalid sale unit", zap.String("saleUnit", request.SaleUnit))
-		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
-	}
-
 	storeSale := entity.StoreSale{
 		StoreId:     request.StoreId,
 		ItemId:      request.ItemId,
@@ -1825,7 +1838,6 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		if request.CustomerId < 1 {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
 		}
-
 		storeSale.CustomerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
@@ -1837,34 +1849,60 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
 		}
 
-		if request.CustomerPhoneNumber[:2] != "08" {
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
 
-		// Saga pattern
 		resp, err := s.customerService.CreateCustomer(customer)
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}
-
 		storeSale.CustomerId = resp.Id
 	}
 
-	nominal, err := decimal.NewFromString(request.StoreSalePayment.Nominal)
-	if err != nil {
-		s.log.Error("failed to parse nominal", zap.Error(err))
-		return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+	payments := make([]entity.StoreSalePayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
+		if !paymentMethod.IsValid() {
+			s.log.Error("invalid payment method", zap.String("paymentMethod", p.PaymentMethod))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
+		}
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
+		if err != nil {
+			s.log.Error("failed to parse payment date", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
+		}
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			s.log.Error("failed to parse nominal", zap.Error(err))
+			return dto.StoreSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.StoreSalePayment{
+			StoreSaleId:   0,
+			PaymentDate:   paymentDate,
+			PaymentMethod: paymentMethod,
+			Nominal:       nominal,
+			PaymentProof:  p.PaymentProof,
+			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
+		})
 	}
 
 	if paymentType == enum.PaymentTypePaidOff {
-		if !storeSale.TotalPrice.Equal(nominal) {
+		if !storeSale.TotalPrice.Equal(totalPayment) {
 			s.log.Error("nominal is not equal to total price", zap.Error(err))
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
-
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
 	} else {
-		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		if totalPayment.GreaterThan(decimal.Zero) && totalPayment.LessThan(storeSale.TotalPrice) {
+			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		} else if totalPayment.Equal(storeSale.TotalPrice) {
+			storeSale.PaymentStatus = enum.PaymentStatusPaid
+		} else {
+			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
@@ -1873,34 +1911,13 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		return dto.StoreSaleResponse{}, err
 	}
 
-	if request.StoreSalePayment.Nominal != "" &&
-		request.StoreSalePayment.PaymentDate != "" &&
-		request.StoreSalePayment.PaymentProof != "" &&
-		request.StoreSalePayment.PaymentMethod != "" {
-		paymentMethod := enum.ValueOfPaymentMethod(request.StoreSalePayment.PaymentMethod)
-		if !paymentMethod.IsValid() {
-			s.log.Error("invalid payment method", zap.String("paymentMethod", request.StoreSalePayment.PaymentMethod))
-			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment method")
-		}
-
-		paymentDate, err := time.Parse("02-01-2006", request.StoreSalePayment.PaymentDate)
+	for i := range payments {
+		payments[i].StoreSaleId = storeSale.Id
+	}
+	if len(payments) > 0 {
+		err = s.repository.CreateStoreSalePaymentInBatch(&payments)
 		if err != nil {
-			s.log.Error("failed to parse payment date", zap.Error(err))
-			return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment date format")
-		}
-
-		storeSalePayment := entity.StoreSalePayment{
-			PaymentDate:   paymentDate,
-			StoreSaleId:   storeSale.Id,
-			Nominal:       nominal,
-			PaymentProof:  request.StoreSalePayment.PaymentProof,
-			PaymentMethod: paymentMethod,
-			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
-		}
-
-		err = s.repository.CreateStoreSalePayment(&storeSalePayment)
-		if err != nil {
-			s.log.Error("failed to create store sale payment", zap.Error(err))
+			s.log.Error("failed to create store sale payments in batch", zap.Error(err))
 			return dto.StoreSaleResponse{}, err
 		}
 	}
