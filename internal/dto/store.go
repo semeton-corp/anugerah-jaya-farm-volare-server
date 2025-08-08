@@ -293,7 +293,6 @@ type StoreSaleQueueResponse struct {
 	OrderPriority uint64           `json:"orderPriority"`
 	Id            uint64           `json:"id"`
 	Quantity      float64          `json:"quantity"`
-	SendDate      string           `json:"sendDate"`
 	Item          ItemResponse     `json:"item"`
 	Store         StoreResponse    `json:"store"`
 	SaleUnit      string           `json:"saleUnit"`

@@ -14,12 +14,13 @@ type WarehouseSaleQueue struct {
 	Customer            Customer          `gorm:"foreignKey:CustomerId;references:Id"`
 	CustomerName        sql.NullString    `gorm:"type:varchar(255)"`
 	CustomerPhoneNumber sql.NullString    `gorm:"type:varchar(255)"`
-	CustomerType        enum.CustomerType `gorm:"type:varchar(255);not null"`
+	CustomerType        enum.CustomerType `gorm:"type:int;not null"`
 	ItemId              uint64            `gorm:"type:bigint;not null"`
-	Item                Item              `gorm:"foreignKey:ItemId;references:Id"`
+	Item                Item              `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId         uint64            `gorm:"type:bigint;not null"`
-	Warehouse           Warehouse         `gorm:"foreignKey:WarehouseId;references:Id"`
-	SaleUnit            enum.SaleUnit     `gorm:"type:varchar(255);not null"`
+	Warehouse           Warehouse         `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
+	SaleUnit            enum.SaleUnit     `gorm:"type:int;not null"`
+	Quantity            float64           `gorm:"type:decimal;not null;default:0"`
 	CreatedAt           time.Time         `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy           uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time         `gorm:"type:timestamp;autoUpdateTime"`

@@ -59,6 +59,7 @@ type IWarehouseRepository interface {
 	GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQueueFilter) ([]entity.WarehouseSaleQueue, error)
 	DeleteWarehouseSaleQueue(id uint64) error
 
+	CreateWarehouseItemProcurementDraftInBatch(data *[]entity.WarehouseItemProcurementDraft) error
 	CreateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error
 	GetWarehouseItemProcurementDrafts() ([]entity.WarehouseItemProcurementDraft, error)
 	GetWarehouseItemProcurementDraft(id uint64) (entity.WarehouseItemProcurementDraft, error)
@@ -410,12 +411,12 @@ func (r *WarehouseRepository) DeleteWarehouseSalePayment(id uint64) error {
 }
 
 func (r *WarehouseRepository) CreateWarehouseSaleQueue(data *entity.WarehouseSaleQueue) error {
-	return r.GetDB().Model(&entity.WarehouseSaleQueue{}).Create(&data).Error
+	return r.GetDB().Model(&entity.WarehouseSaleQueue{}).Create(data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseSaleQueueById(id uint64) (entity.WarehouseSaleQueue, error) {
 	var warehouseSaleQueue entity.WarehouseSaleQueue
-	err := r.GetDB().Model(&entity.WarehouseSaleQueue{}).Preload("Store").Preload("Item").Preload("Customer").Where("id = ?", id).First(&warehouseSaleQueue).Error
+	err := r.GetDB().Model(&entity.WarehouseSaleQueue{}).Preload("Warehouse.Location").Preload("Item").Preload("Customer").Where("id = ?", id).First(&warehouseSaleQueue).Error
 	if err != nil {
 		return entity.WarehouseSaleQueue{}, err
 	}
@@ -435,7 +436,7 @@ func (r *WarehouseRepository) GetWarehouseSaleQueues(filter dto.GetWarehouseSale
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Preload("Customer").Preload("Item").Find(&warehouseSaleQueues).Error
+	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Find(&warehouseSaleQueues).Error
 	if err != nil {
 		return nil, err
 	}
@@ -711,4 +712,8 @@ func (r *WarehouseRepository) GetWarehouseItemCornPrices() ([]entity.WarehouseIt
 	}
 
 	return warehouseItemCornPrices, nil
+}
+
+func (r *WarehouseRepository) CreateWarehouseItemProcurementDraftInBatch(data *[]entity.WarehouseItemProcurementDraft) error {
+	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).CreateInBatches(data, len(*data)).Error
 }

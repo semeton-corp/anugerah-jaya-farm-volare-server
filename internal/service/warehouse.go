@@ -96,6 +96,9 @@ type IWarehouseService interface {
 	DeleteWarehouseItemCornProcurementPayment(id uint64, warehouseItemProcurementId uint64, userId uuid.UUID) error
 
 	GetWarehouseItemCornPrices() ([]dto.WarehouseItemCornPriceResponse, error)
+
+	CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error
+	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -635,12 +638,12 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		warehouseSale.CustomerId = resp.Id
 	}
 
-	if len(request.WarehouseSalePayment) == 0 {
+	if len(request.Payments) == 0 {
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouseSalePayment is required")
 	}
 
 	totalPayment := decimal.Zero
-	for _, paymentReq := range request.WarehouseSalePayment {
+	for _, paymentReq := range request.Payments {
 		nominal, err := decimal.NewFromString(paymentReq.Nominal)
 		if err != nil {
 			s.log.Error("failed to parse nominal", zap.Error(err))
@@ -668,8 +671,8 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	payments := make([]entity.WarehouseSalePayment, 0, len(request.WarehouseSalePayment))
-	for _, paymentReq := range request.WarehouseSalePayment {
+	payments := make([]entity.WarehouseSalePayment, 0, len(request.Payments))
+	for _, paymentReq := range request.Payments {
 		paymentMethod := enum.ValueOfPaymentMethod(paymentReq.PaymentMethod)
 		if !paymentMethod.IsValid() {
 			s.log.Error("invalid payment method", zap.String("paymentMethod", paymentReq.PaymentMethod))
@@ -1230,6 +1233,7 @@ func (s *WarehouseService) CreateWarehouseSaleQueue(request dto.CreateWarehouseS
 		WarehouseId:  request.WarehouseId,
 		SaleUnit:     saleUnit,
 		CustomerType: customerType,
+		Quantity:     request.Quantity,
 		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -1402,12 +1406,12 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		warehouseSale.CustomerId = resp.Id
 	}
 
-	if len(request.WarehouseSalePayment) == 0 {
+	if len(request.Payments) == 0 {
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouseSalePayment is required")
 	}
 
 	totalPayment := decimal.Zero
-	for _, paymentReq := range request.WarehouseSalePayment {
+	for _, paymentReq := range request.Payments {
 		nominal, err := decimal.NewFromString(paymentReq.Nominal)
 		if err != nil {
 			s.log.Error("failed to parse nominal", zap.Error(err))
@@ -1435,8 +1439,8 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	payments := make([]entity.WarehouseSalePayment, 0, len(request.WarehouseSalePayment))
-	for _, paymentReq := range request.WarehouseSalePayment {
+	payments := make([]entity.WarehouseSalePayment, 0, len(request.Payments))
+	for _, paymentReq := range request.Payments {
 		paymentMethod := enum.ValueOfPaymentMethod(paymentReq.PaymentMethod)
 		if !paymentMethod.IsValid() {
 			s.log.Error("invalid payment method", zap.String("paymentMethod", paymentReq.PaymentMethod))
@@ -1509,7 +1513,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurementDraft(request dto.Creat
 	data := entity.WarehouseItemProcurementDraft{
 		WarehouseId:   request.WarehouseId,
 		ItemId:        request.ItemId,
-		SupplierId:    request.SupplierId,
+		SupplierId:    sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
 		DailySpending: request.DailySpending,
 		DaysNeed:      request.DaysNeed,
 		Price:         price,
@@ -1576,7 +1580,7 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementDraft(id uint64, reques
 
 	warehouseItemProcurementDraft.WarehouseId = request.WarehouseId
 	warehouseItemProcurementDraft.ItemId = request.ItemId
-	warehouseItemProcurementDraft.SupplierId = request.SupplierId
+	warehouseItemProcurementDraft.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
 	warehouseItemProcurementDraft.DailySpending = request.DailySpending
 	warehouseItemProcurementDraft.DaysNeed = request.DaysNeed
 	warehouseItemProcurementDraft.Price = price
@@ -2213,13 +2217,13 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 
 	data := entity.WarehouseItemCornProcurementDraft{
 		WarehouseId:               request.WarehouseId,
-		SupplierId:                request.SupplierId,
+		SupplierId:                sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
 		CornWaterLevel:            cornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		Quantity:                  request.Quantity,
 		Price:                     price,
-		Discount:                  request.Discount,
+		Discount:                  sql.NullFloat64{Float64: request.Discount, Valid: true},
 		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -2305,12 +2309,12 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	}
 
 	data.WarehouseId = request.WarehouseId
-	data.SupplierId = request.SupplierId
+	data.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
 	data.CornWaterLevel = cornWaterLevel
 	data.OvenCondition = ovenCondition
 	data.Price = price
 	data.Quantity = request.Quantity
-	data.Discount = request.Discount
+	data.Discount = sql.NullFloat64{Float64: request.Discount, Valid: true}
 	data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItemCornProcurementDraft(&data)
@@ -2953,4 +2957,95 @@ func (s *WarehouseService) GetWarehouseItemCornPrices() ([]dto.WarehouseItemCorn
 	}
 
 	return responses, nil
+}
+
+func (s *WarehouseService) CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	cornPrice, err := decimal.NewFromString(request.CornPrice)
+	if err != nil {
+		s.log.Error("failed to parse corn price", zap.Error(err))
+		return err
+	}
+
+	cornDraft := entity.WarehouseItemCornProcurementDraft{
+		WarehouseId:               request.WarehouseId,
+		CornWaterLevel:            enum.CornWaterLevelUnknown,
+		OvenCondition:             enum.OvenConditionUnknown,
+		IsOvenCanOperateInNearDay: false,
+		Quantity:                  request.CornQuantity,
+		Price:                     cornPrice,
+		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
+	}
+	err = s.repository.CreateWarehouseItemCornProcurementDraft(&cornDraft)
+	if err != nil {
+		s.log.Error("failed to create corn procurement draft", zap.Error(err))
+		return err
+	}
+
+	drafts := make([]entity.WarehouseItemProcurementDraft, 0, len(request.RawMaterials))
+	for _, rm := range request.RawMaterials {
+		price, err := decimal.NewFromString(rm.Price)
+		if err != nil {
+			s.log.Error("failed to parse raw material price", zap.Error(err))
+			return err
+		}
+		draft := entity.WarehouseItemProcurementDraft{
+			WarehouseId:   request.WarehouseId,
+			ItemId:        rm.ItemId,
+			DailySpending: rm.DailySpending,
+			DaysNeed:      request.DaysNeed,
+			Price:         price,
+			CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
+		}
+		drafts = append(drafts, draft)
+	}
+
+	if len(drafts) > 0 {
+		err := s.repository.CreateWarehouseItemProcurementDraftInBatch(&drafts)
+		if err != nil {
+			s.log.Error("failed to create warehouse item procurement drafts in batch", zap.Error(err))
+			return err
+		}
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	price, err := decimal.NewFromString(request.Price)
+	if err != nil {
+		s.log.Error("failed to parse price", zap.Error(err))
+		return err
+	}
+
+	draft := entity.WarehouseItemProcurementDraft{
+		ItemId:        request.ItemId,
+		DailySpending: request.DailySpending,
+		DaysNeed:      request.DaysNeed,
+		Price:         price,
+		// Quantity and ExpiredAt are not stored in the draft entity, but you can add them if needed
+	}
+
+	err = s.repository.CreateWarehouseItemProcurementDraft(&draft)
+	if err != nil {
+		s.log.Error("failed to create warehouse item procurement draft", zap.Error(err))
+		return err
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

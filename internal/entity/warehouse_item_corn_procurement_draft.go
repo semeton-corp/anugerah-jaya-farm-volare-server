@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -12,14 +13,14 @@ type WarehouseItemCornProcurementDraft struct {
 	Id                        uint64              `gorm:"primaryKey;autoIncrement"`
 	WarehouseId               uint64              `gorm:"type:bigint;not null"`
 	Warehouse                 Warehouse           `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	SupplierId                uint64              `gorm:"type:bigint;not null"`
+	SupplierId                sql.NullInt64       `gorm:"type:bigint"`
 	Supplier                  Supplier            `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
 	OvenCondition             enum.OvenCondition  `gorm:"type:int;not null"`
 	CornWaterLevel            enum.CornWaterLevel `gorm:"type:int;not null"`
 	IsOvenCanOperateInNearDay bool                `gorm:"type:bool;not null"`
 	Quantity                  float64             `gorm:"type:decimal;not null"`
 	Price                     decimal.Decimal     `gorm:"type:decimal;not null"`
-	Discount                  float64             `gorm:"decimal;not null"`
+	Discount                  sql.NullFloat64     `gorm:"decimal"`
 	CreatedAt                 time.Time           `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                 uuid.NullUUID       `gorm:"type:varchar(255)"`
 	UpdatedAt                 time.Time           `gorm:"type:timestamp;autoUpdateTime"`

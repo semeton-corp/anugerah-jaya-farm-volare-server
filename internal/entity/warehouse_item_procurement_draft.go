@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,7 +14,7 @@ type WarehouseItemProcurementDraft struct {
 	Warehouse     Warehouse       `gorm:"foreignKey:WarehouseId;refereces:Id"`
 	ItemId        uint64          `gorm:"type:bigint;not null"`
 	Item          Item            `gorm:"foreignKey:ItemId;references:Id"`
-	SupplierId    uint64          `gorm:"type:bigint;not null"`
+	SupplierId    sql.NullInt64   `gorm:"type:bigint"`
 	Supplier      Supplier        `gorm:"foreignKey:SupplierId;references:Id"`
 	DailySpending float64         `gorm:"type:decimal;not null"`
 	DaysNeed      uint64          `gorm:"type:int;not null"`

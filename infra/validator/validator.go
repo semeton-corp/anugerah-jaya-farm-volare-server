@@ -128,7 +128,11 @@ func ValidationCustomerType(fl validator.FieldLevel) bool {
 func ValidationPhoneNumber(fl validator.FieldLevel) bool {
 	phoneNumber := fl.Field().String()
 
-	return phoneNumber[:2] == "08"
+	if phoneNumber != "" {
+		return phoneNumber[:2] == "08"
+	}
+
+	return true
 }
 
 func ValidationEggType(fl validator.FieldLevel) bool {

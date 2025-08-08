@@ -163,6 +163,7 @@ func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto
 		Id:        storeSaleQueue.Id,
 		Item:      ItemToResponse(&storeSaleQueue.Item),
 		Warehouse: WarehouseToResponse(&storeSaleQueue.Warehouse),
+		Quantity:  storeSaleQueue.Quantity,
 		SaleUnit:  storeSaleQueue.SaleUnit.String(),
 	}
 
@@ -220,8 +221,11 @@ func WarehouseItemCornProcurementDraftToResponse(warehouseItemCornProcurementDra
 		TotalPrice:                warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Quantity)).String(),
 	}
 
-	discountPrice := warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Discount))
-	response.TotalPrice = warehouseItemCornProcurementDraft.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+	if warehouseItemCornProcurementDraft.Discount.Valid {
+		discountPrice := warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Discount.Float64))
+		response.TotalPrice = warehouseItemCornProcurementDraft.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+		response.Discount = &warehouseItemCornProcurementDraft.Discount.Float64
+	}
 
 	return response
 }
