@@ -39,12 +39,12 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 		estimationRunOutStr = fmt.Sprintf("%d hari lagi", daysLeft)
 
 		if now.Add(time.Hour * 24 * 7).After(runOutTime) {
-			description = constant.StockWarehouseItemDanger
+			description = constant.WarehouseItemDescriptionDanger
 		} else {
-			description = constant.StockWarehouseItemSafe
+			description = constant.WarehouseItemDescriptionSafe
 		}
 	} else {
-		description = constant.StockWarehouseItemSafe
+		description = constant.WarehouseItemDescriptionSafe
 		estimationRunOutStr = ""
 	}
 

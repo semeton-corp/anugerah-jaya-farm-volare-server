@@ -455,7 +455,7 @@ func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphRespo
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var good, cracked, reject uint64
 		for _, egg := range weekEggs {
-			if isSameDate(day, egg.CreatedAt) {
+			if util.IsSameDate(day, egg.CreatedAt) {
 				good += egg.TotalGoodEgg
 				cracked += egg.TotalCrackedEgg
 				reject += egg.TotalRejectEgg

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -12,8 +14,9 @@ import (
 )
 
 type CageService struct {
-	log        *zap.Logger
-	repository repository.ICageRepository
+	log              *zap.Logger
+	repository       repository.ICageRepository
+	warehouseService IWarehouseService
 }
 
 type ICageService interface {
@@ -37,10 +40,11 @@ type ICageService interface {
 	GetCageFeed(id uint64) (dto.CageFeedResponse, error)
 }
 
-func NewCageService(log *zap.Logger, repository repository.ICageRepository) ICageService {
+func NewCageService(log *zap.Logger, repository repository.ICageRepository, warehouseService IWarehouseService) ICageService {
 	return &CageService{
-		log:        log,
-		repository: repository,
+		log:              log,
+		repository:       repository,
+		warehouseService: warehouseService,
 	}
 }
 
@@ -484,4 +488,124 @@ func (s *CageService) GetCageFeed(id uint64) (dto.CageFeedResponse, error) {
 	response.CageFeedDetails = cageFeedDetailResponses
 
 	return response, nil
+}
+
+func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]dto.ChickenCageFeedListResponse, error) {
+	s.repository.UseTx(false)
+
+	data, err := s.repository.GetChickenCageFeeds(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	chickenCages, err := s.repository.GetChickenCages(dto.GetChickenCageFilter{
+		LocationId: filter.LocationId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken cages", zap.Error(err))
+		return nil, err
+	}
+
+	chickecnCageIds := make([]uint64, 0)
+	for _, e := range chickenCages {
+		chickecnCageIds = append(chickecnCageIds, e.Id)
+	}
+
+	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
+	chickenMonitoringsYesteday, err := s.repository.GetChickenMonitoringYesterdayByChickenCageIds(chickecnCageIds, yesterdayDate)
+	if err != nil {
+		s.log.Error("failed get chicken monitoring yesterday by chicken cage ids", zap.Error(err))
+		return nil, err
+	}
+
+	responses := make([]dto.ChickenCageFeedListResponse, 0)
+	for _, e := range data {
+		response := mapper.ChickenCageFeedToListResponse(&e)
+		for _, chickenMonitoring := range chickenMonitoringsYesteday {
+			if response.Id == chickenMonitoring.ChickenCageId {
+				response.YesterdayTotalFeed = chickenMonitoring.TotalFeed
+				response.TotalFeed = response.ExpectedTotalFeed - response.YesterdayTotalFeed
+			}
+		}
+
+		responses = append(responses, mapper.ChickenCageFeedToListResponse(&e))
+	}
+
+	return responses, nil
+}
+
+func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error) {
+	s.repository.UseTx(false)
+
+	chickenCage, err := s.repository.GetChickenCageFeedById(chickenCageId)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id", zap.Error(err))
+		return dto.ChickenCageFeedResponse{}, err
+	}
+
+	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
+	chickenMonitoring, err := s.repository.GetChickenMonitoringYesterday(chickenCageId, yesterdayDate)
+	if err != nil {
+		s.log.Error("failed get chicken monitoring yesterday", zap.Error(err))
+		return dto.ChickenCageFeedResponse{}, err
+	}
+
+	needCreateFeed := chickenMonitoring.TotalFeed
+	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
+	for _, cageFeedDetail := range chickenCage.Cage.CageFeed.CageFeedDetails {
+		feedDetailResponse = append(feedDetailResponse, dto.FeedDetailResponse{
+			Item:       mapper.ItemToResponse(&cageFeedDetail.Item),
+			Percentage: cageFeedDetail.Percentage,
+			Quantity:   needCreateFeed * (cageFeedDetail.Percentage / 100.0),
+		})
+	}
+
+	response := mapper.ChickenCageFeedToResponse(&chickenCage)
+	response.YesterdayTotalFeed = chickenMonitoring.TotalFeed
+	response.TotalFeed = response.ExpectedTotalFeed - response.YesterdayTotalFeed
+	response.FeedDetails = feedDetailResponse
+
+	return response, nil
+}
+
+func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest) error {
+	s.repository.UseTx(false)
+
+	chickenCage, err := s.repository.GetChickenCageById(chickenCageId)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id", zap.Error(err))
+		return err
+	}
+
+	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
+	chickenMonitoring, err := s.repository.GetChickenMonitoringYesterday(chickenCageId, yesterdayDate)
+	if err != nil {
+		s.log.Error("failed get chicken monitoring yesterday", zap.Error(err))
+		return err
+	}
+
+	chickenCage.IsNeedFeed = false
+
+	needCreateFeed := chickenMonitoring.TotalFeed
+	requestToWarehouse := make([]dto.ReduceFeedRequest, 0)
+	for _, cageFeedDetail := range chickenCage.Cage.CageFeed.CageFeedDetails {
+		requestToWarehouse = append(requestToWarehouse, dto.ReduceFeedRequest{
+			ItemId:       cageFeedDetail.ItemId,
+			ItemCategory: cageFeedDetail.Item.Category.String(),
+			Quantity:     needCreateFeed * (cageFeedDetail.Percentage / 100.0),
+		})
+	}
+
+	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse)
+	if err != nil {
+		return err
+	}
+
+	err = s.repository.UpdateChickenCage(&chickenCage)
+	if err != nil {
+		s.log.Error("failed update chicken cage", zap.Error(err))
+		return err
+	}
+
+	return nil
 }

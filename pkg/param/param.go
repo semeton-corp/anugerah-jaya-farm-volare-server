@@ -149,3 +149,19 @@ func (p *PaymentStatusParam) UnmarshalText(text []byte) error {
 func (p PaymentStatusParam) Value() enum.PaymentStatus {
 	return enum.PaymentStatus(p)
 }
+
+type SupplierTypeParam enum.SupplierType
+
+func (p *SupplierTypeParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfSupplierType(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid supplier type")
+	}
+
+	*p = SupplierTypeParam(parsedFilter)
+	return nil
+}
+
+func (p SupplierTypeParam) Value() enum.SupplierType {
+	return enum.SupplierType(p)
+}

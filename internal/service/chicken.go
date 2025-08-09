@@ -307,7 +307,7 @@ func (c *ChickenService) buildWeeklyGraph() ([]dto.ChickenGraphResponse, error) 
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var sickSum, deathSum uint64
 		for _, cm := range weekMonitorings {
-			if isSameDate(day, cm.CreatedAt) {
+			if util.IsSameDate(day, cm.CreatedAt) {
 				sickSum += cm.TotalSickChicken
 				deathSum += cm.TotalDeathChicken
 			}
@@ -388,10 +388,6 @@ func (c *ChickenService) buildYearlyGraph() ([]dto.ChickenGraphResponse, error) 
 		})
 	}
 	return graphs, nil
-}
-
-func isSameDate(a, b time.Time) bool {
-	return a.Year() == b.Year() && a.Month() == b.Month() && a.Day() == b.Day()
 }
 
 func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, createdBy uuid.UUID) (dto.ChickenHealthItemResponse, error) {

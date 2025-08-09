@@ -25,8 +25,7 @@ func (h *SupplierHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Post("/", middleware.Authentication(), h.CreateSupplier)
 	v1.Get("/:id", middleware.Authentication(), h.GetSupplierById)
-	v1.Get("/", middleware.Authentication(), h.GetAllSuppliers)
-	v1.Get("", middleware.Authentication(), h.GetAllSuppliers)
+	v1.Get("/", middleware.Authentication(), h.GetSuppliers)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateSupplier)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteSupplier)
 }
@@ -80,8 +79,19 @@ func (h *SupplierHandler) GetSupplierById(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, supplier, "success get supplier by id")
 }
 
-func (h *SupplierHandler) GetAllSuppliers(c *fiber.Ctx) error {
-	suppliers, err := h.service.GetAllSuppliers()
+func (h *SupplierHandler) GetSuppliers(c *fiber.Ctx) error {
+	var filter dto.GetSupplierFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	suppliers, err := h.service.GetSuppliers(filter)
 	if err != nil {
 		return err
 	}

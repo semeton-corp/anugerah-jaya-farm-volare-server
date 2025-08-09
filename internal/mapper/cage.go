@@ -36,6 +36,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
 
+		// Todo check the category using week
 		if chickenAgeInWeek > 0 {
 			chickenCategory = enum.ChickenCategoryAfkir
 		}
@@ -61,6 +62,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		TotalChicken:         chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
 		ChickenPic:           chickenPic,
 		EggPic:               eggPic,
+		TotalDeathChicken:    chickenCage.TotalDeathChicken,
 		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}
 
@@ -82,4 +84,62 @@ func CageFeedDetailToResponse(data *entity.CageFeedDetail) dto.CageFeedDetailRes
 		Item:       ItemToResponse(&data.Item),
 		Percentage: data.Percentage,
 	}
+}
+
+// Note : without totalFeed and yesterdayTotalFeed
+func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedListResponse {
+	var (
+		chickenAgeInWeek uint64
+		chickenCategory  enum.ChickenCategory
+	)
+
+	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
+		chickenAge := time.Since(chickenCage.CreatedAt)
+		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
+
+		if chickenAgeInWeek > 0 {
+			chickenCategory = enum.ChickenCategoryAfkir
+		}
+	}
+
+	response := dto.ChickenCageFeedListResponse{
+		Id:                chickenCage.Id,
+		Cage:              CageToResponse(&chickenCage.Cage),
+		ChickenCategory:   chickenCategory.String(),
+		ChickenAge:        chickenAgeInWeek,
+		TotalChicken:      chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		IsNeedFeed:        chickenCage.IsNeedFeed,
+		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
+	}
+
+	return response
+}
+
+// Note : without totalFeed and yesterdayTotalFeed and feedDetails
+func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedResponse {
+	var (
+		chickenAgeInWeek uint64
+		chickenCategory  enum.ChickenCategory
+	)
+
+	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
+		chickenAge := time.Since(chickenCage.CreatedAt)
+		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24 * time.Hour)))
+
+		if chickenAgeInWeek > 0 {
+			chickenCategory = enum.ChickenCategoryAfkir
+		}
+	}
+
+	response := dto.ChickenCageFeedResponse{
+		Id:                chickenCage.Id,
+		Cage:              CageToResponse(&chickenCage.Cage),
+		ChickenCategory:   chickenCategory.String(),
+		ChickenAge:        chickenAgeInWeek,
+		TotalChicken:      chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		IsNeedFeed:        chickenCage.IsNeedFeed,
+		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
+	}
+
+	return response
 }

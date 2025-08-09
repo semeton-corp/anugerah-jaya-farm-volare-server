@@ -46,7 +46,7 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 	}
 
 	if storeItem.Quantity/float64(constant.TotalEggPerIkat) >= 20.0 {
-		response.Description = constant.StoreItemDescriptionSafety
+		response.Description = constant.StoreItemDescriptionSafe
 	} else {
 		response.Description = constant.StoreItemDescriptionDanger
 	}

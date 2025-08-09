@@ -1,6 +1,11 @@
 package dto
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+import (
+	"time"
+
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+	"github.com/shopspring/decimal"
+)
 
 type CreateWarehouseRequest struct {
 	Name         string  `json:"name" validate:"required"`
@@ -190,6 +195,8 @@ type GetWarehouseSaleFilter struct {
 	Date          param.DateParam          `query:"date"`
 	PaymentMethod param.PaymentMethodParam `query:"paymentMethod"`
 	Page          uint64                   `query:"page"`
+	StartDate     param.DateParam
+	EndDate       param.DateParam
 }
 
 type WarehouseSaleResponse struct {
@@ -264,6 +271,8 @@ type WarehouseSaleListResponse struct {
 	SaleUnit      string            `json:"saleUnit"`
 	PaymentStatus string            `json:"paymentStatus"`
 	IsSend        bool              `json:"isSend"`
+	CreatedAt     time.Time         `json:"-"`
+	TotalPrice    decimal.Decimal   `json:"-"`
 }
 
 type WarehouseSalePaymentResponse struct {
@@ -477,4 +486,10 @@ type CreateReadyToEatFeedRequest struct {
 	Price         string  `json:"price" validate:"required"`
 	DailySpending float64 `json:"dailySpending" validate:"required"`
 	ExpiredAt     string  `json:"expiredAt" validate:"expired"`
+}
+
+type ReduceFeedRequest struct {
+	ItemId       uint64  `json:"itemId"`
+	ItemCategory string  `json:"itemCategory"`
+	Quantity     float64 `json:"quantity"`
 }

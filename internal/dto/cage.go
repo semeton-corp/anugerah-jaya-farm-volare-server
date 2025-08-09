@@ -49,6 +49,7 @@ type ChickenCageResponse struct {
 	ChickenPic           string       `json:"chickenPic"`
 	EggPic               string       `json:"eggPic"`
 	IsNeedRoutineVaccine bool         `json:"isNeedRoutineVaccine"`
+	TotalDeathChicken    uint64       `json:"-"`
 }
 
 type GetChickenCageFilter struct {
@@ -96,4 +97,45 @@ type CageFeedDetailResponse struct {
 	Id         uint64       `json:"id"`
 	Item       ItemResponse `json:"item"`
 	Percentage float64      `json:"percentage"`
+}
+
+type ChickenCageFeedListResponse struct {
+	Cage               CageResponse `json:"cage"`
+	Id                 uint64       `json:"id"`
+	ChickenCategory    string       `json:"chickenCategory"`
+	ChickenAge         uint64       `json:"chickenAge"`
+	TotalChicken       uint64       `json:"totalChicken"`
+	ExpectedTotalFeed  float64      `json:"expectedTotalFeed"`
+	YesterdayTotalFeed float64      `json:"yesterdayTotalFeed"`
+	TotalFeed          float64      `json:"totalFeed"`
+	RemainingFeed      float64      `json:"remainingFeed"`
+	IsNeedFeed         bool         `json:"isNeedFeed"`
+}
+
+type ChickenCageFeedResponse struct {
+	Cage               CageResponse         `json:"cage"`
+	Id                 uint64               `json:"id"`
+	ChickenCategory    string               `json:"chickenCategory"`
+	ChickenAge         uint64               `json:"chickenAge"`
+	TotalChicken       uint64               `json:"totalChicken"`
+	FeedType           string               `json:"feedType"`
+	ExpectedTotalFeed  float64              `json:"expectedTotalFeed"`
+	YesterdayTotalFeed float64              `json:"yesterdayTotalFeed"`
+	TotalFeed          float64              `json:"totalFeed"`
+	IsNeedFeed         bool                 `json:"isNeedFeed"`
+	FeedDetails        []FeedDetailResponse `json:"feedDetails"`
+}
+
+type FeedDetailResponse struct {
+	Item       ItemResponse `json:"item"`
+	Percentage float64      `json:"percentage"`
+	Quantity   float64      `json:"quantity"`
+}
+
+type GetChickenCageFeedFilter struct {
+	LocationId uint64 `query:"locationid"`
+}
+
+type ConfirmationChickenCageFeedRequest struct {
+	WarehouseId uint64 `json:"warehouseId"`
 }

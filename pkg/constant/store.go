@@ -1,6 +1,6 @@
 package constant
 
 const (
-	StoreItemDescriptionSafety string = "Aman"
+	StoreItemDescriptionSafe   string = "Aman"
 	StoreItemDescriptionDanger string = "Kritis"
 )

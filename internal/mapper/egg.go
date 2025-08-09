@@ -43,14 +43,15 @@ func EggMonitoringToResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitor
 
 func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMonitoringListResponse {
 	response := dto.EggMonitoringListResponse{
-		Id:              eggMonitoring.Id,
-		ChickenCage:     ChickenCageToResponse(&eggMonitoring.ChickenCage),
-		Warehouse:       WarehouseToResponse(&eggMonitoring.Warehouse),
-		TotalAllEgg:     eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalRejectEgg,
-		TotalGoodEgg:    eggMonitoring.TotalGoodEgg,
-		TotalCrackedEgg: eggMonitoring.TotalCrackedEgg,
-		TotalRejectEgg:  eggMonitoring.TotalRejectEgg,
-		CreatedAt:       eggMonitoring.CreatedAt.Format("02-01-2006"),
+		Id:                 eggMonitoring.Id,
+		ChickenCage:        ChickenCageToResponse(&eggMonitoring.ChickenCage),
+		Warehouse:          WarehouseToResponse(&eggMonitoring.Warehouse),
+		TotalAllEgg:        eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalRejectEgg,
+		TotalGoodEgg:       eggMonitoring.TotalGoodEgg,
+		TotalCrackedEgg:    eggMonitoring.TotalCrackedEgg,
+		TotalRejectEgg:     eggMonitoring.TotalRejectEgg,
+		TotalWeightGoodEgg: eggMonitoring.TotalWeightGoodEgg,
+		CreatedAt:          eggMonitoring.CreatedAt,
 	}
 
 	if eggMonitoring.TotalGoodEgg == 0 {

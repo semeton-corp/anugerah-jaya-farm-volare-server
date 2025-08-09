@@ -7,10 +7,11 @@ import (
 
 func SupplierToResponse(supplier *entity.Supplier) dto.SupplierResponse {
 	response := dto.SupplierResponse{
-		Id:          supplier.Id,
-		Name:        supplier.Name,
-		PhoneNumber: supplier.PhoneNumber,
-		Address:     supplier.Address,
+		Id:           supplier.Id,
+		Name:         supplier.Name,
+		PhoneNumber:  supplier.PhoneNumber,
+		Address:      supplier.Address,
+		SupplierType: supplier.SupplierType.String(),
 	}
 
 	items := make([]dto.ItemResponse, 0)
@@ -25,10 +26,11 @@ func SupplierToResponse(supplier *entity.Supplier) dto.SupplierResponse {
 
 func SupplierToListResponse(supplier *entity.Supplier) dto.SupplierListResponse {
 	response := dto.SupplierListResponse{
-		Id:          supplier.Id,
-		Name:        supplier.Name,
-		PhoneNumber: supplier.PhoneNumber,
-		Address:     supplier.Address,
+		Id:           supplier.Id,
+		Name:         supplier.Name,
+		PhoneNumber:  supplier.PhoneNumber,
+		Address:      supplier.Address,
+		SupplierType: supplier.SupplierType.String(),
 	}
 
 	return response

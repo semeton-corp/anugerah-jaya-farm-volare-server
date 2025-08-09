@@ -82,10 +82,6 @@ func (b *Bootstrap) DepedencyInjection() {
 	authService := service.NewAuthenticationService(b.log, authRepository, b.email, roleService, placementService)
 	authenticationHandler := rest.NewAuthenticationHandler(b.log, authService, b.validator)
 
-	cageRepository := repository.NewCageRepository(b.db)
-	cageService := service.NewCageService(b.log, cageRepository)
-	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
-
 	itemRepository := repository.NewItemRepository(b.db)
 	itemService := service.NewItemPriceService(b.log, itemRepository)
 	itemHandler := rest.NewEggPriceHandler(b.log, itemService, b.validator)
@@ -112,7 +108,7 @@ func (b *Bootstrap) DepedencyInjection() {
 
 	customerRepository := repository.NewCustomerRepository(b.db)
 	customerService := service.NewCustomerService(b.log, customerRepository)
-	CustomerHandler := rest.NewCustomerHandler(b.log, customerService, b.validator)
+	customerHandler := rest.NewCustomerHandler(b.log, customerService, b.validator)
 
 	warehouseRepository := repository.NewWarehouseRepository(b.db)
 	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, b.cache, placementService, itemService, customerService)
@@ -122,6 +118,10 @@ func (b *Bootstrap) DepedencyInjection() {
 	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService, userService, itemService, customerService)
 	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
 
+	cageRepository := repository.NewCageRepository(b.db)
+	cageService := service.NewCageService(b.log, cageRepository, warehouseService)
+	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
+
 	eggRepository := repository.NewEggRepository(b.db)
 	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService, itemService, b.cache, storeService)
 	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
@@ -129,6 +129,9 @@ func (b *Bootstrap) DepedencyInjection() {
 	chickenRepository := repository.NewChickenRepository(b.db)
 	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService)
 	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
+
+	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)
+	generalHandler := rest.NewGeneralHandler(b.log, generalService, b.validator)
 
 	b.handlers = []Handler{
 		authenticationHandler,
@@ -145,7 +148,8 @@ func (b *Bootstrap) DepedencyInjection() {
 		itemHandler,
 		locationHandler,
 		placementHandler,
-		CustomerHandler,
+		customerHandler,
+		generalHandler,
 	}
 }
 

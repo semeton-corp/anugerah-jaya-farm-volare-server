@@ -5,8 +5,8 @@ type EggSummaryResponse struct {
 	TotalGoodEggProductionInKarpet float64 `json:"totalGoodEggProductionInKarpet"`
 	TotalGoodEggProductionInButir  float64 `json:"totalGoodEggProductionInButir"`
 	TotalGoodEggProductionInKg     float64 `json:"totalGoodEggProductionInKg"`
-	TotalGoodEggSellInButir        float64 `json:"totalGoodEggSellInButir"`
-	TotalGoodEggSellInKg           float64 `json:"totalGoodEggSellInKg"`
+	TotalGoodEggSaleInIkat         float64 `json:"totalGoodEggSaleInIkat"`
+	TotalGoodEggSaleInKg           float64 `json:"totalGoodEggSaleInKg"`
 }
 
 type ChickenSummaryResponse struct {
@@ -20,11 +20,18 @@ type SaleSummaryResponse struct {
 	Profit string `json:"profit"`
 }
 
+type ProductionAndSaleEggGraphResponse struct {
+	Key        string  `json:"key"`
+	Production float64 `json:"production"`
+	Sale       float64 `json:"sale"`
+}
+
 // Note : per day
 type GeneralOverview struct {
-	EggSummary           EggSummaryResponse           `json:"eggSummary"`
-	WarehouseItemSummary WarehouseItemSummaryResponse `json:"warehouseItemSummary"`
-	StoreItemSummary     StoreItemSummaryResponse     `json:"storeItemSummary"`
-	SaleSummary          SaleSummaryResponse          `json:"saleSummary"`
-	ChickenSummary       ChickenSummaryResponse       `json:"chickenSummary"`
+	EggSummary                 EggSummaryResponse                  `json:"eggSummary"`
+	WarehouseItemSummary       WarehouseItemSummaryResponse        `json:"warehouseItemSummary"`
+	StoreItemSummary           StoreItemSummaryResponse            `json:"storeItemSummary"`
+	SaleSummary                SaleSummaryResponse                 `json:"saleSummary"`
+	ChickenSummary             ChickenSummaryResponse              `json:"chickenSummary"`
+	ProductionAndSaleEggGraphs []ProductionAndSaleEggGraphResponse `json:"ProductionAndSaleEggGraphs"`
 }

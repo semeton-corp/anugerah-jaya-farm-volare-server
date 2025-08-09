@@ -1,7 +1,10 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+	"github.com/shopspring/decimal"
 )
 
 type CreateStoreRequest struct {
@@ -232,6 +235,8 @@ type StoreSaleListResponse struct {
 	SaleUnit      string           `json:"saleUnit"`
 	PaymentStatus string           `json:"paymentStatus"`
 	IsSend        bool             `json:"isSend"`
+	CreatedAt     time.Time        `json:"-"`
+	TotalPrice    decimal.Decimal  `json:"-"`
 }
 
 type StoreSalePaymentResponse struct {
@@ -301,6 +306,6 @@ type StoreSaleQueueResponse struct {
 }
 
 type StoreItemSummaryResponse struct {
-	TotalSafeStock    uint64 `json:"totalSafeStock"`
-	TotalNotSafeStock uint64 `json:"totalNotSafeStock"`
+	TotalSafeItem    uint64 `json:"totalSafeItem"`
+	TotalNotSafeItem uint64 `json:"totalNotSafeItem"`
 }

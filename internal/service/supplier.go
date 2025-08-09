@@ -8,6 +8,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -19,7 +21,7 @@ type SupplierService struct {
 type ISupplierService interface {
 	CreateSupplier(requesst *dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error)
 	GetSupplierById(id uint64) (dto.SupplierResponse, error)
-	GetAllSuppliers() ([]dto.SupplierListResponse, error)
+	GetSuppliers(filter dto.GetSupplierFilter) ([]dto.SupplierListResponse, error)
 	UpdateSupplier(id uint64, request *dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error)
 	DeleteSupplier(id uint64) error
 }
@@ -31,15 +33,21 @@ func NewSupplierService(log *zap.Logger, repository repository.ISupplierReposito
 	}
 }
 
-func (s *SupplierService) CreateSupplier(requesst *dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error) {
+func (s *SupplierService) CreateSupplier(request *dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
+	supplierType := enum.ValueOfSupplierType(request.SupplierType)
+	if !supplierType.IsValid() {
+		return dto.SupplierResponse{}, errx.BadRequest("invalid supplier type")
+	}
+
 	supplier := entity.Supplier{
-		Name:        requesst.Name,
-		PhoneNumber: requesst.PhoneNumber,
-		Address:     requesst.Address,
-		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+		Name:         request.Name,
+		PhoneNumber:  request.PhoneNumber,
+		Address:      request.Address,
+		SupplierType: supplierType,
+		CreatedBy:    uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
 	err := s.repository.CreateSupplier(&supplier)
@@ -49,7 +57,7 @@ func (s *SupplierService) CreateSupplier(requesst *dto.CreateSupplierRequest, cr
 	}
 
 	supplierItems := make([]entity.SupplierItem, 0)
-	for _, e := range requesst.ItemIds {
+	for _, e := range request.ItemIds {
 		supplierItems = append(supplierItems, entity.SupplierItem{
 			SupplierId: supplier.Id,
 			ItemId:     e,
@@ -57,7 +65,7 @@ func (s *SupplierService) CreateSupplier(requesst *dto.CreateSupplierRequest, cr
 		})
 	}
 
-	err = s.repository.CreateBatchSupplierItem(&supplierItems)
+	err = s.repository.CreateSupplierItemInBatch(&supplierItems)
 	if err != nil {
 		s.log.Error("failed to create supplier items in batch", zap.Error(err))
 		return dto.SupplierResponse{}, err
@@ -90,10 +98,10 @@ func (s *SupplierService) GetSupplierById(id uint64) (dto.SupplierResponse, erro
 	return mapper.SupplierToResponse(&supplier), nil
 }
 
-func (s *SupplierService) GetAllSuppliers() ([]dto.SupplierListResponse, error) {
+func (s *SupplierService) GetSuppliers(filter dto.GetSupplierFilter) ([]dto.SupplierListResponse, error) {
 	s.repository.UseTx(false)
 
-	suppliers, err := s.repository.GetAllSuppliers()
+	suppliers, err := s.repository.GetSuppliers(filter)
 	if err != nil {
 		s.log.Error("failed to get suppliers", zap.Error(err))
 		return nil, err
@@ -136,9 +144,15 @@ func (s *SupplierService) UpdateSupplier(id uint64, request *dto.UpdateSupplierR
 		}
 	}
 
+	supplierType := enum.ValueOfSupplierType(request.SupplierType)
+	if !supplierType.IsValid() {
+		return dto.SupplierResponse{}, errx.BadRequest("invalid supplier type")
+	}
+
 	supplier.Name = request.Name
 	supplier.PhoneNumber = request.PhoneNumber
 	supplier.Address = request.Address
+	supplier.SupplierType = supplierType
 	supplier.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 
 	if err := s.repository.UpdateSupplier(&supplier); err != nil {
@@ -163,7 +177,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request *dto.UpdateSupplierR
 				CreatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: true},
 			})
 		}
-		err := s.repository.CreateBatchSupplierItem(&supplierItems)
+		err := s.repository.CreateSupplierItemInBatch(&supplierItems)
 		if err != nil {
 			s.log.Error("failed to create supplier item in batch", zap.Error(err))
 			return dto.SupplierResponse{}, err

@@ -99,6 +99,8 @@ type IWarehouseService interface {
 
 	CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error
 	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error
+
+	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest) error
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -347,9 +349,9 @@ func (s *WarehouseService) GetWarehouseItemByWarehouseIdAndItemId(warehouseId ui
 
 	var description string
 	if stockWarehouseItem.EstimationRunOut.Valid && time.Now().Add(time.Hour*24*7).After(stockWarehouseItem.EstimationRunOut.Time) {
-		description = constant.StockWarehouseItemDanger
+		description = constant.WarehouseItemDescriptionDanger
 	} else {
-		description = constant.StockWarehouseItemSafe
+		description = constant.WarehouseItemDescriptionSafe
 	}
 
 	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&stockWarehouseItem)
@@ -385,9 +387,9 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 
 	var description string
 	if warehouseItem.EstimationRunOut.Valid && time.Now().Add(time.Hour*24*7).After(warehouseItem.EstimationRunOut.Time) {
-		description = constant.StockWarehouseItemDanger
+		description = constant.WarehouseItemDescriptionDanger
 	} else {
-		description = constant.StockWarehouseItemSafe
+		description = constant.WarehouseItemDescriptionSafe
 	}
 
 	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&warehouseItem)
@@ -428,9 +430,9 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 	for _, e := range warehouseItems {
 		res := mapper.WarehouseItemToResponse(&e)
 		switch res.Description {
-		case constant.StockWarehouseItemDanger:
+		case constant.WarehouseItemDescriptionDanger:
 			totalDangerStock++
-		case constant.StockWarehouseItemSafe:
+		case constant.WarehouseItemDescriptionSafe:
 			totalSafeStock++
 		}
 
@@ -3047,5 +3049,9 @@ func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeed
 		return err
 	}
 
+	return nil
+}
+
+func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest) error {
 	return nil
 }

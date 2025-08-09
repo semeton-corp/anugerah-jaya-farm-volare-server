@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
 
@@ -48,17 +50,18 @@ type EggMonitoringResponse struct {
 }
 
 type EggMonitoringListResponse struct {
-	Id              uint64              `json:"id"`
-	ChickenCage     ChickenCageResponse `json:"chickenCage"`
-	Warehouse       WarehouseResponse   `json:"warehouse"`
-	TotalAllEgg     uint64              `json:"totalAllEgg"`
-	TotalGoodEgg    uint64              `json:"totalGoodEgg"`
-	TotalCrackedEgg uint64              `json:"totalCrackedEgg"`
-	TotalRejectEgg  uint64              `json:"totalRejectEgg"`
-	AbnormalityRate float64             `json:"abnormalityRate"`
-	AverageWeight   float64             `json:"averageWeight"`
-	Status          string              `json:"status"`
-	CreatedAt       string              `json:"createdAt"`
+	Id                 uint64              `json:"id"`
+	ChickenCage        ChickenCageResponse `json:"chickenCage"`
+	Warehouse          WarehouseResponse   `json:"warehouse"`
+	TotalAllEgg        uint64              `json:"totalAllEgg"`
+	TotalGoodEgg       uint64              `json:"totalGoodEgg"`
+	TotalWeightGoodEgg float64             `json:"totalWeightGoogEgg"`
+	TotalCrackedEgg    uint64              `json:"totalCrackedEgg"`
+	TotalRejectEgg     uint64              `json:"totalRejectEgg"`
+	AbnormalityRate    float64             `json:"abnormalityRate"`
+	AverageWeight      float64             `json:"averageWeight"`
+	Status             string              `json:"status"`
+	CreatedAt          time.Time           `json:"-"`
 }
 
 type GetEggMonitoringFilter struct {

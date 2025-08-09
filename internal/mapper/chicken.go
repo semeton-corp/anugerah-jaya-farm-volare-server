@@ -195,3 +195,4 @@ func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment)
 		PaymentProof:  data.PaymentProof,
 	}
 }
+

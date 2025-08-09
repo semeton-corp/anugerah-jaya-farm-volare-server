@@ -17,6 +17,7 @@ type ChickenCage struct {
 	TotalChicken            uint64                    `gorm:"int;not null;default:0"`
 	TotalDeathChicken       uint64                    `gorm:"int;not null;default:0"`
 	IsNeedRoutineVaccine    bool                      `gorm:"bool;not null;default:false"`
+	IsNeedFeed              bool                      `gorm:"bool;not null;default:true"`
 	CreatedAt               time.Time                 `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy               uuid.NullUUID             `gorm:"type:varchar(255)"`
 	UpdatedAt               time.Time                 `gorm:"type:timestamp;autoUpdateTime"`

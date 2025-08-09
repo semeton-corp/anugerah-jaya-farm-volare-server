@@ -1566,7 +1566,7 @@ func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var itemSale float64
 		for _, storeSale := range weekStoreSales {
-			if isSameDate(day, storeSale.CreatedAt) {
+			if util.IsSameDate(day, storeSale.CreatedAt) {
 				if storeSale.SaleUnit.String() == constant.UnitKg {
 					itemSale += storeSale.Quantity
 				} else if storeSale.SaleUnit.String() == constant.UnitIkat {
