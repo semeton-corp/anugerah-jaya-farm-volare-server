@@ -58,7 +58,7 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	return dto.StoreSaleResponse{
 		Id:         storeSale.Id,
-		SendDate:   storeSale.SendDate.Format("02-01-2006"),
+		SendDate:   storeSale.SendDate.Format("02 Jan 2006"),
 		Customer:   CustomerToResponse(&storeSale.Customer),
 		Price:      storeSale.Price.String(),
 		TotalPrice: storeSale.TotalPrice.String(),
@@ -91,15 +91,15 @@ func StoreSalePaymentToResponse(storeSalePayment *entity.StoreSalePayment) dto.S
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
 	}
 }
 
 func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListResponse {
 	return dto.StoreSaleListResponse{
 		Id:            storeSale.Id,
-		OrderDate:     storeSale.CreatedAt.Format("02-01-2006"),
-		SendDate:      storeSale.SendDate.Format("02-01-2006"),
+		OrderDate:     storeSale.CreatedAt.Format("02 Jan 2006"),
+		SendDate:      storeSale.SendDate.Format("02 Jan 2006"),
 		Customer:      CustomerToResponse(&storeSale.Customer),
 		Item:          ItemToResponse(&storeSale.Item),
 		Store:         StoreToResponse(&storeSale.Store),

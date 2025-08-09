@@ -155,6 +155,10 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 	return nil
 }
 
+// Todo : update every day the chicken cage is need feed
+
+// Todo : create kpi performance every 6 pm
+
 func (s *Scheduler) Start() {
 	s.cron.Start()
 }

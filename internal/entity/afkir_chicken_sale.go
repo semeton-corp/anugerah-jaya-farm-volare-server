@@ -11,9 +11,9 @@ import (
 type AfkirChickenSale struct {
 	Id                     uint64                    `gorm:"primaryKey;autoIncrement"`
 	AfkirChickenCustomerId uint64                    `gorm:"type:bigint;not null"`
-	AfkirChickenCustomer   AfkirChickenCustomer      `gorm:"foreignKey:AfkirChickenCustomerId;references:Id"`
+	AfkirChickenCustomer   AfkirChickenCustomer      `gorm:"foreignKey:AfkirChickenCustomerId;references:Id;constraint:OnDelete:CASCADE"`
 	ChickenCageId          uint64                    `gorm:"type:bigint;not null"`
-	ChickenCage            ChickenCage               `gorm:"type:foreignKey:ChickenCageId;references:Id"`
+	ChickenCage            ChickenCage               `gorm:"foreignKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE"`
 	TotalSellChicken       uint64                    `gorm:"type:bigint;not null"`
 	PricePerChicken        decimal.Decimal           `gorm:"decimal;not null"`
 	TotalPrice             decimal.Decimal           `gorm:"decimal;not null"`

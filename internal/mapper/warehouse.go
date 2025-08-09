@@ -113,7 +113,7 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleResponse {
 	return dto.WarehouseSaleResponse{
 		Id:         warehouseSale.Id,
-		SendDate:   warehouseSale.SendDate.Format("02-01-2006"),
+		SendDate:   warehouseSale.SendDate.Format("02 Jan 2006"),
 		Customer:   CustomerToResponse(&warehouseSale.Customer),
 		Price:      warehouseSale.Price.String(),
 		TotalPrice: warehouseSale.TotalPrice.String(),
@@ -139,15 +139,15 @@ func WarehouseSalePaymentToResponse(warehouseSalePayment *entity.WarehouseSalePa
 		Nominal:       warehouseSalePayment.Nominal.String(),
 		PaymentProof:  warehouseSalePayment.PaymentProof,
 		PaymentMethod: warehouseSalePayment.PaymentMethod.String(),
-		Date:          warehouseSalePayment.PaymentDate.Format("02-01-2006"),
+		Date:          warehouseSalePayment.PaymentDate.Format("02 Jan 2006"),
 	}
 }
 
 func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleListResponse {
 	return dto.WarehouseSaleListResponse{
 		Id:            warehouseSale.Id,
-		OrderDate:     warehouseSale.CreatedAt.Format("02-01-2006"),
-		SendDate:      warehouseSale.SendDate.Format("02-01-2006"),
+		OrderDate:     warehouseSale.CreatedAt.Format("02 Jan 2006"),
+		SendDate:      warehouseSale.SendDate.Format("02 Jan 2006"),
 		Customer:      CustomerToResponse(&warehouseSale.Customer),
 		Item:          ItemToResponse(&warehouseSale.Item),
 		Warehouse:     WarehouseToResponse(&warehouseSale.Warehouse),
@@ -205,7 +205,7 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
 	}
 }
 
@@ -237,7 +237,7 @@ func WarehouseItemCornProcurementPaymentToResponse(storeSalePayment *entity.Ware
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
 	}
 }
 

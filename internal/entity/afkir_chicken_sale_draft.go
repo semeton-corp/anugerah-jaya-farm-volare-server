@@ -10,12 +10,12 @@ import (
 type AfkirChickenSaleDraft struct {
 	Id                     uint64               `gorm:"primaryKey;autoIncrement"`
 	AfkirChickenCustomerId uint64               `gorm:"type:bigint"`
-	AfkirChickenCustomer   AfkirChickenCustomer `gorm:"foreignKey:AfkirChickenCustomerId;references:Id"`
+	AfkirChickenCustomer   AfkirChickenCustomer `gorm:"foreignKey:AfkirChickenCustomerId;references:Id;constraint:OnDelete:CASCADE"`
 	ChickenCageId          uint64               `gorm:"type:bigint;not null"`
-	ChickenCage            ChickenCage          `gorm:"type:foreignKey:ChickenCageId;references:Id"`
+	ChickenCage            ChickenCage          `gorm:"foreignKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE"`
 	TotalSellChicken       uint64               `gorm:"type:bigint;not null"`
-	PricePerChicken        decimal.Decimal      `gorm:"decimal;not null"`
-	TotalPrice             decimal.Decimal      `gorm:"decimal;not null"`
+	PricePerChicken        decimal.Decimal      `gorm:"type:decimal;not null"`
+	TotalPrice             decimal.Decimal      `gorm:"type:decimal;not null"`
 	CreatedAt              time.Time            `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy              uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt              time.Time            `gorm:"type:timestamp;autoUpdateTime"`

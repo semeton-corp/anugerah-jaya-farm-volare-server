@@ -110,6 +110,7 @@ func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto
 		Quantity:   data.Quantity,
 		Price:      data.Price.String(),
 		TotalPrice: data.TotalPrice.String(),
+		InputDate:  data.CreatedAt.Format("02 Jan 2006"),
 	}
 }
 
@@ -195,4 +196,3 @@ func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment)
 		PaymentProof:  data.PaymentProof,
 	}
 }
-

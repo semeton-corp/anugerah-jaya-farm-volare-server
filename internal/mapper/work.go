@@ -24,7 +24,7 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 		Description:  additionalWork.Description,
 		Location:     LocationToResponse(&additionalWork.Location),
 		LocationType: additionalWork.LocationType.String(),
-		Date:         additionalWork.WorkDate.Format("02-01-2006"),
+		Date:         additionalWork.WorkDate.Format("02 Jan 2006"),
 		Time:         additionalWork.WorkDate.Format("15:04"),
 		Slot:         additionalWork.Slot,
 		Salary:       additionalWork.Salary.String(),
