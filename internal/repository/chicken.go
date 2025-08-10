@@ -442,7 +442,7 @@ func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleF
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Find(&data).Error
+	err := query.Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +462,7 @@ func (r *ChickenRepository) CountChickenAfkirChickenSale(filter dto.GetAfkirChic
 
 func (r *ChickenRepository) GetAfkirChickenSale(id uint64) (entity.AfkirChickenSale, error) {
 	var data entity.AfkirChickenSale
-	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).Preload("Payments").Preload("AfkirChickenCustomer").Preload("ChickenCage").First(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Preload("Payments").First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not found")

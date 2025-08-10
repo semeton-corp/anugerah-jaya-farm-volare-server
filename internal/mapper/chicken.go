@@ -156,7 +156,18 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 }
 
 func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleResponse {
-	return dto.AfkirChickenSaleResponse{}
+	return dto.AfkirChickenSaleResponse{
+		Id:                   data.Id,
+		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
+		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
+		ChickenCage:          ChickenCageToResponse(&data.ChickenCage),
+		ChickenAge:           data.ChickenAge,
+		TotalSellChicken:     data.TotalSellChicken,
+		PricePerChicken:      data.PricePerChicken.String(),
+		TotalPrice:           data.PricePerChicken.Mul(decimal.NewFromUint64(data.TotalSellChicken)).String(),
+		PaymentStatus:        data.PaymentStatus.String(),
+		PaymentType:          data.PaymentType.String(),
+	}
 }
 
 func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.AfkirChickenSaleDraftResponse {
@@ -182,6 +193,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		PaymentStatus:         data.PaymentStatus.String(),
 		TotalPrice:            data.TotalPrice.String(),
 		PaymentType:           data.PaymentType.String(),
+		IsArrived:             data.IsArrived,
 	}
 }
 

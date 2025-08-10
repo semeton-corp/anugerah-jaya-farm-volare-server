@@ -49,7 +49,7 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/procurements/drafts", middleware.Authentication(), h.GetChickenProcurementDrafts)
 	v1.Post("/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationChickenProcurementDraft)
 
-	v1.Get("/procurements/", middleware.Authentication(), h.GetChickenProcurements)
+	v1.Get("/procurements", middleware.Authentication(), h.GetChickenProcurements)
 	v1.Get("/procurements/:id", middleware.Authentication(), h.GetChickenProcurement)
 	v1.Post("/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationChickenProcurement)
 
@@ -67,6 +67,7 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/afkir/sales/drafts", middleware.Authentication(), h.GetAfkirChickenSaleDrafts)
 	v1.Get("/afkir/sales/drafts/:id", middleware.Authentication(), h.GetAfkirChickenSaleDraft)
 	v1.Put("/afkir/sales/drafts/:id", middleware.Authentication(), h.UpdateAfkirChickenSaleDraft)
+	v1.Post("/afkir/sales/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationAfkirChickenSaleDraft)
 	v1.Delete("/afkir/sales/drafts/:id", middleware.Authentication(), h.DeleteAfkirChickenSaleDraft)
 
 	v1.Post("/afkir/sales", middleware.Authentication(), h.CreateAfkirChickenSale)
@@ -1061,4 +1062,35 @@ func (h *ChickenHandler) DeleteAfkirChickenSalePayment(c *fiber.Ctx) error {
 	}
 
 	return response.NoContentResponse(c)
+}
+
+func (h *ChickenHandler) ConfirmationAfkirChickenSaleDraft(c *fiber.Ctx) error {
+	var request dto.CreateAfkirChickenSaleRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	data, err := h.service.ConfirmationAfkirChickenSaleDraft(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success allocates afkir chicken sale")
 }

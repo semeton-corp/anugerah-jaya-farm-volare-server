@@ -76,7 +76,7 @@ type IChickenService interface {
 	GetAfkirChickenSaleDraft(id uint64) (dto.AfkirChickenSaleDraftResponse, error)
 	UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
 	DeleteAfkirChickenSaleDraft(id uint64) error
-	AllocateAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
+	ConfirmationAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 
 	CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error)
@@ -1609,7 +1609,13 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	}
 
 	isUsed := false
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: &isUsed}, userId)
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
+		Name:            chickenCage.Cage.Name,
+		Capacity:        chickenCage.Cage.Capacity,
+		LocationId:      chickenCage.Cage.Location.Id,
+		ChickenCategory: chickenCage.Cage.ChickenCategory,
+		IsUsed:          &isUsed,
+	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
@@ -1671,13 +1677,24 @@ func (s *ChickenService) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilt
 func (s *ChickenService) GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleResponse, error) {
 	s.repository.UseTx(false)
 
-	data, err := s.repository.GetAfkirChickenSale(id)
+	afkirSale, err := s.repository.GetAfkirChickenSale(id)
 	if err != nil {
-		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	return mapper.AfkirChickenSaleToResponse(&data), nil
+	// Map payments with remaining calculation
+	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
+	remainingPayment := afkirSale.TotalPrice
+	for i, pay := range afkirSale.Payments {
+		resPayments[i] = mapper.AfkirChickenSalePaymentToResponse(&pay)
+		remainingPayment = remainingPayment.Sub(pay.Nominal)
+		resPayments[i].Remaining = remainingPayment.String()
+	}
+
+	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.Payments = resPayments
+
+	return resp, nil
 }
 
 func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
@@ -1891,18 +1908,15 @@ func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64
 	return nil
 }
 
-func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
+func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	err := s.repository.DeleteAfkirChickenSaleDraft(id)
 	if err != nil {
-		s.log.Error("failed delete afkir chickens sale draft")
+		s.log.Error("failed delete afkir chickens sale draft", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
-
-	s.repository.UseTx(true)
-	defer s.repository.Rollback()
 
 	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
 	if err != nil {
@@ -1994,12 +2008,19 @@ func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.Cr
 	}
 
 	isUsed := false
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: &isUsed}, userId)
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
+		Name:            chickenCage.Cage.Name,
+		Capacity:        chickenCage.Cage.Capacity,
+		LocationId:      chickenCage.Cage.Location.Id,
+		ChickenCategory: chickenCage.Cage.ChickenCategory,
+		IsUsed:          &isUsed,
+	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
 	if err = s.repository.Commit(); err != nil {
+		s.log.Error("failed commit transcation", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 

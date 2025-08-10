@@ -188,6 +188,7 @@ type ChickenProcurementResponse struct {
 	PaymentStatus         string                              `json:"paymentStatus"`
 	PaymentType           string                              `json:"paymentType"`
 	RemainingPayment      string                              `json:"remainingPayment"`
+	IsArrived             bool                                `json:"IsArrived"`
 }
 
 type ChickenProcurementListResponse struct {
@@ -368,8 +369,10 @@ type AfkirChickenSaleResponse struct {
 	TotalSellChicken     uint64                            `json:"totalSellChicken"`
 	PricePerChicken      string                            `json:"pricePerChicken"`
 	TotalPrice           string                            `json:"totalPrice"`
-	ChickenAge           string                            `json:"chickenAge"`
+	PaymentType          string                            `json:"paymentType"`
+	ChickenAge           uint64                            `json:"chickenAge"`
 	Payments             []AfkirChickenSalePaymentResponse `json:"payments"`
+	PaymentStatus        string                            `json:"paymentStatus"`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {
