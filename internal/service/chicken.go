@@ -1005,22 +1005,24 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 		return dto.ChickenProcurementResponse{}, err
 	}
 
-	chickenProcurement, err = s.repository.GetChickenProcurement(chickenProcurement.Id)
+	chickenProcurement, err = s.repository.GetChickenProcurement(id)
 	if err != nil {
 		return dto.ChickenProcurementResponse{}, err
 	}
 
 	paymentResponses := make([]dto.ChickenProcurementPaymentResponse, 0)
-	totalPrice := chickenProcurement.TotalPrice
+	remainingPayment := chickenProcurement.TotalPrice
 	for _, payment := range chickenProcurement.Payments {
 		newPaymentResponse := mapper.ChickenProcurementPaymentToResponse(&payment)
-		newPaymentResponse.Remaining = totalPrice.Sub(payment.Nominal).String()
+		remainingPayment = remainingPayment.Sub(payment.Nominal)
+		newPaymentResponse.Remaining = remainingPayment.String()
 
 		paymentResponses = append(paymentResponses, newPaymentResponse)
 	}
 
 	chickenProcurementResponse := mapper.ChickenProcurementToResponse(&chickenProcurement)
 	chickenProcurementResponse.Payments = paymentResponses
+	chickenProcurementResponse.RemainingPayment = remainingPayment.String()
 
 	return chickenProcurementResponse, nil
 }

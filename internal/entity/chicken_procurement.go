@@ -22,7 +22,7 @@ type ChickenProcurement struct {
 	TotalPrice            decimal.Decimal             `gorm:"type:decimal;not null"`
 	PaymentStatus         enum.PaymentStatus          `gorm:"type:int;not null"`
 	Status                enum.ProcurementStatus      `gorm:"type:int;not null"`
-	TakenBy               uuid.NullUUID               `gorm:"type:varchar(26)"`
+	TakenBy               uuid.NullUUID               `gorm:"type:varchar(255)"`
 	TakenAt               sql.NullTime                `gorm:"type:timestamp"`
 	PaymentType           enum.PaymentType            `gorm:"paymentType;not null;default:0"`
 	IsArrived             bool                        `gorm:"type:boolean;not null;default:false"`
