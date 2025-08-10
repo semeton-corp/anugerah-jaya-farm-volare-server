@@ -186,6 +186,7 @@ type ChickenProcurementResponse struct {
 	EstimationArrivalDate string                              `json:"estimationArrivalDate"`
 	Payments              []ChickenProcurementPaymentResponse `json:"payments"`
 	PaymentStatus         string                              `json:"paymentStatus"`
+	PaymentType           string                              `json:"paymentType"`
 	RemainingPayment      string                              `json:"remainingPayment"`
 }
 
@@ -197,6 +198,7 @@ type ChickenProcurementListResponse struct {
 	EstimationArrivalDate string               `json:"estimationArrivalDate"`
 	PaymentStatus         string               `json:"paymentStatus"`
 	IsArrived             bool                 `json:"IsArrived"`
+	PaymentType           string               `json:"paymentType"`
 }
 
 type ChickenProcurementListPaginationResponse struct {

@@ -181,6 +181,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
 		TotalPrice:            data.TotalPrice.String(),
+		PaymentType:           data.PaymentType.String(),
 	}
 }
 
@@ -193,6 +194,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
 		IsArrived:             data.IsArrived,
+		PaymentType:           data.PaymentType.String(),
 	}
 }
 
