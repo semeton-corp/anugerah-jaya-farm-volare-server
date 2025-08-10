@@ -134,6 +134,7 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, updat
 	cage.LocationId = request.LocationId
 	cage.Capacity = request.Capacity
 	cage.ChickenCategory = chickenCategory
+	cage.IsUsed = *request.IsUsed
 	cage.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
 
 	err = s.repository.UpdateCage(&cage)

@@ -241,4 +241,3 @@ func (h *CageHandler) GetCageFeed(c *fiber.Ctx) error {
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feeds")
 }
-

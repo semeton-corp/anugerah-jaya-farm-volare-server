@@ -1606,7 +1606,8 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		}
 	}
 
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: false}, userId)
+	isUsed := false
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: &isUsed}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
@@ -1990,7 +1991,8 @@ func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.Cr
 		}
 	}
 
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: false}, userId)
+	isUsed := false
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: &isUsed}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}

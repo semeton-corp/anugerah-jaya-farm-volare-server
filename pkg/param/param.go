@@ -165,3 +165,19 @@ func (p *SupplierTypeParam) UnmarshalText(text []byte) error {
 func (p SupplierTypeParam) Value() enum.SupplierType {
 	return enum.SupplierType(p)
 }
+
+type ChickenCategoryParam enum.ChickenCategory
+
+func (p *ChickenCategoryParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfChickenCategory(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid chicken category")
+	}
+
+	*p = ChickenCategoryParam(parsedFilter)
+	return nil
+}
+
+func (p ChickenCategoryParam) Value() enum.ChickenCategory {
+	return enum.ChickenCategory(p)
+}

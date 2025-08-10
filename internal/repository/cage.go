@@ -91,7 +91,15 @@ func (r *CageRepository) GetCages(filter dto.GetCageFilter) ([]entity.Cage, erro
 	query := r.GetDB()
 
 	if filter.LocationId > 0 {
-		query.Where("location_id = ?", filter.LocationId)
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
+	if filter.ChickenCategory.Value().IsValid() {
+		query = query.Where("chicken_category = ?", filter.ChickenCategory.Value())
+	}
+
+	if filter.IsUsed != nil {
+		query = query.Where("is_used = ?", filter.ChickenCategory)
 	}
 
 	err := query.Preload("Location").Find(&cages).Error

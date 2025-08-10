@@ -1,5 +1,7 @@
 package dto
 
+import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+
 type CageResponse struct {
 	Id              uint64           `json:"id"`
 	Name            string           `json:"name"`
@@ -21,11 +23,13 @@ type UpdateCageRequest struct {
 	Capacity        uint64 `json:"capacity" validate:"required"`
 	LocationId      uint64 `json:"locationId" validate:"required"`
 	ChickenCategory string `json:"chickenCategory" validate:"required"`
-	IsUsed          bool   `json:"isUsed" validate:"required"`
+	IsUsed          *bool  `json:"isUsed" validate:"required"`
 }
 
 type GetCageFilter struct {
-	LocationId uint64 `query:"locationId"`
+	LocationId      uint64                     `query:"locationId"`
+	ChickenCategory param.ChickenCategoryParam `query:"chickenCategory"`
+	IsUsed          *bool                      `query:"isUsed"`
 }
 
 type UpdateChickenCageRequest struct {
