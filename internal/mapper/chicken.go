@@ -4,6 +4,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/shopspring/decimal"
 )
 
 func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dto.ChickenHealthItemResponse {
@@ -142,7 +143,16 @@ func AfkirChickenCustomerToResponse(data *entity.AfkirChickenCustomer) dto.Afkir
 }
 
 func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleListResponse {
-	return dto.AfkirChickenSaleListResponse{}
+	return dto.AfkirChickenSaleListResponse{
+		Id:                   data.Id,
+		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
+		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
+		ChickenAge:           data.ChickenAge,
+		TotalSellChicken:     data.TotalSellChicken,
+		PricePerChicken:      data.PricePerChicken.String(),
+		TotalPrice:           data.PricePerChicken.Mul(decimal.NewFromUint64(data.TotalSellChicken)).String(),
+		PaymentStatus:        data.PaymentStatus.String(),
+	}
 }
 
 func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleResponse {
@@ -191,6 +201,17 @@ func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment)
 	return dto.ChickenProcurementPaymentResponse{
 		Id:            data.Id,
 		Date:          data.CreatedAt.Format("02 Jan 2006"),
+		Nominal:       data.Nominal.String(),
+		PaymentMethod: data.PaymentMethod.String(),
+		PaymentProof:  data.PaymentProof,
+	}
+}
+
+// Note : without remaining
+func AfkirChickenSalePaymentToResponse(data *entity.AfkirChickenSalePayment) dto.AfkirChickenSalePaymentResponse {
+	return dto.AfkirChickenSalePaymentResponse{
+		Id:            data.Id,
+		Date:          data.PaymentDate.Format("02 Jan 2006"),
 		Nominal:       data.Nominal.String(),
 		PaymentMethod: data.PaymentMethod.String(),
 		PaymentProof:  data.PaymentProof,

@@ -81,6 +81,7 @@ type IChickenRepository interface {
 	CreateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error
 	GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error)
 	UpdateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error
+	CreateAfkirChickenSalePaymentInBatch(data *[]entity.AfkirChickenSalePayment) error
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -331,6 +332,10 @@ func (r *ChickenRepository) GetChickenProcurement(id uint64) (entity.ChickenProc
 	return chickenProcurement, err
 }
 
+func (r *ChickenRepository) CreateAfkirChickenSalePaymentInBatch(data *[]entity.AfkirChickenSalePayment) error {
+	return r.GetDB().Model(&entity.AfkirChickenSalePayment{}).CreateInBatches(data, len(*data)).Error
+}
+
 func (r *ChickenRepository) CreateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error {
 	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Create(&data).Error
 }
@@ -354,7 +359,15 @@ func (r *ChickenRepository) DeleteChickenProcurementPayment(id uint64) error {
 }
 
 func (r *ChickenRepository) CreateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error {
-	return r.GetDB().Model(&entity.AfkirChickenCustomer{}).Create(data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Create(data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errx.BadRequest("afkir chicken supplier already exist")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *ChickenRepository) GetAfkirChickenCustomers() ([]entity.AfkirChickenCustomer, error) {
@@ -391,7 +404,7 @@ func (r *ChickenRepository) CreateAfkirChickenSaleDraft(data *entity.AfkirChicke
 
 func (r *ChickenRepository) GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSaleDraft, error) {
 	var data []entity.AfkirChickenSaleDraft
-	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Find(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +414,7 @@ func (r *ChickenRepository) GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSa
 
 func (r *ChickenRepository) GetAfkirChickenSaleDraft(id uint64) (entity.AfkirChickenSaleDraft, error) {
 	var data entity.AfkirChickenSaleDraft
-	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Where("id = ?", id).First(&data).Error
 	if err != nil {
 		return entity.AfkirChickenSaleDraft{}, err
 	}

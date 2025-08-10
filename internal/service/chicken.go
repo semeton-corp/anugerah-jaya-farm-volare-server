@@ -52,10 +52,11 @@ type IChickenService interface {
 	GetChickenProcurementDrafts() ([]dto.ChickenProcurementDraftResponse, error)
 	GetChickenProcurementDraft(id uint64) (dto.ChickenProcurementDraftResponse, error)
 	DeleteChickenProcurementDraft(id uint64) error
+	ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
 
 	GetChickenProcurements(filter dto.GetChickenProcurementFilter) (dto.ChickenProcurementListPaginationResponse, error)
 	GetChickenProcurement(id uint64) (dto.ChickenProcurementResponse, error)
-	ConfirmationChickenProcurementDraft(id uint64, request dto.ConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
+
 	ArrivalConfirmationChickenProcurement(id uint64, request dto.ArrivalConfirmationChickenProcurementRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
 
 	CreateChickenProcurementPayment(chickenProcurementId uint64, request dto.CreateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
@@ -72,6 +73,7 @@ type IChickenService interface {
 
 	CreateAkfirChickenSaleDraft(request dto.CreateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
 	GetAfkirChickenSaleDrafts() ([]dto.AfkirChickenSaleDraftResponse, error)
+	GetAfkirChickenSaleDraft(id uint64) (dto.AfkirChickenSaleDraftResponse, error)
 	UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error)
 	DeleteAfkirChickenSaleDraft(id uint64) error
 	AllocateAfkirChickenSaleDraft(id uint64, request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
@@ -859,6 +861,11 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		return dto.ChickenProcurementResponse{}, err
 	}
 
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
 	chickenProcurement := entity.ChickenProcurement{
 		CageId:                chickenProcurementDraft.CageId,
 		SupplierId:            chickenProcurementDraft.SupplierId,
@@ -866,6 +873,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		Price:                 price,
 		TotalPrice:            price.Mul(decimal.NewFromUint64(request.Quantity)),
 		Status:                enum.ProcurementStatusSentOff,
+		PaymentType:           paymentType,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 		EstimationArrivalDate: estimateArrivalDate,
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
@@ -1484,6 +1492,12 @@ func (s *ChickenService) UpdateAfkirChickenSaleDraft(id uint64, request dto.Upda
 		return dto.AfkirChickenSaleDraftResponse{}, err
 	}
 
+	data, err = s.repository.GetAfkirChickenSaleDraft(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale draft", zap.Error(err))
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
 	return mapper.AfkirChickenSaleDraftToResponse(&data), nil
 }
 
@@ -1515,92 +1529,110 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type : %s", request.PaymentType))
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
 
-	data := entity.AfkirChickenSale{
+	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+
+	afkirSale := entity.AfkirChickenSale{
 		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
 		ChickenCageId:          request.ChickenCageId,
 		TotalSellChicken:       request.TotalSellChicken,
 		PricePerChicken:        pricePerChicken,
-		TotalPrice:             pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken)),
+		TotalPrice:             totalPrice,
 		ChickenAge:             chickenCage.ChickenAge,
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	if request.AfkirChickenSalePayment != nil {
-		nominal, err := decimal.NewFromString(request.AfkirChickenSalePayment.Nominal)
-		if err != nil {
-			s.log.Error("failed parse nominal from string", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, err
-		}
+	payments := make([]entity.AfkirChickenSalePayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
 
-		paymentDate, err := time.Parse("02-01-2006", request.AfkirChickenSalePayment.PaymentDate)
-		if err != nil {
-			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, err
-		}
-
-		paymentMethod := enum.ValueOfPaymentMethod(request.AfkirChickenSalePayment.PaymentMethod)
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
 		if !paymentMethod.IsValid() {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.AfkirChickenSalePayment.PaymentMethod))
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method: %s", p.PaymentMethod))
 		}
 
-		if data.TotalPrice.Equal(nominal) {
-			data.PaymentStatus = enum.PaymentStatusPaid
-		} else if nominal.GreaterThan(decimal.Zero) {
-			data.PaymentStatus = enum.PaymentStatusUnpaid
-		}
-
-		err = s.repository.CreateAfkirChickenSale(&data)
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
-			s.log.Error("failed create afkir chicken sale", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, nil
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid payment date format")
 		}
 
-		payment := entity.AfkirChickenSalePayment{
-			AfkirChickenSaleId: data.AfkirChickenCustomerId,
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.AfkirChickenSalePayment{
+			AfkirChickenSaleId: 0, // will be set after sale creation
 			Nominal:            nominal,
 			PaymentDate:        paymentDate,
 			PaymentMethod:      paymentMethod,
-			PaymentProof:       request.AfkirChickenSalePayment.PaymentProof,
+			PaymentProof:       p.PaymentProof,
 			CreatedBy:          uuid.NullUUID{UUID: userId, Valid: true},
-		}
+		})
+	}
 
-		err = s.repository.CreateAfkirChickenSalePayment(&payment)
+	if paymentType == enum.PaymentTypePaidOff {
+		if !afkirSale.TotalPrice.Equal(totalPayment) {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
+		}
+		afkirSale.PaymentStatus = enum.PaymentStatusPaid
+	} else {
+		if totalPayment.Equal(totalPrice) {
+			afkirSale.PaymentStatus = enum.PaymentStatusPaid
+		} else if totalPayment.GreaterThan(decimal.Zero) {
+			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
+		} else {
+			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid
+		}
+	}
+
+	err = s.repository.CreateAfkirChickenSale(&afkirSale)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	if len(payments) > 0 {
+		for i := range payments {
+			payments[i].AfkirChickenSaleId = afkirSale.Id
+		}
+		err = s.repository.CreateAfkirChickenSalePaymentInBatch(&payments)
 		if err != nil {
 			return dto.AfkirChickenSaleResponse{}, err
 		}
-	} else {
-		err = s.repository.CreateAfkirChickenSale(&data)
-		if err != nil {
-			s.log.Error("failed create afkir chicken sale", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, nil
-		}
 	}
 
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
-		IsUsed: false,
-	}, userId)
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: false}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	err = s.repository.Commit()
-	if err != nil {
-		s.log.Error("failed commit transaction", zap.Error(err))
+	if err = s.repository.Commit(); err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	data, err = s.repository.GetAfkirChickenSale(data.Id)
+	afkirSale, err = s.repository.GetAfkirChickenSale(afkirSale.Id)
 	if err != nil {
-		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	return mapper.AfkirChickenSaleToResponse(&data), nil
+	// Map payments with remaining calculation
+	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
+	remainingPayment := afkirSale.TotalPrice
+	for i, pay := range afkirSale.Payments {
+		resPayments[i] = mapper.AfkirChickenSalePaymentToResponse(&pay)
+		remainingPayment = remainingPayment.Sub(pay.Nominal)
+		resPayments[i].Remaining = remainingPayment.String()
+	}
+
+	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.Payments = resPayments
+
+	return resp, nil
 }
 
 func (s *ChickenService) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error) {
@@ -1866,6 +1898,9 @@ func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.Cr
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
 	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid price format")
@@ -1878,90 +1913,108 @@ func (s *ChickenService) AllocateAfkirChickenSaleDraft(id uint64, request dto.Cr
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type : %s", request.PaymentType))
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
 
-	data := entity.AfkirChickenSale{
+	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+
+	afkirSale := entity.AfkirChickenSale{
 		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
 		ChickenCageId:          request.ChickenCageId,
 		TotalSellChicken:       request.TotalSellChicken,
 		PricePerChicken:        pricePerChicken,
-		TotalPrice:             pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken)),
+		TotalPrice:             totalPrice,
 		ChickenAge:             chickenCage.ChickenAge,
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	if request.AfkirChickenSalePayment != nil {
-		nominal, err := decimal.NewFromString(request.AfkirChickenSalePayment.Nominal)
-		if err != nil {
-			s.log.Error("failed parse nominal from string", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, err
-		}
+	payments := make([]entity.AfkirChickenSalePayment, 0, len(request.Payments))
+	totalPayment := decimal.Zero
 
-		paymentDate, err := time.Parse("02-01-2006", request.AfkirChickenSalePayment.PaymentDate)
-		if err != nil {
-			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, err
-		}
-
-		paymentMethod := enum.ValueOfPaymentMethod(request.AfkirChickenSalePayment.PaymentMethod)
+	for _, p := range request.Payments {
+		paymentMethod := enum.ValueOfPaymentMethod(p.PaymentMethod)
 		if !paymentMethod.IsValid() {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method : %s", request.AfkirChickenSalePayment.PaymentMethod))
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment method: %s", p.PaymentMethod))
 		}
 
-		if data.TotalPrice.Equal(nominal) {
-			data.PaymentStatus = enum.PaymentStatusPaid
-		} else if nominal.GreaterThan(decimal.Zero) {
-			data.PaymentStatus = enum.PaymentStatusUnpaid
-		}
-
-		err = s.repository.CreateAfkirChickenSale(&data)
+		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
-			s.log.Error("failed create afkir chicken sale", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, nil
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid payment date format")
 		}
 
-		payment := entity.AfkirChickenSalePayment{
-			AfkirChickenSaleId: data.AfkirChickenCustomerId,
+		nominal, err := decimal.NewFromString(p.Nominal)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid nominal format")
+		}
+
+		totalPayment = totalPayment.Add(nominal)
+		payments = append(payments, entity.AfkirChickenSalePayment{
+			AfkirChickenSaleId: 0, // will be set after sale creation
 			Nominal:            nominal,
 			PaymentDate:        paymentDate,
 			PaymentMethod:      paymentMethod,
-			PaymentProof:       request.AfkirChickenSalePayment.PaymentProof,
+			PaymentProof:       p.PaymentProof,
 			CreatedBy:          uuid.NullUUID{UUID: userId, Valid: true},
-		}
+		})
+	}
 
-		err = s.repository.CreateAfkirChickenSalePayment(&payment)
+	if paymentType == enum.PaymentTypePaidOff {
+		if !afkirSale.TotalPrice.Equal(totalPayment) {
+			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
+		}
+		afkirSale.PaymentStatus = enum.PaymentStatusPaid
+	} else {
+		if totalPayment.Equal(totalPrice) {
+			afkirSale.PaymentStatus = enum.PaymentStatusPaid
+		} else if totalPayment.GreaterThan(decimal.Zero) {
+			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
+		} else {
+			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid
+		}
+	}
+
+	err = s.repository.CreateAfkirChickenSale(&afkirSale)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	if len(payments) > 0 {
+		for i := range payments {
+			payments[i].AfkirChickenSaleId = afkirSale.Id
+		}
+		err = s.repository.CreateAfkirChickenSalePaymentInBatch(&payments)
 		if err != nil {
 			return dto.AfkirChickenSaleResponse{}, err
 		}
-	} else {
-		err = s.repository.CreateAfkirChickenSale(&data)
-		if err != nil {
-			s.log.Error("failed create afkir chicken sale", zap.Error(err))
-			return dto.AfkirChickenSaleResponse{}, nil
-		}
 	}
 
-	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
-		IsUsed: false,
-	}, userId)
+	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{IsUsed: false}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	err = s.repository.Commit()
-	if err != nil {
-		s.log.Error("failed commit transaction", zap.Error(err))
+	if err = s.repository.Commit(); err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	data, err = s.repository.GetAfkirChickenSale(data.Id)
+	afkirSale, err = s.repository.GetAfkirChickenSale(afkirSale.Id)
 	if err != nil {
-		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	return mapper.AfkirChickenSaleToResponse(&data), nil
+	// Map payments with remaining calculation
+	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
+	remainingPayment := afkirSale.TotalPrice
+	for i, pay := range afkirSale.Payments {
+		resPayments[i] = mapper.AfkirChickenSalePaymentToResponse(&pay)
+		remainingPayment = remainingPayment.Sub(pay.Nominal)
+		resPayments[i].Remaining = remainingPayment.String()
+	}
+
+	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.Payments = resPayments
+
+	return resp, nil
 }

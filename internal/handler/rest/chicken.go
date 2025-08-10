@@ -63,6 +63,12 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/afkir/customers/:id", middleware.Authentication(), h.UpdateAfkirChickenCustomer)
 	v1.Delete("/afkir/customers/:id", middleware.Authentication(), h.DeleteAfkirChickenCustomer)
 
+	v1.Post("/afkir/sales/drafts", middleware.Authentication(), h.CreateAfkirChickenSaleDraft)
+	v1.Get("/afkir/sales/drafts", middleware.Authentication(), h.GetAfkirChickenSaleDrafts)
+	v1.Get("/afkir/sales/drafts/:id", middleware.Authentication(), h.GetAfkirChickenSaleDraft)
+	v1.Put("/afkir/sales/drafts/:id", middleware.Authentication(), h.UpdateAfkirChickenSaleDraft)
+	v1.Delete("/afkir/sales/drafts/:id", middleware.Authentication(), h.DeleteAfkirChickenSaleDraft)
+
 	v1.Post("/afkir/sales", middleware.Authentication(), h.CreateAfkirChickenSale)
 	v1.Get("/afkir/sales", middleware.Authentication(), h.GetAfkirChickenSales)
 	v1.Get("/afkir/sales/:id", middleware.Authentication(), h.GetAfkirChickenSale)
@@ -71,10 +77,6 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/afkir/sales/:afkirChickenSaleId/payments/:id", middleware.Authentication(), h.UpdateAfkirChickenSalePayment)
 	v1.Delete("/afkir/sales/:afkirChickenSaleId/payments/:id", middleware.Authentication(), h.DeleteAfkirChickenSalePayment)
 
-	v1.Post("/afkir/sales/drafts", middleware.Authentication(), h.CreateAfkirChickenSaleDraft)
-	v1.Get("/afkir/sales/drafts", middleware.Authentication(), h.GetAfkirChickenSaleDrafts)
-	v1.Put("/afkir/sales/drafts/:id", middleware.Authentication(), h.UpdateAfkirChickenSaleDraft)
-	v1.Delete("/afkir/sales/drafts/:id", middleware.Authentication(), h.DeleteAfkirChickenSaleDraft)
 }
 
 func NewChickenHandler(log *zap.Logger, service service.IChickenService, validator *validator.Validate) *ChickenHandler {
@@ -797,7 +799,7 @@ func (h *ChickenHandler) UpdateAfkirChickenCustomer(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken customer")
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success create afkir chicken customer")
 }
 
 func (h *ChickenHandler) DeleteAfkirChickenCustomer(c *fiber.Ctx) error {
@@ -849,6 +851,22 @@ func (h *ChickenHandler) GetAfkirChickenSaleDrafts(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken sale drafts")
 }
 
+func (h *ChickenHandler) GetAfkirChickenSaleDraft(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.
+			Error(err))
+		return err
+	}
+
+	data, err := h.service.GetAfkirChickenSaleDraft(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken sale draft")
+}
+
 func (h *ChickenHandler) UpdateAfkirChickenSaleDraft(c *fiber.Ctx) error {
 	var request dto.UpdateAfkirChickenSaleDraftRequest
 	if err := c.BodyParser(&request); err != nil {
@@ -868,8 +886,7 @@ func (h *ChickenHandler) UpdateAfkirChickenSaleDraft(c *fiber.Ctx) error {
 
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
-		h.log.Error("failed parse id", zap.
-			Error(err))
+		h.log.Error("failed parse id", zap.Error(err))
 		return err
 	}
 
@@ -878,7 +895,7 @@ func (h *ChickenHandler) UpdateAfkirChickenSaleDraft(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale draft")
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success create afkir chicken sale draft")
 }
 
 func (h *ChickenHandler) DeleteAfkirChickenSaleDraft(c *fiber.Ctx) error {

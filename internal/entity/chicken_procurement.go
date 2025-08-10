@@ -24,6 +24,7 @@ type ChickenProcurement struct {
 	Status                enum.ProcurementStatus      `gorm:"type:int;not null"`
 	TakenBy               uuid.NullUUID               `gorm:"type:varchar(26)"`
 	TakenAt               sql.NullTime                `gorm:"type:timestamp"`
+	PaymentType           enum.PaymentType            `gorm:"paymentType;not null;default:0"`
 	IsArrived             bool                        `gorm:"type:boolean;not null;default:false"`
 	EstimationArrivalDate time.Time                   `gorm:"type:date;not null"`
 	Payments              []ChickenProcurementPayment `gorm:"foreignKey:ChickenProcurementId;references:Id"`
