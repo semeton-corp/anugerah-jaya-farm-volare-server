@@ -866,6 +866,12 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment type")
 	}
 
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		s.log.Error("failed parse deadline payment date", zap.Error(err))
+		return dto.ChickenProcurementResponse{}, err
+	}
+
 	chickenProcurement := entity.ChickenProcurement{
 		CageId:                chickenProcurementDraft.CageId,
 		SupplierId:            chickenProcurementDraft.SupplierId,
@@ -876,6 +882,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		PaymentType:           paymentType,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 		EstimationArrivalDate: estimateArrivalDate,
+		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 

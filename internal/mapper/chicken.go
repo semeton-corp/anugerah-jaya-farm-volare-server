@@ -207,7 +207,7 @@ func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.Afk
 
 // Note : without payment and remaining payment
 func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenProcurementResponse {
-	return dto.ChickenProcurementResponse{
+	response := dto.ChickenProcurementResponse{
 		Id:                    data.Id,
 		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
 		Quantity:              data.Quantity,
@@ -219,10 +219,21 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		PaymentType:           data.PaymentType.String(),
 		IsArrived:             data.IsArrived,
 	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.ChickenProcurementListResponse {
-	return dto.ChickenProcurementListResponse{
+	response := dto.ChickenProcurementListResponse{
 		Id:                    data.Id,
 		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
 		Quantity:              data.Quantity,
@@ -232,6 +243,17 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 		IsArrived:             data.IsArrived,
 		PaymentType:           data.PaymentType.String(),
 	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 // Note : Without remaining
