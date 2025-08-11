@@ -1639,6 +1639,7 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	}
 
 	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.RemainingPayment = remainingPayment.String()
 	resp.Payments = resPayments
 
 	return resp, nil
@@ -1692,6 +1693,7 @@ func (s *ChickenService) GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleRes
 	}
 
 	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.RemainingPayment = remainingPayment.String()
 	resp.Payments = resPayments
 
 	return resp, nil
@@ -1763,13 +1765,25 @@ func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	afkirChickenSale, err = s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	afkirSale, err := s.repository.GetAfkirChickenSale(afkirChickenSaleId)
 	if err != nil {
-		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	return mapper.AfkirChickenSaleToResponse(&afkirChickenSale), nil
+	// Map payments with remaining calculation
+	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
+	remainingPayment := afkirSale.TotalPrice
+	for i, pay := range afkirSale.Payments {
+		resPayments[i] = mapper.AfkirChickenSalePaymentToResponse(&pay)
+		remainingPayment = remainingPayment.Sub(pay.Nominal)
+		resPayments[i].Remaining = remainingPayment.String()
+	}
+
+	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.RemainingPayment = remainingPayment.String()
+	resp.Payments = resPayments
+
+	return resp, nil
 }
 
 func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {
@@ -1843,13 +1857,25 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	afkirChickenSale, err = s.repository.GetAfkirChickenSale(afkirChickenSaleId)
+	afkirSale, err := s.repository.GetAfkirChickenSale(afkirChickenSaleId)
 	if err != nil {
-		s.log.Error("failed get afkir chicken sale", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	return mapper.AfkirChickenSaleToResponse(&afkirChickenSale), nil
+	// Map payments with remaining calculation
+	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
+	remainingPayment := afkirSale.TotalPrice
+	for i, pay := range afkirSale.Payments {
+		resPayments[i] = mapper.AfkirChickenSalePaymentToResponse(&pay)
+		remainingPayment = remainingPayment.Sub(pay.Nominal)
+		resPayments[i].Remaining = remainingPayment.String()
+	}
+
+	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.RemainingPayment = remainingPayment.String()
+	resp.Payments = resPayments
+
+	return resp, nil
 }
 
 func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error {
@@ -2039,6 +2065,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	resp := mapper.AfkirChickenSaleToResponse(&afkirSale)
+	resp.RemainingPayment = remainingPayment.String()
 	resp.Payments = resPayments
 
 	return resp, nil

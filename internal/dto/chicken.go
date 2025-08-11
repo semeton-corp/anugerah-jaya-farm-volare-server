@@ -373,6 +373,7 @@ type AfkirChickenSaleResponse struct {
 	ChickenAge           uint64                            `json:"chickenAge"`
 	Payments             []AfkirChickenSalePaymentResponse `json:"payments"`
 	PaymentStatus        string                            `json:"paymentStatus"`
+	RemainingPayment     string                            `json:"remainingPayment`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {

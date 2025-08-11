@@ -1040,7 +1040,7 @@ func (h *ChickenHandler) UpdateAfkirChickenSalePayment(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create afkir chicken sale payment")
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success create afkir chicken sale payment")
 }
 
 func (h *ChickenHandler) DeleteAfkirChickenSalePayment(c *fiber.Ctx) error {
@@ -1092,5 +1092,5 @@ func (h *ChickenHandler) ConfirmationAfkirChickenSaleDraft(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusCreated, data, "success allocates afkir chicken sale")
+	return response.SuccessResponse(c, fiber.StatusCreated, data, "success confirmation afkir chicken sale")
 }
