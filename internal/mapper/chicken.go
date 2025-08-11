@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"time"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
@@ -143,7 +145,7 @@ func AfkirChickenCustomerToResponse(data *entity.AfkirChickenCustomer) dto.Afkir
 }
 
 func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleListResponse {
-	return dto.AfkirChickenSaleListResponse{
+	response := dto.AfkirChickenSaleListResponse{
 		Id:                   data.Id,
 		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
@@ -153,10 +155,21 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 		TotalPrice:           data.PricePerChicken.Mul(decimal.NewFromUint64(data.TotalSellChicken)).String(),
 		PaymentStatus:        data.PaymentStatus.String(),
 	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleResponse {
-	return dto.AfkirChickenSaleResponse{
+	response := dto.AfkirChickenSaleResponse{
 		Id:                   data.Id,
 		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
@@ -168,6 +181,17 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 		PaymentStatus:        data.PaymentStatus.String(),
 		PaymentType:          data.PaymentType.String(),
 	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.AfkirChickenSaleDraftResponse {

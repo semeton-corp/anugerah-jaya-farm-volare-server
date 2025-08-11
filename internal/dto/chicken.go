@@ -313,14 +313,16 @@ type AfkirChickenCustomerResponse struct {
 }
 
 type AfkirChickenSaleListResponse struct {
-	Id                   uint64                           `json:"id"`
-	SellDate             string                           `json:"sellDate"`
-	AfkirChickenCustomer AfkirChickenCustomerListResponse `json:"afkirChickenCustomer"`
-	ChickenAge           uint64                           `json:"chickenAge"`
-	TotalSellChicken     uint64                           `json:"totalSellChicken"`
-	PricePerChicken      string                           `json:"pricePerChicken"`
-	TotalPrice           string                           `json:"totalPrice"`
-	PaymentStatus        string                           `json:"paymentStatus"`
+	Id                            uint64                           `json:"id"`
+	SellDate                      string                           `json:"sellDate"`
+	AfkirChickenCustomer          AfkirChickenCustomerListResponse `json:"afkirChickenCustomer"`
+	ChickenAge                    uint64                           `json:"chickenAge"`
+	TotalSellChicken              uint64                           `json:"totalSellChicken"`
+	PricePerChicken               string                           `json:"pricePerChicken"`
+	TotalPrice                    string                           `json:"totalPrice"`
+	PaymentStatus                 string                           `json:"paymentStatus"`
+	DeadlinePaymentDate           string                           `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                             `json:"isMoreThanDeadlinePaymentDate"`
 }
 
 type AfkirChickenSaleListPaginationResponse struct {
@@ -362,18 +364,20 @@ type CreateAfkirChickenSaleRequest struct {
 }
 
 type AfkirChickenSaleResponse struct {
-	Id                   uint64                            `json:"id"`
-	SellDate             string                            `json:"sellDate"`
-	AfkirChickenCustomer AfkirChickenCustomerListResponse  `json:"afkirChickenCustomer"`
-	ChickenCage          ChickenCageResponse               `json:"chickenCage"`
-	TotalSellChicken     uint64                            `json:"totalSellChicken"`
-	PricePerChicken      string                            `json:"pricePerChicken"`
-	TotalPrice           string                            `json:"totalPrice"`
-	PaymentType          string                            `json:"paymentType"`
-	ChickenAge           uint64                            `json:"chickenAge"`
-	Payments             []AfkirChickenSalePaymentResponse `json:"payments"`
-	PaymentStatus        string                            `json:"paymentStatus"`
-	RemainingPayment     string                            `json:"remainingPayment`
+	Id                            uint64                            `json:"id"`
+	SellDate                      string                            `json:"sellDate"`
+	AfkirChickenCustomer          AfkirChickenCustomerListResponse  `json:"afkirChickenCustomer"`
+	ChickenCage                   ChickenCageResponse               `json:"chickenCage"`
+	TotalSellChicken              uint64                            `json:"totalSellChicken"`
+	PricePerChicken               string                            `json:"pricePerChicken"`
+	TotalPrice                    string                            `json:"totalPrice"`
+	PaymentType                   string                            `json:"paymentType"`
+	ChickenAge                    uint64                            `json:"chickenAge"`
+	Payments                      []AfkirChickenSalePaymentResponse `json:"payments"`
+	PaymentStatus                 string                            `json:"paymentStatus"`
+	RemainingPayment              string                            `json:"remainingPayment"`
+	DeadlinePaymentDate           string                            `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                              `json:"isMoreThanDeadlinePaymentDate"`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {
