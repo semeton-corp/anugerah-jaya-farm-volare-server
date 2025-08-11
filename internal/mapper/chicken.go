@@ -111,7 +111,6 @@ func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto
 		Cage:       CageToResponse(&data.Cage),
 		Supplier:   SupplierToResponse(&data.Supplier),
 		Quantity:   data.Quantity,
-		Price:      data.Price.String(),
 		TotalPrice: data.TotalPrice.String(),
 		InputDate:  data.CreatedAt.Format("02 Jan 2006"),
 	}
@@ -152,7 +151,7 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 		ChickenAge:           data.ChickenAge,
 		TotalSellChicken:     data.TotalSellChicken,
 		PricePerChicken:      data.PricePerChicken.String(),
-		TotalPrice:           data.PricePerChicken.Mul(decimal.NewFromUint64(data.TotalSellChicken)).String(),
+		TotalPrice:           data.TotalPrice.String(),
 		PaymentStatus:        data.PaymentStatus.String(),
 	}
 
@@ -218,6 +217,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		TotalPrice:            data.TotalPrice.String(),
 		PaymentType:           data.PaymentType.String(),
 		IsArrived:             data.IsArrived,
+		ProcurementStatus:     data.Status.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
@@ -242,6 +242,8 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 		PaymentStatus:         data.PaymentStatus.String(),
 		IsArrived:             data.IsArrived,
 		PaymentType:           data.PaymentType.String(),
+		TotalPrice:            data.TotalPrice.String(),
+		ProcurementStatus:     data.Status.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {

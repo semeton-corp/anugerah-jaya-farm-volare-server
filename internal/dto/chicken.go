@@ -148,14 +148,14 @@ type CreateChickenProcurementDraftRequest struct {
 	CageId     uint64 `json:"cageId" validate:"required"`
 	SupplierId uint64 `json:"supplierId" validate:"required"`
 	Quantity   uint64 `json:"quantity" validate:"required"`
-	Price      string `json:"price" validate:"required"`
+	TotalPrice string `json:"totalPrice" validate:"required"`
 }
 
 type UpdateChickenProcurementDraftRequest struct {
 	CageId     uint64 `json:"cageId" validate:"required"`
 	SupplierId uint64 `json:"supplierId" validate:"required"`
 	Quantity   uint64 `json:"quantity" validate:"required"`
-	Price      string `json:"price" validate:"required"`
+	TotalPrice string `json:"totalPrice" validate:"required"`
 }
 
 type ChickenProcurementDraftResponse struct {
@@ -164,14 +164,13 @@ type ChickenProcurementDraftResponse struct {
 	Cage       CageResponse     `json:"cage"`
 	Supplier   SupplierResponse `json:"supplier"`
 	Quantity   uint64           `json:"quantity"`
-	Price      string           `json:"price"`
 	TotalPrice string           `json:"totalPrice"`
 }
 
 type ConfirmationChickenProcurementRequest struct {
 	Quantity            uint64                                   `json:"quantity" validate:"required"`
 	PaymentType         string                                   `json:"paymentType" validate:"required,paymentType"`
-	Price               string                                   `json:"price" validate:"required"`
+	TotalPrice          string                                   `json:"totalPrice" validate:"required"`
 	DeadlinePaymentDate string                                   `json:"deadlinePaymentDate" validate:"required"`
 	EstimateArrivalDate string                                   `json:"estimationArrivalDate" validate:"required"`
 	Payments            []CreateChickenProcurementPaymentRequest `json:"payments"`
@@ -192,6 +191,7 @@ type ChickenProcurementResponse struct {
 	IsArrived                     bool                                `json:"IsArrived"`
 	DeadlinePaymentDate           string                              `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                                `json:"isMoreThanDeadlinePaymentDate"`
+	ProcurementStatus             string                              `json:"procurementStatus"`
 }
 
 type ChickenProcurementListResponse struct {
@@ -205,6 +205,8 @@ type ChickenProcurementListResponse struct {
 	PaymentType                   string               `json:"paymentType"`
 	DeadlinePaymentDate           string               `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
+	ProcurementStatus             string               `json:"procurementStatus"`
+	TotalPrice                    string               `json:"totalPrice"`
 }
 
 type ChickenProcurementListPaginationResponse struct {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"time"
 
@@ -68,7 +69,7 @@ type IWarehouseService interface {
 	GetWarehouseItemProcurementDraft(id uint64) (dto.WarehouseItemProcurementDraftResponse, error)
 	UpdateWarehouseItemProcurementDraft(id uint64, request dto.UpdateWarehouseItemProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemProcurementDraftResponse, error)
 	DeleteWarehouseItemProcurementDraft(id uint64) error
-	AllocateWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
+	ConfirmationWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
 
 	CreateWarehouseItemProcurement(request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error)
 	GetWarehouseItemProcurements(filter dto.GetWarehouseItemProcurementFilter) (dto.WarehouseItemProcurementListPaginationResponse, error)
@@ -84,7 +85,7 @@ type IWarehouseService interface {
 	GetWarehouseItemCornProcurementDraft(id uint64) (dto.WarehouseItemCornProcurementDraftResponse, error)
 	UpdateWarehouseItemCornProcurementDraft(id uint64, request dto.UpdateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error)
 	DeleteWarehouseItemCornProcurementDraft(id uint64) error
-	AllocateWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
+	ConfirmationWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
 
 	CreateWarehouseItemCornProcurement(request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error)
 	GetWarehouseItemCornProcurements(filter dto.GetWarehouseItemCornProcurementFilter) (dto.WarehouseItemCornProcurementListPaginationResponse, error)
@@ -1607,11 +1608,12 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementDraft(id uint64, reques
 	return mapper.WarehouseItemProcurementDraftToResponse(&warehouseItemProcurementDraft), nil
 }
 
-func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error) {
+func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, request dto.CreateWarehouseItemProcurementRequest, userId uuid.UUID) (dto.WarehouseItemProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	err := s.repository.DeleteWarehouseItemProcurement(id)
+	// Todo : make sure warehouse item procurement draft exist, since there is not validation when it deleted
+	err := s.repository.DeleteWarehouseItemProcurementDraft(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item procurement", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
@@ -1629,6 +1631,12 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		s.log.Error("failed parse deadline payment date", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
 	data := entity.WarehouseItemProcurement{
 		WarehouseId:           request.WarehouseId,
 		SupplierId:            request.SupplierId,
@@ -1639,8 +1647,19 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		TotalPrice:            price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
 		Quantity:              request.DailySpending * float64(request.DaysNeed),
 		EstimationArrivalDate: estimationArrivalDate,
+		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
+	}
+
+	if request.ExpiredAt != nil {
+		expiredAt, err := time.Parse("02-01-2006", *request.ExpiredAt)
+		if err != nil {
+			s.log.Error("failed parse expired at", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+
+		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
 	}
 
 	// Validate payments
@@ -1700,6 +1719,12 @@ func (s *WarehouseService) AllocateWarehouseItemProcurementDraft(id uint64, requ
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
 	data, err = s.repository.GetWarehouseItemProcurement(data.Id)
 	if err != nil {
 		s.log.Error("failed get warehouse item procurement", zap.Error(err))
@@ -1749,6 +1774,12 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		s.log.Error("failed parse deadline payment date", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+
 	data := entity.WarehouseItemProcurement{
 		WarehouseId:           request.WarehouseId,
 		SupplierId:            request.SupplierId,
@@ -1761,7 +1792,18 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		EstimationArrivalDate: estimationArrivalDate,
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
+		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.ExpiredAt != nil {
+		expiredAt, err := time.Parse("02-01-2006", *request.ExpiredAt)
+		if err != nil {
+			s.log.Error("failed parse expired at", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
+
+		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
 	}
 
 	if len(request.Payments) == 0 {
@@ -2342,11 +2384,12 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	return mapper.WarehouseItemCornProcurementDraftToResponse(&data, cornItem), nil
 }
 
-func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error) {
+func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint64, request dto.CreateWarehouseItemCornProcurementRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	err := s.repository.DeleteWarehouseItemCornProcurement(id)
+	// Todo : make sure warehouse item corn procurement draft exist, since there is not validation when it deleted
+	err := s.repository.DeleteWarehouseItemCornProcurementDraf(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item corn procurement", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
@@ -2459,6 +2502,12 @@ func (s *WarehouseService) AllocateWarehouseItemCornProcurementDraft(id uint64, 
 		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		paymentResponses = append(paymentResponses, payment)
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
 	response := mapper.WarehouseItemCornProcurementToResponse(&data)
@@ -2574,6 +2623,12 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 	err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
 	if err != nil {
 		s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
@@ -3057,5 +3112,34 @@ func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeed
 }
 
 func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	for _, r := range request {
+		item, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, r.ItemId)
+		if err != nil {
+			s.log.Error("failed get warehouse item by id and warehouse id", zap.Error(err))
+			return err
+		}
+
+		if item.Quantity < r.Quantity {
+			return errx.BadRequest(fmt.Sprintf("insufficient stock for item %d: have %.2f, need %.2f",
+				r.ItemId, item.Quantity, r.Quantity))
+		}
+
+		item.Quantity -= r.Quantity
+
+		if err := s.repository.UpdateWarehouseItem(&item); err != nil {
+			s.log.Error("failed update warehouse item", zap.Error(err))
+			return err
+		}
+	}
+
+	err := s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return err
+	}
+
 	return nil
 }

@@ -59,29 +59,6 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	return response
 }
 
-func WarehouseOrderItemToResponse(warehouseOrderItem *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementListResponse {
-	warehouseItemResponse := dto.WarehouseItemProcurementListResponse{
-		Id:        warehouseOrderItem.Id,
-		TakenBy:   warehouseOrderItem.TakenBy.UUID.String(),
-		IsTaken:   warehouseOrderItem.IsArrived,
-		Warehouse: WarehouseToResponse(&warehouseOrderItem.Warehouse),
-		Item:      ItemToResponse(&warehouseOrderItem.Item),
-		Supplier: dto.SupplierListResponse{
-			Id:          warehouseOrderItem.Supplier.Id,
-			Name:        warehouseOrderItem.Supplier.Name,
-			PhoneNumber: warehouseOrderItem.Supplier.PhoneNumber,
-			Address:     warehouseOrderItem.Supplier.Address,
-		},
-		Quantity: warehouseOrderItem.Quantity,
-	}
-
-	if warehouseOrderItem.TakenAt.Valid {
-		warehouseItemResponse.TakenAt = warehouseOrderItem.TakenAt.Time.Format("02-Jan-2006")
-	}
-
-	return warehouseItemResponse
-}
-
 func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryResponse {
 	return dto.WarehouseItemHistoryResponse{
 		Id:             warehouseItemHistory.Id,
@@ -203,21 +180,80 @@ func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto
 
 func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcurementDraft) dto.WarehouseItemProcurementDraftResponse {
 	return dto.WarehouseItemProcurementDraftResponse{
+		Id:            data.Id,
 		Warehouse:     WarehouseToResponse(&data.Warehouse),
 		Item:          ItemToResponse(&data.Item),
 		Supplier:      SupplierToListResponse(&data.Supplier),
 		DailySpending: data.DailySpending,
 		DaysNeed:      data.DaysNeed,
-		TotalOrder:    data.DailySpending * float64(data.DaysNeed),
+		Quantity:      data.DailySpending * float64(data.DaysNeed),
+		Price:         data.Price.String(),
+		TotalPrice:    data.Price.Mul(decimal.NewFromFloat(data.DailySpending * float64(data.DaysNeed))).String(),
 	}
 }
 
 func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementResponse {
-	return dto.WarehouseItemProcurementResponse{}
+	response := dto.WarehouseItemProcurementResponse{
+		Id:                    data.Id,
+		Warehouse:             WarehouseToResponse(&data.Warehouse),
+		Item:                  ItemToResponse(&data.Item),
+		Supplier:              SupplierToListResponse(&data.Supplier),
+		IsArrived:             data.IsArrived,
+		Quantity:              data.Quantity,
+		ProcurementStatus:     data.Status.String(),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		Price:                 data.Price.String(),
+		DaysNeed:              data.DaysNeed,
+		TotalPrice:            data.TotalPrice.String(),
+	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	if data.ExpiredAt.Valid {
+		response.ExpiredAt = data.ExpiredAt.Time.Format("02 Jan 2006")
+	} else {
+		response.ExpiredAt = "-"
+	}
+
+	return response
 }
 
 func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementListResponse {
-	return dto.WarehouseItemProcurementListResponse{}
+	response := dto.WarehouseItemProcurementListResponse{
+		Id:                    data.Id,
+		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		Warehouse:             WarehouseToResponse(&data.Warehouse),
+		Item:                  ItemToResponse(&data.Item),
+		Supplier:              SupplierToListResponse(&data.Supplier),
+		IsArrived:             data.IsArrived,
+		Quantity:              data.Quantity,
+		ProcurementStatus:     data.Status.String(),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+	}
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	if data.ExpiredAt.Valid {
+		response.ExpiredAt = data.ExpiredAt.Time.Format("02 Jan 2006")
+	} else {
+		response.ExpiredAt = "-"
+	}
+
+	return response
 }
 
 // Note : without remaining payment

@@ -449,12 +449,12 @@ func (r *WarehouseRepository) GetWarehouseSaleQueues(filter dto.GetWarehouseSale
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error {
-	return r.GetDB().Model(&entity.WarehouseItemProcurement{}).Create(data).Error
+	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Create(data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts() ([]entity.WarehouseItemProcurementDraft, error) {
 	var data []entity.WarehouseItemProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Find(&data).Error
+	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -480,8 +480,11 @@ func (r *WarehouseRepository) CountWarehouseItemProcurement(filter dto.GetWareho
 
 func (r *WarehouseRepository) GetWarehouseItemProcurementDraft(id uint64) (entity.WarehouseItemProcurementDraft, error) {
 	var data entity.WarehouseItemProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Where("id = ?", id).Preload("Warehouse.Location").Preload("Item").Preload("Supplier").First(&data).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseItemProcurementDraft{}, errx.NotFound("warehouse item procurement draft not found")
+		}
 		return entity.WarehouseItemProcurementDraft{}, err
 	}
 
@@ -489,7 +492,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementDraft(id uint64) (entit
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error {
-	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Updates(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemProcurementDraft(id uint64) error {
@@ -502,7 +505,7 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurement(data *entity.Wareho
 
 func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error) {
 	var data []entity.WarehouseItemProcurement
-	query := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Preload("Warehouse").Preload("Item").Preload("Supplier")
+	query := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Preload("Warehouse.Location").Preload("Item").Preload("Supplier")
 
 	if filter.PaymentStatus.Value().IsValid() {
 		query = query.Where("payment_status = ?", filter.PaymentStatus)
@@ -522,7 +525,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 
 func (r *WarehouseRepository) GetWarehouseItemProcurement(id uint64) (entity.WarehouseItemProcurement, error) {
 	var data entity.WarehouseItemProcurement
-	err := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Preload("Payments").Where("id = ?", id).First(&data).Error
 	if err != nil {
 		return entity.WarehouseItemProcurement{}, err
 	}

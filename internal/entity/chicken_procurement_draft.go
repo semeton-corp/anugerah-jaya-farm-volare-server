@@ -14,7 +14,6 @@ type ChickenProcurementDraft struct {
 	SupplierId uint64          `gorm:"type:bigint;not null"`
 	Supplier   Supplier        `gorm:"foreignKey:SupplierId;refereces:Id"`
 	Quantity   uint64          `gorm:"type:bigint;not null"`
-	Price      decimal.Decimal `gorm:"type:decimal;not null"`
 	TotalPrice decimal.Decimal `gorm:"type:decimal;not null"`
 	CreatedBy  uuid.NullUUID   `gorm:"type:varchar(255)"`
 	CreatedAt  time.Time       `gorm:"type:timestamp;autoCreateTime"`

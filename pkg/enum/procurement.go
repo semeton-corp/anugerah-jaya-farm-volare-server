@@ -10,7 +10,7 @@ const (
 )
 
 var (
-	ProcurmentStatusMap = map[ProcurementStatus]string{
+	ProcurementStatusMap = map[ProcurementStatus]string{
 		ProcurementStatusSentOff:      "Sedang Dikirim",
 		ProcurementStatusArrivedOk:    "Sampai - Sesuai",
 		ProcurementStatusArrivedNotOk: "Sampai - Tidak Sesuai",
@@ -18,11 +18,11 @@ var (
 )
 
 func (c ProcurementStatus) String() string {
-	return ProcurmentStatusMap[c]
+	return ProcurementStatusMap[c]
 }
 
 func ValueOfProcurmentStatus(value string) ProcurementStatus {
-	for k, v := range ProcurmentStatusMap {
+	for k, v := range ProcurementStatusMap {
 		if v == value {
 			return k
 		}
@@ -31,6 +31,6 @@ func ValueOfProcurmentStatus(value string) ProcurementStatus {
 }
 
 func (c ProcurementStatus) IsValid() bool {
-	_, ok := ProcurmentStatusMap[c]
+	_, ok := ProcurementStatusMap[c]
 	return ok
 }

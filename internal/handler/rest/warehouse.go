@@ -62,12 +62,12 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemProcurementDrafts)
 	v1.Put("/items/procurements/drafts/:id", middleware.Authentication(), h.UpdateWarehouseItemProcurementDraft)
 	v1.Delete("/items/procurements/drafts/:id", middleware.Authentication(), h.DeleteWarehouseItemProcurementDraft)
-	v1.Post("/items/procurements/drafts/:id/allocate", middleware.Authentication(), h.AllocateWarehouseItemProcurementDraft)
+	v1.Post("/items/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationWarehouseItemProcurementDraft)
 
 	v1.Post("/items/procurements", middleware.Authentication(), h.CreateWarehouseItemProcurement)
 	v1.Get("/items/procurements", middleware.Authentication(), h.GetWarehouseItemProcurements)
 	v1.Get("/items/procurements/:id", middleware.Authentication(), h.GetWarehouseItemProcurement)
-	v1.Put("/items/procurements/:id/confirmations", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemProcurement)
+	v1.Put("/items/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemProcurement)
 
 	v1.Post("/items/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
 	v1.Put("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
@@ -80,12 +80,12 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/corns/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemCornProcurementDrafts)
 	v1.Put("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementDraft)
 	v1.Delete("/items/corns/procurements/drafts/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementDraft)
-	v1.Post("/items/corns/procurements/drafts/:id/allocate", middleware.Authentication(), h.AllocateWarehouseItemCornProcurementDraft)
+	v1.Post("/items/corns/procurements/drafts/:id/confirmations", middleware.Authentication(), h.ConfirmationWarehouseItemCornProcurementDraft)
 
 	v1.Post("/items/corns/procurements", middleware.Authentication(), h.CreateWarehouseItemCornProcurement)
 	v1.Get("/items/corns/procurements", middleware.Authentication(), h.GetWarehouseItemCornProcurements)
 	v1.Get("/items/corns/procurements/:id", middleware.Authentication(), h.GetWarehouseItemCornProcurement)
-	v1.Put("/items/corns/procurements/:id/confirmations", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemCornProcurement)
+	v1.Put("/items/corns/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemCornProcurement)
 
 	v1.Post("/items/corns/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
 	v1.Put("/items/corns/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
@@ -839,7 +839,7 @@ func (h *WarehouseHandler) UpdateWarehouseItemProcurementDraft(c *fiber.Ctx) err
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success update warehouse item procurement draft")
 }
 
-func (h *WarehouseHandler) AllocateWarehouseItemProcurementDraft(c *fiber.Ctx) error {
+func (h *WarehouseHandler) ConfirmationWarehouseItemProcurementDraft(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
@@ -862,11 +862,11 @@ func (h *WarehouseHandler) AllocateWarehouseItemProcurementDraft(c *fiber.Ctx) e
 		return errx.Unauthorized("user id not found in context")
 	}
 
-	res, err := h.service.AllocateWarehouseItemProcurementDraft(id, request, uuid.MustParse(userId))
+	res, err := h.service.ConfirmationWarehouseItemProcurementDraft(id, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success allocate warehouse item procurement draft")
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success confirmation warehouse item procurement draft")
 }
 
 func (h *WarehouseHandler) CreateWarehouseItemProcurement(c *fiber.Ctx) error {
@@ -1147,7 +1147,7 @@ func (h *WarehouseHandler) DeleteWarehouseItemCornProcurementDraft(c *fiber.Ctx)
 	return response.NoContentResponse(c)
 }
 
-func (h *WarehouseHandler) AllocateWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
+func (h *WarehouseHandler) ConfirmationWarehouseItemCornProcurementDraft(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
@@ -1170,11 +1170,11 @@ func (h *WarehouseHandler) AllocateWarehouseItemCornProcurementDraft(c *fiber.Ct
 		return errx.Unauthorized("user id not found in context")
 	}
 
-	res, err := h.service.AllocateWarehouseItemCornProcurementDraft(id, request, uuid.MustParse(userId))
+	res, err := h.service.ConfirmationWarehouseItemCornProcurementDraft(id, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
-	return response.SuccessResponse(c, fiber.StatusOK, res, "success allocate warehouse item corn procurement draft")
+	return response.SuccessResponse(c, fiber.StatusCreated, res, "success allocate warehouse item corn procurement draft")
 }
 
 func (h *WarehouseHandler) CreateWarehouseItemCornProcurement(c *fiber.Ctx) error {

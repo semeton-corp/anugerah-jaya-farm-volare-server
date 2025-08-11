@@ -31,6 +31,8 @@ type WarehouseItemProcurement struct {
 	Status                enum.ProcurementStatus            `gorm:"type:int;not null"`
 	PaymentStatus         enum.PaymentStatus                `gorm:"type:int;not null"`
 	Payments              []WarehouseItemProcurementPayment `gorm:"foreignKey:WarehouseItemProcurementId;references:Id"`
+	ExpiredAt             sql.NullTime                      `gorm:"type:date"`
+	DeadlinePaymentDate   sql.NullTime                      `gorm:"type:date"`
 	CreatedAt             time.Time                         `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy             uuid.NullUUID                     `gorm:"type:varchar(255)"`
 	UpdatedAt             time.Time                         `gorm:"type:timestamp;autoUpdateTime"`

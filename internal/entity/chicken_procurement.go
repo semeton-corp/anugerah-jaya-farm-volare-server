@@ -18,7 +18,6 @@ type ChickenProcurement struct {
 	Quantity              uint64                      `gorm:"type:bigint;not null"`
 	RecieveQuantity       sql.NullInt64               `gorm:"type:bigint"`
 	Note                  string                      `gorm:"type:text"`
-	Price                 decimal.Decimal             `gorm:"type:decimal;not null"`
 	TotalPrice            decimal.Decimal             `gorm:"type:decimal;not null"`
 	PaymentStatus         enum.PaymentStatus          `gorm:"type:int;not null"`
 	Status                enum.ProcurementStatus      `gorm:"type:int;not null"`

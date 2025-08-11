@@ -658,7 +658,7 @@ func (s *ChickenService) CreateChickenProcurementDraft(request dto.CreateChicken
 		return dto.ChickenProcurementDraftResponse{}, errx.BadRequest("cage is in used by another chicken")
 	}
 
-	price, err := decimal.NewFromString(request.Price)
+	totalPrice, err := decimal.NewFromString(request.TotalPrice)
 	if err != nil {
 		s.log.Error("failed to parse price from string", zap.Error(err))
 		return dto.ChickenProcurementDraftResponse{}, err
@@ -668,8 +668,7 @@ func (s *ChickenService) CreateChickenProcurementDraft(request dto.CreateChicken
 		CageId:     request.CageId,
 		SupplierId: request.SupplierId,
 		Quantity:   request.Quantity,
-		Price:      price,
-		TotalPrice: price.Mul(decimal.NewFromUint64(request.Quantity)),
+		TotalPrice: totalPrice,
 		CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -711,7 +710,7 @@ func (s *ChickenService) UpdateChickenProcurementDraft(id uint64, request dto.Up
 		return dto.ChickenProcurementDraftResponse{}, errx.BadRequest("cage is in used by another chicken")
 	}
 
-	price, err := decimal.NewFromString(request.Price)
+	totalPrice, err := decimal.NewFromString(request.TotalPrice)
 	if err != nil {
 		s.log.Error("failed to parse price from string", zap.Error(err))
 		return dto.ChickenProcurementDraftResponse{}, err
@@ -726,8 +725,7 @@ func (s *ChickenService) UpdateChickenProcurementDraft(id uint64, request dto.Up
 	chickenProcurementDraft.CageId = request.CageId
 	chickenProcurementDraft.SupplierId = request.SupplierId
 	chickenProcurementDraft.Quantity = request.Quantity
-	chickenProcurementDraft.Price = price
-	chickenProcurementDraft.TotalPrice = price.Mul(decimal.NewFromUint64(request.Quantity))
+	chickenProcurementDraft.TotalPrice = totalPrice
 	chickenProcurementDraft.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateChickenProcurementDraft(&chickenProcurementDraft)
@@ -849,7 +847,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("cage is in used by another chicken")
 	}
 
-	price, err := decimal.NewFromString(request.Price)
+	totalPrice, err := decimal.NewFromString(request.TotalPrice)
 	if err != nil {
 		s.log.Error("failed to parse price from string", zap.Error(err))
 		return dto.ChickenProcurementResponse{}, err
@@ -876,8 +874,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		CageId:                chickenProcurementDraft.CageId,
 		SupplierId:            chickenProcurementDraft.SupplierId,
 		Quantity:              request.Quantity,
-		Price:                 price,
-		TotalPrice:            price.Mul(decimal.NewFromUint64(request.Quantity)),
+		TotalPrice:            totalPrice,
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentType:           paymentType,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
