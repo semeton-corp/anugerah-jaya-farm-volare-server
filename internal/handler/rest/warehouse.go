@@ -69,9 +69,9 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/procurements/:id", middleware.Authentication(), h.GetWarehouseItemProcurement)
 	v1.Put("/items/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemProcurement)
 
-	v1.Post("/items/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
-	v1.Put("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
-	v1.Delete("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
+	v1.Post("/items/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemProcurementPayment)
+	v1.Put("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemProcurementPayment)
+	v1.Delete("/items/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemProcurementPayment)
 
 	v1.Get("items/corns/prices", middleware.Authentication(), h.GetWarehouseItemCornPrices)
 

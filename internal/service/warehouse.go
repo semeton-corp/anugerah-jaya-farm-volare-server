@@ -1742,6 +1742,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = paymentResponses
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -1885,6 +1886,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = paymentResponses
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -1934,13 +1936,14 @@ func (s *WarehouseService) GetWarehouseItemProcurement(id uint64) (dto.Warehouse
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2023,13 +2026,14 @@ func (s *WarehouseService) CreateWarehouseItemProcurementPayment(warehouseItemPr
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2117,13 +2121,14 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementPayment(id uint64, ware
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2195,16 +2200,22 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		warehouseItemProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
 
-	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseItemProcurement.WarehouseId, warehouseItemProcurement.ItemId)
+	warehouseItem := entity.WarehouseItem{
+		ItemId:      warehouseItemProcurement.ItemId,
+		WarehouseId: warehouseItemProcurement.WarehouseId,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+	}
+	warehouseItem, err = s.repository.FirstOrCreateWarehouseItem(&warehouseItem)
 	if err != nil {
-		s.log.Error("failed get warehouse item by warehouse id and item id", zap.Error(err))
+		s.log.Error("failed first or create warehouse item", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	// Todo check the estimation run out
 	warehouseItem.Quantity = warehouseItem.Quantity + request.Quantity
-	warehouseItem.EstimationRunOut = sql.NullTime{Time: warehouseItem.EstimationRunOut.Time.Add(time.Hour * 24 * time.Duration(warehouseItemProcurement.DaysNeed)), Valid: true}
-
+	warehouseItem.EstimationRunOut = sql.NullTime{
+		Time:  warehouseItem.EstimationRunOut.Time.Add(time.Hour * 24 * time.Duration(warehouseItemProcurement.DaysNeed)),
+		Valid: true,
+	}
 	err = s.repository.UpdateWarehouseItemProcurement(&warehouseItemProcurement)
 	if err != nil {
 		s.log.Error("failed update warehouse item procurement", zap.Error(err))
@@ -2233,13 +2244,14 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
 
 	response := mapper.WarehouseItemProcurementToResponse(&data)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2698,7 +2710,7 @@ func (s *WarehouseService) GetWarehouseItemCornProcurement(id uint64) (dto.Wareh
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
@@ -2787,7 +2799,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementPayment(warehouseIt
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
@@ -2881,7 +2893,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}
@@ -2994,7 +3006,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
-		remainingPayment := remainingPayment.Sub(e.Nominal)
+		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
 		payments = append(payments, payment)
 	}

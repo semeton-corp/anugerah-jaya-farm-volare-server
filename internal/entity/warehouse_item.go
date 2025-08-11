@@ -12,7 +12,7 @@ type WarehouseItem struct {
 	Item             Item          `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId      uint64        `gorm:"primaryKey;type:bigint;not null"`
 	Warehouse        Warehouse     `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
-	Quantity         float64       `gorm:"type:decimal;not null"`
+	Quantity         float64       `gorm:"type:decimal;not null;default:0"`
 	EstimationRunOut sql.NullTime  `gorm:"type:date"`
 	ExpiredAt        sql.NullTime  `gorm:"type:date"`
 	CreatedAt        time.Time     `gorm:"type:timestamp;autoCreateTime"`

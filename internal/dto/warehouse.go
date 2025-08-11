@@ -105,6 +105,7 @@ type WarehouseItemProcurementListResponse struct {
 	DeadlinePaymentDate           string               `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
 	ExpiredAt                     string               `json:"expiredAt"`
+	PaymentStatus                 string               `json:"paymentStatus"`
 }
 
 type WarehouseItemProcurementResponse struct {
@@ -115,6 +116,7 @@ type WarehouseItemProcurementResponse struct {
 	IsArrived                     bool                                      `json:"IsArrived"`
 	Quantity                      float64                                   `json:"quantity"`
 	Payments                      []WarehouseItemProcurementPaymentResponse `json:"payments"`
+	RemainingPayment              string                                    `json:"remainingPayment"`
 	EstimationArrivalDate         string                                    `json:"estimationArrivalDate"`
 	ProcurementStatus             string                                    `json:"procurementStatus"`
 	DeadlinePaymentDate           string                                    `json:"deadlinePaymentDate"`
@@ -123,6 +125,7 @@ type WarehouseItemProcurementResponse struct {
 	DaysNeed                      uint64                                    `json:"daysNeed"`
 	TotalPrice                    string                                    `json:"totalPrice"`
 	ExpiredAt                     string                                    `json:"expiredAt"`
+	PaymentStatus                 string                                    `json:"paymentStatus"`
 }
 
 type WarehouseItemProcurementPaymentResponse struct {

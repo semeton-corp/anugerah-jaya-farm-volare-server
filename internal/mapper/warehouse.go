@@ -205,6 +205,7 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		Price:                 data.Price.String(),
 		DaysNeed:              data.DaysNeed,
 		TotalPrice:            data.TotalPrice.String(),
+		PaymentStatus:         data.PaymentStatus.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
@@ -236,6 +237,7 @@ func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcuremen
 		Quantity:              data.Quantity,
 		ProcurementStatus:     data.Status.String(),
 		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		PaymentStatus:         data.PaymentStatus.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {

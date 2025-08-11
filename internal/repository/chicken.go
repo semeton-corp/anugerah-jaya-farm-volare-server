@@ -362,7 +362,7 @@ func (r *ChickenRepository) CreateAfkirChickenCustomer(data *entity.AfkirChicken
 	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Create(data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return errx.BadRequest("afkir chicken supplier already exist")
+			return errx.BadRequest("afkir chicken customer already exist")
 		}
 		return err
 	}
