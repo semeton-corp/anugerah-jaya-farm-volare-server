@@ -111,7 +111,7 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 
 // Note : without payments, payment payment
 func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleResponse {
-	return dto.WarehouseSaleResponse{
+	response := dto.WarehouseSaleResponse{
 		Id:         warehouseSale.Id,
 		SendDate:   warehouseSale.SendDate.Format("02 Jan 2006"),
 		Customer:   CustomerToResponse(&warehouseSale.Customer),
@@ -130,6 +130,17 @@ func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseS
 		PaymentStatus: warehouseSale.PaymentStatus.String(),
 		IsSend:        warehouseSale.IsSend,
 	}
+
+	if warehouseSale.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(warehouseSale.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 // Note : without remaining payment
@@ -144,7 +155,7 @@ func WarehouseSalePaymentToResponse(warehouseSalePayment *entity.WarehouseSalePa
 }
 
 func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleListResponse {
-	return dto.WarehouseSaleListResponse{
+	response := dto.WarehouseSaleListResponse{
 		Id:            warehouseSale.Id,
 		OrderDate:     warehouseSale.CreatedAt.Format("02 Jan 2006"),
 		SendDate:      warehouseSale.SendDate.Format("02 Jan 2006"),
@@ -156,6 +167,17 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 		PaymentStatus: warehouseSale.PaymentStatus.String(),
 		IsSend:        warehouseSale.IsSend,
 	}
+
+	if warehouseSale.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(warehouseSale.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto.WarehouseSaleQueueResponse {

@@ -831,18 +831,20 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
 	storeSale := entity.StoreSale{
-		StoreId:     request.StoreId,
-		ItemId:      request.ItemId,
-		Quantity:    request.Quantity,
-		Price:       price,
-		TotalPrice:  totalPrice,
-		SendDate:    sendDate,
-		Discount:    request.Discount,
-		IsSend:      false,
-		SaleUnit:    saleUnit,
-		PaymentType: paymentType,
-		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+		StoreId:             request.StoreId,
+		ItemId:              request.ItemId,
+		Quantity:            request.Quantity,
+		Price:               price,
+		TotalPrice:          totalPrice,
+		SendDate:            sendDate,
+		Discount:            request.Discount,
+		IsSend:              false,
+		SaleUnit:            saleUnit,
+		PaymentType:         paymentType,
+		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
+		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {
@@ -1820,18 +1822,20 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
 	storeSale := entity.StoreSale{
-		StoreId:     request.StoreId,
-		ItemId:      request.ItemId,
-		Quantity:    request.Quantity,
-		Price:       price,
-		TotalPrice:  totalPrice,
-		SendDate:    sendDate,
-		Discount:    request.Discount,
-		IsSend:      false,
-		SaleUnit:    saleUnit,
-		PaymentType: paymentType,
-		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+		StoreId:             request.StoreId,
+		ItemId:              request.ItemId,
+		Quantity:            request.Quantity,
+		Price:               price,
+		TotalPrice:          totalPrice,
+		SendDate:            sendDate,
+		Discount:            request.Discount,
+		IsSend:              false,
+		SaleUnit:            saleUnit,
+		PaymentType:         paymentType,
+		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7)},
+		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {

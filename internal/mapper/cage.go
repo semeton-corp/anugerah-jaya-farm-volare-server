@@ -36,7 +36,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
 
-		if chickenAgeInWeek >= 0 && chickenAgeInWeek <= 9 {
+		if chickenAgeInWeek <= 9 {
 			chickenCategory = enum.ChickenCategoryDOC
 		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
 			chickenCategory = enum.ChickenCategoryGrower
@@ -103,7 +103,7 @@ func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenC
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
 
-		if chickenAgeInWeek >= 0 && chickenAgeInWeek <= 9 {
+		if chickenAgeInWeek <= 9 {
 			chickenCategory = enum.ChickenCategoryDOC
 		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
 			chickenCategory = enum.ChickenCategoryGrower
@@ -138,7 +138,7 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 		chickenAge := time.Since(chickenCage.CreatedAt)
 		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
 
-		if chickenAgeInWeek >= 0 && chickenAgeInWeek <= 9 {
+		if chickenAgeInWeek <= 9 {
 			chickenCategory = enum.ChickenCategoryDOC
 		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
 			chickenCategory = enum.ChickenCategoryGrower

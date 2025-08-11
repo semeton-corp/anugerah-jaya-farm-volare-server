@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"time"
+
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
@@ -56,7 +58,7 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 
 // Note : without payments
 func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
-	return dto.StoreSaleResponse{
+	response := dto.StoreSaleResponse{
 		Id:         storeSale.Id,
 		SendDate:   storeSale.SendDate.Format("02 Jan 2006"),
 		Customer:   CustomerToResponse(&storeSale.Customer),
@@ -82,6 +84,17 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
 	}
+
+	if storeSale.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(storeSale.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 // Note : without remaining payment
@@ -96,7 +109,7 @@ func StoreSalePaymentToResponse(storeSalePayment *entity.StoreSalePayment) dto.S
 }
 
 func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListResponse {
-	return dto.StoreSaleListResponse{
+	response := dto.StoreSaleListResponse{
 		Id:            storeSale.Id,
 		OrderDate:     storeSale.CreatedAt.Format("02 Jan 2006"),
 		SendDate:      storeSale.SendDate.Format("02 Jan 2006"),
@@ -108,6 +121,17 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
 	}
+
+	if storeSale.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(storeSale.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func StoreItemHistoryToResponse(storeItemHistory *entity.StoreItemHistory) dto.StoreItemHistoryResponse {

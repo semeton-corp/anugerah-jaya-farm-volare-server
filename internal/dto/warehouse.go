@@ -200,20 +200,22 @@ type GetWarehouseSaleFilter struct {
 }
 
 type WarehouseSaleResponse struct {
-	Id               uint64                         `json:"id"`
-	SendDate         string                         `json:"sentDate"`
-	Customer         CustomerResponse               `json:"customer"`
-	WarehouseItem    ItemResponse                   `json:"item"`
-	Warehouse        WarehouseResponse              `json:"warehouse"`
-	Quantity         float64                        `json:"quantity"`
-	SaleUnit         string                         `json:"saleUnit"`
-	PaymentType      string                         `json:"paymentType"`
-	PaymentStatus    string                         `json:"paymentStatus"`
-	Price            string                         `json:"price"`
-	TotalPrice       string                         `json:"totalPrice"`
-	IsSend           bool                           `json:"isSend"`
-	Payments         []WarehouseSalePaymentResponse `json:"payments"`
-	RemainingPayment string                         `json:"remainingPayment"`
+	Id                            uint64                         `json:"id"`
+	SendDate                      string                         `json:"sentDate"`
+	Customer                      CustomerResponse               `json:"customer"`
+	WarehouseItem                 ItemResponse                   `json:"item"`
+	Warehouse                     WarehouseResponse              `json:"warehouse"`
+	Quantity                      float64                        `json:"quantity"`
+	SaleUnit                      string                         `json:"saleUnit"`
+	PaymentType                   string                         `json:"paymentType"`
+	PaymentStatus                 string                         `json:"paymentStatus"`
+	Price                         string                         `json:"price"`
+	TotalPrice                    string                         `json:"totalPrice"`
+	IsSend                        bool                           `json:"isSend"`
+	Payments                      []WarehouseSalePaymentResponse `json:"payments"`
+	RemainingPayment              string                         `json:"remainingPayment"`
+	DeadlinePaymentDate           string                         `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                           `json:"isMoreThanDeadlinePaymentDate"`
 }
 
 type WarehouseSaleListPaginationResponse struct {
@@ -261,18 +263,20 @@ type UpdateWarehouseSalePaymentRequest struct {
 }
 
 type WarehouseSaleListResponse struct {
-	Id            uint64            `json:"id"`
-	OrderDate     string            `json:"orderDate"`
-	SendDate      string            `json:"sentDate"`
-	Customer      CustomerResponse  `json:"customer"`
-	Item          ItemResponse      `json:"item"`
-	Warehouse     WarehouseResponse `json:"Warehouse"`
-	Quantity      float64           `json:"quantity"`
-	SaleUnit      string            `json:"saleUnit"`
-	PaymentStatus string            `json:"paymentStatus"`
-	IsSend        bool              `json:"isSend"`
-	CreatedAt     time.Time         `json:"-"`
-	TotalPrice    decimal.Decimal   `json:"-"`
+	Id                            uint64            `json:"id"`
+	OrderDate                     string            `json:"orderDate"`
+	SendDate                      string            `json:"sentDate"`
+	Customer                      CustomerResponse  `json:"customer"`
+	Item                          ItemResponse      `json:"item"`
+	Warehouse                     WarehouseResponse `json:"Warehouse"`
+	Quantity                      float64           `json:"quantity"`
+	SaleUnit                      string            `json:"saleUnit"`
+	PaymentStatus                 string            `json:"paymentStatus"`
+	IsSend                        bool              `json:"isSend"`
+	CreatedAt                     time.Time         `json:"-"`
+	TotalPrice                    decimal.Decimal   `json:"-"`
+	DeadlinePaymentDate           string            `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool              `json:"isMoreThanDeadlinePaymentDate"`
 }
 
 type WarehouseSalePaymentResponse struct {

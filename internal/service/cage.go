@@ -507,29 +507,33 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 		return nil, err
 	}
 
-	chickecnCageIds := make([]uint64, 0)
-	for _, e := range chickenCages {
-		chickecnCageIds = append(chickecnCageIds, e.Id)
+	chickenCageIds := make([]uint64, len(chickenCages))
+	for i, cage := range chickenCages {
+		chickenCageIds[i] = cage.Id
 	}
 
-	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
-	chickenMonitoringsYesteday, err := s.repository.GetChickenMonitoringYesterdayByChickenCageIds(chickecnCageIds, yesterdayDate)
+	now := time.Now()
+	yesterday := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
+
+	chickenMonitoringsYesterday, err := s.repository.GetChickenMonitoringYesterdayByChickenCageIds(chickenCageIds, yesterday)
 	if err != nil {
 		s.log.Error("failed get chicken monitoring yesterday by chicken cage ids", zap.Error(err))
 		return nil, err
 	}
 
-	responses := make([]dto.ChickenCageFeedListResponse, 0)
-	for _, e := range data {
-		response := mapper.ChickenCageFeedToListResponse(&e)
-		for _, chickenMonitoring := range chickenMonitoringsYesteday {
-			if response.Id == chickenMonitoring.ChickenCageId {
-				response.YesterdayTotalFeed = chickenMonitoring.TotalFeed
-				response.TotalFeed = response.ExpectedTotalFeed - response.YesterdayTotalFeed
-			}
-		}
+	monitoringMap := make(map[uint64]float64, len(chickenMonitoringsYesterday))
+	for _, m := range chickenMonitoringsYesterday {
+		monitoringMap[m.ChickenCageId] = m.TotalFeed
+	}
 
-		responses = append(responses, mapper.ChickenCageFeedToListResponse(&e))
+	responses := make([]dto.ChickenCageFeedListResponse, len(data))
+	for i, e := range data {
+		resp := mapper.ChickenCageFeedToListResponse(&e)
+		if yesterdayFeed, ok := monitoringMap[resp.Id]; ok {
+			resp.YesterdayTotalFeed = yesterdayFeed
+			resp.TotalFeed = resp.ExpectedTotalFeed - yesterdayFeed
+		}
+		responses[i] = resp
 	}
 
 	return responses, nil

@@ -164,26 +164,28 @@ type GetStoreSaleQueueFilter struct {
 }
 
 type StoreSaleResponse struct {
-	Id               uint64                     `json:"id"`
-	SendDate         string                     `json:"sentDate"`
-	Customer         CustomerResponse           `json:"customer"`
-	WarehouseItem    ItemResponse               `json:"item"`
-	Store            StoreResponse              `json:"store"`
-	Quantity         float64                    `json:"quantity"`
-	SaleUnit         string                     `json:"saleUnit"`
-	PaymentType      string                     `json:"paymentType"`
-	PaymentStatus    string                     `json:"paymentStatus"`
-	Price            string                     `json:"price"`
-	TotalPrice       string                     `json:"totalPrice"`
-	IsSend           bool                       `json:"isSend"`
-	Payments         []StoreSalePaymentResponse `json:"payments"`
-	RemainingPayment string                     `json:"remainingPayment"`
+	Id                            uint64                     `json:"id"`
+	SendDate                      string                     `json:"sentDate"`
+	Customer                      CustomerResponse           `json:"customer"`
+	WarehouseItem                 ItemResponse               `json:"item"`
+	Store                         StoreResponse              `json:"store"`
+	Quantity                      float64                    `json:"quantity"`
+	SaleUnit                      string                     `json:"saleUnit"`
+	PaymentType                   string                     `json:"paymentType"`
+	PaymentStatus                 string                     `json:"paymentStatus"`
+	Price                         string                     `json:"price"`
+	TotalPrice                    string                     `json:"totalPrice"`
+	IsSend                        bool                       `json:"isSend"`
+	Payments                      []StoreSalePaymentResponse `json:"payments"`
+	RemainingPayment              string                     `json:"remainingPayment"`
+	DeadlinePaymentDate           string                     `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                       `json:"isMoreThanDeadlinePaymentDate"`
 }
 
 type StoreSaleListPaginationResponse struct {
-	TotalPage  uint64                  `json:"totalPage"`
+	TotalPage  uint64                  `json:"totalPage,omitempty"`
 	TotalData  uint64                  `json:"totalData,omitempty"`
-	StoreSales []StoreSaleListResponse `json:"storeSales,omitempty"`
+	StoreSales []StoreSaleListResponse `json:"storeSales"`
 }
 
 type CreateStoreSaleRequest struct {
@@ -225,18 +227,20 @@ type UpdateStoreSalePaymentRequest struct {
 }
 
 type StoreSaleListResponse struct {
-	Id            uint64           `json:"id"`
-	OrderDate     string           `json:"orderDate"`
-	SendDate      string           `json:"sentDate"`
-	Customer      CustomerResponse `json:"customer"`
-	Item          ItemResponse     `json:"item"`
-	Store         StoreResponse    `json:"store"`
-	Quantity      float64          `json:"quantity"`
-	SaleUnit      string           `json:"saleUnit"`
-	PaymentStatus string           `json:"paymentStatus"`
-	IsSend        bool             `json:"isSend"`
-	CreatedAt     time.Time        `json:"-"`
-	TotalPrice    decimal.Decimal  `json:"-"`
+	Id                            uint64           `json:"id"`
+	OrderDate                     string           `json:"orderDate"`
+	SendDate                      string           `json:"sentDate"`
+	Customer                      CustomerResponse `json:"customer"`
+	Item                          ItemResponse     `json:"item"`
+	Store                         StoreResponse    `json:"store"`
+	Quantity                      float64          `json:"quantity"`
+	SaleUnit                      string           `json:"saleUnit"`
+	PaymentStatus                 string           `json:"paymentStatus"`
+	IsSend                        bool             `json:"isSend"`
+	DeadlinePaymentDate           string           `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool             `json:"isMoreThanDeadlinePaymentDate"`
+	CreatedAt                     time.Time        `json:"-"`
+	TotalPrice                    decimal.Decimal  `json:"-"`
 }
 
 type StoreSalePaymentResponse struct {
