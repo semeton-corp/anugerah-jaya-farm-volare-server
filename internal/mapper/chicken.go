@@ -78,7 +78,7 @@ func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dt
 	return dto.ChickenMonitoringResponse{
 		Id:                 chickenMonitoring.Id,
 		ChickenCage:        ChickenCageToResponse(&chickenMonitoring.ChickenCage),
-		TotalLiveChicken:   chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken,
+		TotalLiveChicken:   chickenMonitoring.ChickenCage.TotalChicken,
 		TotalSickChicken:   chickenMonitoring.TotalSickChicken,
 		TotalDeatchChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:          chickenMonitoring.TotalFeed,
@@ -90,16 +90,16 @@ func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring
 	response := dto.ChickenMonitoringListResponse{
 		Id:                chickenMonitoring.Id,
 		ChickenCage:       ChickenCageToResponse(&chickenMonitoring.ChickenCage),
-		TotalLiveChicken:  chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken,
+		TotalLiveChicken:  chickenMonitoring.ChickenCage.TotalChicken,
 		TotalSickChicken:  chickenMonitoring.TotalSickChicken,
 		TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:         chickenMonitoring.TotalFeed,
 	}
 
-	if (chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken) == 0 {
+	if (chickenMonitoring.ChickenCage.TotalChicken) == 0 {
 		response.MortalityRate = 0
 	} else {
-		response.MortalityRate = float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.ChickenCage.TotalChicken - chickenMonitoring.ChickenCage.TotalDeathChicken)) * 100.0)
+		response.MortalityRate = float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.ChickenCage.TotalChicken)) * 100.0)
 	}
 
 	return response

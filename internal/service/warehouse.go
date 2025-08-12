@@ -2259,11 +2259,6 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.CreateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	cornWaterLevel := enum.ValueOfCornWaterLevel(request.CornWaterLevel)
-	if !cornWaterLevel.IsValid() {
-		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid corn water level")
-	}
-
 	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
 	if !ovenCondition.IsValid() {
 		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
@@ -2278,9 +2273,9 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 	data := entity.WarehouseItemCornProcurementDraft{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
-		CornWaterLevel:            cornWaterLevel,
+		CornWaterLevel:            sql.NullFloat64{Float64: request.Quantity, Valid: true},
 		OvenCondition:             ovenCondition,
-		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
+		IsOvenCanOperateInNearDay: sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true},
 		Quantity:                  request.Quantity,
 		Price:                     price,
 		Discount:                  sql.NullFloat64{Float64: request.Discount, Valid: true},
@@ -2347,11 +2342,6 @@ func (s *WarehouseService) GetWarehouseItemCornProcurementDraft(id uint64) (dto.
 func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, request dto.UpdateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	cornWaterLevel := enum.ValueOfCornWaterLevel(request.CornWaterLevel)
-	if !cornWaterLevel.IsValid() {
-		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid corn water level")
-	}
-
 	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
 	if !ovenCondition.IsValid() {
 		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
@@ -2370,8 +2360,9 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 
 	data.WarehouseId = request.WarehouseId
 	data.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
-	data.CornWaterLevel = cornWaterLevel
+	data.CornWaterLevel = sql.NullFloat64{Float64: request.Quantity, Valid: true}
 	data.OvenCondition = ovenCondition
+	data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
 	data.Price = price
 	data.Quantity = request.Quantity
 	data.Discount = sql.NullFloat64{Float64: request.Discount, Valid: true}
@@ -3043,13 +3034,11 @@ func (s *WarehouseService) CreateRawFeed(request dto.CreateRawFeedRequest, userI
 	}
 
 	cornDraft := entity.WarehouseItemCornProcurementDraft{
-		WarehouseId:               request.WarehouseId,
-		CornWaterLevel:            enum.CornWaterLevelUnknown,
-		OvenCondition:             enum.OvenConditionUnknown,
-		IsOvenCanOperateInNearDay: false,
-		Quantity:                  request.CornQuantity,
-		Price:                     cornPrice,
-		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
+		WarehouseId:   request.WarehouseId,
+		OvenCondition: enum.OvenConditionUnknown,
+		Quantity:      request.CornQuantity,
+		Price:         cornPrice,
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 	err = s.repository.CreateWarehouseItemCornProcurementDraft(&cornDraft)
 	if err != nil {

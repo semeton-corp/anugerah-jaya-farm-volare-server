@@ -19,7 +19,6 @@ func New() *validator.Validate {
 	validate.RegisterValidation("phoneNumber", ValidationPhoneNumber)
 	validate.RegisterValidation("eggType", ValidationEggType)
 	validate.RegisterValidation("ovenCondition", ValidationOvenCondition)
-	validate.RegisterValidation("cornWaterLevel", ValidationCornWaterLevel)
 	validate.RegisterValidation("feedType", ValidationFeedType)
 	validate.RegisterValidation("supplierType", ValidationSupplierType)
 
@@ -150,16 +149,6 @@ func ValidationOvenCondition(fl validator.FieldLevel) bool {
 	eggType := fl.Field().String()
 	switch eggType {
 	case "Hidup", "Mati":
-		return true
-	default:
-		return false
-	}
-}
-
-func ValidationCornWaterLevel(fl validator.FieldLevel) bool {
-	eggType := fl.Field().String()
-	switch eggType {
-	case "<= 16%", "> 16%":
 		return true
 	default:
 		return false

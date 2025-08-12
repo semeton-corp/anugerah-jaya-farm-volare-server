@@ -362,7 +362,7 @@ type CreateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
 	OvenCondition             string  `json:"oveCondition" validate:"required,ovenCondition"`
-	CornWaterLevel            string  `json:"cornWaterLevel" validate:"required,cornWaterLevel"`
+	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
@@ -373,7 +373,7 @@ type UpdateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
 	OvenCondition             string  `json:"oveCondition" validate:"required,ovenCondition"`
-	CornWaterLevel            string  `json:"cornWaterLevel" validate:"required,cornWaterLevel"`
+	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
@@ -387,7 +387,7 @@ type WarehouseItemCornProcurementDraftResponse struct {
 	Supplier                  SupplierListResponse `json:"supplier"`
 	Item                      ItemResponse         `json:"item"`
 	OvenCondition             string               `json:"oveCondition"`
-	CornWaterLevel            string               `json:"cornWaterLevel"`
+	CornWaterLevel            *float64             `json:"cornWaterLevel"`
 	IsOvenCanOperateInNearDay *bool                `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64              `json:"quantity"`
 	Discount                  *float64             `json:"discount"`

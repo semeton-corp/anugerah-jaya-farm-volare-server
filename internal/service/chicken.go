@@ -96,7 +96,7 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 	}
 }
 
-func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, createdBy uuid.UUID) (dto.ChickenMonitoringResponse, error) {
+func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, userId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
 	count, err := s.repository.CountChickenMonitoringByChickenCageIdToday(request.ChickenCageId)
@@ -115,10 +115,21 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		TotalSickChicken:  request.TotalSickChicken,
 		TotalFeed:         request.TotalFeed,
 		Note:              request.Note,
-		CreatedBy:         uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:         uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	// Todo : create if there are death chicken in chicken cage
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	currentChicken := chickenCage.TotalChicken - request.TotalDeathChicken
+	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
+		TotalChicken: currentChicken,
+	}, userId)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
 
 	err = s.repository.CreateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
@@ -160,7 +171,7 @@ func (s *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 	return chickenMonitoringsResponse, nil
 }
 
-func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, updateBy uuid.UUID) (dto.ChickenMonitoringResponse, error) {
+func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, userId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
 	s.repository.UseTx(false)
 	chickenMonitoring, err := s.repository.GetChickenMonitoringById(id)
 	if err != nil {
@@ -172,8 +183,21 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
 	chickenMonitoring.TotalFeed = request.TotalFeed
 	chickenMonitoring.Note = request.Note
-	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: updateBy, Valid: true}
+	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: userId, Valid: true}
 	chickenMonitoring.ChickenCageId = request.ChickenCageId
+
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	currentChicken := chickenCage.TotalChicken - request.TotalDeathChicken
+	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
+		TotalChicken: currentChicken,
+	}, userId)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
 
 	err = s.repository.UpdateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
@@ -238,7 +262,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		totalSickChicken += cm.TotalSickChicken
 		totalDeathChicken += cm.TotalDeathChicken
 
-		count := cm.TotalSickChicken + cm.ChickenCage.TotalChicken - cm.ChickenCage.TotalDeathChicken
+		count := cm.TotalSickChicken + cm.ChickenCage.TotalChicken
 		switch cm.ChickenCage.Cage.ChickenCategory {
 		case enum.ChickenCategoryDOC:
 			totalDOCChicken += count
@@ -1411,6 +1435,15 @@ func (s *ChickenService) DeleteAfkirChickenCustomer(id uint64) error {
 func (s *ChickenService) CreateAkfirChickenSaleDraft(request dto.CreateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error) {
 	s.repository.UseTx(false)
 
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	if chickenCage.TotalChicken < request.TotalSellChicken {
+		return dto.AfkirChickenSaleDraftResponse{}, errx.BadRequest("total sell chicken must be less than or equal total chicken")
+	}
+
 	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
 	if err != nil {
 		s.log.Error("failed parse price from string", zap.Error(err))
@@ -1473,6 +1506,15 @@ func (s *ChickenService) GetAfkirChickenSaleDraft(id uint64) (dto.AfkirChickenSa
 
 func (s *ChickenService) UpdateAfkirChickenSaleDraft(id uint64, request dto.UpdateAfkirChickenSaleDraftRequest, userId uuid.UUID) (dto.AfkirChickenSaleDraftResponse, error) {
 	s.repository.UseTx(false)
+
+	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.AfkirChickenSaleDraftResponse{}, err
+	}
+
+	if chickenCage.TotalChicken < request.TotalSellChicken {
+		return dto.AfkirChickenSaleDraftResponse{}, errx.BadRequest("total sell chicken must be less than or equal total chicken")
+	}
 
 	data, err := s.repository.GetAfkirChickenSaleDraft(id)
 	if err != nil {
@@ -1615,12 +1657,24 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	}
 
 	isUsed := false
+	currentChicken := chickenCage.TotalChicken - request.TotalSellChicken
+	if currentChicken > 0 {
+		isUsed = true
+	}
+
 	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
 		Name:            chickenCage.Cage.Name,
 		Capacity:        chickenCage.Cage.Capacity,
 		LocationId:      chickenCage.Cage.Location.Id,
 		ChickenCategory: chickenCage.Cage.ChickenCategory,
 		IsUsed:          &isUsed,
+	}, userId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
+		TotalChicken: currentChicken,
 	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
@@ -1950,14 +2004,18 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
-	if err != nil {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid price format")
-	}
-
 	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	if chickenCage.TotalChicken < request.TotalSellChicken {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("total sell chicken must be less than total chicken")
+	}
+
+	pricePerChicken, err := decimal.NewFromString(request.PricePerChicken)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid price format")
 	}
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
@@ -2042,12 +2100,24 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	isUsed := false
+	currentChicken := chickenCage.TotalChicken - request.TotalSellChicken
+	if currentChicken > 0 {
+		isUsed = true
+	}
+
 	_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
 		Name:            chickenCage.Cage.Name,
 		Capacity:        chickenCage.Cage.Capacity,
 		LocationId:      chickenCage.Cage.Location.Id,
 		ChickenCategory: chickenCage.Cage.ChickenCategory,
 		IsUsed:          &isUsed,
+	}, userId)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
+		TotalChicken: currentChicken,
 	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err

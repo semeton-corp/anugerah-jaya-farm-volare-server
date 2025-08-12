@@ -64,10 +64,9 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		BatchId:              batchId,
 		ChickenAge:           chickenAgeInWeek,
 		ChickenCategory:      chickenCategory.String(),
-		TotalChicken:         chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		TotalChicken:         chickenCage.TotalChicken,
 		ChickenPic:           chickenPic,
 		EggPic:               eggPic,
-		TotalDeathChicken:    chickenCage.TotalDeathChicken,
 		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 		ChickenProcurementId: chickenCage.ChickenProcurementId,
 	}
@@ -119,7 +118,7 @@ func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenC
 		Cage:              CageToResponse(&chickenCage.Cage),
 		ChickenCategory:   chickenCategory.String(),
 		ChickenAge:        chickenAgeInWeek,
-		TotalChicken:      chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		TotalChicken:      chickenCage.TotalChicken,
 		IsNeedFeed:        chickenCage.IsNeedFeed,
 		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
 	}
@@ -154,7 +153,7 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 		Cage:              CageToResponse(&chickenCage.Cage),
 		ChickenCategory:   chickenCategory.String(),
 		ChickenAge:        chickenAgeInWeek,
-		TotalChicken:      chickenCage.TotalChicken - chickenCage.TotalDeathChicken,
+		TotalChicken:      chickenCage.TotalChicken,
 		IsNeedFeed:        chickenCage.IsNeedFeed,
 		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
 	}

@@ -15,7 +15,6 @@ type ChickenCage struct {
 	ChickenMonitoring       []ChickenMonitoring       `gorm:"foreignKey:ChickenCageId;references:Id"`
 	ChickenHealthMonitoring []ChickenHealthMonitoring `gorm:"foreignKey:ChickenCageId;references:Id"`
 	TotalChicken            uint64                    `gorm:"int;not null;default:0"`
-	TotalDeathChicken       uint64                    `gorm:"int;not null;default:0"`
 	IsNeedRoutineVaccine    bool                      `gorm:"bool;not null;default:false"`
 	IsNeedFeed              bool                      `gorm:"bool;not null;default:true"`
 	CreatedAt               time.Time                 `gorm:"type:timestamp;autoCreateTime"`

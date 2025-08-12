@@ -192,7 +192,23 @@ func (s *CageService) GetChickenCageById(id uint64) (dto.ChickenCageResponse, er
 }
 
 func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error) {
-	return dto.ChickenCageResponse{}, nil
+	s.repository.UseTx(false)
+
+	chickenCage, err := s.repository.GetChickenCageById(id)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	chickenCage.TotalChicken = request.TotalChicken
+
+	err = s.repository.UpdateChickenCage(&chickenCage)
+	if err != nil {
+		s.log.Error("failed update chicken cage", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	return mapper.ChickenCageToResponse(&chickenCage), nil
 }
 
 func (s *CageService) GetCageById(id uint64) (dto.CageResponse, error) {

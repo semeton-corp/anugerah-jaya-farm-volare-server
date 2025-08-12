@@ -269,22 +269,28 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 	}
 }
 
-func WarehouseItemCornProcurementDraftToResponse(warehouseItemCornProcurementDraft *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
+func WarehouseItemCornProcurementDraftToResponse(data *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
 	response := dto.WarehouseItemCornProcurementDraftResponse{
-		Warehouse:                 WarehouseToResponse(&warehouseItemCornProcurementDraft.Warehouse),
-		Supplier:                  SupplierToListResponse(&warehouseItemCornProcurementDraft.Supplier),
-		Item:                      cornItem,
-		OvenCondition:             warehouseItemCornProcurementDraft.OvenCondition.String(),
-		CornWaterLevel:            warehouseItemCornProcurementDraft.CornWaterLevel.String(),
-		IsOvenCanOperateInNearDay: &warehouseItemCornProcurementDraft.IsOvenCanOperateInNearDay,
-		Quantity:                  warehouseItemCornProcurementDraft.Quantity,
-		TotalPrice:                warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Quantity)).String(),
+		Warehouse:     WarehouseToResponse(&data.Warehouse),
+		Supplier:      SupplierToListResponse(&data.Supplier),
+		Item:          cornItem,
+		OvenCondition: data.OvenCondition.String(),
+		Quantity:      data.Quantity,
+		TotalPrice:    data.Price.Mul(decimal.NewFromFloat(data.Quantity)).String(),
 	}
 
-	if warehouseItemCornProcurementDraft.Discount.Valid {
-		discountPrice := warehouseItemCornProcurementDraft.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurementDraft.Discount.Float64))
-		response.TotalPrice = warehouseItemCornProcurementDraft.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
-		response.Discount = &warehouseItemCornProcurementDraft.Discount.Float64
+	if data.Discount.Valid {
+		discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount.Float64))
+		response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+		response.Discount = &data.Discount.Float64
+	}
+
+	if data.CornWaterLevel.Valid {
+		response.CornWaterLevel = &data.CornWaterLevel.Float64
+	}
+
+	if data.IsOvenCanOperateInNearDay.Valid {
+		response.IsOvenCanOperateInNearDay = &data.IsOvenCanOperateInNearDay.Bool
 	}
 
 	return response

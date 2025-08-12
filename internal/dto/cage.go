@@ -33,7 +33,7 @@ type GetCageFilter struct {
 }
 
 type UpdateChickenCageRequest struct {
-	TotalDeatchChicken bool `json:"totalDeathChicken" validate:"required"`
+	TotalChicken uint64 `json:"totalChicken" validate:"required"`
 }
 
 type CreateChickenCageRequest struct {
@@ -53,7 +53,6 @@ type ChickenCageResponse struct {
 	ChickenPic           string       `json:"chickenPic"`
 	EggPic               string       `json:"eggPic"`
 	IsNeedRoutineVaccine bool         `json:"isNeedRoutineVaccine"`
-	TotalDeathChicken    uint64       `json:"-"`
 }
 
 type GetChickenCageFilter struct {
