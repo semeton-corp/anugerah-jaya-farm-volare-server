@@ -361,7 +361,7 @@ type WarehouseItemProcurementDraftResponse struct {
 type CreateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
-	OvenCondition             string  `json:"oveCondition" validate:"required,ovenCondition"`
+	OvenCondition             string  `json:"ovenCondition" validate:"required,ovenCondition"`
 	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
@@ -372,7 +372,7 @@ type CreateWarehouseItemCornProcurementDraftRequest struct {
 type UpdateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
-	OvenCondition             string  `json:"oveCondition" validate:"required,ovenCondition"`
+	OvenCondition             string  `json:"ovenCondition" validate:"required,ovenCondition"`
 	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
@@ -391,6 +391,7 @@ type WarehouseItemCornProcurementDraftResponse struct {
 	IsOvenCanOperateInNearDay *bool                `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64              `json:"quantity"`
 	Discount                  *float64             `json:"discount"`
+	Price                     string               `json:"price"`
 	TotalPrice                string               `json:"totalPrice"`
 }
 

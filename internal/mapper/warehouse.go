@@ -271,16 +271,18 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 
 func WarehouseItemCornProcurementDraftToResponse(data *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
 	response := dto.WarehouseItemCornProcurementDraftResponse{
+		Id:            data.Id,
+		InputDate:     data.CreatedAt.Format("02 Jan 2006"),
 		Warehouse:     WarehouseToResponse(&data.Warehouse),
 		Supplier:      SupplierToListResponse(&data.Supplier),
 		Item:          cornItem,
 		OvenCondition: data.OvenCondition.String(),
 		Quantity:      data.Quantity,
-		TotalPrice:    data.Price.Mul(decimal.NewFromFloat(data.Quantity)).String(),
+		Price:         data.Price.String(),
 	}
 
 	if data.Discount.Valid {
-		discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount.Float64))
+		discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount.Float64 / 100.0))
 		response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
 		response.Discount = &data.Discount.Float64
 	}

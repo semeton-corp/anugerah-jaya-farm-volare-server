@@ -354,6 +354,7 @@ type UpdateAfkirChickenSaleDraftRequest struct {
 
 type AfkirChickenSaleDraftResponse struct {
 	Id                   uint64                           `json:"id"`
+	InputDate            string                           `json:"inputDate"`
 	ChickenCage          ChickenCageResponse              `json:"chickenCage"`
 	AfkirChickenCustomer AfkirChickenCustomerListResponse `json:"afkirChickenCustomer"`
 	TotalSellChicken     uint64                           `json:"totalSellChicken"`

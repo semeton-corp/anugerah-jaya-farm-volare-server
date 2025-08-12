@@ -604,7 +604,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
-	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	warehouseSale := entity.WarehouseSale{
 		WarehouseId:         request.WarehouseId,
 		ItemId:              request.ItemId,
@@ -1374,7 +1374,7 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 	discountPrice := totalPrice.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	totalPrice = totalPrice.Sub(discountPrice)
 
-	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	warehouseSale := entity.WarehouseSale{
 		WarehouseId:         request.WarehouseId,
 		ItemId:              request.ItemId,

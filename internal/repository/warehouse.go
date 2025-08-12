@@ -580,12 +580,12 @@ func (r *WarehouseRepository) DeleteWarehouseItemProcurementPayment(id uint64) e
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCornProcurementDraft(data *entity.WarehouseItemCornProcurementDraft) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Create(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Create(data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts() ([]entity.WarehouseItemCornProcurementDraft, error) {
 	var warehouseItemCornProcurementDrafts []entity.WarehouseItemCornProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Find(&warehouseItemCornProcurementDrafts).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -595,7 +595,7 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts() ([]entity.
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurementDraft(id uint64) (entity.WarehouseItemCornProcurementDraft, error) {
 	var warehouseItemCornProcurementDraft entity.WarehouseItemCornProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Where("id = ?", id).First(&warehouseItemCornProcurementDraft).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Where("id = ?", id).Preload("Supplier").Preload("Warehouse.Location").First(&warehouseItemCornProcurementDraft).Error
 	if err != nil {
 		return entity.WarehouseItemCornProcurementDraft{}, err
 	}

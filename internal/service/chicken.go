@@ -1582,7 +1582,7 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
 
-	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	afkirSale := entity.AfkirChickenSale{
 		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
 		ChickenCageId:          request.ChickenCageId,
@@ -2025,7 +2025,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
 
-	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
+	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	afkirSale := entity.AfkirChickenSale{
 		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
 		ChickenCageId:          request.ChickenCageId,

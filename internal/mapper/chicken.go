@@ -196,6 +196,7 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.AfkirChickenSaleDraftResponse {
 	return dto.AfkirChickenSaleDraftResponse{
 		Id:                   data.Id,
+		InputDate:            data.CreatedAt.Format("02 Jan 2006"),
 		ChickenCage:          ChickenCageToResponse(&data.ChickenCage),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
 		TotalSellChicken:     data.TotalSellChicken,

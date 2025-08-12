@@ -74,7 +74,7 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 		return dto.GeneralOverview{}, err
 	}
 
-	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, nil)
+	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	startDate := endDate.AddDate(0, 0, -6)
 
 	storeSaleInAWeek, err := s.storeService.GetStoreSales(dto.GetStoreSaleFilter{
