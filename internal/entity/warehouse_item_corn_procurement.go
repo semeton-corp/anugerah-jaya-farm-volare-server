@@ -27,9 +27,10 @@ type WarehouseItemCornProcurement struct {
 	PaymentStatus             enum.PaymentStatus                    `gorm:"type:int;not null"`
 	Payments                  []WarehouseItemCornProcurementPayment `gorm:"foreignKey:WarehouseItemCornProcurementId;references:Id"`
 	OvenCondition             enum.OvenCondition                    `gorm:"type:int;not null"`
-	CornWaterLevel            enum.CornWaterLevel                   `gorm:"type:int;not null"`
+	CornWaterLevel            float64                               `gorm:"type:decimal;not null"`
 	IsOvenCanOperateInNearDay bool                                  `gorm:"type:bool;not null"`
-	ExpiredAt                 time.Time                             `gorm:"timestamp;not null"`
+	ExpiredAt                 time.Time                             `gorm:"date;not null"`
+	DeadlinePaymentDate       sql.NullTime                          `gorm:"type:date"`
 	Discount                  float64                               `gorm:"decimal;not null"`
 	CreatedAt                 time.Time                             `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                 uuid.NullUUID                         `gorm:"type:varchar(255)"`

@@ -398,24 +398,32 @@ type WarehouseItemCornProcurementDraftResponse struct {
 type CreateWarehouseItemCornProcurementRequest struct {
 	WarehouseId               uint64                                             `json:"warehouseId" validate:"required"`
 	SupplierId                uint64                                             `json:"supplierId" validate:"required"`
-	OvenCondition             string                                             `json:"oveCondition" validate:"required,ovenCondition"`
-	CornWaterLevel            string                                             `json:"cornWaterLevel" validate:"required,cornWaterLevel"`
+	OvenCondition             string                                             `json:"ovenCondition" validate:"required,ovenCondition"`
+	CornWaterLevel            float64                                            `json:"cornWaterLevel" validate:"required"`
 	IsOvenCanOperateInNearDay *bool                                              `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64                                            `json:"quantity" validate:"required"`
 	Price                     string                                             `json:"price" validate:"required"`
 	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
 	Discount                  float64                                            `json:"discount" validate:"required"`
+	DeadlinePaymentDate       string                                             `json:"deadlinePaymentDate" validate:"required"`
 	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
 
 type WarehouseItemCornProcurementListResponse struct {
-	Id            uint64               `json:"id"`
-	OrderDate     string               `json:"orderDate"`
-	Warehouse     WarehouseResponse    `json:"warehouse"`
-	Supplier      SupplierListResponse `json:"supplier"`
-	Item          ItemResponse         `json:"item"`
-	TotalPrice    string               `json:"totalPrice"`
-	PaymentStatus string               `json:"paymentStatus"`
+	Id                            uint64               `json:"id"`
+	OrderDate                     string               `json:"orderDate"`
+	Warehouse                     WarehouseResponse    `json:"warehouse"`
+	Supplier                      SupplierListResponse `json:"supplier"`
+	Item                          ItemResponse         `json:"item"`
+	TotalPrice                    string               `json:"totalPrice"`
+	ProcurementStatus             string               `json:"procurementStatus"`
+	IsArrived                     bool                 `json:"IsArrived"`
+	PaymentStatus                 string               `json:"paymentStatus"`
+	DeadlinePaymentDate           string               `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
+	Quantity                      float64              `json:"quantity"`
+	Discount                      float64              `json:"discount"`
+	Price                         string               `json:"price" validate:"required"`
 }
 
 type WarehouseItemCornProcurementListPaginationResponse struct {
@@ -425,17 +433,24 @@ type WarehouseItemCornProcurementListPaginationResponse struct {
 }
 
 type WarehouseItemCornProcurementResponse struct {
-	Id                        uint64                                        `json:"id"`
-	Warehouse                 WarehouseResponse                             `json:"warehouse"`
-	Supplier                  SupplierListResponse                          `json:"supplier"`
-	Item                      ItemResponse                                  `json:"item"`
-	OvenCondition             string                                        `json:"oveCondition"`
-	CornWaterLevel            string                                        `json:"cornWaterLevel"`
-	IsOvenCanOperateInNearDay *bool                                         `json:"isOvenCanOperateInNearDay"`
-	Price                     string                                        `json:"price" validate:"required"`
-	Quantity                  float64                                       `json:"quantity"`
-	TotalPrice                string                                        `json:"totalPrice"`
-	Payments                  []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
+	Id                            uint64                                        `json:"id"`
+	Warehouse                     WarehouseResponse                             `json:"warehouse"`
+	Supplier                      SupplierListResponse                          `json:"supplier"`
+	Item                          ItemResponse                                  `json:"item"`
+	IsArrived                     bool                                          `json:"IsArrived"`
+	OvenCondition                 string                                        `json:"oveCondition"`
+	CornWaterLevel                float64                                       `json:"cornWaterLevel"`
+	ProcurementStatus             string                                        `json:"procurementStatus"`
+	IsOvenCanOperateInNearDay     *bool                                         `json:"isOvenCanOperateInNearDay"`
+	Price                         string                                        `json:"price" validate:"required"`
+	Quantity                      float64                                       `json:"quantity"`
+	TotalPrice                    string                                        `json:"totalPrice"`
+	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
+	RemainingPayment              string                                        `json:"remainingPayment"`
+	DeadlinePaymentDate           string                                        `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool                                          `json:"isMoreThanDeadlinePaymentDate"`
+	Discount                      float64                                       `json:"discount"`
+	PaymentStatus                 string                                        `json:"paymentStatus"`
 }
 
 type CreateWarehouseItemCornRequest struct {

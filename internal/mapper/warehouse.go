@@ -309,12 +309,67 @@ func WarehouseItemCornProcurementPaymentToResponse(storeSalePayment *entity.Ware
 	}
 }
 
-func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcurement) dto.WarehouseItemCornProcurementResponse {
-	return dto.WarehouseItemCornProcurementResponse{}
+func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcurement, cornItem *dto.ItemResponse) dto.WarehouseItemCornProcurementResponse {
+	response := dto.WarehouseItemCornProcurementResponse{
+		Id:                        data.Id,
+		Warehouse:                 WarehouseToResponse(&data.Warehouse),
+		Supplier:                  SupplierToListResponse(&data.Supplier),
+		Item:                      *cornItem,
+		IsArrived:                 data.IsArrived,
+		OvenCondition:             data.OvenCondition.String(),
+		CornWaterLevel:            data.CornWaterLevel,
+		ProcurementStatus:         data.Status.String(),
+		IsOvenCanOperateInNearDay: &data.IsOvenCanOperateInNearDay,
+		Price:                     data.Price.String(),
+		Quantity:                  data.Quantity,
+		Discount:                  data.Discount,
+		PaymentStatus:             data.PaymentStatus.String(),
+		DeadlinePaymentDate:       data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+	}
+
+	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))
+	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
-func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornProcurement) dto.WarehouseItemCornProcurementListResponse {
-	return dto.WarehouseItemCornProcurementListResponse{}
+func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornProcurement, cornItem *dto.ItemResponse) dto.WarehouseItemCornProcurementListResponse {
+	response := dto.WarehouseItemCornProcurementListResponse{
+		Id:                data.Id,
+		OrderDate:         data.CreatedAt.Format("02 Jan 2006"),
+		Warehouse:         WarehouseToResponse(&data.Warehouse),
+		Supplier:          SupplierToListResponse(&data.Supplier),
+		Item:              *cornItem,
+		IsArrived:         data.IsArrived,
+		ProcurementStatus: data.Status.String(),
+		Price:             data.Price.String(),
+		Quantity:          data.Quantity,
+		Discount:          data.Discount,
+		PaymentStatus:     data.PaymentStatus.String(),
+	}
+
+	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))
+	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+
+	if data.DeadlinePaymentDate.Valid {
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		if time.Now().After(data.DeadlinePaymentDate.Time) {
+			response.IsMoreThanDeadlinePaymentDate = true
+		} else {
+			response.IsMoreThanDeadlinePaymentDate = false
+		}
+	}
+
+	return response
 }
 
 func WarehouseItemCornPriceToResponse(data *entity.WarehouseItemCornPrice) dto.WarehouseItemCornPriceResponse {

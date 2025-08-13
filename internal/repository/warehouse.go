@@ -84,7 +84,7 @@ type IWarehouseRepository interface {
 	GetWarehouseItemCornProcurementDrafts() ([]entity.WarehouseItemCornProcurementDraft, error)
 	GetWarehouseItemCornProcurementDraft(id uint64) (entity.WarehouseItemCornProcurementDraft, error)
 	UpdateWarehouseItemCornProcurementDraft(data *entity.WarehouseItemCornProcurementDraft) error
-	DeleteWarehouseItemCornProcurementDraf(id uint64) error
+	DeleteWarehouseItemCornProcurementDraft(id uint64) error
 
 	CreateWarehouseItemCornProcurement(data *entity.WarehouseItemCornProcurement) error
 	UpdateWarehouseItemCornProcurement(data *entity.WarehouseItemCornProcurement) error
@@ -607,7 +607,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementDraft(data *enti
 	return r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Where("id = ?", data.Id).Updates(&data).Error
 }
 
-func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementDraf(id uint64) error {
+func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementDraft(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemCornProcurementDraft{}).Error
 }
 
@@ -621,7 +621,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemCornProcurement(data *entity.Wa
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurement(id uint64) (entity.WarehouseItemCornProcurement, error) {
 	var warehouseItemCornProcurement entity.WarehouseItemCornProcurement
-	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Where("id = ?", id).First(&warehouseItemCornProcurement).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Preload("Warehouse.Location").Preload("Payments").Preload("Supplier").Where("id = ?", id).First(&warehouseItemCornProcurement).Error
 	if err != nil {
 		return entity.WarehouseItemCornProcurement{}, err
 	}
@@ -641,7 +641,7 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurements(filter dto.GetWar
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Find(&warehouseItemCornProcurements).Error
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCornProcurements).Error
 	if err != nil {
 		return nil, err
 	}
@@ -674,16 +674,16 @@ func (r *WarehouseRepository) CreateWarehouseItemCornProcurementPaymentInBatch(d
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Create(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Create(data).Error
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", data.Id).Updates(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", data.Id).Updates(data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurementPayment(id uint64) (entity.WarehouseItemCornProcurementPayment, error) {
 	var warehouseItemCornProcurementPayment entity.WarehouseItemCornProcurementPayment
-	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", id).First(warehouseItemCornProcurementPayment).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", id).First(&warehouseItemCornProcurementPayment).Error
 	if err != nil {
 		return entity.WarehouseItemCornProcurementPayment{}, err
 	}
@@ -696,7 +696,7 @@ func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementPayment(id uint6
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error {
-	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Create(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Create(data).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCorns() ([]entity.WarehouseItemCorn, error) {

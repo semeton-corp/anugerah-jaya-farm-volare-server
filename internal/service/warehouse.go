@@ -2392,7 +2392,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 	defer s.repository.Rollback()
 
 	// Todo : make sure warehouse item corn procurement draft exist, since there is not validation when it deleted
-	err := s.repository.DeleteWarehouseItemCornProcurementDraf(id)
+	err := s.repository.DeleteWarehouseItemCornProcurementDraft(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item corn procurement", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
@@ -2402,11 +2402,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 	if err != nil {
 		s.log.Error("failed parse price", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
-	}
-
-	cornWaterLevel := enum.ValueOfCornWaterLevel(request.CornWaterLevel)
-	if !cornWaterLevel.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid corn water level")
 	}
 
 	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
@@ -2428,12 +2423,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		Status:                    enum.ProcurementStatusSentOff,
 		Discount:                  request.Discount,
 		PaymentStatus:             enum.PaymentStatusNotPaid,
-		CornWaterLevel:            cornWaterLevel,
+		CornWaterLevel:            request.Quantity,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 	}
 
-	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
+	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
 	if len(request.Payments) == 0 {
@@ -2513,8 +2508,14 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
 	response.Payments = paymentResponses
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2522,7 +2523,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 func (s *WarehouseService) DeleteWarehouseItemCornProcurementDraft(id uint64) error {
 	s.repository.UseTx(false)
 
-	err := s.repository.DeleteWarehouseItemCornProcurementDraf(id)
+	err := s.repository.DeleteWarehouseItemCornProcurementDraft(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item corn procurement draft", zap.Error(err))
 		return err
@@ -2541,11 +2542,6 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	cornWaterLevel := enum.ValueOfCornWaterLevel(request.CornWaterLevel)
-	if !cornWaterLevel.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid corn water level")
-	}
-
 	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
 	if !ovenCondition.IsValid() {
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
@@ -2565,12 +2561,12 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		Discount:                  request.Discount,
 		Status:                    enum.ProcurementStatusSentOff,
 		PaymentStatus:             enum.PaymentStatusNotPaid,
-		CornWaterLevel:            cornWaterLevel,
+		CornWaterLevel:            request.CornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 	}
 
-	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount))
+	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
 	if len(request.Payments) == 0 {
@@ -2650,8 +2646,14 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		paymentResponses = append(paymentResponses, payment)
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
 	response.Payments = paymentResponses
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2671,9 +2673,14 @@ func (s *WarehouseService) GetWarehouseItemCornProcurements(filter dto.GetWareho
 		return dto.WarehouseItemCornProcurementListPaginationResponse{}, err
 	}
 
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementListPaginationResponse{}, err
+	}
+
 	warehouseItemProcurementResponses := make([]dto.WarehouseItemCornProcurementListResponse, 0)
 	for _, e := range data {
-		warehouseItemProcurementResponses = append(warehouseItemProcurementResponses, mapper.WarehouseItemCornProcurementToListResponse(&e))
+		warehouseItemProcurementResponses = append(warehouseItemProcurementResponses, mapper.WarehouseItemCornProcurementToListResponse(&e, &cornItem))
 	}
 
 	response := dto.WarehouseItemCornProcurementListPaginationResponse{
@@ -2706,8 +2713,14 @@ func (s *WarehouseService) GetWarehouseItemCornProcurement(id uint64) (dto.Wareh
 		payments = append(payments, payment)
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2795,8 +2808,14 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementPayment(warehouseIt
 		payments = append(payments, payment)
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2805,7 +2824,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	warehouseItemCornProcurement, err := s.repository.GetWarehouseItemProcurement(warehouseItemCornProcurementId)
+	warehouseItemCornProcurement, err := s.repository.GetWarehouseItemCornProcurement(warehouseItemCornProcurementId)
 	if err != nil {
 		s.log.Error("failed get warehouse item corn procurement", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
@@ -2862,7 +2881,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	err = s.repository.UpdateWarehouseItemProcurement(&warehouseItemCornProcurement)
+	err = s.repository.UpdateWarehouseItemCornProcurement(&warehouseItemCornProcurement)
 	if err != nil {
 		s.log.Error("failed update warehouse item corn procurement", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
@@ -2889,8 +2908,14 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 		payments = append(payments, payment)
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
 	response.Payments = payments
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }
@@ -2993,17 +3018,23 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	payments := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
+	paymentResponses := make([]dto.WarehouseItemCornProcurementPaymentResponse, 0)
 	remainingPayment := data.TotalPrice
 	for _, e := range data.Payments {
 		payment := mapper.WarehouseItemCornProcurementPaymentToResponse(&e)
 		remainingPayment = remainingPayment.Sub(e.Nominal)
 		payment.Remaining = remainingPayment.String()
-		payments = append(payments, payment)
+		paymentResponses = append(paymentResponses, payment)
 	}
 
-	response := mapper.WarehouseItemCornProcurementToResponse(&data)
-	response.Payments = payments
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	response := mapper.WarehouseItemCornProcurementToResponse(&data, &cornItem)
+	response.Payments = paymentResponses
+	response.RemainingPayment = remainingPayment.String()
 
 	return response, nil
 }

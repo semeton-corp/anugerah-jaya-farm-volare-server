@@ -87,9 +87,9 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/corns/procurements/:id", middleware.Authentication(), h.GetWarehouseItemCornProcurement)
 	v1.Put("/items/corns/procurements/:id/arrivals", middleware.Authentication(), h.ArrivalConfirmationWarehouseItemCornProcurement)
 
-	v1.Post("/items/corns/procurements/:warehouseItemProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
-	v1.Put("/items/corns/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
-	v1.Delete("/items/corns/procurements/:warehouseItemProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
+	v1.Post("/items/corns/procurements/:warehouseItemCornProcurementId/payments", middleware.Authentication(), h.CreateWarehouseItemCornProcurementPayment)
+	v1.Put("/items/corns/procurements/:warehouseItemCornProcurementId/payments/:id", middleware.Authentication(), h.UpdateWarehouseItemCornProcurementPayment)
+	v1.Delete("/items/corns/procurements/:warehouseItemCornProcurementId/payments/:id", middleware.Authentication(), h.DeleteWarehouseItemCornProcurementPayment)
 }
 
 func NewWarehouseHandler(log *zap.Logger, service service.IWarehouseService, validator *validator.Validate) *WarehouseHandler {
@@ -1332,7 +1332,7 @@ func (h *WarehouseHandler) DeleteWarehouseItemCornProcurementPayment(c *fiber.Ct
 		return errx.BadRequest("failed to parse id")
 	}
 
-	warehouseItemCornProcurementId, err := strconv.ParseUint(c.Params("warehouseItemProcurementId"), 10, 64)
+	warehouseItemCornProcurementId, err := strconv.ParseUint(c.Params("warehouseItemCornProcurementId"), 10, 64)
 	if err != nil {
 		h.log.Error("failed to parse warehouse item corn procurement id", zap.Error(err))
 		return errx.BadRequest("failed to parse warehouse item corn procurement id")
