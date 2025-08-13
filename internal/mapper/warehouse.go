@@ -24,7 +24,7 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	}
 }
 
-// Todo : fix this!!
+// Todo : fix the description
 func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseItemResponse {
 	var description string
 	var estimationRunOutStr string
@@ -57,6 +57,18 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	}
 
 	return response
+}
+
+// Todo : fix the description
+func WarehouseItemCornToResponse(warehouseItemCorn *entity.WarehouseItemCorn, cornItem *dto.ItemResponse) dto.WarehouseItemCornResponse {
+	return dto.WarehouseItemCornResponse{
+		Id:        warehouseItemCorn.Id,
+		OrderDate: warehouseItemCorn.OrderDate.Format("02 Jan 2006"),
+		Quantity:  warehouseItemCorn.Quantity,
+		Item:      *cornItem,
+		Supplier:  SupplierToListResponse(&warehouseItemCorn.Supplier),
+		ExpiredAt: warehouseItemCorn.ExpiredAt.Format("02 Jan 2006"),
+	}
 }
 
 func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryResponse {

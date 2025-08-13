@@ -422,8 +422,17 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		return dto.WarehouseOverview{}, err
 	}
 
-	eggWarehouseItems := make([]dto.WarehouseItemResponse, 0)
-	equipmentWarehouseItems := make([]dto.WarehouseItemResponse, 0)
+	warehouseItemCorns, err := s.repository.GetWarehouseItemCorns(dto.GetWarehouseItemCornFilter{
+		WarehouseId: id,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corns", zap.Error(err))
+		return dto.WarehouseOverview{}, err
+	}
+
+	warehouseItemCornResponses := make([]dto.WarehouseItemCornResponse, 0)
+	warehouseItemEggResponses := make([]dto.WarehouseItemResponse, 0)
+	warehouseItemEquipmentResponses := make([]dto.WarehouseItemResponse, 0)
 
 	totalSafeStock := 0
 	totalDangerStock := 0
@@ -438,10 +447,27 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		}
 
 		if e.Item.Category == enum.ItemCategoryEgg {
-			eggWarehouseItems = append(eggWarehouseItems, res)
+			warehouseItemEggResponses = append(warehouseItemEggResponses, res)
 		} else {
-			equipmentWarehouseItems = append(equipmentWarehouseItems, res)
+			warehouseItemEquipmentResponses = append(warehouseItemEquipmentResponses, res)
 		}
+	}
+
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseOverview{}, err
+	}
+
+	for _, e := range warehouseItemCorns {
+		res := mapper.WarehouseItemCornToResponse(&e, &cornItem)
+		switch res.Description {
+		case constant.WarehouseItemDescriptionDanger:
+			totalDangerStock++
+		case constant.WarehouseItemDescriptionSafe:
+			totalSafeStock++
+		}
+
+		warehouseItemCornResponses = append(warehouseItemCornResponses, res)
 	}
 
 	requestItemCount, err := s.repository.CountStoreRequestItemByWarehouseId(id)
@@ -450,9 +476,17 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		return dto.WarehouseOverview{}, err
 	}
 
+	warehouse, err := s.repository.GetWarehouseById(id)
+	if err != nil {
+		s.log.Error("failed get warehouse by id", zap.Error(err))
+		return dto.WarehouseOverview{}, err
+	}
+
 	return dto.WarehouseOverview{
-		EggStocks:         eggWarehouseItems,
-		EquipmentStocks:   equipmentWarehouseItems,
+		Warehouse:         mapper.WarehouseToResponse(&warehouse),
+		EggStocks:         warehouseItemEggResponses,
+		CornStocks:        warehouseItemCornResponses,
+		EquipmentStocks:   warehouseItemEquipmentResponses,
 		TotalSafeStock:    uint64(totalSafeStock),
 		TotalDangerStock:  uint64(totalDangerStock),
 		TotalStoreRequest: uint64(requestItemCount),
@@ -2216,6 +2250,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		Time:  warehouseItem.EstimationRunOut.Time.Add(time.Hour * 24 * time.Duration(warehouseItemProcurement.DaysNeed)),
 		Valid: true,
 	}
+	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	err = s.repository.UpdateWarehouseItemProcurement(&warehouseItemProcurement)
 	if err != nil {
 		s.log.Error("failed update warehouse item procurement", zap.Error(err))
@@ -2989,9 +3024,11 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 
 	warehouseItemCorn := entity.WarehouseItemCorn{
 		WarehouseId: warehouseItemCornProcurement.WarehouseId,
+		SupplierId:  warehouseItemCornProcurement.SupplierId,
 		Quantity:    warehouseItemCornProcurement.Quantity,
 		OrderDate:   warehouseItemCornProcurement.CreatedAt,
 		ExpiredAt:   warehouseItemCornProcurement.ExpiredAt,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateWarehouseItemCorn(&warehouseItemCorn)

@@ -100,6 +100,7 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemCornProcurementPayment(id uint64) error
 
 	CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
+	GetWarehouseItemCorns(filter dto.GetWarehouseItemCornFilter) ([]entity.WarehouseItemCorn, error)
 
 	GetWarehouseItemCornPrices() ([]entity.WarehouseItemCornPrice, error)
 }
@@ -699,9 +700,15 @@ func (r *WarehouseRepository) CreateWarehouseItemCorn(data *entity.WarehouseItem
 	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Create(data).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseItemCorns() ([]entity.WarehouseItemCorn, error) {
+func (r *WarehouseRepository) GetWarehouseItemCorns(filter dto.GetWarehouseItemCornFilter) ([]entity.WarehouseItemCorn, error) {
 	var warehouseItemCorns []entity.WarehouseItemCorn
-	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Find(&warehouseItemCorns).Error
+	query := r.GetDB().Model(&entity.WarehouseItemCorn{})
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCorns).Error
 	if err != nil {
 		return nil, err
 	}

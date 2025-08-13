@@ -154,12 +154,13 @@ type GetWarehouseItemProcurementFilter struct {
 }
 
 type WarehouseOverview struct {
-	TotalSafeStock    uint64                  `json:"totalSafeStock"`
-	TotalDangerStock  uint64                  `json:"totalDangerStock"`
-	TotalStoreRequest uint64                  `json:"totalStoreRequest"`
-	EggStocks         []WarehouseItemResponse `json:"eggStocks"`
-	CornStocks        []WarehouseItemResponse `json:"cornStocks"`
-	EquipmentStocks   []WarehouseItemResponse `json:"equipmentStocks"`
+	Warehouse         WarehouseResponse           `json:"warehouse"`
+	TotalSafeStock    uint64                      `json:"totalSafeStock"`
+	TotalDangerStock  uint64                      `json:"totalDangerStock"`
+	TotalStoreRequest uint64                      `json:"totalStoreRequest"`
+	EggStocks         []WarehouseItemResponse     `json:"eggStocks"`
+	CornStocks        []WarehouseItemCornResponse `json:"cornStocks"`
+	EquipmentStocks   []WarehouseItemResponse     `json:"equipmentStocks"`
 }
 
 type WarehouseItemHistoryListResponse struct {
@@ -460,6 +461,17 @@ type UpdateWarehouseItemCornRequest struct {
 }
 
 type WarehouseItemCornResponse struct {
+	Id          uint64               `json:"id"`
+	OrderDate   string               `json:"orderDate"`
+	Quantity    float64              `json:"quantity"`
+	Item        ItemResponse         `json:"item"`
+	Supplier    SupplierListResponse `json:"supplier"`
+	ExpiredAt   string               `json:"expiredAt"`
+	Description string               `json:"description"`
+}
+
+type GetWarehouseItemCornFilter struct {
+	WarehouseId uint64
 }
 
 type GetWarehouseItemCornProcurementFilter struct {
