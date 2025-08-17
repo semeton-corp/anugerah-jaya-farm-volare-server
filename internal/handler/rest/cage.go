@@ -27,6 +27,8 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/:id", middleware.Authentication(), h.UpdateCage)
 	v1.Delete("/:id", middleware.Authentication(), h.DeleteCage)
 
+	v1.Get("/chickens/feeds", middleware.Authentication(), h.GetChickenCageFeeds)
+	v1.Get("/chickens/feeds/:chickenCageId", middleware.Authentication(), h.GetChickenCageFeed)
 	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
 	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
 
@@ -267,4 +269,38 @@ func (h *CageHandler) MoveChickenCage(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success move chicken cage")
+}
+
+func (h *CageHandler) GetChickenCageFeeds(c *fiber.Ctx) error {
+	var filter dto.GetChickenCageFeedFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenCageFeeds(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken cage feeds")
+}
+
+func (h *CageHandler) GetChickenCageFeed(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("chickenCageId"), 10, 64)
+	if err != nil {
+		return errx.BadRequest("invalid chicken cage id")
+	}
+
+	data, err := h.service.GetChickenCageFeed(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken cage feed")
 }

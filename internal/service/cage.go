@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -32,6 +33,8 @@ type ICageService interface {
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
+	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]dto.ChickenCageFeedListResponse, error)
+	GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error)
 
 	CreateCageFeed(request dto.CreateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
 	UpdateCageFeed(id uint64, request dto.UpdateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
@@ -70,12 +73,16 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	// Todo : add cage feed
-
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
 		s.log.Warn("invalid chicken category")
 		return dto.CageResponse{}, errx.BadRequest("invalid chicken category")
+	}
+
+	cageFeed, err := s.repository.GetCageFeedByChickenCategoery(chickenCategory)
+	if err != nil {
+		s.log.Error("failed get cage feed by chicken category", zap.Error(err))
+		return dto.CageResponse{}, err
 	}
 
 	cage := entity.Cage{
@@ -83,10 +90,11 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 		Name:            request.Name,
 		Capacity:        request.Capacity,
 		ChickenCategory: chickenCategory,
+		CageFeedId:      sql.NullInt64{Int64: int64(cageFeed.Id), Valid: true},
 		CreatedBy:       uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	err := s.repository.CreateCage(&cage)
+	err = s.repository.CreateCage(&cage)
 	if err != nil {
 		s.log.Error("failed to create cage", zap.Error(err))
 		return dto.CageResponse{}, err

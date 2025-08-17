@@ -3191,9 +3191,47 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 			return err
 		}
 
+		if item.Item.Category == enum.ItemCategoryCornMaterial {
+			corns, err := s.repository.GetCornItemsByWarehouseIdSortedDesc(warehouseId)
+			if err != nil {
+				s.log.Error("failed get corn items", zap.Error(err))
+				return err
+			}
+
+			qtyNeeded := r.Quantity
+			for _, corn := range corns {
+				if qtyNeeded <= 0 {
+					break
+				}
+
+				if corn.Quantity >= qtyNeeded {
+					corn.Quantity -= qtyNeeded
+					qtyNeeded = 0
+				} else {
+					qtyNeeded -= corn.Quantity
+					corn.Quantity = 0
+				}
+
+				if err := s.repository.UpdateWarehouseItemCorn(&corn); err != nil {
+					s.log.Error("failed update corn item", zap.Error(err))
+					return err
+				}
+			}
+
+			if qtyNeeded > 0 {
+				return errx.BadRequest(fmt.Sprintf(
+					"insufficient corn stock: need %.2f more", qtyNeeded,
+				))
+			}
+
+			continue
+		}
+
 		if item.Quantity < r.Quantity {
-			return errx.BadRequest(fmt.Sprintf("insufficient stock for item %d: have %.2f, need %.2f",
-				r.ItemId, item.Quantity, r.Quantity))
+			return errx.BadRequest(fmt.Sprintf(
+				"insufficient stock for item %d: have %.2f, need %.2f",
+				r.ItemId, item.Quantity, r.Quantity,
+			))
 		}
 
 		item.Quantity -= r.Quantity
@@ -3204,8 +3242,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 		}
 	}
 
-	err := s.repository.Commit()
-	if err != nil {
+	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed commit transaction", zap.Error(err))
 		return err
 	}

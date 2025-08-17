@@ -100,6 +100,8 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemCornProcurementPayment(id uint64) error
 
 	CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
+	UpdateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
+	GetCornItemsByWarehouseIdSortedDesc(warehouseId uint64) ([]entity.WarehouseItemCorn, error)
 	GetWarehouseItemCorns(filter dto.GetWarehouseItemCornFilter) ([]entity.WarehouseItemCorn, error)
 
 	GetWarehouseItemCornPrices() ([]entity.WarehouseItemCornPrice, error)
@@ -717,7 +719,14 @@ func (r *WarehouseRepository) GetWarehouseItemCorns(filter dto.GetWarehouseItemC
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemCorn(data *entity.WarehouseItemCorn) error {
-	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Where("id = ?", data.Id).Updates(&data).Error
+	return r.GetDB().Model(&entity.WarehouseItemCorn{}).Where("id = ?", data.Id).Updates(map[string]any{
+		"warehouse_id": data.WarehouseId,
+		"supplier_id":  data.SupplierId,
+		"quantity":     data.Quantity,
+		"expired_at":   data.ExpiredAt,
+		"order_date":   data.OrderDate,
+		"updated_by":   data.UpdatedBy,
+	}).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error) {
@@ -742,4 +751,16 @@ func (r *WarehouseRepository) GetWarehouseItemCornPrices() ([]entity.WarehouseIt
 
 func (r *WarehouseRepository) CreateWarehouseItemProcurementDraftInBatch(data *[]entity.WarehouseItemProcurementDraft) error {
 	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).CreateInBatches(data, len(*data)).Error
+}
+
+func (r *WarehouseRepository) GetCornItemsByWarehouseIdSortedDesc(warehouseId uint64) ([]entity.WarehouseItemCorn, error) {
+	var items []entity.WarehouseItemCorn
+	err := r.db.
+		Where("warehouse_id = ?", warehouseId).
+		Order("order_date DESC").
+		Find(&items).Error
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
 }

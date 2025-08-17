@@ -155,6 +155,7 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 		ChickenAge:        chickenAgeInWeek,
 		TotalChicken:      chickenCage.TotalChicken,
 		IsNeedFeed:        chickenCage.IsNeedFeed,
+		FeedType:          chickenCage.Cage.CageFeed.FeedType.String(),
 		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
 	}
 

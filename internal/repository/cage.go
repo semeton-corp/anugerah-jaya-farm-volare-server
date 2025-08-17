@@ -6,6 +6,7 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -45,6 +46,7 @@ type ICageRepository interface {
 	CreateCageFeedDetails(details *[]entity.CageFeedDetail) error
 	DeleteCageFeedDetailsNotIn(cageFeedId uint64, ids []uint64) error
 	UpsertCageFeedDetails(details *[]entity.CageFeedDetail) error
+	GetCageFeedByChickenCategoery(chickenCategory enum.ChickenCategory) (entity.CageFeed, error)
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]entity.ChickenCage, error)
 	GetChickenCageFeedById(id uint64) (entity.ChickenCage, error)
@@ -171,6 +173,7 @@ func (r *CageRepository) GetChickenCages(filter dto.GetChickenCageFilter) ([]ent
 		Preload("Cage.Location").
 		Preload("ChickenProcurement").
 		Preload("Cage.CagePlacement.User.Role").
+		Preload("Cage.CageFeed.CageFeedDetails.Item").
 		Order("chicken_cages.created_at DESC").
 		Find(&chickenCages).Error
 
@@ -364,6 +367,9 @@ func (r *CageRepository) GetChickenMonitoringYesterday(chickenCageId uint64, dat
 	var chickenMonitoring entity.ChickenMonitoring
 	err := r.GetDB().Model(&entity.ChickenMonitoring{}).Where("DATE(created_at) = ? AND chicken_cage_id = ?", date, chickenCageId).First(&chickenMonitoring).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenMonitoring{}, nil
+		}
 		return entity.ChickenMonitoring{}, err
 	}
 
@@ -378,4 +384,14 @@ func (r *CageRepository) GetChickenMonitoringYesterdayByChickenCageIds(chickenCa
 	}
 
 	return chickenMonitorings, nil
+}
+
+func (r *CageRepository) GetCageFeedByChickenCategoery(chickenCategory enum.ChickenCategory) (entity.CageFeed, error) {
+	var cageFeed entity.CageFeed
+	err := r.GetDB().Model(&entity.CageFeed{}).Where("chicken_category = ?", chickenCategory).First(&cageFeed).Error
+	if err != nil {
+		return entity.CageFeed{}, err
+	}
+
+	return cageFeed, nil
 }
