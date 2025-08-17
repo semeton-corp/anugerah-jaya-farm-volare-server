@@ -63,7 +63,6 @@ type IChickenService interface {
 	UpdateChickenProcurementPayment(chickenProcurementId uint64, id uint64, request dto.UpdateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
 	DeleteChickenProcurementPayment(chickenProcurementId uint64, id uint64, userId uuid.UUID) error
 
-
 	CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error)
 	GetAfkirChickenCustomers() ([]dto.AfkirChickenCustomerListResponse, error)
 	GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCustomerResponse, error)
@@ -1299,8 +1298,6 @@ func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId ui
 
 	return nil
 }
-
-
 
 func (s *ChickenService) CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error) {
 	s.repository.UseTx(false)

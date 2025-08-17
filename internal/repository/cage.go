@@ -263,7 +263,7 @@ func (r *CageRepository) CreateCageFeed(data *entity.CageFeed) error {
 
 func (r *CageRepository) GetCageFeeds() ([]entity.CageFeed, error) {
 	var cageFeeds []entity.CageFeed
-	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails").Find(&cageFeeds).Error
+	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails.Item").Find(&cageFeeds).Error
 	if err != nil {
 		return nil, err
 	}
@@ -272,13 +272,16 @@ func (r *CageRepository) GetCageFeeds() ([]entity.CageFeed, error) {
 }
 
 func (r *CageRepository) UpdateCageFeed(data *entity.CageFeed) error {
-	return r.GetDB().Model(&entity.CageFeed{}).Updates(&data).Error
+	return r.GetDB().Model(&entity.CageFeed{}).Where("id = ?", data.Id).Save(&data).Error
 }
 
 func (r *CageRepository) GetCageFeed(id uint64) (entity.CageFeed, error) {
 	var cageFeed entity.CageFeed
-	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails").Find(&cageFeed).Error
+	err := r.GetDB().Model(&entity.CageFeed{}).Where("id = ?", id).Preload("CageFeedDetails.Item").First(&cageFeed).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.CageFeed{}, errx.NotFound("cage feed not found")
+		}
 		return entity.CageFeed{}, err
 	}
 

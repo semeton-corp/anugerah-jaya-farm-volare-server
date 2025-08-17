@@ -32,7 +32,7 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Post("/feeds", middleware.Authentication(), h.CreateCageFeed)
 	v1.Get("/feeds", middleware.Authentication(), h.GetCageFeeds)
-	v1.Get("/feeds/:id", middleware.Authentication(), h.GetCageFeeds)
+	v1.Get("/feeds/:id", middleware.Authentication(), h.GetCageFeed)
 	v1.Put("/feeds/:id", middleware.Authentication(), h.UpdateCageFeed)
 
 	v1.Put("/chickens/moves", middleware.Authentication(), h.MoveChickenCage)
@@ -241,7 +241,7 @@ func (h *CageHandler) GetCageFeed(c *fiber.Ctx) error {
 		return err
 	}
 
-	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feeds")
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feed")
 }
 
 func (h *CageHandler) MoveChickenCage(c *fiber.Ctx) error {

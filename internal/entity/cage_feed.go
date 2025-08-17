@@ -9,7 +9,7 @@ import (
 
 type CageFeed struct {
 	Id              uint64               `gorm:"primaryKey;autoIncrement"`
-	ChickenCategory enum.ChickenCategory `gorm:"type:int;not null"`
+	ChickenCategory enum.ChickenCategory `gorm:"type:int;not null;unique"`
 	FeedType        enum.FeedType        `gorm:"type:int;not null"`
 	TotalFeed       float64              `gorm:"type:decimal;not null"`
 	CageFeedDetails []CageFeedDetail     `gorm:"foreignKey:CageFeedId;references:Id;constraint:OnDelete:CASCADE"`

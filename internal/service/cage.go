@@ -347,14 +347,12 @@ func (s *CageService) UpdateCageFeed(id uint64, request dto.UpdateCageFeedReques
 		return dto.CageFeedResponse{}, errx.BadRequest("invalid feed type")
 	}
 
-	// Get existing cage feed
 	cageFeed, err := s.repository.GetCageFeed(id)
 	if err != nil {
 		s.log.Error("failed to get cage feed by id", zap.Error(err))
 		return dto.CageFeedResponse{}, err
 	}
 
-	// Update main cage feed fields
 	cageFeed.ChickenCategory = chickenCategory
 	cageFeed.FeedType = feedType
 	cageFeed.TotalFeed = request.TotalFeed
@@ -369,6 +367,7 @@ func (s *CageService) UpdateCageFeed(id uint64, request dto.UpdateCageFeedReques
 	newItemIds := make([]uint64, 0, len(request.CageFeedDetails))
 	for _, d := range request.CageFeedDetails {
 		newDetails = append(newDetails, entity.CageFeedDetail{
+			Id:         d.Id,
 			CageFeedId: cageFeed.Id,
 			ItemId:     d.ItemId,
 			Percentage: d.Percentage,
