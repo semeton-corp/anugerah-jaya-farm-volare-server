@@ -63,7 +63,6 @@ type IChickenService interface {
 	UpdateChickenProcurementPayment(chickenProcurementId uint64, id uint64, request dto.UpdateChickenProcurementPaymentRequest, userId uuid.UUID) (dto.ChickenProcurementResponse, error)
 	DeleteChickenProcurementPayment(chickenProcurementId uint64, id uint64, userId uuid.UUID) error
 
-	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 
 	CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error)
 	GetAfkirChickenCustomers() ([]dto.AfkirChickenCustomerListResponse, error)
@@ -1301,48 +1300,7 @@ func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId ui
 	return nil
 }
 
-func (s *ChickenService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
-	s.repository.UseTx(false)
 
-	cageIds := make([]uint64, 0)
-	for _, e := range request.DestinationChickenCages {
-		cageIds = append(cageIds, e.DestinationCageId)
-	}
-
-	chickenCages, err := s.cageService.GetChickenCagesByCageIds(cageIds)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, chickenCage := range chickenCages {
-		if chickenCage.Cage.IsUsed {
-			return nil, errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
-		}
-	}
-
-	newChickenCages := make([]dto.CreateChickenCageRequest, 0)
-	for _, destinationChickenCage := range request.DestinationChickenCages {
-		newChickenCage := dto.CreateChickenCageRequest{
-			CageId:       destinationChickenCage.DestinationCageId,
-			TotalChicken: destinationChickenCage.TotalChicken,
-		}
-
-		for _, chickenCage := range chickenCages {
-			if chickenCage.Cage.Id == destinationChickenCage.DestinationCageId {
-				newChickenCage.ChickenProcurementId = chickenCage.ChickenProcurementId
-			}
-		}
-
-		newChickenCages = append(newChickenCages, newChickenCage)
-	}
-
-	response, err := s.cageService.CreateChickenCageInBatch(newChickenCages, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
 
 func (s *ChickenService) CreateAfkirChickenCustomer(request dto.CreateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error) {
 	s.repository.UseTx(false)

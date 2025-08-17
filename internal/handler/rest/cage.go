@@ -30,10 +30,12 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
 	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
 
-	v1.Post("/feeds", middleware.Authentication())
-	v1.Get("/feeds", middleware.Authentication())
-	v1.Get("/feeds/:id", middleware.Authentication())
-	v1.Put("/feeds/:id", middleware.Authentication())
+	v1.Post("/feeds", middleware.Authentication(), h.CreateCageFeed)
+	v1.Get("/feeds", middleware.Authentication(), h.GetCageFeeds)
+	v1.Get("/feeds/:id", middleware.Authentication(), h.GetCageFeeds)
+	v1.Put("/feeds/:id", middleware.Authentication(), h.UpdateCageFeed)
+
+	v1.Put("/chickens/moves", middleware.Authentication(), h.MoveChickenCage)
 }
 
 func NewCageHandler(log *zap.Logger, service service.ICageService, validator *validator.Validate) *CageHandler {
@@ -240,4 +242,29 @@ func (h *CageHandler) GetCageFeed(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cage feeds")
+}
+
+func (h *CageHandler) MoveChickenCage(c *fiber.Ctx) error {
+	var request dto.MoveChickenCageRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.MoveChickenCage(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success move chicken cage")
 }

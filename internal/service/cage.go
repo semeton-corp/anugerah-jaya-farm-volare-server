@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,14 +31,14 @@ type ICageService interface {
 	CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
-	GetChickenCagesByCageIds(cageIds []uint64) ([]dto.ChickenCageResponse, error)
-	CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
 
 	CreateCageFeed(request dto.CreateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
 	UpdateCageFeed(id uint64, request dto.UpdateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error)
 	GetCageFeeds() ([]dto.CageFeedResponse, error)
 	GetCageFeed(id uint64) (dto.CageFeedResponse, error)
+
+	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository, warehouseService IWarehouseService) ICageService {
@@ -68,6 +69,8 @@ func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, er
 func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.UUID) (dto.CageResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
+
+	// Todo : add cage feed
 
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
 	if !chickenCategory.IsValid() {
@@ -262,58 +265,6 @@ func (s *CageService) GetCagesByIds(ids []uint64) ([]dto.CageResponse, error) {
 	}
 
 	return cageResponses, nil
-}
-
-func (s *CageService) GetChickenCagesByCageIds(ids []uint64) ([]dto.ChickenCageResponse, error) {
-	s.repository.UseTx(false)
-
-	chickenCages, err := s.repository.GetChickenCagesByCageIds(ids)
-	if err != nil {
-		return nil, err
-	}
-
-	response := make([]dto.ChickenCageResponse, 0)
-	for _, chickenCage := range chickenCages {
-		response = append(response, mapper.ChickenCageToResponse(&chickenCage))
-	}
-
-	return response, nil
-}
-
-func (s *CageService) CreateChickenCageInBatch(request []dto.CreateChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
-	s.repository.UseTx(false)
-
-	chickenCages := make([]entity.ChickenCage, 0)
-	for _, req := range request {
-		chickenCages = append(chickenCages, entity.ChickenCage{
-			CageId:               req.CageId,
-			ChickenProcurementId: req.ChickenProcurementId,
-			TotalChicken:         req.TotalChicken,
-		})
-	}
-
-	err := s.repository.CreateChickenCageInBatch(&chickenCages)
-	if err != nil {
-		s.log.Error("failed create chicken cage in batch", zap.Error(err))
-		return nil, err
-	}
-
-	chickenCageIds := make([]uint64, 0)
-	for _, chichickenCage := range chickenCages {
-		chickenCageIds = append(chickenCageIds, chichickenCage.Id)
-	}
-
-	chickenCages, err = s.repository.GetChickenCageByIds(chickenCageIds)
-	if err != nil {
-		return nil, err
-	}
-
-	response := make([]dto.ChickenCageResponse, 0)
-	for _, chickenCage := range chickenCages {
-		response = append(response, mapper.ChickenCageToResponse(&chickenCage))
-	}
-
-	return response, nil
 }
 
 func (s *CageService) CreateCageFeed(request dto.CreateCageFeedRequest, userId uuid.UUID) (dto.CageFeedResponse, error) {
@@ -629,4 +580,112 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 	}
 
 	return nil
+}
+
+func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	destinationCageIds := make([]uint64, len(request.DestinationChickenCages))
+	for i, e := range request.DestinationChickenCages {
+		destinationCageIds[i] = e.DestinationCageId
+	}
+
+	destinationChickenCages, err := s.repository.GetChickenCagesByCageIds(destinationCageIds)
+	if err != nil {
+		s.log.Error("failed to get chicken cages by ids", zap.Error(err))
+		return nil, err
+	}
+
+	sourceChickenCage, err := s.repository.GetChickenCageByCageId(request.SourceCageId)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id", zap.Error(err))
+		return nil, err
+	}
+
+	sourceCage, err := s.repository.GetCageById(request.SourceCageId)
+	if err != nil {
+		s.log.Error("failed to get cage by id", zap.Error(err))
+		return nil, err
+	}
+
+	for _, chickenCage := range destinationChickenCages {
+		if chickenCage.Cage.IsUsed {
+			return nil, errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
+		}
+	}
+
+	destinationCages, err := s.repository.GetCagesByIds(destinationCageIds)
+	if err != nil {
+		s.log.Error("failed get cages by ids", zap.Error(err))
+		return nil, err
+	}
+
+	for _, destinationCage := range destinationCages {
+		destinationCage.IsUsed = true
+
+		err = s.repository.UpdateCage(&destinationCage)
+		if err != nil {
+			s.log.Error("failed update cage", zap.Error(err))
+			return nil, err
+		}
+	}
+
+	newChickenCages := make([]entity.ChickenCage, 0, len(request.DestinationChickenCages))
+	totalMoveChicken := uint64(0)
+
+	for _, dest := range request.DestinationChickenCages {
+		newChickenCages = append(newChickenCages, entity.ChickenCage{
+			CageId:               dest.DestinationCageId,
+			TotalChicken:         dest.TotalChicken,
+			ChickenProcurementId: sourceChickenCage.ChickenProcurementId,
+		})
+		totalMoveChicken += dest.TotalChicken
+	}
+
+	if sourceChickenCage.TotalChicken < totalMoveChicken {
+		return nil, errx.BadRequest("total move chicken more than total chicken in current cage")
+	}
+
+	sourceChickenCage.TotalChicken -= totalMoveChicken
+	if totalMoveChicken == 0 {
+		sourceCage.IsUsed = false
+	}
+
+	if err := s.repository.UpdateCage(&sourceCage); err != nil {
+		s.log.Error("failed update cage", zap.Error(err))
+		return nil, err
+	}
+
+	if err := s.repository.UpdateChickenCage(&sourceChickenCage); err != nil {
+		s.log.Error("failed update chicken cage", zap.Error(err))
+		return nil, err
+	}
+
+	if err := s.repository.CreateChickenCageInBatch(&newChickenCages); err != nil {
+		s.log.Error("failed create chicken cage in batch", zap.Error(err))
+		return nil, err
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	chickenCageIds := make([]uint64, len(newChickenCages))
+	for i, cc := range newChickenCages {
+		chickenCageIds[i] = cc.Id
+	}
+
+	createdChickenCages, err := s.repository.GetChickenCageByIds(chickenCageIds)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.ChickenCageResponse, len(createdChickenCages))
+	for i, chickenCage := range createdChickenCages {
+		responses[i] = mapper.ChickenCageToResponse(&chickenCage)
+	}
+
+	return responses, nil
 }

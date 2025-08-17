@@ -60,8 +60,8 @@ type GetChickenCageFilter struct {
 }
 
 type MoveChickenCageRequest struct {
-	SourceCageId            uint64                          `json:"sourceCageId"`
-	DestinationChickenCages []DestinationChickenCageRequest `json:"destinationChickenCages"`
+	SourceCageId            uint64                          `json:"sourceCageId" validate:"required"`
+	DestinationChickenCages []DestinationChickenCageRequest `json:"destinationChickenCages" validate:"required,dive"`
 }
 
 type DestinationChickenCageRequest struct {

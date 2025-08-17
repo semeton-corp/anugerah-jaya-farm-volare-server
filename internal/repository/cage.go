@@ -33,6 +33,7 @@ type ICageRepository interface {
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]entity.ChickenCage, error)
 	GetChickenCageById(id uint64) (entity.ChickenCage, error)
 	GetChickenCagesByCageIds(ids []uint64) ([]entity.ChickenCage, error)
+	GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error)
 	GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error)
 
 	CreateCageFeed(data *entity.CageFeed) error
@@ -220,16 +221,14 @@ func (r *CageRepository) GetChickenCagesByCageIds(cageIds []uint64) ([]entity.Ch
 	var chickenCages []entity.ChickenCage
 
 	subQuery := r.GetDB().
-		Model(entity.ChickenCage{}).
+		Model(&entity.ChickenCage{}).
 		Select("DISTINCT ON (cage_id) *").
 		Where("cage_id IN ?", cageIds).
-		Order("created_at DESC").
-		Table("chicken_cages")
+		Order("cage_id, created_at DESC")
 
 	err := r.GetDB().
-		Model(entity.ChickenCage{}).
-		Preload("Cage.CagePlacement.User.Role").
 		Table("(?) as chicken_cages", subQuery).
+		Preload("Cage.CagePlacement.User.Role").
 		Find(&chickenCages).Error
 
 	if err != nil {
@@ -242,7 +241,7 @@ func (r *CageRepository) GetChickenCagesByCageIds(cageIds []uint64) ([]entity.Ch
 func (r *CageRepository) GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error) {
 	var chickenCages []entity.ChickenCage
 
-	err := r.GetDB().Model(entity.ChickenCage{}).Where("id IN ?", ids).Preload("Cage.CagePlacement.User.Role").Find(&chickenCages).Order("created_at DESC").Error
+	err := r.GetDB().Model(entity.ChickenCage{}).Where("id IN ?", ids).Preload("ChickenProcurement").Preload("Cage.Location").Preload("Cage.CagePlacement.User.Role").Find(&chickenCages).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
