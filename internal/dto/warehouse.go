@@ -111,6 +111,7 @@ type WarehouseItemProcurementListResponse struct {
 
 type WarehouseItemProcurementResponse struct {
 	Id                            uint64                                    `json:"id"`
+	OrderDate                     string                                    `json:"orderDate"`
 	Warehouse                     WarehouseResponse                         `json:"warehouse"`
 	Item                          ItemResponse                              `json:"item"`
 	Supplier                      SupplierListResponse                      `json:"supplier"`
@@ -544,4 +545,19 @@ type ReduceFeedRequest struct {
 	ItemId       uint64  `json:"itemId"`
 	ItemCategory string  `json:"itemCategory"`
 	Quantity     float64 `json:"quantity"`
+}
+
+type GetWarehouseSalePaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+}
+
+type GetStoreSalePaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+}
+
+type GetAfkirChickenSalePaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
 }

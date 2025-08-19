@@ -21,6 +21,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("ovenCondition", ValidationOvenCondition)
 	validate.RegisterValidation("feedType", ValidationFeedType)
 	validate.RegisterValidation("supplierType", ValidationSupplierType)
+	validate.RegisterValidation("incomeCategory", ValidationIncomeCategory)
 
 	return validate
 }
@@ -169,6 +170,16 @@ func ValidationSupplierType(fl validator.FieldLevel) bool {
 	supplierType := fl.Field().String()
 	switch supplierType {
 	case "Barang", "Ayam DOC":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationIncomeCategory(fl validator.FieldLevel) bool {
+	incomeCategory := fl.Field().String()
+	switch incomeCategory {
+	case "Afkir Chicken Sale", "Store Egg Sale", "Warehouse Egg Sale", "All":
 		return true
 	default:
 		return false

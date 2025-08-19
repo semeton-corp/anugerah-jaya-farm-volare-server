@@ -208,6 +208,7 @@ func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcureme
 func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementResponse {
 	response := dto.WarehouseItemProcurementResponse{
 		Id:                    data.Id,
+		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
 		Warehouse:             WarehouseToResponse(&data.Warehouse),
 		Item:                  ItemToResponse(&data.Item),
 		Supplier:              SupplierToListResponse(&data.Supplier),

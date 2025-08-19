@@ -11,6 +11,7 @@ import (
 type WarehouseSalePayment struct {
 	Id              uint64             `gorm:"primaryKey;autoIncrement;not null"`
 	WarehouseSaleId uint64             `gorm:"type:bigint;not null"`
+	WarehouseSale   WarehouseSale      `gorm:"foreignKey:WarehouseSaleId;references:Id"`
 	PaymentDate     time.Time          `gorm:"type:date;not null"`
 	Nominal         decimal.Decimal    `gorm:"type:decimal;not null"`
 	PaymentProof    string             `gorm:"type:text;not null"`
@@ -19,4 +20,5 @@ type WarehouseSalePayment struct {
 	CreatedBy       uuid.NullUUID      `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time          `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy       uuid.NullUUID      `gorm:"type:varchar(255)"`
+	CreatedByUser   User               `gorm:"foreignKey:CreatedBy;references:Id"`
 }
