@@ -159,10 +159,12 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 
 // Todo : create kpi performance every 6 pm
 
+// Todo : create every new month salary for user
+
 func (s *Scheduler) Start() {
 	s.cron.Start()
 }
-
+ 
 func (s *Scheduler) Stop() {
 	s.cron.Stop()
 }

@@ -258,7 +258,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	workDate, err := time.Parse("02-01-2006 15:04", request.WorkDate)
 	if err != nil {
 		w.log.Error("failed to parse work date", zap.Error(err))
-		return dto.AdditionalWorkResponse{}, err
+		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid work date")
 	}
 
 	additionalWork := entity.AdditionalWork{
@@ -376,7 +376,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	workDate, err := time.Parse("02-01-2006 15:04", request.WorkDate)
 	if err != nil {
 		w.log.Error("failed to parse work date", zap.Error(err))
-		return dto.AdditionalWorkResponse{}, err
+		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid work date format")
 	}
 
 	additionalWork.Name = request.Name

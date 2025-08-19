@@ -249,23 +249,22 @@ type ArrivalConfirmationChickenProcurementRequest struct {
 }
 
 type ChickenPerformanceSummaryResponse struct {
-	FeedConsumption  float64 `json:"foodConsumption"`
-	AverageEggWeight float64 `json:"averageEggWeight"`
-	AverageFCS       float64 `json:"averageFCS"`
-	AverageHDP       float64 `json:"averageHDP"`
-	AverageMortality float64 `json:"averageMortality"`
+	FeedConsumption      float64 `json:"foodConsumption"`
+	AverageEggWeight     float64 `json:"averageEggWeight"`
+	AverageFCR           float64 `json:"averageFCS"`
+	AverageHDP           float64 `json:"averageHDP"`
+	AverageMortalityRate float64 `json:"averageMortalityRate"`
 }
 
 type ChickenCagePerformanceSummaryResponse struct {
-	TotalProductiveCage uint64 `json:"totalProductiveCage"`
-	TotalCheckCage      uint64 `json:"totalCheckCage"`
-	TotalNotSafeCage    uint64 `json:"totalNotSafeCage"`
+	TotalProductiveCage    uint64 `json:"totalProductiveCage"`
+	TotalCheckCage         uint64 `json:"totalCheckCage"`
+	TotalNotProductiveCage uint64 `json:"totalNotSafeCage"`
 }
 
 type WarehouseItemSummaryResponse struct {
 	TotalSafeItem    uint64 `json:"totalSafeItem"`
 	TotalNotSafeItem uint64 `json:"totalNotSafeItem"`
-	TotalSentOffItem uint64 `json:"totalSentOffItem"`
 }
 
 type CompanyPerformanceBarChartResponse struct {
@@ -273,14 +272,33 @@ type CompanyPerformanceBarChartResponse struct {
 	Value float64 `json:"value"`
 }
 
-type ChickenPerformanceOverviewResponse struct {
+type ChickenAndWarehouseOverviewResponse struct {
 	ChickenPerformanceSummary     ChickenPerformanceSummaryResponse     `json:"chickenPerformanceSummary"`
-	ChickenBarCharts              ChickenBarChartResponse               `json:"chickenBarCharts"`
-	CompanyPerformanceBarCharts   CompanyPerformanceBarChartResponse    `json:"companyPerformanceBarCharts"`
 	ChickenCagePerformanceSummary ChickenCagePerformanceSummaryResponse `json:"chickenCagePerformanceSummary"`
 	WarehouseItemSummary          WarehouseItemSummaryResponse          `json:"warehouseItemSummary"`
-	ChickenGraphs                 ChickenGraphResponse                  `json:"chickenGraphs"`
-	// Todo : overview chicken performance in (owner, kepala kandang)
+	ChickenBarCharts              ChickenBarChartResponse               `json:"chickenBarChart"`
+	ChickenGraphs                 []ChickenGraphResponse                `json:"chickenGraphs"`
+}
+
+type ChickenAndCompanyOverviewResponse struct {
+	ChickenPerformanceSummary   ChickenPerformanceSummaryResponse  `json:"chickenPerformanceSummary"`
+	CompanyPerformanceBarCharts CompanyPerformanceBarChartResponse `json:"companyPerformanceBarCharts"`
+	ChickenBarCharts            ChickenBarChartResponse            `json:"chickenBarCharts"`
+}
+
+type GetChickenAndCompanyOverviewRespoonse struct {
+	LocationId            uint64                       `query:"locationId"`
+	CageId                uint64                       `query:"cageId"`
+	OverviewGraphTime     param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
+	Year                  uint64                       `query:"year"`
+	CompanyPerformanceKey string                       `query:"companyPerformanceKey"`
+}
+
+type GetChickenAndWarehouseOverviewRespoonse struct {
+	LocationId        uint64                       `query:"locationId"`
+	CageId            uint64                       `query:"cageId"`
+	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
+	WarehouseId       uint64                       `query:"warehouseId"`
 }
 
 type GetChickenPerformanceOverviewFilter struct {
@@ -413,4 +431,24 @@ type AfkirChickenSalePaymentResponse struct {
 
 type GetAfkirChickenSaleFilter struct {
 	Page uint64 `query:"page"`
+}
+
+type GetChickenPerformanceFilter struct {
+	Date       param.DateParam `query:"date" validate:"required"`
+	LocationId uint64          `query:"locationId"`
+	CageId     uint64          `query:"cageId"`
+}
+
+type ChickenPerformanceResponse struct {
+	CageName                     string  `json:"cageName"`
+	ChickenCategory              string  `json:"chickenCategory"`
+	ChickenAge                   uint64  `json:"chickenAge"`
+	TotalChicken                 uint64  `json:"totalChicken"`
+	TotalEgg                     uint64  `json:"totalGoodEgg"`
+	AverageConsumptionPerChicken float64 `json:"averageConsumptionPerChicken"`
+	AverageWeightPerEgg          float64 `json:"averageWeightPerEgg"`
+	FCR                          float64 `json:"fcr"`
+	HDP                          float64 `json:"hdp"`
+	MortalityRate                float64 `json:""`
+	Productivity                 string  `json:"productivity"`
 }

@@ -280,3 +280,7 @@ func AfkirChickenSalePaymentToResponse(data *entity.AfkirChickenSalePayment) dto
 		PaymentProof:  data.PaymentProof,
 	}
 }
+
+func ChickenPerformanceToResponse(data *entity.ChickenPerformance) dto.ChickenPerformanceResponse {
+	return dto.ChickenPerformanceResponse{}
+}

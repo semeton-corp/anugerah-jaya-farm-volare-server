@@ -162,6 +162,10 @@ func (r *CageRepository) GetChickenCages(filter dto.GetChickenCageFilter) ([]ent
 			Where("cages.location_id = ?", filter.LocationId)
 	}
 
+	if filter.CageId > 0 {
+		query = query.Where("chicken_cages.cage_id = ?", filter.CageId)
+	}
+
 	// Note : Subquery to get the newest chicken_cage per cage_id
 	subQuery := r.GetDB().Model(&entity.ChickenCage{}).
 		Select("MAX(id)").

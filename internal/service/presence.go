@@ -130,7 +130,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 		if request.StartTime != "" {
 			timeParsed, err := time.Parse("15:04", request.StartTime)
 			if err != nil {
-				return dto.PresenceResponse{}, err
+				return dto.PresenceResponse{}, errx.BadRequest("invalid time format")
 			}
 
 			timez = datatype.TimeOnly{Time: &timeParsed}
@@ -138,7 +138,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 		} else if request.EndTime != "" {
 			timeParsed, err := time.Parse("15:04", request.EndTime)
 			if err != nil {
-				return dto.PresenceResponse{}, err
+				return dto.PresenceResponse{}, errx.BadRequest("invalid time format")
 			}
 
 			timez = datatype.TimeOnly{Time: &timeParsed}

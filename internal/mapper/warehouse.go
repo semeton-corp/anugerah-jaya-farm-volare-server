@@ -193,6 +193,7 @@ func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto
 func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcurementDraft) dto.WarehouseItemProcurementDraftResponse {
 	return dto.WarehouseItemProcurementDraftResponse{
 		Id:            data.Id,
+		InputDate:     data.CreatedAt.Format("02 Jan 2006"),
 		Warehouse:     WarehouseToResponse(&data.Warehouse),
 		Item:          ItemToResponse(&data.Item),
 		Supplier:      SupplierToListResponse(&data.Supplier),

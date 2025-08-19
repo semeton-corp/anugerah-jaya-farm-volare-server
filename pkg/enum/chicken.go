@@ -38,3 +38,38 @@ func (c ChickenCategory) IsValid() bool {
 	_, ok := ChickenCategoryMap[c]
 	return ok
 }
+
+type ChickenProductivity uint8
+
+const (
+	ChickenProductivityUnknown       ChickenProductivity = 0
+	ChickenProductivityProductive    ChickenProductivity = 1
+	ChickenProductivityCheck         ChickenProductivity = 2
+	ChickenProductivityNotProductive ChickenProductivity = 3
+)
+
+var (
+	ChickenProductivityMap = map[ChickenProductivity]string{
+		ChickenProductivityProductive:    "Produktif",
+		ChickenProductivityCheck:         "Periksa",
+		ChickenProductivityNotProductive: "Tidak Produktif",
+	}
+)
+
+func (c ChickenProductivity) String() string {
+	return ChickenProductivityMap[c]
+}
+
+func ValueOfChickenProductivity(value string) ChickenProductivity {
+	for k, v := range ChickenProductivityMap {
+		if v == value {
+			return k
+		}
+	}
+	return ChickenProductivityUnknown
+}
+
+func (c ChickenProductivity) IsValid() bool {
+	_, ok := ChickenProductivityMap[c]
+	return ok
+}

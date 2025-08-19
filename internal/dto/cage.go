@@ -57,6 +57,7 @@ type ChickenCageResponse struct {
 
 type GetChickenCageFilter struct {
 	LocationId uint64 `query:"locationid"`
+	CageId     uint64 `query:"cageId"`
 }
 
 type MoveChickenCageRequest struct {

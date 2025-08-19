@@ -131,8 +131,4 @@ type UserSalaryGraphResponse struct {
 	Key    string `json:"key"`
 	Salary string `json:"kpiChickenPerformance"`
 }
-
-type UserSalaryOverviewResponse struct {
-	// Todo : overview user salary in (owner)
-	UserSalaryGraph []UserSalaryGraphResponse `json:"userSalaryGraph"`
-}
+ 

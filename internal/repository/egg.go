@@ -26,6 +26,7 @@ type IEggRepository interface {
 	UpdateEggMonitoring(eggMonitoring *entity.EggMonitoring) error
 	DeleteEggMonitoring(id uint64) error
 	CountEggMonitoringByChickenCageIdToday(chickenCageId uint64) (int64, error)
+	GetEggMonitoringToday(chickenCageId uint64, date time.Time) (entity.EggMonitoring, error)
 }
 
 func NewEggRepository(db *gorm.DB) IEggRepository {
@@ -134,4 +135,21 @@ func (r *EggRepository) CountEggMonitoringByChickenCageIdToday(chickenCageId uin
 		return 0, err
 	}
 	return count, nil
+}
+
+func (r *EggRepository) GetEggMonitoringToday(chickenCageId uint64, date time.Time) (entity.EggMonitoring, error) {
+	var monitoring entity.EggMonitoring
+
+	err := r.GetDB().
+		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("2006-01-02")).
+		First(&monitoring).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.EggMonitoring{}, nil
+		}
+		return entity.EggMonitoring{}, err
+	}
+
+	return monitoring, nil
 }

@@ -82,6 +82,10 @@ type IChickenRepository interface {
 	GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error)
 	UpdateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error
 	CreateAfkirChickenSalePaymentInBatch(data *[]entity.AfkirChickenSalePayment) error
+
+	GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]entity.ChickenPerformance, error)
+
+	GetChickenMonitoringToday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error)
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -535,4 +539,41 @@ func (r *ChickenRepository) CountChickenProcurement(filter dto.GetChickenProcure
 	}
 
 	return count, nil
+}
+
+func (r *ChickenRepository) GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]entity.ChickenPerformance, error) {
+	var chickenPerformances []entity.ChickenPerformance
+	query := r.GetDB().Model(&entity.ChickenPerformance{})
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
+	err := query.Find(&chickenPerformances).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return chickenPerformances, nil
+}
+
+func (r *ChickenRepository) GetChickenMonitoringToday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error) {
+	var monitoring entity.ChickenMonitoring
+
+	err := r.GetDB().
+		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("2006-01-02")).
+		First(&monitoring).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenMonitoring{}, nil
+		}
+		return entity.ChickenMonitoring{}, err
+	}
+
+	return monitoring, nil
 }

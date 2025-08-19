@@ -200,8 +200,12 @@ func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilte
 	var warehouseItems []entity.WarehouseItem
 	query := r.GetDB().Model(&entity.WarehouseItem{}).Joins("JOIN items ON items.id = warehouse_items.item_id")
 
-	if filter.WarehouseId != 0 {
+	if filter.WarehouseId > 0 {
 		query = query.Where("warehouse_items.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouse_items.warehouse_id = warehouses.id JOIN locations ON locations.id = warehouses.location_id").Where("location_id = ?", filter.LocationId)
 	}
 
 	if filter.Category.Value().IsValid() {

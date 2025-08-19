@@ -24,6 +24,7 @@ type GetWarehouseFilter struct {
 }
 
 type GetWarehouseItemFilter struct {
+	LocationId  uint64                  `query:"locationId"`
 	WarehouseId uint64                  `query:"warehouseId"`
 	Category    param.ItemCategoryParam `query:"category"`
 	ItemNames   []string                `query:"itemNames"`
@@ -349,6 +350,7 @@ type UpdateWarehouseItemProcurementDraftRequest struct {
 
 type WarehouseItemProcurementDraftResponse struct {
 	Id            uint64               `json:"id"`
+	InputDate     string               `json:"inputDate"`
 	Warehouse     WarehouseResponse    `json:"warehouse"`
 	Item          ItemResponse         `json:"item"`
 	Supplier      SupplierListResponse `json:"supplier"`

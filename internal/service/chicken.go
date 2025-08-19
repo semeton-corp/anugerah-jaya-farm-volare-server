@@ -20,10 +20,11 @@ import (
 )
 
 type ChickenService struct {
-	log         *zap.Logger
-	repository  repository.IChickenRepository
-	eggService  IEggService
-	cageService ICageService
+	log              *zap.Logger
+	repository       repository.IChickenRepository
+	eggService       IEggService
+	cageService      ICageService
+	warehouseService IWarehouseService
 }
 
 type IChickenService interface {
@@ -83,6 +84,8 @@ type IChickenService interface {
 	CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error
+
+	GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]dto.ChickenPerformanceResponse, error)
 }
 
 func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService) IChickenService {
@@ -256,11 +259,11 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	var totalLiveChicken, totalSickChicken, totalDeathChicken uint64
 
 	for _, cm := range currentChickenMonitorings {
-		totalLiveChicken += cm.ChickenCage.TotalChicken - cm.TotalSickChicken - cm.TotalDeathChicken
+		totalLiveChicken += cm.ChickenCage.TotalChicken - cm.TotalSickChicken
 		totalSickChicken += cm.TotalSickChicken
 		totalDeathChicken += cm.TotalDeathChicken
 
-		count := cm.TotalSickChicken + cm.ChickenCage.TotalChicken
+		count := cm.ChickenCage.TotalChicken
 		switch cm.ChickenCage.Cage.ChickenCategory {
 		case enum.ChickenCategoryDOC:
 			totalDOCChicken += count
@@ -279,11 +282,11 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 
 	switch filter.OverviewGraphTime.Value() {
 	case enum.OverviewGraphTimeThisWeek:
-		chickenGraphs, err = c.buildWeeklyGraph()
+		chickenGraphs, err = c.buildWeeklyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisMonth:
-		chickenGraphs, err = c.buildMonthlyGraph()
+		chickenGraphs, err = c.buildMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		chickenGraphs, err = c.buildYearlyGraph()
+		chickenGraphs, err = c.buildYearlyGraph(filter.LocationId, filter.CageId)
 	}
 	if err != nil {
 		return dto.ChickenOverviewResponse{}, err
@@ -314,13 +317,15 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	}, nil
 }
 
-func (c *ChickenService) buildWeeklyGraph() ([]dto.ChickenGraphResponse, error) {
+func (c *ChickenService) buildWeeklyGraph(locationId uint64, cageId uint64) ([]dto.ChickenGraphResponse, error) {
 	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	startDate := endDate.AddDate(0, 0, -6)
 
 	weekMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+		CageId:     cageId,
 	})
 	if err != nil {
 		c.log.Error("failed to get chicken monitorings", zap.Error(err))
@@ -345,13 +350,15 @@ func (c *ChickenService) buildWeeklyGraph() ([]dto.ChickenGraphResponse, error) 
 	return graphs, nil
 }
 
-func (c *ChickenService) buildMonthlyGraph() ([]dto.ChickenGraphResponse, error) {
+func (c *ChickenService) buildMonthlyGraph(locationId uint64, cageId uint64) ([]dto.ChickenGraphResponse, error) {
 	weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
 
 	monthMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+		CageId:     cageId,
 	})
 	if err != nil {
 		c.log.Error("failed to get chicken monitorings", zap.Error(err))
@@ -380,13 +387,15 @@ func (c *ChickenService) buildMonthlyGraph() ([]dto.ChickenGraphResponse, error)
 	return graphs, nil
 }
 
-func (c *ChickenService) buildYearlyGraph() ([]dto.ChickenGraphResponse, error) {
+func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64) ([]dto.ChickenGraphResponse, error) {
 	monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
 	startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
 
 	yearMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+		CageId:     cageId,
 	})
 	if err != nil {
 		c.log.Error("failed to get chicken monitorings", zap.Error(err))
@@ -878,7 +887,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 	estimateArrivalDate, err := time.Parse("02-01-2006", request.EstimateArrivalDate)
 	if err != nil {
 		s.log.Error("failed to parse estimate arrival date", zap.Error(err))
-		return dto.ChickenProcurementResponse{}, err
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
 	}
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
@@ -889,7 +898,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
 	if err != nil {
 		s.log.Error("failed parse deadline payment date", zap.Error(err))
-		return dto.ChickenProcurementResponse{}, err
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
 	}
 
 	chickenProcurement := entity.ChickenProcurement{
@@ -911,7 +920,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		paymentDate, err := time.Parse("02-01-2006", payment.PaymentDate)
 		if err != nil {
 			s.log.Error("failed to parse payment date", zap.Error(err))
-			return dto.ChickenProcurementResponse{}, err
+			return dto.ChickenProcurementResponse{}, errx.BadRequest("invalid payment date format")
 		}
 
 		nominal, err := decimal.NewFromString(payment.Nominal)
@@ -1733,7 +1742,7 @@ func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.AfkirChickenSaleResponse{}, err
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid payment date format")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
@@ -1826,7 +1835,7 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.AfkirChickenSaleResponse{}, err
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid payment date format")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
@@ -2102,4 +2111,277 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	resp.Payments = resPayments
 
 	return resp, nil
+}
+
+func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]dto.ChickenPerformanceResponse, error) {
+	s.repository.UseTx(false)
+	// hdp = jumlah telur / jumlah ayam hidup
+	// fcr = total pakan / total telur
+	// mortality = ayam mati / total ayam
+
+	responses := make([]dto.ChickenPerformanceResponse, 0)
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	if filter.Date.Value().Equal(today) {
+		chickenCages, err := s.cageService.GetChickenCages(dto.GetChickenCageFilter{
+			LocationId: filter.LocationId,
+			CageId:     filter.CageId,
+		})
+		if err != nil {
+			s.log.Error("failed get chicken cages", zap.Error(err))
+			return nil, err
+		}
+
+		for _, chickenCage := range chickenCages {
+			chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
+			if err != nil {
+				s.log.Error("failed get chicken monitoring today", zap.Error(err))
+				return nil, err
+			}
+
+			eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
+			if err != nil {
+				s.log.Error("failed get egg monitoring today")
+				return nil, err
+			}
+
+			if chickenMonitoring.Id > 0 && eggMonitoring.Id > 0 {
+				continue
+			}
+
+			response := dto.ChickenPerformanceResponse{
+				CageName:                     chickenCage.Cage.Name,
+				ChickenCategory:              chickenCage.ChickenCategory,
+				ChickenAge:                   chickenCage.ChickenAge,
+				TotalChicken:                 chickenCage.TotalChicken,
+				TotalEgg:                     (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg,
+				AverageConsumptionPerChicken: chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken),
+				AverageWeightPerEgg:          float64((eggMonitoring.TotalKarpetCrackedEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingCrackedEgg+(eggMonitoring.TotalKarpetGoodEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingGoodEgg) / eggMonitoring.TotalWeightAllEgg,
+				MortalityRate:                float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken),
+			}
+
+			response.FCR = float64(response.TotalEgg) / float64(chickenCage.TotalChicken) * 100.0
+			response.HDP = float64(chickenMonitoring.TotalFeed) / float64(response.TotalEgg) * 100.0
+
+			responses = append(responses, response)
+		}
+	} else {
+		chickenPerformances, err := s.repository.GetChickenPerformances(filter)
+		if err != nil {
+			s.log.Error("failed get chicken performances", zap.Error(err))
+			return nil, err
+		}
+
+		for _, chickenPerformance := range chickenPerformances {
+			responses = append(responses, mapper.ChickenPerformanceToResponse(&chickenPerformance))
+		}
+	}
+
+	return responses, nil
+}
+
+func (s *ChickenService) GetChickenAndWarehosueOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error) {
+	s.repository.UseTx(false)
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+
+	var totalSafeItem, totalDangerItem uint64
+	warehouseItems, err := s.warehouseService.GetWarehouseItems(dto.GetWarehouseItemFilter{
+		LocationId:  filter.LocationId,
+		WarehouseId: filter.WarehouseId,
+	})
+	if err != nil {
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+	for _, warehouseItem := range warehouseItems {
+		switch warehouseItem.Description {
+		case constant.WarehouseItemDescriptionSafe:
+			totalSafeItem += 1
+		case constant.WarehouseItemDescriptionDanger:
+			totalDangerItem += 1
+		}
+	}
+
+	chickenPerformances, err := s.GetChickenPerformances(dto.GetChickenPerformanceFilter{
+		Date:       param.DateParam(today),
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+
+	var totalProductiveCage, totalCheckCage, totalNotProductiveCage uint64
+	for _, chickenPerformance := range chickenPerformances {
+		switch chickenPerformance.Productivity {
+		case enum.ChickenProductivityProductive.String():
+			totalProductiveCage += 1
+		case enum.ChickenProductivityCheck.String():
+			totalCheckCage += 1
+		case enum.ChickenProductivityNotProductive.String():
+			totalNotProductiveCage += 1
+		}
+	}
+
+	chickenGraphs := make([]dto.ChickenGraphResponse, 0)
+	switch filter.OverviewGraphTime.Value() {
+	case enum.OverviewGraphTimeThisWeek:
+		chickenGraphs, err = s.buildWeeklyGraph(filter.LocationId, filter.CageId)
+	case enum.OverviewGraphTimeThisMonth:
+		chickenGraphs, err = s.buildMonthlyGraph(filter.LocationId, filter.CageId)
+	case enum.OverviewGraphTimeThisYear:
+		chickenGraphs, err = s.buildYearlyGraph(filter.LocationId, filter.CageId)
+	}
+	if err != nil {
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+
+	var totalFeed, totalWeightEgg float64
+	var totalEgg, totalDeathChicken, totalChicken uint64
+	var totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
+	chickenCages, err := s.cageService.GetChickenCages(dto.GetChickenCageFilter{
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken cages", zap.Error(err))
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+
+	for _, chickenCage := range chickenCages {
+		chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
+		if err != nil {
+			s.log.Error("failed get chicken monitoring today", zap.Error(err))
+			return dto.ChickenAndWarehouseOverviewResponse{}, err
+		}
+
+		eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
+		if err != nil {
+			s.log.Error("failed get egg monitoring today")
+			return dto.ChickenAndWarehouseOverviewResponse{}, err
+		}
+
+		totalChicken += chickenCage.TotalChicken
+		totalFeed += chickenMonitoring.TotalFeed
+		totalDeathChicken += chickenMonitoring.TotalDeathChicken
+		totalEgg += (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoring.TotalWeightAllEgg
+
+		count := chickenCage.TotalChicken
+		switch chickenCage.Cage.ChickenCategory {
+		case enum.ChickenCategoryDOC.String():
+			totalDOCChicken += count
+		case enum.ChickenCategoryGrower.String():
+			totalGrowerChicken += count
+		case enum.ChickenCategoryPreLayer.String():
+			totalPreLayerChicken += count
+		case enum.ChickenCategoryLayer.String():
+			totalLayerChicken += count
+		case enum.ChickenCategoryAfkir.String():
+			totalAfkirChicken += count
+		}
+	}
+
+	return dto.ChickenAndWarehouseOverviewResponse{
+		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
+			FeedConsumption:      totalFeed,
+			AverageEggWeight:     totalWeightEgg / float64(totalEgg) * 1000.0,
+			AverageMortalityRate: float64(totalDeathChicken) / float64(totalChicken),
+			AverageFCR:           totalFeed / float64(totalEgg),
+			AverageHDP:           float64(totalEgg) / float64(totalChicken),
+		},
+		ChickenBarCharts: dto.ChickenBarChartResponse{
+			ChickenDOC:       float64(totalDOCChicken),
+			ChickenGrower:    float64(totalGrowerChicken),
+			ChickentPreLayer: float64(totalPreLayerChicken),
+			ChickenLayer:     float64(totalLayerChicken),
+			ChickenAfkir:     float64(totalAfkirChicken),
+		},
+		WarehouseItemSummary: dto.WarehouseItemSummaryResponse{
+			TotalSafeItem:    totalSafeItem,
+			TotalNotSafeItem: totalDangerItem,
+		},
+		ChickenCagePerformanceSummary: dto.ChickenCagePerformanceSummaryResponse{
+			TotalProductiveCage:    totalProductiveCage,
+			TotalNotProductiveCage: totalNotProductiveCage,
+			TotalCheckCage:         totalCheckCage,
+		},
+		ChickenGraphs: chickenGraphs,
+	}, nil
+}
+
+func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error) {
+	// R/C Ratio = Keuntungan (Return) / Biaya Produksi (Cost)
+	// Keuntungan (Return) = Penjualan Telur + Penjualan Ayam - Biaya Produksi (Pengaadan Ayam, Pengadaan Barang, Pengadaan Jagung, Gaji, Operational, Pajak)
+
+	// Mos (%) = (Penjualan Aktual)
+
+	s.repository.UseTx(false)
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	var totalFeed, totalWeightEgg float64
+	var totalEgg, totalDeathChicken, totalChicken uint64
+	var totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
+	chickenCages, err := s.cageService.GetChickenCages(dto.GetChickenCageFilter{
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken cages", zap.Error(err))
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
+
+	for _, chickenCage := range chickenCages {
+		chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
+		if err != nil {
+			s.log.Error("failed get chicken monitoring today", zap.Error(err))
+			return dto.ChickenAndCompanyOverviewResponse{}, err
+		}
+
+		eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
+		if err != nil {
+			s.log.Error("failed get egg monitoring today")
+			return dto.ChickenAndCompanyOverviewResponse{}, err
+		}
+
+		totalChicken += chickenCage.TotalChicken
+		totalFeed += chickenMonitoring.TotalFeed
+		totalDeathChicken += chickenMonitoring.TotalDeathChicken
+		totalEgg += (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoring.TotalWeightAllEgg
+
+		count := chickenCage.TotalChicken
+		switch chickenCage.Cage.ChickenCategory {
+		case enum.ChickenCategoryDOC.String():
+			totalDOCChicken += count
+		case enum.ChickenCategoryGrower.String():
+			totalGrowerChicken += count
+		case enum.ChickenCategoryPreLayer.String():
+			totalPreLayerChicken += count
+		case enum.ChickenCategoryLayer.String():
+			totalLayerChicken += count
+		case enum.ChickenCategoryAfkir.String():
+			totalAfkirChicken += count
+		}
+	}
+
+	// Todo : company performance where i can get the data?
+
+	return dto.ChickenAndCompanyOverviewResponse{
+		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
+			FeedConsumption:      totalFeed,
+			AverageEggWeight:     totalWeightEgg / float64(totalEgg) * 1000.0,
+			AverageMortalityRate: float64(totalDeathChicken) / float64(totalChicken),
+			AverageFCR:           totalFeed / float64(totalEgg),
+			AverageHDP:           float64(totalEgg) / float64(totalChicken),
+		},
+		ChickenBarCharts: dto.ChickenBarChartResponse{
+			ChickenDOC:       float64(totalDOCChicken),
+			ChickenGrower:    float64(totalGrowerChicken),
+			ChickentPreLayer: float64(totalPreLayerChicken),
+			ChickenLayer:     float64(totalLayerChicken),
+			ChickenAfkir:     float64(totalAfkirChicken),
+		},
+		CompanyPerformanceBarCharts: dto.CompanyPerformanceBarChartResponse{},
+	}, nil
 }

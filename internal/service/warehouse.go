@@ -331,12 +331,12 @@ func (s *WarehouseService) GetWarehouseItems(filter dto.GetWarehouseItemFilter) 
 		return nil, err
 	}
 
-	stockWarehouseItemResponses := make([]dto.WarehouseItemResponse, 0, len(warehouseItems))
+	warehouseItemsResponses := make([]dto.WarehouseItemResponse, 0, len(warehouseItems))
 	for _, item := range warehouseItems {
-		stockWarehouseItemResponses = append(stockWarehouseItemResponses, mapper.WarehouseItemToResponse(&item))
+		warehouseItemsResponses = append(warehouseItemsResponses, mapper.WarehouseItemToResponse(&item))
 	}
 
-	return stockWarehouseItemResponses, nil
+	return warehouseItemsResponses, nil
 }
 
 func (s *WarehouseService) GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, warehouseItemId uint64) (dto.WarehouseItemResponse, error) {
@@ -1662,13 +1662,13 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
 	}
 
 	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
 	if err != nil {
 		s.log.Error("failed parse deadline payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
 	}
 
 	data := entity.WarehouseItemProcurement{
@@ -1690,7 +1690,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		expiredAt, err := time.Parse("02-01-2006", *request.ExpiredAt)
 		if err != nil {
 			s.log.Error("failed parse expired at", zap.Error(err))
-			return dto.WarehouseItemProcurementResponse{}, err
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid expired at format")
 		}
 
 		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
@@ -1716,7 +1716,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
 			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.WarehouseItemProcurementResponse{}, err
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment date format")
 		}
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.WarehouseItemProcurementPayment{
@@ -1806,13 +1806,13 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
 	}
 
 	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
 	if err != nil {
 		s.log.Error("failed parse deadline payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
 	}
 
 	data := entity.WarehouseItemProcurement{
@@ -1835,7 +1835,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		expiredAt, err := time.Parse("02-01-2006", *request.ExpiredAt)
 		if err != nil {
 			s.log.Error("failed parse expired at", zap.Error(err))
-			return dto.WarehouseItemProcurementResponse{}, err
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid expired at format")
 		}
 
 		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
@@ -1860,7 +1860,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
 			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.WarehouseItemProcurementResponse{}, err
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment date")
 		}
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.WarehouseItemProcurementPayment{
@@ -1995,13 +1995,13 @@ func (s *WarehouseService) CreateWarehouseItemProcurementPayment(warehouseItemPr
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment date format")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)
 	if err != nil {
 		s.log.Error("failed parse nominal", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid nominal")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
@@ -2091,13 +2091,13 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementPayment(id uint64, ware
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment date")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)
 	if err != nil {
 		s.log.Error("failed parse nominal", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid nominal")
 	}
 
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
@@ -2485,7 +2485,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
 			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.WarehouseItemCornProcurementResponse{}, err
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment date")
 		}
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.WarehouseItemCornProcurementPayment{
@@ -2623,7 +2623,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		paymentDate, err := time.Parse("02-01-2006", p.PaymentDate)
 		if err != nil {
 			s.log.Error("failed parse payment date", zap.Error(err))
-			return dto.WarehouseItemCornProcurementResponse{}, err
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment date")
 		}
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.WarehouseItemCornProcurementPayment{
@@ -2773,7 +2773,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementPayment(warehouseIt
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment date")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)
@@ -2874,7 +2874,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed parse payment date", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment date")
 	}
 
 	nominal, err := decimal.NewFromString(request.Nominal)

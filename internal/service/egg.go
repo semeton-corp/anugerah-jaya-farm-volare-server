@@ -39,6 +39,7 @@ type IEggService interface {
 	DeleteEggMonitoring(id uint64, userId uuid.UUID) error
 
 	GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
+	GetEggMonitoringToday(chickenCageId uint64, date time.Time) (dto.EggMonitoringResponse, error)
 }
 
 func NewEggService(
@@ -561,4 +562,16 @@ func (s *EggService) buildEggOverviewDetails(
 		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.UnitButir},
 	}
 	return details
+}
+
+func (s *EggService) GetEggMonitoringToday(chickenCageId uint64, date time.Time) (dto.EggMonitoringResponse, error) {
+	s.repository.UseTx(false)
+
+	eggMonitoring, err := s.repository.GetEggMonitoringToday(chickenCageId, date)
+	if err != nil {
+		s.log.Error("failed get egg monitoring today", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
+	return mapper.EggMonitoringToResponse(&eggMonitoring), nil
 }
