@@ -353,9 +353,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		return dto.ExpenseOverviewResponse{}, err
 	}
 
+	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
+		IsPaid:    &isPaid,
 	})
 	if err != nil {
 		s.log.Error("failed get user salary payments", zap.Error(err))
