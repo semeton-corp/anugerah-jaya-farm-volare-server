@@ -32,6 +32,10 @@ type ICashflowService interface {
 	GetIncomeOverview(filter dto.GetIncomeOverviewFilter) (dto.IncomeOverviewResponse, error)
 	GetIncome(incomeCategory string, id uint64) (dto.IncomeResponse, error)
 
+	CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error)
+	GetExpenseOverview(filter dto.GetExpenseOverviewFilter) (dto.ExpenseOverviewResponse, error)
+	GetExpense(expenseCategory string, id uint64) (dto.ExpenseResponse, error)
+
 	ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error)
 }
 

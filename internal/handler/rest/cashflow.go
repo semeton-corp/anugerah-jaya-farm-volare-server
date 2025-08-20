@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
@@ -23,9 +24,13 @@ type CashflowHandler struct {
 func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("/cashflow")
 
-	v1.Get("/income/overview", h.GetIncomeOverview)
-	v1.Get("/income/:category/:id", h.GetIncome)
+	v1.Get("/incomes/overview", h.GetIncomeOverview)
+	v1.Get("/incomes/:category/:id", h.GetIncome)
 
+	v1.Get("/expenses/overview", h.GetExpenseOverview)
+	v1.Get("/expenses/:category/:id", h.GetExpense)
+
+	v1.Get("/sales/reports", h.ExportSalesToExcel)
 }
 
 func NewCashflowHandler(log *zap.Logger, service service.ICashflowService, validator *validator.Validate) *CashflowHandler {
@@ -47,7 +52,7 @@ func (h *CashflowHandler) GetIncomeOverview(c *fiber.Ctx) error {
 	}
 
 	if err := h.validator.Struct(filter); err != nil {
-		h.log.Warn("validation failed", zap.Error(err))
+		h.log.Error("error validation", zap.Error(err))
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -110,9 +115,73 @@ func (h *CashflowHandler) ExportSalesToExcel(c *fiber.Ctx) error {
 		return err
 	}
 
-	// set headers for file download
 	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", fileName))
 
 	return c.SendStream(buf)
+}
+
+func (h *CashflowHandler) CreateExpense(c *fiber.Ctx) error {
+	var request dto.CreateExpenseRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse body", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in contenxt")
+	}
+
+	resp, err := h.service.CreateExpense(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, resp, "success create expense")
+}
+
+func (h *CashflowHandler) GetExpenseOverview(c *fiber.Ctx) error {
+	var filter dto.GetExpenseOverviewFilter
+
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query params", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	resp, err := h.service.GetExpenseOverview(filter)
+	if err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get expense overview")
+}
+
+func (h *CashflowHandler) GetExpense(c *fiber.Ctx) error {
+	category := c.Params("category")
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	resp, err := h.service.GetExpense(category, id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get expense")
 }
