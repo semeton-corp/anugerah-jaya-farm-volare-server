@@ -43,7 +43,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
 			chickenCategory = enum.ChickenCategoryPreLayer
 		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryPreLayer
+			chickenCategory = enum.ChickenCategoryLayer
 		}
 	}
 
@@ -75,12 +75,25 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 }
 
 func CageFeedToResponse(data *entity.CageFeed) dto.CageFeedResponse {
-	return dto.CageFeedResponse{
+	response := dto.CageFeedResponse{
 		Id:              data.Id,
 		ChickenCategory: data.ChickenCategory.String(),
 		FeedType:        data.FeedType.String(),
 		TotalFeed:       data.TotalFeed,
 	}
+
+	switch data.ChickenCategory {
+	case enum.ChickenCategoryDOC:
+		response.ChickenAgeInterval = "0 - 9 Minggu"
+	case enum.ChickenCategoryGrower:
+		response.ChickenAgeInterval = "10 - 15 Minggu"
+	case enum.ChickenCategoryPreLayer:
+		response.ChickenAgeInterval = "16 - 17 Minggu"
+	case enum.ChickenCategoryLayer:
+		response.ChickenAgeInterval = ">= 18 Minggu"
+	}
+
+	return response
 }
 
 func CageFeedDetailToResponse(data *entity.CageFeedDetail) dto.CageFeedDetailResponse {
@@ -109,7 +122,7 @@ func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenC
 		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
 			chickenCategory = enum.ChickenCategoryPreLayer
 		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryPreLayer
+			chickenCategory = enum.ChickenCategoryLayer
 		}
 	}
 
@@ -144,7 +157,7 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
 			chickenCategory = enum.ChickenCategoryPreLayer
 		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryPreLayer
+			chickenCategory = enum.ChickenCategoryLayer
 		}
 	}
 

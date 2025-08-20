@@ -91,11 +91,12 @@ type CageFeedDetailRequest struct {
 }
 
 type CageFeedResponse struct {
-	Id              uint64                   `json:"id"`
-	ChickenCategory string                   `json:"chickenCategory"`
-	TotalFeed       float64                  `json:"totalFeed"`
-	FeedType        string                   `json:"feedType"`
-	CageFeedDetails []CageFeedDetailResponse `json:"cageFeedDetails"`
+	Id                 uint64                   `json:"id"`
+	ChickenCategory    string                   `json:"chickenCategory"`
+	ChickenAgeInterval string                   `json:"chickenAgeInterval"`
+	TotalFeed          float64                  `json:"totalFeed"`
+	FeedType           string                   `json:"feedType"`
+	CageFeedDetails    []CageFeedDetailResponse `json:"cageFeedDetails"`
 }
 type CageFeedDetailResponse struct {
 	Id         uint64       `json:"id"`

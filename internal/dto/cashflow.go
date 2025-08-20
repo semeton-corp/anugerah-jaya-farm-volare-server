@@ -128,3 +128,49 @@ type GetExpenseFilter struct {
 	StartDate param.DateParam `query:"startDate"`
 	EndDate   param.DateParam `query:"endDate"`
 }
+
+type CreateCashAdvanceRequest struct {
+	UserId  string `json:"userId" validate:"required"`
+	Nominal string `json:"nominal" validate:"required"`
+}
+
+type CashAdvanceResponse struct {
+}
+
+type CreateCashAdvancePaymentRequest struct {
+}
+
+type ReceiveablesResponse struct {
+	Id               uint64 `json:"id"`
+	Date             string `json:"date"`
+	Time             string `json:"time"`
+	Category         string `json:"category"`
+	PlaceName        string `json:"placeName"`
+	Name             string `json:"name"`
+	PhoneNumber      string `json:"phoneNumber"`
+	RemainingPayment string `json:"remainingPayment"`
+	InputBy          string `json:"inputBy"`
+}
+
+type ReceiveablesListResponse struct {
+	Id                  uint64 `json:"id"`
+	DeadlinePaymentDate string `json:"deadlinePaymentDate"`
+	Category            string `json:"category"`
+	PlaceName           string `json:"placeName"`
+	Name                string `json:"name"`
+	PhoneNumber         string `json:"phoneNumber"`
+	TotalNominal        string `json:"totalNominal"`
+	RemainingPayment    string `json:"remainingPayment"`
+	PaymentStatus       string `json:"paymentStatus"`
+}
+
+type ReceiveablesPieResponse struct {
+	UnpaidPercentage  float64 `json:"unpaidPercentage"`
+	PaidPercentage    float64 `json:"paidPercentage"`
+	NotPaidPercentage float64 `json:"notPaidPercentage"`
+}
+
+type ReceievablesOverviewResponse struct {
+	ReceivablesPie ReceiveablesPieResponse    `json:"receivablesPie"`
+	Receivables    []ReceiveablesListResponse `json:"receivables"`
+}

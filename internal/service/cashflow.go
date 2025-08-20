@@ -649,6 +649,22 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 	}
 }
 
+// func (s *CashflowService) CreateCashAdvance(request dto.CreateCashAdvanceRequest, userId uuid.UUID) (dto.CashAdvanceResponse, error) {
+
+// }
+
+// func (s *CashflowService) CreateCashAdvancePayment(request dto.CreateCashAdvancePaymentRequest, userId uuid.UUID) (dto.CashAdvanceResponse, error) {
+
+// }
+
+// func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error) {
+
+// }
+
+// func (s *CashflowService) GetReceiveables(filter dto.GetReceivablesOverviewFilter) (dto.ReceiveablesResponse, error) {
+
+// }
+
 func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 
