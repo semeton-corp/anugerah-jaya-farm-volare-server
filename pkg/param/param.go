@@ -102,7 +102,7 @@ func (p ChickenHealthItemTypeParam) Value() enum.ChickenHealthItemType {
 	return enum.ChickenHealthItemType(p)
 }
 
-type LocationWorkTypeParam enum.LocationWorkType
+type LocationWorkTypeParam enum.LocationType
 
 func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
 	parsedFilter := enum.ValueOfLocationWorkType(string(text))
@@ -114,8 +114,8 @@ func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
 	return nil
 }
 
-func (p LocationWorkTypeParam) Value() enum.LocationWorkType {
-	return enum.LocationWorkType(p)
+func (p LocationWorkTypeParam) Value() enum.LocationType {
+	return enum.LocationType(p)
 }
 
 type PresenceStatusParam enum.PresenceStatus

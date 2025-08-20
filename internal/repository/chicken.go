@@ -565,7 +565,7 @@ func (r *ChickenRepository) GetChickenMonitoringToday(chickenCageId uint64, date
 	var monitoring entity.ChickenMonitoring
 
 	err := r.GetDB().
-		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("2006-01-02")).
+		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("02 Jan 2006")).
 		First(&monitoring).Error
 
 	if err != nil {

@@ -131,4 +131,9 @@ type UserSalaryGraphResponse struct {
 	Key    string `json:"key"`
 	Salary string `json:"kpiChickenPerformance"`
 }
- 
+
+type GetUserSalaryPaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+	IsPaid    *bool           `query:"isPaid"`
+}

@@ -34,6 +34,24 @@ func GetErrorValidationMessage(fe validator.FieldError) string {
 		return fmt.Sprintf("%s is not a valid chicken health item type", fe.Field())
 	case "presenceStatus":
 		return fmt.Sprintf("%s is not a valid presence status", fe.Field())
+	case "salaryInterval":
+		return fmt.Sprintf("%s is not a valid salary interval", fe.Field())
+	case "customerType":
+		return fmt.Sprintf("%s is not a valid customer type", fe.Field())
+	case "phoneNumber":
+		return fmt.Sprintf("%s is not a valid phone number", fe.Field())
+	case "eggType":
+		return fmt.Sprintf("%s is not a valid egg type", fe.Field())
+	case "ovenCondition":
+		return fmt.Sprintf("%s is not a valid oven condition", fe.Field())
+	case "feedType":
+		return fmt.Sprintf("%s is not a valid feed type", fe.Field())
+	case "supplierType":
+		return fmt.Sprintf("%s is not a valid supplier type", fe.Field())
+	case "incomeCategory":
+		return fmt.Sprintf("%s is not a valid income category", fe.Field())
+	case "expenseCategory":
+		return fmt.Sprintf("%s is not a valid expense category", fe.Field())
 	default:
 		return fmt.Sprintf("%s is not valid", fe.Field())
 	}

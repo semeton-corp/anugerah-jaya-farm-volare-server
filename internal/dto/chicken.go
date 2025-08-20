@@ -452,3 +452,8 @@ type ChickenPerformanceResponse struct {
 	MortalityRate                float64 `json:""`
 	Productivity                 string  `json:"productivity"`
 }
+
+type GetChickenProcurementPaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+}

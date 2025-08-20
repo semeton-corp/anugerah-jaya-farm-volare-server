@@ -265,16 +265,16 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status`)
 
 	switch filter.PlaceType.Value() {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("cage_placements").
 			Select("user_id").
 			Joins(`LEFT JOIN cages ON cage_placements.cage_id = cages.id`).
 			Where("cages.location_id = ?", filter.PlaceId))
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("store_placements").
 			Select("user_id").
 			Where("store_id = ?", filter.PlaceId))
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("warehouse_placements").
 			Select("user_id").
 			Where("warehouse_id = ?", filter.PlaceId))
@@ -313,16 +313,16 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		Where("roles.id = ?", filter.RoleId)
 
 	switch filter.PlaceType.Value() {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		db = db.
 			Joins(`LEFT JOIN cage_placements ON cage_placements.user_id = users.id`).
 			Joins(`LEFT JOIN cages ON cage_placements.cage_id = cages.id`).
 			Where("cages.location_id = ?", filter.PlaceId)
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		db = db.
 			Joins(`LEFT JOIN store_placements ON store_placements.user_id = users.id`).
 			Where("store_placements.store_id = ?", filter.PlaceId)
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		db = db.
 			Joins(`LEFT JOIN warehouse_placements ON warehouse_placements.user_id = users.id`).
 			Where("warehouse_placements.warehouse_id = ?", filter.PlaceId)

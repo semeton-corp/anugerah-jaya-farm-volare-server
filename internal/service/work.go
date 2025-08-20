@@ -273,11 +273,11 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	}
 
 	switch locationType {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		additionalWork.CageId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		additionalWork.StoreId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		additionalWork.WarehouseId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
 	}
 
@@ -389,15 +389,15 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	additionalWork.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	switch locationType {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		additionalWork.CageId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
 		additionalWork.WarehouseId = sql.NullInt64{}
 		additionalWork.StoreId = sql.NullInt64{}
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		additionalWork.StoreId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
 		additionalWork.WarehouseId = sql.NullInt64{}
 		additionalWork.CageId = sql.NullInt64{}
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		additionalWork.WarehouseId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
 		additionalWork.StoreId = sql.NullInt64{}
 		additionalWork.CageId = sql.NullInt64{}

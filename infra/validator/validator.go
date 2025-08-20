@@ -22,6 +22,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("feedType", ValidationFeedType)
 	validate.RegisterValidation("supplierType", ValidationSupplierType)
 	validate.RegisterValidation("incomeCategory", ValidationIncomeCategory)
+	validate.RegisterValidation("expenseCategory", ValidationExpenseCategory)
 
 	return validate
 }
@@ -180,6 +181,16 @@ func ValidationIncomeCategory(fl validator.FieldLevel) bool {
 	incomeCategory := fl.Field().String()
 	switch incomeCategory {
 	case "Afkir Chicken Sale", "Store Egg Sale", "Warehouse Egg Sale", "All":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationExpenseCategory(fl validator.FieldLevel) bool {
+	expenseCategory := fl.Field().String()
+	switch expenseCategory {
+	case "Operasional", "Lain-lain":
 		return true
 	default:
 		return false

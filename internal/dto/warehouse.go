@@ -561,3 +561,13 @@ type GetAfkirChickenSalePaymentFilter struct {
 	StartDate param.DateParam `query:"startDate"`
 	EndDate   param.DateParam `query:"endDate"`
 }
+
+type GetWarehouseItemProcurementPaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+}
+
+type GetWarehouseItemCornProcurementPaymentFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
+}

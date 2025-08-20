@@ -8,14 +8,18 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type ChickenProcurementPayment struct {
+// Note : created every month
+type UserSalaryPayment struct {
 	Id                   uint64             `gorm:"primaryKey;autoIncrement"`
-	ChickenProcurementId uint64             `gorm:"type:bigint;not null"`
-	ChickenProcurement   ChickenProcurement `gorm:"foreignKey:ChickenProcurementId;references:Id"`
-	PaymentDate          time.Time          `gorm:"type:date;not null"`
-	Nominal              decimal.Decimal    `gorm:"type:decimal;not null"`
+	UserId               uuid.UUID          `gorm:"type:varchar(255);not null"`
+	User                 User               `gorm:"foreignKey:UserId;referennces:Id"`
+	BaseSalary           decimal.Decimal    `gorm:"type:decimal;not null"`
+	BonusSalary          decimal.Decimal    `gorm:"type:decimal;not null"`
+	CompentationSalary   decimal.Decimal    `gorm:"type:decimal;not null"`
+	AdditionalWorkSalary decimal.Decimal    `gorm:"type:decimal;not null"`
 	PaymentProof         string             `gorm:"type:text;not null"`
-	PaymentMethod        enum.PaymentMethod `gorm:"type:int;not null"`
+	PaymentMethod        enum.PaymentMethod `gorm:"type:int;not null;default:0"`
+	IsPaid               bool               `gorm:"type:bool;not null;default:false"`
 	CreatedAt            time.Time          `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID      `gorm:"type:varchar(255)"`
 	UpdatedAt            time.Time          `gorm:"type:timestamp;autoUpdateTime"`

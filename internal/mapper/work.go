@@ -31,11 +31,11 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 	}
 
 	switch additionalWork.LocationType {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		response.Place = additionalWork.Cage.Name
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		response.Place = additionalWork.Store.Name
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		response.Place = additionalWork.Warehouse.Name
 	}
 
@@ -63,11 +63,11 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 	}
 
 	switch additionalWork.LocationType {
-	case enum.LocationWorkTypeCage:
+	case enum.LocationTypeCage:
 		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Cage.Name
-	case enum.LocationWorkTypeStore:
+	case enum.LocationTypeStore:
 		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Store.Name
-	case enum.LocationWorkTypeWarehouse:
+	case enum.LocationTypeWarehouse:
 		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Warehouse.Name
 	}
 
@@ -124,7 +124,7 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 		AdditionalWork: dto.AdditionalWorkDetailResponse{
 			Id:          additionalWorkUser.AdditionalWork.Id,
 			Description: additionalWorkUser.AdditionalWork.Description,
-			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("2006-01-02"),
+			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("02 Jan 2006"),
 			Time:        additionalWorkUser.AdditionalWork.CreatedAt.Format("15:04"),
 			Salary:      additionalWorkUser.AdditionalWork.Salary.String(),
 		},

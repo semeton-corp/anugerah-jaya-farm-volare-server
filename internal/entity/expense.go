@@ -7,12 +7,18 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/shopspring/decimal"
-	"gorm.io/gorm"
 )
 
-type AdditionalWork struct {
+type Expense struct {
 	Id                  uint64               `gorm:"primaryKey;autoIncrement"`
-	Name                string               `gorm:"type:varchar(255);not null"`
+	ExpenseCategory     enum.ExpenseCategory `gorm:"type:int;not null"`
+	Name                string               `gorm:"varchar(255);not null"`
+	ReceiverName        string               `gorm:"type:varchar(255);not null"`
+	ReceiverPhoneNumber string               `gorm:"type:varchar(255);not null"`
+	Nominal             decimal.Decimal      `gorm:"type:decimal;not null"`
+	PaymentMethod       enum.PaymentMethod   `gorm:"type:int;not null"`
+	PaymentProof        string               `gorm:"type:text;not null"`
+	Description         string               `gorm:"type:text;not null"`
 	LocationId          uint64               `gorm:"type:bigint;not null"`
 	Location            Location             `gorm:"foreignKey:LocationId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId         sql.NullInt64        `gorm:"type:bigint"`
@@ -21,15 +27,10 @@ type AdditionalWork struct {
 	Store               Store                `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	CageId              sql.NullInt64        `gorm:"type:bigint"`
 	Cage                Cage                 `gorm:"foreignKey:CageId;refereces:Id;constraint:OnDelete:CASCADE"`
-	Description         string               `gorm:"type:text;not null"`
-	Slot                uint64               `gorm:"type:bigint;not null"`
-	WorkDate            time.Time            `gorm:"type:timestamp;not null"` // Start Date
-	Salary              decimal.Decimal      `gorm:"decimal;not null;default:0"`
 	LocationType        enum.LocationType    `gorm:"int;not null"`
-	AdditionalWorkUsers []AdditionalWorkUser `gorm:"foreignKey:AdditionalWorkId;references:Id;constraint:OnDelete:CASCADE"`
-	CreatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
 	CreatedAt           time.Time            `gorm:"type:timestamp;autoCreateTime"`
-	UpdatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
+	CreatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time            `gorm:"type:timestamp;autoUpdateTime"`
-	DeletedAt           gorm.DeletedAt       `gorm:"type:timestamp;index"` // soft delete
+	UpdatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
+	CreatedByUser       User                 `gorm:"foreignKey:CreatedBy;references:Id"`
 }

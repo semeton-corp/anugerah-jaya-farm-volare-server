@@ -201,7 +201,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
 		return nil, err
 	}
-	cagePresenceMap := processPresenceSummaries(cageSummaries, enum.LocationWorkTypeCage.String())
+	cagePresenceMap := processPresenceSummaries(cageSummaries, enum.LocationTypeCage.String())
 
 	storeSummaries, err := s.repository.GetStoreLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date: param.DateParam(today),
@@ -210,7 +210,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 		s.log.Error("failed to get store location presence summaries", zap.Error(err))
 		return nil, err
 	}
-	storePresenceMap := processPresenceSummaries(storeSummaries, enum.LocationWorkTypeStore.String())
+	storePresenceMap := processPresenceSummaries(storeSummaries, enum.LocationTypeStore.String())
 
 	warehouseSummaries, err := s.repository.GetWarehouseLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date: param.DateParam(today),
@@ -219,7 +219,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 		s.log.Error("failed to get warehouse location presence summaries", zap.Error(err))
 		return nil, err
 	}
-	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationWorkTypeWarehouse.String())
+	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationTypeWarehouse.String())
 
 	response := make([]dto.RoleLocationPresenceSummaryResponse, 0,
 		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap))

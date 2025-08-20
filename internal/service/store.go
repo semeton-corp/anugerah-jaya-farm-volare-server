@@ -1579,7 +1579,7 @@ func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint
 			}
 		}
 		graphs = append(graphs, dto.StoreGraphResponse{
-			Key:   day.Format("2006-01-02"),
+			Key:   day.Format("02 Jan 2006"),
 			Value: itemSale,
 		})
 	}

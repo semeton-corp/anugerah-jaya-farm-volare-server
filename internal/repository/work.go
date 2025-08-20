@@ -141,7 +141,7 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	}
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("02 Jan 2006"))
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
@@ -180,7 +180,7 @@ func (r *WorkRepository) CountDailyWorkUserByUserId(userId uuid.UUID, filter dto
 	}
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("2006-01-02"))
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("02 Jan 2006"))
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {

@@ -1,14 +1,20 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
+	"github.com/shopspring/decimal"
 	"github.com/xuri/excelize/v2"
 	"go.uber.org/zap"
 )
@@ -72,14 +78,34 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		return dto.IncomeOverviewResponse{}, err
 	}
 
+	totalPayment := decimal.Zero
+	totalWarehouseSalePayment := decimal.Zero
+	totalStoreSalePayment := decimal.Zero
+	totalAfkirChickenSalePayment := decimal.Zero
+
+	for _, payment := range storeSalePayments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+		totalStoreSalePayment = totalStoreSalePayment.Add(payment.Nominal)
+	}
+
+	for _, payment := range warehouseSalePayments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+		totalWarehouseSalePayment = totalWarehouseSalePayment.Add(payment.Nominal)
+	}
+
+	for _, payment := range afkirChickenSalePayments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+		totalAfkirChickenSalePayment = totalAfkirChickenSalePayment.Add(payment.Nominal)
+	}
+
 	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryStoreEggSale {
 		for _, payment := range storeSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.StoreSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("2006-01-02"),
-				PlaceName:    payment.StoreSale.Store.Name,
-				Category:     "Store Egg Sale",
+				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
+				Category:     constant.IncomeCategoryStoreEggSale,
 				ItemName:     payment.StoreSale.Item.Name,
 				ItemUnit:     payment.StoreSale.SaleUnit.String(),
 				Quantity:     fmt.Sprintf("%v", payment.StoreSale.Quantity),
@@ -93,9 +119,9 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.WarehouseSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("2006-01-02"),
-				PlaceName:    payment.WarehouseSale.Warehouse.Name,
-				Category:     "Warehouse Egg Sale",
+				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				PlaceName:    payment.WarehouseSale.Warehouse.Location.Name + " - " + payment.WarehouseSale.Warehouse.Name,
+				Category:     constant.IncomeCategoryWarehouseEggSale,
 				ItemName:     payment.WarehouseSale.Item.Name,
 				ItemUnit:     payment.WarehouseSale.SaleUnit.String(),
 				Quantity:     fmt.Sprintf("%v", payment.WarehouseSale.Quantity),
@@ -109,9 +135,9 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("2006-01-02"),
-				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Name, // adjust field
-				Category:     "Afkir Chicken Sale",
+				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Location.Name + " - " + payment.AfkirChickenSale.ChickenCage.Cage.Name,
+				Category:     constant.IncomeCategoryAfkirChickenSale,
 				ItemName:     "Afkir Chicken",
 				ItemUnit:     "Ekor",
 				Quantity:     fmt.Sprintf("%v", payment.AfkirChickenSale.TotalSellChicken),
@@ -122,12 +148,11 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
-	totalIncome := len(warehouseSalePayments) + len(storeSalePayments) + len(afkirChickenSalePayments)
 	return dto.IncomeOverviewResponse{
-		IncomePies: dto.IncomePieResponse{
-			WarehouseEggSalePercentage: float64(len(warehouseSalePayments)) / float64(totalIncome) * 100.0,
-			StoreEggSalePercentage:     float64(len(storeSalePayments)) / float64(totalIncome) * 100.0,
-			AfkirChickenSalePercentage: float64(len(afkirChickenSalePayments)) / float64(totalIncome) * 100.0,
+		IncomePie: dto.IncomePieResponse{
+			WarehouseEggSalePercentage: totalWarehouseSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
+			StoreEggSalePercentage:     totalStoreSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
+			AfkirChickenSalePercentage: totalAfkirChickenSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
 		},
 		Incomes: incomeResponses,
 	}, nil
@@ -144,8 +169,8 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 
 		return dto.IncomeResponse{
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("2006-01-02"),
-			Time:                payment.PaymentDate.Format("15:04:05"),
+			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            "Warehouse Egg Sale",
 			PlaceName:           payment.WarehouseSale.Warehouse.Name,
 			CustomerName:        payment.WarehouseSale.Customer.Name,
@@ -170,8 +195,8 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 
 		return dto.IncomeResponse{
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("2006-01-02"),
-			Time:                payment.PaymentDate.Format("15:04:05"),
+			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            "Store Egg Sale",
 			PlaceName:           payment.StoreSale.Store.Name,
 			CustomerName:        payment.StoreSale.Customer.Name,
@@ -196,10 +221,10 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 
 		return dto.IncomeResponse{
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("2006-01-02"),
-			Time:                payment.PaymentDate.Format("15:04:05"),
+			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            "Afkir Chicken Sale",
-			PlaceName:           payment.AfkirChickenSale.ChickenCage.Cage.Name, // adjust if wrong
+			PlaceName:           payment.AfkirChickenSale.ChickenCage.Cage.Name,
 			CustomerName:        payment.AfkirChickenSale.AfkirChickenCustomer.Name,
 			CustomerPhoneNumber: payment.AfkirChickenSale.AfkirChickenCustomer.PhoneNumber,
 			ItemName:            "Afkir Chicken",
@@ -215,6 +240,406 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 
 	default:
 		return dto.IncomeResponse{}, fmt.Errorf("invalid income category")
+	}
+}
+
+func (s *CashflowService) CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error) {
+	s.repository.UseTx(false)
+
+	expenseCategory := enum.ValueOfExpenseCategory(request.ExpenseCategory)
+	if !expenseCategory.IsValid() {
+		s.log.Error("invalid expense category", zap.String("expenseCategory", request.ExpenseCategory))
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid expense category")
+	}
+
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		s.log.Error("invalid nominal", zap.String("nominal", request.Nominal))
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid nominal")
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid payment method")
+	}
+
+	locationType := enum.ValueOfLocationWorkType(request.LocationType)
+	if !locationType.IsValid() {
+		s.log.Error("invalid location", zap.String("location", request.LocationType))
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid location")
+	}
+
+	if request.ReceiverPhoneNumber != "" && request.ReceiverPhoneNumber[:2] != "08" {
+		s.log.Error("invalid phone number", zap.String("phoneNumber", request.LocationType))
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid phone number")
+	} else if request.ReceiverPhoneNumber == "" {
+		request.ReceiverPhoneNumber = "-"
+	}
+
+	data := entity.Expense{
+		ExpenseCategory:     expenseCategory,
+		Name:                request.Name,
+		ReceiverName:        request.ReceiverName,
+		ReceiverPhoneNumber: request.ReceiverPhoneNumber,
+		Nominal:             nominal,
+		PaymentMethod:       paymentMethod,
+		PaymentProof:        request.PaymentProof,
+		Description:         request.Description,
+		LocationId:          request.LocationId,
+		LocationType:        locationType,
+		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	switch locationType {
+	case enum.LocationTypeCage:
+		data.CageId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
+	case enum.LocationTypeStore:
+		data.StoreId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
+	case enum.LocationTypeWarehouse:
+		data.WarehouseId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
+	}
+
+	err = s.repository.CreateExpense(&data)
+	if err != nil {
+		s.log.Error("failed create expense", zap.Error(err))
+		return dto.ExpenseResponse{}, err
+	}
+
+	data, err = s.repository.GetExpense(data.Id)
+	if err != nil {
+		s.log.Error("failed get expense", zap.Error(err))
+		return dto.ExpenseResponse{}, err
+	}
+
+	response := dto.ExpenseResponse{
+		Id:                  data.Id,
+		Date:                data.CreatedAt.Format("02 Jan 2006"),
+		Time:                data.CreatedAt.Format("15:04"),
+		Category:            data.ExpenseCategory.String(),
+		Name:                data.Name,
+		ReceiverName:        data.ReceiverName,
+		ReceiverPhoneNumber: data.ReceiverPhoneNumber,
+		Nominal:             data.Nominal.String(),
+		PaymentMethod:       data.PaymentMethod.String(),
+		PaymentProof:        data.PaymentProof,
+		InputBy:             data.CreatedByUser.Name,
+	}
+
+	switch data.LocationType {
+	case enum.LocationTypeCage:
+		response.PlaceName = data.Cage.Name + " - " + data.Location.Name
+	case enum.LocationTypeStore:
+		response.PlaceName = data.Store.Name + " - " + data.Location.Name
+	case enum.LocationTypeWarehouse:
+		response.PlaceName = data.Warehouse.Name + " - " + data.Location.Name
+	}
+
+	return response, nil
+}
+
+func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter) (dto.ExpenseOverviewResponse, error) {
+	s.repository.UseTx(false)
+
+	expenseResponses := make([]dto.ExpenseListResponse, 0)
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurement payments", zap.Error(err))
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get user salary payments", zap.Error(err))
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
+	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procurement payments", zap.Error(err))
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
+	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
+	expensePayments, err := s.repository.GetExpenses(dto.GetExpenseFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get expenses", zap.Error(err))
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
+	totalPayment := decimal.Zero
+	totalChickenProcurement := decimal.Zero
+	totalWarehouseProcurement := decimal.Zero
+	totalOperational := decimal.Zero
+	totalOther := decimal.Zero
+	totalStaffSalary := decimal.Zero
+
+	for _, p := range chickenProcurementPayments {
+		totalPayment = totalPayment.Add(p.Nominal)
+		totalChickenProcurement = totalChickenProcurement.Add(p.Nominal)
+	}
+
+	for _, p := range expensePayments {
+		totalPayment = totalPayment.Add(p.Nominal)
+		switch p.ExpenseCategory {
+		case enum.ExpenseCategoryOperational:
+			totalOperational = totalOperational.Add(p.Nominal)
+		case enum.ExpenseCategoryOther:
+			totalOther = totalOther.Add(p.Nominal)
+		}
+	}
+
+	for _, p := range warehouseItemProcurementPayments {
+		totalPayment = totalPayment.Add(p.Nominal)
+		totalWarehouseProcurement = totalWarehouseProcurement.Add(p.Nominal)
+	}
+
+	for _, p := range warehouseItemCornProcurementPayments {
+		totalPayment = totalPayment.Add(p.Nominal)
+		totalWarehouseProcurement = totalWarehouseProcurement.Add(p.Nominal)
+	}
+
+	for _, p := range userSalaryPayments {
+		totalSalary := p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary)
+		totalPayment = totalPayment.Add(totalSalary)
+		totalWarehouseProcurement = totalWarehouseProcurement.Add(totalSalary)
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement {
+		for _, p := range chickenProcurementPayments {
+			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Category:     constant.ExpenseCategoryChickenProcurement,
+				Name:         constant.ExpenseNameChickenProcurement,
+				PlaceName:    p.ChickenProcurement.Cage.Location.Name + " - " + p.ChickenProcurement.Cage.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.ChickenProcurement.Supplier.Name,
+				PaymentProof: p.PaymentProof,
+			})
+		}
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryWarehouseProcurement {
+		for _, p := range warehouseItemProcurementPayments {
+			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Category:     constant.ExpenseCategoryWarehouseProcurement,
+				Name:         constant.ExpenseNameWarehouseItemProcurement,
+				PlaceName:    p.WarehouseItemProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemProcurement.Warehouse.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.WarehouseItemProcurement.Supplier.Name,
+				PaymentProof: p.PaymentProof,
+			})
+		}
+		for _, p := range warehouseItemCornProcurementPayments {
+			totalPayment = totalPayment.Add(p.Nominal)
+			totalWarehouseProcurement = totalWarehouseProcurement.Add(p.Nominal)
+			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Category:     constant.ExpenseCategoryWarehouseProcurement,
+				Name:         constant.ExpenseNameWarehouseItemCornProcurement,
+				PlaceName:    p.WarehouseItemCornProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemCornProcurement.Warehouse.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.WarehouseItemCornProcurement.Supplier.Name,
+				PaymentProof: p.PaymentProof,
+			})
+		}
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryStaff {
+		for _, p := range userSalaryPayments {
+			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Category:     constant.ExpenseCategoryStaff,
+				Name:         constant.ExpenseNameSalary,
+				PlaceName:    p.User.Location.Name,
+				Nominal:      p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary).String(),
+				ReceiverName: p.User.Name,
+				PaymentProof: p.PaymentProof,
+			})
+		}
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryOperational {
+		for _, p := range expensePayments {
+			response := dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Category:     p.ExpenseCategory.String(),
+				Name:         p.Name,
+				PlaceName:    p.Location.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.ReceiverName,
+				PaymentProof: p.PaymentProof,
+			}
+
+			switch p.LocationType {
+			case enum.LocationTypeCage:
+				response.PlaceName = p.Cage.Name + " - " + p.Location.Name
+			case enum.LocationTypeStore:
+				response.PlaceName = p.Store.Name + " - " + p.Location.Name
+			case enum.LocationTypeWarehouse:
+				response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
+			}
+
+			expenseResponses = append(expenseResponses, response)
+		}
+	}
+
+	return dto.ExpenseOverviewResponse{
+		ExpensePie: dto.ExpensePieResponse{
+			StaffPercentage:                totalStaffSalary.Div(totalPayment).InexactFloat64() * 100.0,
+			ChikckenProcuremtnPercentage:   totalChickenProcurement.Div(totalPayment).InexactFloat64() * 100.0,
+			WarehouseProcurementPercentage: totalWarehouseProcurement.Div(totalPayment).InexactFloat64() * 100.0,
+			OperationalPercentage:          totalOperational.Div(totalPayment).InexactFloat64() * 100.0,
+			OtherPercentage:                totalOther.Div(totalPayment).InexactFloat64() * 100.0,
+		},
+		Expenses: expenseResponses,
+	}, nil
+}
+
+func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.ExpenseResponse, error) {
+	s.repository.UseTx(false)
+
+	switch expenseCategory {
+	case constant.ExpenseCategoryOperational:
+		expense, err := s.repository.GetExpense(id)
+		if err != nil {
+			s.log.Error("failed get operational expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		return dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.CreatedAt.Format("2006-01-02"),
+			Time:                expense.CreatedAt.Format("15:04:05"),
+			Category:            "Operational",
+			PlaceName:           expense.Location.Name,
+			Name:                expense.Name,
+			ReceiverName:        expense.ReceiverName,
+			ReceiverPhoneNumber: expense.ReceiverPhoneNumber,
+			Nominal:             expense.Nominal.String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}, nil
+
+	case constant.ExpenseCategoryChickenProcurement:
+		expense, err := s.repository.GetChickenProcurementPaymentById(id)
+		if err != nil {
+			s.log.Error("failed get chicken procurement expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		return dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.PaymentDate.Format("2006-01-02"),
+			Time:                expense.PaymentDate.Format("15:04:05"),
+			Category:            "Chicken Procurement",
+			PlaceName:           expense.ChickenProcurement.Cage.Location.Name,
+			Name:                "Chicken Procurement",
+			ReceiverName:        expense.ChickenProcurement.Supplier.Name,
+			ReceiverPhoneNumber: expense.ChickenProcurement.Supplier.PhoneNumber,
+			Nominal:             expense.Nominal.String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}, nil
+
+	case constant.ExpenseCategoryWarehouseProcurement:
+		expense, err := s.repository.GetWarehouseItemProcurementPaymentById(id)
+		if err != nil {
+			s.log.Error("failed get warehouse item procurement expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		return dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.PaymentDate.Format("2006-01-02"),
+			Time:                expense.PaymentDate.Format("15:04:05"),
+			Category:            "Warehouse Procurement",
+			PlaceName:           expense.WarehouseItemProcurement.Warehouse.Location.Name,
+			Name:                expense.WarehouseItemProcurement.Item.Name,
+			ReceiverName:        expense.WarehouseItemProcurement.Supplier.Name,
+			ReceiverPhoneNumber: expense.WarehouseItemProcurement.Supplier.PhoneNumber,
+			Nominal:             expense.Nominal.String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}, nil
+
+	case constant.ExpenseCategoryStaff:
+		expense, err := s.repository.GetUserSalaryPaymentById(id)
+		if err != nil {
+			s.log.Error("failed get user salary expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		return dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.CreatedAt.Format("2006-01-02"),
+			Time:                expense.CreatedAt.Format("15:04:05"),
+			Category:            "Staff",
+			PlaceName:           "Salary Payment",
+			Name:                expense.User.Name,
+			ReceiverName:        expense.User.Name,
+			ReceiverPhoneNumber: expense.User.PhoneNumber,
+			Nominal:             expense.BaseSalary.Add(expense.BonusSalary).Add(expense.CompentationSalary).Add(expense.AdditionalWorkSalary).String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}, nil
+
+	case constant.ExpenseCategoryOther:
+		expense, err := s.repository.GetExpense(id)
+		if err != nil {
+			s.log.Error("failed get other expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		return dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.CreatedAt.Format("2006-01-02"),
+			Time:                expense.CreatedAt.Format("15:04:05"),
+			Category:            "Other",
+			PlaceName:           expense.Location.Name,
+			Name:                expense.Name,
+			ReceiverName:        expense.ReceiverName,
+			ReceiverPhoneNumber: expense.ReceiverPhoneNumber,
+			Nominal:             expense.Nominal.String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}, nil
+
+	default:
+		return dto.ExpenseResponse{}, fmt.Errorf("invalid expense category")
 	}
 }
 

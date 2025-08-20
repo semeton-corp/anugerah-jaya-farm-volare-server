@@ -157,7 +157,7 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 		}
 
 		graphs = append(graphs, dto.ProductionAndSaleEggGraphResponse{
-			Key:        day.Format("2006-01-02"),
+			Key:        day.Format("02 Jan 2006"),
 			Production: production,
 			Sale:       sale,
 		})

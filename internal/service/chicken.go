@@ -342,7 +342,7 @@ func (c *ChickenService) buildWeeklyGraph(locationId uint64, cageId uint64) ([]d
 			}
 		}
 		graphs = append(graphs, dto.ChickenGraphResponse{
-			Key:          day.Format("2006-01-02"),
+			Key:          day.Format("02 Jan 2006"),
 			SickChicken:  sickSum,
 			DeathChicken: deathSum,
 		})

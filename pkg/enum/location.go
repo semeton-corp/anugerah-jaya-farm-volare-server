@@ -1,36 +1,36 @@
 package enum
 
-type LocationWorkType uint8
+type LocationType uint8
 
 const (
-	LocationWorkTypeUnknown   LocationWorkType = 0
-	LocationWorkTypeCage      LocationWorkType = 1
-	LocationWorkTypeStore     LocationWorkType = 2
-	LocationWorkTypeWarehouse LocationWorkType = 3
+	LocationTypeUnknown   LocationType = 0
+	LocationTypeCage      LocationType = 1
+	LocationTypeStore     LocationType = 2
+	LocationTypeWarehouse LocationType = 3
 )
 
 var (
-	LocationWorkTypeMap = map[LocationWorkType]string{
-		LocationWorkTypeCage:      "Kandang",
-		LocationWorkTypeStore:     "Toko",
-		LocationWorkTypeWarehouse: "Gudang",
+	LocationWorkTypeMap = map[LocationType]string{
+		LocationTypeCage:      "Kandang",
+		LocationTypeStore:     "Toko",
+		LocationTypeWarehouse: "Gudang",
 	}
 )
 
-func (c LocationWorkType) String() string {
+func (c LocationType) String() string {
 	return LocationWorkTypeMap[c]
 }
 
-func ValueOfLocationWorkType(value string) LocationWorkType {
+func ValueOfLocationWorkType(value string) LocationType {
 	for k, v := range LocationWorkTypeMap {
 		if v == value {
 			return k
 		}
 	}
-	return LocationWorkTypeUnknown
+	return LocationTypeUnknown
 }
 
-func (c LocationWorkType) IsValid() bool {
+func (c LocationType) IsValid() bool {
 	_, ok := LocationWorkTypeMap[c]
 	return ok
 }

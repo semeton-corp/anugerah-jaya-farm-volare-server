@@ -1,6 +1,8 @@
 package dto
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+import (
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
 
 type IncomePieResponse struct {
 	WarehouseEggSalePercentage float64 `json:"warehouseEggSalePercentage"`
@@ -42,8 +44,8 @@ type IncomeResponse struct {
 }
 
 type IncomeOverviewResponse struct {
-	IncomePies IncomePieResponse    `json:"incomePies"`
-	Incomes    []IncomeListResponse `json:"incomes"`
+	IncomePie IncomePieResponse    `json:"incomePie"`
+	Incomes   []IncomeListResponse `json:"incomes"`
 }
 
 type GetIncomeOverviewFilter struct {
@@ -52,19 +54,49 @@ type GetIncomeOverviewFilter struct {
 	IncomeCategory string           `query:"category" validate:"required,incomeCategory"`
 }
 
-type ExpenseGraphResponse struct {
-	Key        string  `json:"key"`
-	Percentage float64 `json:"percentage"`
+type ExpensePieResponse struct {
+	StaffPercentage                float64 `json:"staffPercentage"`
+	OperationalPercentage          float64 `json:"operationalPercentage"`
+	ChikckenProcuremtnPercentage   float64 `json:"chickenProcurementPercentage"`
+	WarehouseProcurementPercentage float64 `json:"warehouseItemProcurementPercentage"`
+	OtherPercentage                float64 `json:"otherPercentage"`
 }
 
 type ExpenseListResponse struct {
+	Id           uint64 `json:"id"`
+	Date         string `json:"date"`
+	Category     string `json:"category"`
+	Name         string `json:"name"`
+	PlaceName    string `json:"location"`
+	Nominal      string `json:"string"`
+	ReceiverName string `json:"receiverName"`
+	PaymentProof string `json:"paymentProof"`
+}
+
+type ExpenseResponse struct {
+	Id                  uint64 `json:"id"`
+	Date                string `json:"date"`
+	Time                string `json:"time"`
+	Category            string `json:"category"`
+	PlaceName           string `json:"placeName"`
+	Name                string `json:"name"`
+	ReceiverName        string `json:"receiverName"`
+	ReceiverPhoneNumber string `json:"receiverPhoneNumber"`
+	Nominal             string `json:"nominal"`
+	PaymentMethod       string `json:"paymentMethod"`
+	PaymentProof        string `json:"paymentProof"`
+	InputBy             string `json:"inputBy "`
 }
 
 type ExpenseOverviewResponse struct {
-	ExpenseGraphs []ExpenseGraphResponse `json:"expenseGraphs"`
+	ExpensePie ExpensePieResponse    `json:"expensePie"`
+	Expenses   []ExpenseListResponse `json:"expenses"`
 }
 
 type GetExpenseOverviewFilter struct {
+	Month           param.MonthParam `query:"month" validate:"required"`
+	Year            uint64           `query:"year" validate:"required"`
+	ExpenseCategory string           `query:"category" validate:"required,expenseCategory"`
 }
 
 type GetReceivablesOverviewFilter struct {
@@ -76,4 +108,23 @@ type GetDebtOverviewFilter struct {
 type GetSaleCashflowFilter struct {
 	Year  uint64           `query:"year"`
 	Month param.MonthParam `query:"month"`
+}
+
+type CreateExpenseRequest struct {
+	ExpenseCategory     string `json:"expenseCategory" validate:"required,expenseCategory"`
+	LocationId          uint64 `json:"locationId" validate:"required,min=1"`
+	LocationType        string `json:"locationType" validate:"required"`
+	PlaceId             uint64 `json:"placeId" validate:"required"`
+	Name                string `json:"name" validate:"required"`
+	ReceiverName        string `json:"receiverName" validate:"required"`
+	ReceiverPhoneNumber string `json:"receiverPhoneNumber"`
+	Nominal             string `json:"nominal" validate:"required"`
+	PaymentMethod       string `json:"paymentMethod" validate:"required,paymentMethod"`
+	PaymentProof        string `json:"paymentProof" validate:"required"`
+	Description         string `json:"description"`
+}
+
+type GetExpenseFilter struct {
+	StartDate param.DateParam `query:"startDate"`
+	EndDate   param.DateParam `query:"endDate"`
 }
