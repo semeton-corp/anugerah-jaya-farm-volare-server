@@ -165,6 +165,9 @@ func (r *WarehouseRepository) GetWarehouseById(id uint64) (entity.Warehouse, err
 	var warehouse entity.Warehouse
 	err := r.GetDB().Model(&entity.Warehouse{}).Preload("Location").Where("id = ?", id).First(&warehouse).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.Warehouse{}, errx.NotFound("warehouse not found")
+		}
 		return entity.Warehouse{}, err
 	}
 
@@ -546,6 +549,9 @@ func (r *WarehouseRepository) GetWarehouseItemProcurement(id uint64) (entity.War
 		return db.Order("created_at ASC")
 	}).Where("id = ?", id).First(&data).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseItemProcurement{}, errx.NotFound("warehouse item procurement not found")
+		}
 		return entity.WarehouseItemProcurement{}, err
 	}
 
@@ -630,6 +636,9 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurement(id uint64) (entity
 	var warehouseItemCornProcurement entity.WarehouseItemCornProcurement
 	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Preload("Warehouse.Location").Preload("Payments").Preload("Supplier").Where("id = ?", id).First(&warehouseItemCornProcurement).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseItemCornProcurement{}, errx.NotFound("failed warehouse item corn procurement")
+		}
 		return entity.WarehouseItemCornProcurement{}, err
 	}
 

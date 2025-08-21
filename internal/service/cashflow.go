@@ -1175,6 +1175,18 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 	}
 }
 
+func (s *CashflowService) PayUserSalaryPayment(request dto.PayUserSalaryPaymentRequest, userId uuid.UUID) (dto.UserSalaryPaymentResponse, error) {
+	return dto.UserSalaryPaymentResponse{}, nil
+}
+
+func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto.DebtOverviewResponse, error) {
+	return dto.DebtOverviewResponse{}, nil
+}
+
+func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtResponse, error) {
+	return dto.DebtResponse{}, nil
+}
+
 func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 

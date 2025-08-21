@@ -199,10 +199,17 @@ type GetWarehouseItemHistoryFilter struct {
 	Page uint64          `query:"page"`
 }
 
-type EggWarehouseItemSummary struct {
+type EggWarehouseItemSummaryResponse struct {
 	Name     string  `json:"name"`
 	Quantity float64 `json:"quantity"`
 	Unit     string  `json:"unit"`
+}
+
+type CornWarehouseItemSummaryResponse struct {
+	Warehouse WarehouseResponse `json:"warehouse"`
+	Name      string            `json:"name"`
+	Quantity  float64           `json:"quantity"`
+	Unit      string            `json:"unit"`
 }
 
 type GetEggWarehouseItemSummary struct {

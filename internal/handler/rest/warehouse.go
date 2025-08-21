@@ -48,6 +48,8 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/:id", middleware.Authentication(), h.GetWarehouseDetail)
 
 	v1.Get("/items/eggs/summary/:warehouseId", middleware.Authentication(), h.GetEggWarehouseItemSummary)
+	v1.Get("/items/corns/summary/:warehouseId", middleware.Authentication(), h.GetCornWarehouseItemSummary)
+
 	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
 	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
 	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
@@ -377,6 +379,21 @@ func (h *WarehouseHandler) GetEggWarehouseItemSummary(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get egg warehouse item summary")
+}
+
+func (h *WarehouseHandler) GetCornWarehouseItemSummary(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("warehouseId"), 10, 64)
+	if err != nil {
+		h.log.Error("failed to parse warehouse id")
+		return errx.BadRequest("invalid warehouse id")
+	}
+
+	data, err := h.service.GetCornWarehouseItemSummary(id)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get corn warehouse item summary")
 }
 
 func (h *WarehouseHandler) GetWarehouseItemHistories(c *fiber.Ctx) error {

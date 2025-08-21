@@ -106,9 +106,6 @@ type GetReceivablesOverviewFilter struct {
 	ReceieveablesCategory string           `query:"category" validate:"required,receieveablesCategory"`
 }
 
-type GetDebtOverviewFilter struct {
-}
-
 type GetSaleCashflowFilter struct {
 	Year  uint64           `query:"year"`
 	Month param.MonthParam `query:"month"`
@@ -226,4 +223,33 @@ type ReceiveablesPieResponse struct {
 type ReceievablesOverviewResponse struct {
 	ReceivablesPie ReceiveablesPieResponse    `json:"receivablesPie"`
 	Receivables    []ReceiveablesListResponse `json:"receivables"`
+}
+
+type UserSalaryPaymentResponse struct {
+}
+
+type PayUserSalaryPaymentRequest struct {
+}
+
+type DebtListResponse struct {
+}
+
+type DebtResponse struct {
+}
+
+type DebtPaymentResponse struct {
+}
+
+type GetDebtOverviewFilter struct {
+	Month        param.MonthParam `query:"month" validate:"required"`
+	Year         uint64           `query:"year" validate:"required"`
+	DebtCategory string           `query:"category" validate:"required,debtCategory"`
+}
+
+type DebtPie struct{
+	
+}
+
+type DebtOverviewResponse struct {
+	Debts []DebtListResponse `json:"debts"`
 }

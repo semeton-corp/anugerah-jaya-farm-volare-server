@@ -29,6 +29,7 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/chickens/feeds", middleware.Authentication(), h.GetChickenCageFeeds)
 	v1.Get("/chickens/feeds/:chickenCageId", middleware.Authentication(), h.GetChickenCageFeed)
+	v1.Post("/chickens/feeds/:chickenCageId/confirmations", middleware.Authentication(), h.ConfirmationChickenCageFeed)
 	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
 	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
 
@@ -303,4 +304,30 @@ func (h *CageHandler) GetChickenCageFeed(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken cage feed")
+}
+
+func (h *CageHandler) ConfirmationChickenCageFeed(c *fiber.Ctx) error {
+	var request dto.ConfirmationChickenCageFeedRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse body request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	chickenCageId, err := strconv.ParseUint(c.Params("chickenCageId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid chicken cage id param", zap.Error(err))
+		return errx.BadRequest("invalid chicken cage id param")
+	}
+
+	data, err := h.service.ConfirmationChickenCageFeed(chickenCageId, request)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success confirmation chicken feed")
 }

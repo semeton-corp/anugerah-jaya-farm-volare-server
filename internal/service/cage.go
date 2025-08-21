@@ -41,6 +41,8 @@ type ICageService interface {
 	GetCageFeeds() ([]dto.CageFeedResponse, error)
 	GetCageFeed(id uint64) (dto.CageFeedResponse, error)
 
+	ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest) (dto.ChickenCageFeedResponse, error)
+
 	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 }
 
@@ -523,13 +525,13 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	}
 
 	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
-	chickenMonitoring, err := s.repository.GetChickenMonitoringYesterday(chickenCageId, yesterdayDate)
+	chickenMonitoringYesterday, err := s.repository.GetChickenMonitoringYesterday(chickenCageId, yesterdayDate)
 	if err != nil {
 		s.log.Error("failed get chicken monitoring yesterday", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	needCreateFeed := chickenMonitoring.TotalFeed
+	needCreateFeed := chickenMonitoringYesterday.TotalFeed
 	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
 	for _, cageFeedDetail := range chickenCage.Cage.CageFeed.CageFeedDetails {
 		feedDetailResponse = append(feedDetailResponse, dto.FeedDetailResponse{
@@ -540,27 +542,27 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	}
 
 	response := mapper.ChickenCageFeedToResponse(&chickenCage)
-	response.YesterdayTotalFeed = chickenMonitoring.TotalFeed
+	response.YesterdayTotalFeed = chickenMonitoringYesterday.TotalFeed
 	response.TotalFeed = response.ExpectedTotalFeed - response.YesterdayTotalFeed
 	response.FeedDetails = feedDetailResponse
 
 	return response, nil
 }
 
-func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest) error {
+func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest) (dto.ChickenCageFeedResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenCage, err := s.repository.GetChickenCageById(chickenCageId)
 	if err != nil {
 		s.log.Error("failed get chicken cage by id", zap.Error(err))
-		return err
+		return dto.ChickenCageFeedResponse{}, err
 	}
 
 	yesterdayDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, -1)
 	chickenMonitoring, err := s.repository.GetChickenMonitoringYesterday(chickenCageId, yesterdayDate)
 	if err != nil {
 		s.log.Error("failed get chicken monitoring yesterday", zap.Error(err))
-		return err
+		return dto.ChickenCageFeedResponse{}, err
 	}
 
 	chickenCage.IsNeedFeed = false
@@ -577,16 +579,16 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 
 	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse)
 	if err != nil {
-		return err
+		return dto.ChickenCageFeedResponse{}, err
 	}
 
 	err = s.repository.UpdateChickenCage(&chickenCage)
 	if err != nil {
 		s.log.Error("failed update chicken cage", zap.Error(err))
-		return err
+		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	return nil
+	return s.GetChickenCageFeed(chickenCageId)
 }
 
 func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {

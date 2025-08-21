@@ -41,7 +41,8 @@ type IWarehouseService interface {
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (dto.WarehouseItemResponse, error)
 	UpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, updatedBy uuid.UUID) (dto.WarehouseItemResponse, error)
 	DeleteWarehouseItem(warehouseId uint64, itemId uint64) error
-	GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummary, error)
+	GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummaryResponse, error)
+	GetCornWarehouseItemSummary(warehouseId uint64) (dto.CornWarehouseItemSummaryResponse, error)
 
 	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) (dto.WarehouseItemHistoryListPaginationResponse, error)
 	GetWarehouseItemHistoryById(id uint64) (dto.WarehouseItemHistoryResponse, error)
@@ -537,10 +538,40 @@ func (s *WarehouseService) GetWarehouseItemHistoryById(id uint64) (dto.Warehouse
 	return mapper.WarehouseItemHistoryToResponse(&warehouseItemHistory), nil
 }
 
-func (s *WarehouseService) GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummary, error) {
+func (s *WarehouseService) GetCornWarehouseItemSummary(warehouseId uint64) (dto.CornWarehouseItemSummaryResponse, error) {
 	s.repository.UseTx(false)
 
-	response := make([]dto.EggWarehouseItemSummary, 0)
+	warehouse, err := s.repository.GetWarehouseById(warehouseId)
+	if err != nil {
+		s.log.Error("failed get warehouse by id", zap.Error(err))
+		return dto.CornWarehouseItemSummaryResponse{}, err
+	}
+
+	warehouseItemCorns, err := s.repository.GetWarehouseItemCorns(dto.GetWarehouseItemCornFilter{
+		WarehouseId: warehouseId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corns", zap.Error(err))
+		return dto.CornWarehouseItemSummaryResponse{}, err
+	}
+
+	totalQuantity := float64(0)
+	for _, e := range warehouseItemCorns {
+		totalQuantity += e.Quantity
+	}
+
+	return dto.CornWarehouseItemSummaryResponse{
+		Warehouse: mapper.WarehouseToResponse(&warehouse),
+		Name:      constant.Corn,
+		Quantity:  totalQuantity,
+		Unit:      constant.UnitKg,
+	}, nil
+}
+
+func (s *WarehouseService) GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummaryResponse, error) {
+	s.repository.UseTx(false)
+
+	response := make([]dto.EggWarehouseItemSummaryResponse, 0)
 	warehouseItems, err := s.repository.GetWarehouseItems(dto.GetWarehouseItemFilter{
 		WarehouseId: warehouseId,
 		ItemNames:   []string{constant.GoodEgg, constant.CrackedEgg},
@@ -554,25 +585,25 @@ func (s *WarehouseService) GetEggWarehouseItemSummary(warehouseId uint64) ([]dto
 	for _, warehouseItem := range warehouseItems {
 		switch warehouseItem.Item.Name {
 		case constant.GoodEgg:
-			response = append(response, dto.EggWarehouseItemSummary{
+			response = append(response, dto.EggWarehouseItemSummaryResponse{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity,
 				Unit:     constant.UnitKg,
 			})
 
-			response = append(response, dto.EggWarehouseItemSummary{
+			response = append(response, dto.EggWarehouseItemSummaryResponse{
 				Name:     constant.GoodEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
 				Unit:     constant.UnitIkat,
 			})
 		case constant.CrackedEgg:
-			response = append(response, dto.EggWarehouseItemSummary{
+			response = append(response, dto.EggWarehouseItemSummaryResponse{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity,
 				Unit:     constant.UnitKg,
 			})
 
-			response = append(response, dto.EggWarehouseItemSummary{
+			response = append(response, dto.EggWarehouseItemSummaryResponse{
 				Name:     constant.CrackedEgg,
 				Quantity: warehouseItem.Quantity / float64(constant.TotalEggPerIkat),
 				Unit:     constant.UnitIkat,
