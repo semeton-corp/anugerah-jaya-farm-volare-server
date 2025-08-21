@@ -382,7 +382,7 @@ func (r *WarehouseRepository) GetWarehouseSaleById(id uint64) (entity.WarehouseS
 
 func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error) {
 	var warehouseSales []entity.WarehouseSale
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.WarehouseSale{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())

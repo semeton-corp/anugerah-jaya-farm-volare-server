@@ -3,8 +3,10 @@ package repository
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -40,6 +42,20 @@ type ICashflowRepository interface {
 	GetWarehouseItemProcurementPaymentById(id uint64) (entity.WarehouseItemProcurementPayment, error)
 	GetWarehouseItemCornProcurementPaymentById(id uint64) (entity.WarehouseItemCornProcurementPayment, error)
 	GetUserSalaryPaymentById(id uint64) (entity.UserSalaryPayment, error)
+
+	CreateUserCashAdvance(data *entity.UserCashAdvance) error
+	CreateUserCashAdvancePayment(data *entity.UserCashAdvancePayment) error
+	GetUserCashAdvances(filter dto.GetUserCashAdvanceFilter) ([]entity.UserCashAdvance, error)
+	GetUserCashAdvance(id uint64) (entity.UserCashAdvance, error)
+	UpdateUserCashAdvance(data *entity.UserCashAdvance) error
+
+	GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
+	GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
+	GetAfkirChickenSaleCashflows(filter dto.GetAfkirChickenSaleFilter) ([]entity.AfkirChickenSale, error)
+
+	GetStoreSaleCashflow(id uint64) (entity.StoreSale, error)
+	GetWarehouseSaleCashflow(id uint64) (entity.WarehouseSale, error)
+	GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error)
 }
 
 func NewCashflowRepository(db *gorm.DB) ICashflowRepository {
@@ -303,4 +319,144 @@ func (r *CashflowRepository) GetUserSalaryPaymentById(id uint64) (entity.UserSal
 		Preload("CreatedByUser").
 		First(&payment, id).Error
 	return payment, err
+}
+
+func (r *CashflowRepository) CreateUserCashAdvance(data *entity.UserCashAdvance) error {
+	return r.GetDB().Model(&entity.UserCashAdvance{}).Create(data).Error
+}
+
+func (r *CashflowRepository) CreateUserCashAdvancePayment(data *entity.UserCashAdvancePayment) error {
+	return r.GetDB().Model(&entity.UserCashAdvancePayment{}).Create(data).Error
+}
+
+func (r *CashflowRepository) GetUserCashAdvance(id uint64) (entity.UserCashAdvance, error) {
+	var data entity.UserCashAdvance
+	err := r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", id).Preload("User").Preload("Payments").First(&data).Error
+	if err != nil {
+		return entity.UserCashAdvance{}, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFilter) ([]entity.UserCashAdvance, error) {
+	var data []entity.UserCashAdvance
+	query := r.GetDB().Model(&entity.UserCashAdvance{})
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if filter.UserId != uuid.Nil {
+		query = query.Where("user_id = ?", filter.UserId)
+	}
+
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
+	}
+
+	err := query.Preload("Payments").Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) UpdateUserCashAdvance(data *entity.UserCashAdvance) error {
+	return r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", data.Id).Updates(data).Error
+}
+
+func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error) {
+	var storeSales []entity.StoreSale
+	query := r.GetDB().Model(&entity.StoreSale{})
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
+	if err != nil {
+		return nil, err
+	}
+	return storeSales, nil
+}
+
+func (r *CashflowRepository) GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error) {
+	var warehouseSales []entity.WarehouseSale
+	query := r.GetDB().Model(&entity.WarehouseSale{})
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&warehouseSales).Order("created_at DESC").Error
+	if err != nil {
+		return nil, err
+	}
+	return warehouseSales, nil
+}
+
+func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChickenSaleFilter) ([]entity.AfkirChickenSale, error) {
+	var afkirChickenSales []entity.AfkirChickenSale
+	query := r.GetDB().Model(&entity.AfkirChickenSale{})
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	err := query.Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
+	if err != nil {
+		return nil, err
+	}
+	return afkirChickenSales, nil
+}
+
+func (r *CashflowRepository) GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error) {
+	var afkirChickenSale entity.AfkirChickenSale
+	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).First(&afkirChickenSale).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not found")
+		}
+		return entity.AfkirChickenSale{}, err
+	}
+
+	return afkirChickenSale, nil
+}
+
+func (r *CashflowRepository) GetWarehouseSaleCashflow(id uint64) (entity.WarehouseSale, error) {
+	var warehouseSale entity.WarehouseSale
+	err := r.GetDB().Model(&entity.WarehouseSale{}).Where("id = ?", id).First(&warehouseSale).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseSale{}, errx.NotFound("warehouse sale not found")
+		}
+		return entity.WarehouseSale{}, err
+	}
+
+	return warehouseSale, nil
+}
+
+func (r *CashflowRepository) GetStoreSaleCashflow(id uint64) (entity.StoreSale, error) {
+	var storeSale entity.StoreSale
+
+	err := r.GetDB().Model(&entity.StoreSale{}).Where("id = ?", id).First(&storeSale).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StoreSale{}, errx.NotFound("warehouse sale not found")
+		}
+		return entity.StoreSale{}, err
+	}
+
+	return storeSale, nil
 }

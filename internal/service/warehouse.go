@@ -650,6 +650,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		IsSend:              false,
 		SaleUnit:            saleUnit,
 		PaymentType:         paymentType,
+		PaymentStatus:       enum.PaymentStatusNotPaid,
 		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7)},
 		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1420,6 +1421,7 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		IsSend:              false,
 		SaleUnit:            saleUnit,
 		PaymentType:         paymentType,
+		PaymentStatus:       enum.PaymentStatusNotPaid,
 		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
 		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}

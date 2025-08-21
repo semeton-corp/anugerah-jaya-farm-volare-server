@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
@@ -649,21 +650,530 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 	}
 }
 
-// func (s *CashflowService) CreateCashAdvance(request dto.CreateCashAdvanceRequest, userId uuid.UUID) (dto.CashAdvanceResponse, error) {
+func (s *CashflowService) GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.UserCashAdvanceSummaryResponse, error) {
+	s.repository.UseTx(false)
 
-// }
+	paymentStatuses := []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)}
+	data, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		UserId:          userId,
+		PaymentStatuses: paymentStatuses,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-// func (s *CashflowService) CreateCashAdvancePayment(request dto.CreateCashAdvancePaymentRequest, userId uuid.UUID) (dto.CashAdvanceResponse, error) {
+	response := make([]dto.UserCashAdvanceSummaryResponse, 0)
+	for _, e := range data {
+		currentPayment := decimal.Zero
+		for _, p := range e.Payments {
+			currentPayment = currentPayment.Add(p.Nominal)
+		}
 
-// }
+		isMoreThanDeadlinePaymentDate := false
+		if time.Now().After(e.DeadlinePaymentDate) {
+			isMoreThanDeadlinePaymentDate = true
+		}
 
-// func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error) {
+		response = append(response, dto.UserCashAdvanceSummaryResponse{
+			Id:                            e.Id,
+			DeadlinePaymentDate:           e.DeadlinePaymentDate.Format("02 Jan 2006"),
+			Nominal:                       e.Nominal.String(),
+			RemainingPayment:              e.Nominal.Sub(currentPayment).String(),
+			IsMoreThanDeadlinePaymentDate: isMoreThanDeadlinePaymentDate,
+		})
+	}
 
-// }
+	return response, nil
+}
 
-// func (s *CashflowService) GetReceiveables(filter dto.GetReceivablesOverviewFilter) (dto.ReceiveablesResponse, error) {
+func (s *CashflowService) CreateUserCashAdvance(request dto.CreateCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
+	s.repository.UseTx(false)
 
-// }
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("invalid nominal format")
+	}
+
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("invalid deadline payment date format")
+	}
+
+	data := entity.UserCashAdvance{
+		UserId:              uuid.MustParse(request.UserId),
+		Nominal:             nominal,
+		DeadlinePaymentDate: deadlinePaymentDate,
+		PaymentStatus:       enum.PaymentStatusNotPaid,
+		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	err = s.repository.CreateUserCashAdvance(&data)
+	if err != nil {
+		s.log.Error("failed create user cash advance")
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	data, err = s.repository.GetUserCashAdvance(data.Id)
+	if err != nil {
+		s.log.Error("failed get user cash advance", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	userCashAdvancePayments := make([]dto.UserCashAdvancePaymentResponse, len(data.Payments))
+	remainingPayment := data.Nominal
+	for i, storeSalePayment := range data.Payments {
+		userCashAdvancePayments[i] = mapper.UserCashAdvancePaymentToResponse(&storeSalePayment)
+		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		userCashAdvancePayments[i].Remaining = remainingPayment.String()
+	}
+
+	response := dto.UserCashAdvanceResponse{
+		Id:                      data.Id,
+		User:                    mapper.UserToListResponse(&data.User),
+		Nominal:                 data.Nominal.String(),
+		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		UserCashAdvancePayments: userCashAdvancePayments,
+		RemainingPayment:        remainingPayment.String(),
+	}
+
+	return response, nil
+}
+
+func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUsereCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	data, err := s.repository.GetUserCashAdvance(userCashAdvanceId)
+	if err != nil {
+		s.log.Error("failed get user cash advance", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
+	if err != nil {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("invalid payment date format")
+	}
+
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("invalid payment method")
+	}
+
+	nominal, err := decimal.NewFromString(request.Nominal)
+	if err != nil {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("invalid nominal format")
+	}
+
+	currentPayment := nominal
+	for _, payment := range data.Payments {
+		currentPayment = currentPayment.Add(payment.Nominal)
+	}
+
+	if currentPayment.GreaterThan(data.Nominal) {
+		return dto.UserCashAdvanceResponse{}, errx.BadRequest("nominal more than needed")
+	} else if currentPayment.Equal(data.Nominal) {
+		data.PaymentStatus = enum.PaymentStatusPaid
+	} else if currentPayment.LessThan(data.Nominal) {
+		data.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	payment := entity.UserCashAdvancePayment{
+		UserCashAdvanceId: userCashAdvanceId,
+		Nominal:           nominal,
+		PaymentDate:       paymentDate,
+		PaymentMethod:     paymentMethod,
+		PaymentProof:      request.PaymentProof,
+	}
+
+	err = s.repository.CreateUserCashAdvancePayment(&payment)
+	if err != nil {
+		s.log.Error("failed create user cash advance payment", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	err = s.repository.UpdateUserCashAdvance(&data)
+	if err != nil {
+		s.log.Error("failed update user cash advance", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	data, err = s.repository.GetUserCashAdvance(data.Id)
+	if err != nil {
+		s.log.Error("failed get user cash advance", zap.Error(err))
+		return dto.UserCashAdvanceResponse{}, err
+	}
+
+	userCashAdvancePayments := make([]dto.UserCashAdvancePaymentResponse, len(data.Payments))
+	remainingPayment := data.Nominal
+	for i, storeSalePayment := range data.Payments {
+		userCashAdvancePayments[i] = mapper.UserCashAdvancePaymentToResponse(&storeSalePayment)
+		remainingPayment = remainingPayment.Sub(storeSalePayment.Nominal)
+		userCashAdvancePayments[i].Remaining = remainingPayment.String()
+	}
+
+	response := dto.UserCashAdvanceResponse{
+		Id:                      data.Id,
+		User:                    mapper.UserToListResponse(&data.User),
+		Nominal:                 data.Nominal.String(),
+		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		UserCashAdvancePayments: userCashAdvancePayments,
+		RemainingPayment:        remainingPayment.String(),
+	}
+
+	return response, nil
+}
+
+func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error) {
+	s.repository.UseTx(false)
+
+	receieveables := make([]dto.ReceiveablesListResponse, 0)
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get store sale cashflows", zap.Error(err))
+		return dto.ReceievablesOverviewResponse{}, err
+	}
+
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
+		return dto.ReceievablesOverviewResponse{}, err
+	}
+
+	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
+		return dto.ReceievablesOverviewResponse{}, err
+	}
+
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advances", zap.Error(err))
+		return dto.ReceievablesOverviewResponse{}, err
+	}
+
+	totalPayment := decimal.Zero
+	totalReceivablesPayment := decimal.Zero
+	totalRemainingPayment := decimal.Zero
+
+	for _, e := range storeSales {
+		totalPayment = totalPayment.Add(e.TotalPrice)
+		totalCurrentReceieveablesPayment := decimal.Zero
+		for _, p := range e.Payments {
+			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+		}
+		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
+		totalRemainingPayment = totalRemainingPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+	}
+
+	for _, e := range warehouseSales {
+		totalPayment = totalPayment.Add(e.TotalPrice)
+		totalCurrentReceieveablesPayment := decimal.Zero
+		for _, p := range e.Payments {
+			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+		}
+		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
+		totalRemainingPayment = totalRemainingPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+	}
+
+	for _, e := range afkirChickenSales {
+		totalPayment = totalPayment.Add(e.TotalPrice)
+		totalCurrentReceieveablesPayment := decimal.Zero
+		for _, p := range e.Payments {
+			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+		}
+		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
+		totalRemainingPayment = totalRemainingPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+	}
+
+	for _, e := range userCashAdvances {
+		totalPayment = totalPayment.Add(e.Nominal)
+		totalCurrentReceieveablesPayment := decimal.Zero
+		for _, p := range e.Payments {
+			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+		}
+		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
+		totalRemainingPayment = totalRemainingPayment.Add(e.Nominal.Sub(totalCurrentReceieveablesPayment))
+	}
+
+	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
+		for _, e := range warehouseSales {
+			receieveable := dto.ReceiveablesListResponse{
+				Id:                  e.Id,
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				PlaceName:           e.Warehouse.Location.Name + " - " + e.Warehouse.Name,
+				Name:                e.Customer.Name,
+				PhoneNumber:         e.Customer.PhoneNumber,
+				TotalNominal:        e.TotalPrice.String(),
+				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			totalCurrentPayment := decimal.Zero
+			for _, p := range e.Payments {
+				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+			}
+
+			receieveable.RemainingPayment = e.TotalPrice.Sub(totalCurrentPayment).String()
+
+			receieveables = append(receieveables, receieveable)
+		}
+	}
+
+	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryStoreEggSale {
+		for _, e := range storeSales {
+			receieveable := dto.ReceiveablesListResponse{
+				Id:                  e.Id,
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
+				Name:                e.Customer.Name,
+				PhoneNumber:         e.Customer.PhoneNumber,
+				TotalNominal:        e.TotalPrice.String(),
+				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			totalCurrentPayment := decimal.Zero
+			for _, p := range e.Payments {
+				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+			}
+
+			receieveable.RemainingPayment = e.TotalPrice.Sub(totalCurrentPayment).String()
+
+			receieveables = append(receieveables, receieveable)
+		}
+	}
+
+	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
+		for _, e := range afkirChickenSales {
+			receieveable := dto.ReceiveablesListResponse{
+				Id:                  e.Id,
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				PlaceName:           e.ChickenCage.Cage.Location.Name + " - " + e.ChickenCage.Cage.Name,
+				Name:                e.AfkirChickenCustomer.Name,
+				PhoneNumber:         e.AfkirChickenCustomer.PhoneNumber,
+				TotalNominal:        e.TotalPrice.String(),
+				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			totalCurrentPayment := decimal.Zero
+			for _, p := range e.Payments {
+				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+			}
+
+			receieveable.RemainingPayment = e.TotalPrice.Sub(totalCurrentPayment).String()
+
+			receieveables = append(receieveables, receieveable)
+		}
+	}
+
+	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryCashAdvance {
+		for _, e := range userCashAdvances {
+			receieveable := dto.ReceiveablesListResponse{
+				Id:                  e.Id,
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Format("02 Jan 2006"),
+				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				PlaceName:           e.User.Location.Name,
+				Name:                e.User.Name,
+				PhoneNumber:         e.User.PhoneNumber,
+				TotalNominal:        e.Nominal.String(),
+				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			totalCurrentPayment := decimal.Zero
+			for _, p := range e.Payments {
+				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+			}
+
+			receieveable.RemainingPayment = e.Nominal.Sub(totalCurrentPayment).String()
+
+			receieveables = append(receieveables, receieveable)
+		}
+	}
+
+	return dto.ReceievablesOverviewResponse{
+		ReceivablesPie: dto.ReceiveablesPieResponse{},
+		Receivables:    receieveables,
+	}, nil
+}
+
+func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceiveablesResponse, error) {
+	s.repository.UseTx(false)
+
+	switch receieveablesCategory {
+	case constant.ReceieveablesCategoryWarehouseEggSale:
+		data, err := s.repository.GetWarehouseSaleCashflow(id)
+		if err != nil {
+			s.log.Error("failed get warehouse cashflow", zap.Error(err))
+			return dto.ReceiveablesResponse{}, err
+		}
+
+		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		totalRemainingPayment := data.TotalPrice
+		for _, e := range data.Payments {
+			paymentResponse := dto.ReceieveablesPaymentResponse{
+				Id:            e.Id,
+				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Nominal:       e.Nominal.String(),
+				PaymentMethod: e.PaymentMethod.String(),
+				PaymentProof:  e.PaymentProof,
+			}
+
+			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			paymentResponses = append(paymentResponses, paymentResponse)
+		}
+
+		return dto.ReceiveablesResponse{
+			Id:                    data.Id,
+			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Time:                  data.CreatedAt.Format("15:04"),
+			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			PlaceName:             data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
+			Name:                  data.Customer.Name,
+			PhoneNumber:           data.Customer.PhoneNumber,
+			RemainingPayment:      totalRemainingPayment.String(),
+			PaymentType:           data.PaymentType.String(),
+			PaymentStatus:         data.PaymentStatus.String(),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			InputBy:               data.CreatedByUser.Name,
+			ReceieveablesPayments: paymentResponses,
+		}, nil
+	case constant.ReceieveablesCategoryStoreEggSale:
+		data, err := s.repository.GetStoreSaleCashflow(id)
+		if err != nil {
+			s.log.Error("failed get warehouse cashflow", zap.Error(err))
+			return dto.ReceiveablesResponse{}, err
+		}
+
+		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		totalRemainingPayment := data.TotalPrice
+		for _, e := range data.Payments {
+			paymentResponse := dto.ReceieveablesPaymentResponse{
+				Id:            e.Id,
+				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Nominal:       e.Nominal.String(),
+				PaymentMethod: e.PaymentMethod.String(),
+				PaymentProof:  e.PaymentProof,
+			}
+
+			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			paymentResponses = append(paymentResponses, paymentResponse)
+		}
+
+		return dto.ReceiveablesResponse{
+			Id:                    data.Id,
+			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Time:                  data.CreatedAt.Format("15:04"),
+			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			PlaceName:             data.Store.Location.Name + " - " + data.Store.Name,
+			Name:                  data.Customer.Name,
+			PhoneNumber:           data.Customer.PhoneNumber,
+			RemainingPayment:      totalRemainingPayment.String(),
+			PaymentType:           data.PaymentType.String(),
+			PaymentStatus:         data.PaymentStatus.String(),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			InputBy:               data.CreatedByUser.Name,
+			ReceieveablesPayments: paymentResponses,
+		}, nil
+	case constant.ReceieveablesCategoryAfkirChickenSale:
+		data, err := s.repository.GetAfkirChickenSaleCashflow(id)
+		if err != nil {
+			s.log.Error("failed get warehouse cashflow", zap.Error(err))
+			return dto.ReceiveablesResponse{}, err
+		}
+
+		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		totalRemainingPayment := data.TotalPrice
+		for _, e := range data.Payments {
+			paymentResponse := dto.ReceieveablesPaymentResponse{
+				Id:            e.Id,
+				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Nominal:       e.Nominal.String(),
+				PaymentMethod: e.PaymentMethod.String(),
+				PaymentProof:  e.PaymentProof,
+			}
+
+			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			paymentResponses = append(paymentResponses, paymentResponse)
+		}
+
+		return dto.ReceiveablesResponse{
+			Id:                    data.Id,
+			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Time:                  data.CreatedAt.Format("15:04"),
+			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			PlaceName:             data.ChickenCage.Cage.Location.Name + " - " + data.ChickenCage.Cage.Name,
+			Name:                  data.AfkirChickenCustomer.Name,
+			PhoneNumber:           data.AfkirChickenCustomer.PhoneNumber,
+			RemainingPayment:      totalRemainingPayment.String(),
+			PaymentType:           data.PaymentType.String(),
+			PaymentStatus:         data.PaymentStatus.String(),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			InputBy:               data.CreatedByUser.Name,
+			ReceieveablesPayments: paymentResponses,
+		}, nil
+
+	case constant.ReceieveablesCategoryCashAdvance:
+		data, err := s.repository.GetUserCashAdvance(id)
+		if err != nil {
+			s.log.Error("failed get warehouse cashflow", zap.Error(err))
+			return dto.ReceiveablesResponse{}, err
+		}
+
+		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		totalRemainingPayment := data.Nominal
+		for _, e := range data.Payments {
+			paymentResponse := dto.ReceieveablesPaymentResponse{
+				Id:            e.Id,
+				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Nominal:       e.Nominal.String(),
+				PaymentMethod: e.PaymentMethod.String(),
+				PaymentProof:  e.PaymentProof,
+			}
+
+			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			paymentResponses = append(paymentResponses, paymentResponse)
+		}
+
+		return dto.ReceiveablesResponse{
+			Id:                    data.Id,
+			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Time:                  data.CreatedAt.Format("15:04"),
+			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			PlaceName:             data.User.Location.Name,
+			Name:                  data.User.Name,
+			PhoneNumber:           data.User.PhoneNumber,
+			RemainingPayment:      totalRemainingPayment.String(),
+			PaymentType:           enum.PaymentTypeinstallment.String(),
+			PaymentStatus:         data.PaymentStatus.String(),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Format("02 Jan 2006"),
+			InputBy:               data.CreatedByUser.Name,
+			ReceieveablesPayments: paymentResponses,
+		}, nil
+	default:
+		return dto.ReceiveablesResponse{}, errx.BadRequest("invalid receieveabels category")
+	}
+}
 
 func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))

@@ -430,7 +430,10 @@ type AfkirChickenSalePaymentResponse struct {
 }
 
 type GetAfkirChickenSaleFilter struct {
-	Page uint64 `query:"page"`
+	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
+	Page                     uint64                   `query:"page"`
 }
 
 type GetChickenPerformanceFilter struct {

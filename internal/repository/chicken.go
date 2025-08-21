@@ -446,6 +446,10 @@ func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleF
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
 	err := query.Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err

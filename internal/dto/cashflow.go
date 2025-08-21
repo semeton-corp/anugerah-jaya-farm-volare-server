@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
 
@@ -100,6 +101,9 @@ type GetExpenseOverviewFilter struct {
 }
 
 type GetReceivablesOverviewFilter struct {
+	Month                 param.MonthParam `query:"month" validate:"required"`
+	Year                  uint64           `query:"year" validate:"required"`
+	ReceieveablesCategory string           `query:"category" validate:"required,receieveablesCategory"`
 }
 
 type GetDebtOverviewFilter struct {
@@ -130,26 +134,75 @@ type GetExpenseFilter struct {
 }
 
 type CreateCashAdvanceRequest struct {
-	UserId  string `json:"userId" validate:"required"`
-	Nominal string `json:"nominal" validate:"required"`
+	UserId              string `json:"userId" validate:"required"`
+	Nominal             string `json:"nominal" validate:"required"`
+	DeadlinePaymentDate string `json:"deadlinePaymentDate" validate:"required"`
 }
 
-type CashAdvanceResponse struct {
+type UserCashAdvanceSummaryResponse struct {
+	Id                            uint64 `json:"id"`
+	DeadlinePaymentDate           string `json:"deadlinePaymentDate"`
+	IsMoreThanDeadlinePaymentDate bool   `json:"isMoreThanDeadlinePaymentDate"`
+	Nominal                       string `json:"nominal"`
+	RemainingPayment              string `json:"remainingPayment"`
 }
 
-type CreateCashAdvancePaymentRequest struct {
+type UserCashAdvancePaymentResponse struct {
+	Id            uint64 `json:"id"`
+	Date          string `json:"date"`
+	Nominal       string `json:"nominal"`
+	Remaining     string `json:"remaining"`
+	PaymentMethod string `json:"paymentMethod"`
+	PaymentProof  string `json:"paymentProof"`
+}
+
+type UserCashAdvanceResponse struct {
+	Id                      uint64                           `json:"id"`
+	User                    UserListResponse                 `json:"user"`
+	Nominal                 string                           `json:"nominal"`
+	DeadlinePaymentDate     string                           `json:"deadlinePaymentDate"`
+	PaymentStatus           string                           `json:"deadlinePaymentStatus"`
+	UserCashAdvancePayments []UserCashAdvancePaymentResponse `json:"payments"`
+	RemainingPayment        string                           `json:"remainingPayment"`
+}
+type CreateUsereCashAdvancePaymentRequest struct {
+	PaymentDate   string `json:"paymentDate" validate:"required"`
+	Nominal       string `json:"nominal" validate:"required,number"`
+	PaymentProof  string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+}
+
+type GetUserCashAdvanceFilter struct {
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	UserId                   uuid.UUID                  `query:"userId"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 }
 
 type ReceiveablesResponse struct {
-	Id               uint64 `json:"id"`
-	Date             string `json:"date"`
-	Time             string `json:"time"`
-	Category         string `json:"category"`
-	PlaceName        string `json:"placeName"`
-	Name             string `json:"name"`
-	PhoneNumber      string `json:"phoneNumber"`
-	RemainingPayment string `json:"remainingPayment"`
-	InputBy          string `json:"inputBy"`
+	Id                    uint64                         `json:"id"`
+	Date                  string                         `json:"date"`
+	Time                  string                         `json:"time"`
+	Category              string                         `json:"category"`
+	PlaceName             string                         `json:"placeName"`
+	Name                  string                         `json:"name"`
+	PhoneNumber           string                         `json:"phoneNumber"`
+	RemainingPayment      string                         `json:"remainingPayment"`
+	PaymentType           string                         `json:"paymentType"`
+	PaymentStatus         string                         `json:"paymentStatus"`
+	DeadlinePaymentDate   string                         `json:"deadlinePaymentDate"`
+	InputBy               string                         `json:"inputBy"`
+	ReceieveablesPayments []ReceieveablesPaymentResponse `json:"payments"`
+}
+
+type ReceieveablesPaymentResponse struct {
+	Id            uint64 `json:"id"`
+	Date          string `json:"date"`
+	Nominal       string `json:"nominal"`
+	Remaining     string `json:"remaining"`
+	PaymentMethod string `json:"paymentMethod"`
+	PaymentProof  string `json:"paymentProof"`
 }
 
 type ReceiveablesListResponse struct {

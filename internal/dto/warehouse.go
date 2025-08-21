@@ -210,11 +210,13 @@ type GetEggWarehouseItemSummary struct {
 }
 
 type GetWarehouseSaleFilter struct {
-	Date          param.DateParam          `query:"date"`
-	PaymentMethod param.PaymentMethodParam `query:"paymentMethod"`
-	Page          uint64                   `query:"page"`
-	StartDate     param.DateParam
-	EndDate       param.DateParam
+	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
+	Date                     param.DateParam          `query:"date"`
+	PaymentMethod            param.PaymentMethodParam `query:"paymentMethod"`
+	Page                     uint64                   `query:"page"`
+	StartDate                param.DateParam
+	EndDate                  param.DateParam
 }
 
 type WarehouseSaleResponse struct {

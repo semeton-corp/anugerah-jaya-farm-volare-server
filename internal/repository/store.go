@@ -325,7 +325,7 @@ func (r *StoreRepository) GetStoreSaleById(id uint64) (entity.StoreSale, error) 
 
 func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error) {
 	var storeSales []entity.StoreSale
-	query := r.GetDB()
+	query := r.GetDB().Model(&entity.StoreSale{})
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())

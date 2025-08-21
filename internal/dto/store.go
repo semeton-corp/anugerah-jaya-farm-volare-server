@@ -150,13 +150,15 @@ type StoreItemHistoryListPaginationResponse struct {
 }
 
 type GetStoreSaleFilter struct {
-	Date          param.DateParam          `query:"date"`
-	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
-	Page          uint64                   `query:"page"`
-	StoreId       uint64
-	StartDate     param.DateParam
-	EndDate       param.DateParam
-	ItemId        uint64
+	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
+	Date                     param.DateParam          `query:"date"`
+	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
+	Page                     uint64                   `query:"page"`
+	StoreId                  uint64
+	StartDate                param.DateParam
+	EndDate                  param.DateParam
+	ItemId                   uint64
 }
 
 type GetStoreSaleQueueFilter struct {

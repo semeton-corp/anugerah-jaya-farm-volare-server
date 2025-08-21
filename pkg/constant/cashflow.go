@@ -17,4 +17,10 @@ const (
 	ExpenseNameWarehouseItemCornProcurement string = "Pengadaan Jagung"
 	ExpenseNameWarehouseItemProcurement     string = "Pengadaan Barang"
 	ExpenseNameChickenProcurement           string = "Pengadaan Ayam DOC"
+
+	ReceieveablesCategoryAll              string = "Semua"
+	ReceieveablesCategoryCashAdvance      string = "Kasbon"
+	ReceieveablesCategoryWarehouseEggSale string = "Penjualan Telur Gudang"
+	ReceieveablesCategoryStoreEggSale     string = "Penjualan Telur Toko"
+	ReceieveablesCategoryAfkirChickenSale string = "Penjualan Ayam Afkir"
 )

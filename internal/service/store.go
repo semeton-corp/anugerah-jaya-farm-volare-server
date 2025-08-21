@@ -843,6 +843,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		IsSend:              false,
 		SaleUnit:            saleUnit,
 		PaymentType:         paymentType,
+		PaymentStatus:       enum.PaymentStatusNotPaid,
 		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
 		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1834,6 +1835,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		IsSend:              false,
 		SaleUnit:            saleUnit,
 		PaymentType:         paymentType,
+		PaymentStatus:       enum.PaymentStatusNotPaid,
 		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7)},
 		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
 	}
