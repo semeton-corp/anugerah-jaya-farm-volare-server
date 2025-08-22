@@ -53,6 +53,11 @@ type ICageRepository interface {
 
 	GetChickenMonitoringYesterday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error)
 	GetChickenMonitoringYesterdayByChickenCageIds(chickenCageIds []uint64, date time.Time) ([]entity.ChickenMonitoring, error)
+
+	CreateCageFeedStock(data *entity.CageFeedStock) error
+	UpdateCageFeedStock(data *entity.CageFeedStock) error
+	GetCageFeedStock(id uint64) (entity.CageFeedStock, error)
+	GetCageFeedStocks(filter dto.GetCageFeedStockFilter) ([]entity.CageFeedStock, error)
 }
 
 func NewCageRepository(db *gorm.DB) ICageRepository {
@@ -398,4 +403,38 @@ func (r *CageRepository) GetCageFeedByChickenCategoery(chickenCategory enum.Chic
 	}
 
 	return cageFeed, nil
+}
+
+func (r *CageRepository) CreateCageFeedStock(data *entity.CageFeedStock) error {
+	return r.GetDB().Model(&entity.CageFeedStock{}).Create(data).Error
+}
+
+func (r *CageRepository) UpdateCageFeedStock(data *entity.CageFeedStock) error {
+	return r.GetDB().Model(&entity.CageFeedStock{}).Updates(data).Error
+}
+
+func (r *CageRepository) GetCageFeedStock(id uint64) (entity.CageFeedStock, error) {
+	var data entity.CageFeedStock
+	err := r.GetDB().Model(&entity.CageFeedStock{}).Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.CageFeedStock{}, err
+	}
+
+	return data, nil
+}
+
+func (r *CageRepository) GetCageFeedStocks(filter dto.GetCageFeedStockFilter) ([]entity.CageFeedStock, error) {
+	var data []entity.CageFeedStock
+	query := r.GetDB().Model(&entity.CageFeedStock{})
+
+	if filter.CageId > 0 {
+		query = query.Where("cage_id = ?", filter.CageId)
+	}
+
+	err := query.Where("total_feed - used_feed <> 0").Order("created_by ASC").Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }

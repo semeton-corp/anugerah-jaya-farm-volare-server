@@ -151,8 +151,11 @@ type WarehouseItemProcurementListPaginationResponse struct {
 }
 
 type GetWarehouseItemProcurementFilter struct {
-	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
-	Page          uint64                   `query:"page"`
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
+	Page                     uint64                     `query:"page"`
 }
 
 type WarehouseOverview struct {
@@ -487,8 +490,11 @@ type GetWarehouseItemCornFilter struct {
 }
 
 type GetWarehouseItemCornProcurementFilter struct {
-	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
-	Page          uint64                   `query:"page"`
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
+	Page                     uint64                     `query:"page"`
 }
 
 type CreateWarehouseItemCornProcurementPaymentRequest struct {

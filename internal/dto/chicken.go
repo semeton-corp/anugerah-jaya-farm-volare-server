@@ -216,8 +216,11 @@ type ChickenProcurementListPaginationResponse struct {
 }
 
 type GetChickenProcurementFilter struct {
-	PaymentStatus param.PaymentStatusParam `query:"paymentStatus"`
-	Page          uint64                   `query:"page"`
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	Page                     uint64                     `query:"page"`
 }
 
 type CreateChickenProcurementPaymentRequest struct {

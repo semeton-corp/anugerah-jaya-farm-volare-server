@@ -56,11 +56,12 @@ type GetIncomeOverviewFilter struct {
 }
 
 type ExpensePieResponse struct {
-	StaffPercentage                float64 `json:"staffPercentage"`
-	OperationalPercentage          float64 `json:"operationalPercentage"`
-	ChikckenProcuremtnPercentage   float64 `json:"chickenProcurementPercentage"`
-	WarehouseProcurementPercentage float64 `json:"warehouseItemProcurementPercentage"`
-	OtherPercentage                float64 `json:"otherPercentage"`
+	StaffPercentage                        float64 `json:"staffPercentage"`
+	OperationalPercentage                  float64 `json:"operationalPercentage"`
+	ChikckenProcuremtnPercentage           float64 `json:"chickenProcurementPercentage"`
+	WarehouseItemProcurementPercentage     float64 `json:"warehouseItemProcurementPercentage"`
+	WarehouseItemCornProcurementPercentage float64 `json:"warehouseItemCornProcurementPercentage"`
+	OtherPercentage                        float64 `json:"otherPercentage"`
 }
 
 type ExpenseListResponse struct {
@@ -215,9 +216,8 @@ type ReceiveablesListResponse struct {
 }
 
 type ReceiveablesPieResponse struct {
-	UnpaidPercentage  float64 `json:"unpaidPercentage"`
-	PaidPercentage    float64 `json:"paidPercentage"`
-	NotPaidPercentage float64 `json:"notPaidPercentage"`
+	UnpaidPercentage float64 `json:"unpaidPercentage"`
+	PaidPercentage   float64 `json:"paidPercentage"`
 }
 
 type ReceievablesOverviewResponse struct {
@@ -226,18 +226,64 @@ type ReceievablesOverviewResponse struct {
 }
 
 type UserSalaryPaymentResponse struct {
+	Id                   uint64           `json:"id"`
+	User                 UserListResponse `json:"user"`
+	BaseSalary           string           `json:"baseSalary"`
+	BonusSalary          string           `json:"bonusSalary"`
+	CompentationSalary   string           `json:"compentationSalary"`
+	AdditionalWorkSalary string           `json:"additionalWorkSalary"`
+	PaymentProof         string           `json:"paymentProof"`
+	PaymentMethod        string           `json:"paymentMethod"`
+	IsPaid               bool             `json:"isPaid"`
 }
 
 type PayUserSalaryPaymentRequest struct {
+	UserId               string `json:"userId" validate:"required"`
+	BaseSalary           string `json:"baseSalary" validate:"required"`
+	BonusSalary          string `json:"bonusSalary" validate:"required"`
+	CompentationSalary   string `json:"compentationSalary" validate:"required"`
+	AdditionalWorkSalary string `json:"additionalWorkSalary" validate:"required"`
+	PaymentProof         string `json:"paymentProof" validate:"required"`
+	PaymentMethod        string `json:"paymentMethod" validate:"required,paymentMethodd"`
 }
 
 type DebtListResponse struct {
+	Id                  uint64 `json:"id"`
+	DeadlinePaymentDate string `json:"deadlinePaymentDate" validate:"required"`
+	Category            string `json:"category"`
+	PlaceName           string `json:"placeName"`
+	TransactionName     string `json:"transactionName"`
+	Name                string `json:"name"`
+	PhoneNumber         string `json:"phoneNumber"`
+	Nominal             string `json:"nominal"`
+	RemainingPayment    string `json:"remainingPayment"`
+	PaymentStatus       string `json:"paymentStatus"`
 }
 
 type DebtResponse struct {
+	Id                  uint64                `jso:"id"`
+	Date                string                `json:"date"`
+	Time                string                `json:"time"`
+	Category            string                `json:"category"`
+	PlaceName           string                `json:"placeName"`
+	TransactionName     string                `json:"transactionName"`
+	Name                string                `json:"name"`
+	PhoneNumber         string                `json:"phoneNumber"`
+	DeadlinePaymentDate string                `json:"deadlinePaymentDate"`
+	RemainingPayment    string                `json:"remainingPayment"`
+	PaymentType         string                `json:"paymentType"`
+	PaymentStatus       string                `json:"paymentStatus"`
+	InputBy             string                `json:"inputBy"`
+	DebtPayments        []DebtPaymentResponse `json:"payments"`
 }
 
 type DebtPaymentResponse struct {
+	Id            uint64 `json:"id"`
+	Date          string `json:"date"`
+	Nominal       string `json:"nominal"`
+	Remaining     string `json:"remaining"`
+	PaymentMethod string `json:"paymentMethod"`
+	PaymentProof  string `json:"paymentProof"`
 }
 
 type GetDebtOverviewFilter struct {
@@ -246,10 +292,13 @@ type GetDebtOverviewFilter struct {
 	DebtCategory string           `query:"category" validate:"required,debtCategory"`
 }
 
-type DebtPie struct{
-	
+type DebtPieResponse struct {
+	UnpaidPercentage  float64 `json:"unpaidPercentage"`
+	PaidPercentage    float64 `json:"paidPercentage"`
+	NotPaidPercentage float64 `json:"notPaidPercentage"`
 }
 
 type DebtOverviewResponse struct {
-	Debts []DebtListResponse `json:"debts"`
+	DebtPie DebtPieResponse    `json:"debtPie"`
+	Debts   []DebtListResponse `json:"debts"`
 }

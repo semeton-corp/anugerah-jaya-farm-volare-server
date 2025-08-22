@@ -56,6 +56,17 @@ type ICashflowRepository interface {
 	GetStoreSaleCashflow(id uint64) (entity.StoreSale, error)
 	GetWarehouseSaleCashflow(id uint64) (entity.WarehouseSale, error)
 	GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error)
+
+	GetUserSalaryPayment(id uint64) (entity.UserSalaryPayment, error)
+	UpdateUserSalaryPayment(data *entity.UserSalaryPayment) error
+
+	GetWarehouseItemProcurementCashflows(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error)
+	GetWarehouseItemCornProcurementCashflows(filter dto.GetWarehouseItemCornProcurementFilter) ([]entity.WarehouseItemCornProcurement, error)
+	GetChickenProcurementCashflows(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error)
+
+	GetChickenProcurementCashflow(id uint64) (entity.ChickenProcurement, error)
+	GetWarehouseItemProcurementCashflow(id uint64) (entity.WarehouseItemProcurement, error)
+	GetWarehouseItemCornProcurementCashflow(id uint64) (entity.WarehouseItemCornProcurement, error)
 }
 
 func NewCashflowRepository(db *gorm.DB) ICashflowRepository {
@@ -459,4 +470,125 @@ func (r *CashflowRepository) GetStoreSaleCashflow(id uint64) (entity.StoreSale, 
 	}
 
 	return storeSale, nil
+}
+
+func (r *CashflowRepository) GetUserSalaryPayment(id uint64) (entity.UserSalaryPayment, error) {
+	var data entity.UserSalaryPayment
+	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Preload("User").Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.UserSalaryPayment{}, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) UpdateUserSalaryPayment(data *entity.UserSalaryPayment) error {
+	return r.GetDB().Model(&entity.UserSalaryPayment{}).Where("id = ?", data.Id).Updates(data).Error
+}
+
+func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error) {
+	var data []entity.WarehouseItemProcurement
+
+	query := r.GetDB().Model(&entity.WarehouseItemProcurement{})
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflows(filter dto.GetWarehouseItemCornProcurementFilter) ([]entity.WarehouseItemCornProcurement, error) {
+	var data []entity.WarehouseItemCornProcurement
+
+	query := r.GetDB().Model(&entity.WarehouseItemCornProcurement{})
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error) {
+	var data []entity.ChickenProcurement
+
+	query := r.GetDB().Model(&entity.ChickenProcurement{})
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetChickenProcurementCashflow(id uint64) (entity.ChickenProcurement, error) {
+	var data entity.ChickenProcurement
+	err := r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.ChickenProcurement{}, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflow(id uint64) (entity.WarehouseItemCornProcurement, error) {
+	var data entity.WarehouseItemCornProcurement
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.WarehouseItemCornProcurement{}, err
+	}
+
+	return data, nil
+
+}
+
+func (r *CashflowRepository) GetWarehouseItemProcurementCashflow(id uint64) (entity.WarehouseItemProcurement, error) {
+	var data entity.WarehouseItemProcurement
+	err := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Where("id = ?", id).First(&data).Error
+	if err != nil {
+		return entity.WarehouseItemProcurement{}, err
+	}
+
+	return data, nil
+
 }

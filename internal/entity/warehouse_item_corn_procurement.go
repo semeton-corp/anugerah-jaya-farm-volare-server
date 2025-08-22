@@ -31,9 +31,11 @@ type WarehouseItemCornProcurement struct {
 	IsOvenCanOperateInNearDay bool                                  `gorm:"type:bool;not null"`
 	ExpiredAt                 time.Time                             `gorm:"date;not null"`
 	DeadlinePaymentDate       sql.NullTime                          `gorm:"type:date"`
+	PaymentType               enum.PaymentType                      `gorm:"paymentType;not null;default:0"`
 	Discount                  float64                               `gorm:"decimal;not null"`
 	CreatedAt                 time.Time                             `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                 uuid.NullUUID                         `gorm:"type:varchar(255)"`
 	UpdatedAt                 time.Time                             `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy                 uuid.NullUUID                         `gorm:"type:varchar(255)"`
+	CreatedByUser             User                                  `gorm:"foreignKey:CreatedBy;references:Id"`
 }

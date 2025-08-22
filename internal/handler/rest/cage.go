@@ -324,7 +324,12 @@ func (h *CageHandler) ConfirmationChickenCageFeed(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid chicken cage id param")
 	}
 
-	data, err := h.service.ConfirmationChickenCageFeed(chickenCageId, request)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	data, err := h.service.ConfirmationChickenCageFeed(chickenCageId, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
