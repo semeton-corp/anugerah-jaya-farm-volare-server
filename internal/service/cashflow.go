@@ -27,6 +27,7 @@ type CashflowService struct {
 	warehouseService IWarehouseService
 	chickenService   IChickenService
 	userService      IUserService
+	workService      IWorkService
 }
 
 type ICashflowService interface {
@@ -38,8 +39,8 @@ type ICashflowService interface {
 	GetExpense(expenseCategory string, id uint64) (dto.ExpenseResponse, error)
 
 	GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.UserCashAdvanceSummaryResponse, error)
-	CreateUserCashAdvance(request dto.CreateCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
-	CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUsereCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
+	CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
+	CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUserCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
 
 	GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error)
 	GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceiveablesResponse, error)
@@ -49,10 +50,14 @@ type ICashflowService interface {
 	GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto.DebtOverviewResponse, error)
 	GetDebt(debtCategory string, id uint64) (dto.DebtResponse, error)
 
+	GetUserSalarySummary(filter dto.GetUserSalarySummaryFilter) (dto.UserSalarySummaryResponse, error)
+	GetUserSalaries(filter dto.GetUserSalaryListFilter) (dto.UserSalaryListPaginationResponse, error)
+	GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailResponse, error)
+
 	ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error)
 }
 
-func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService) ICashflowService {
+func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService, workService IWorkService) ICashflowService {
 	return &CashflowService{
 		log:              log,
 		repository:       repository,
@@ -60,6 +65,7 @@ func NewCashflowService(log *zap.Logger, repository repository.ICashflowReposito
 		warehouseService: warehouseService,
 		chickenService:   chickenService,
 		userService:      userService,
+		workService:      workService,
 	}
 }
 
@@ -725,7 +731,7 @@ func (s *CashflowService) GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.Us
 	return response, nil
 }
 
-func (s *CashflowService) CreateUserCashAdvance(request dto.CreateCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
+func (s *CashflowService) CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
 	s.repository.UseTx(false)
 
 	nominal, err := decimal.NewFromString(request.Nominal)
@@ -778,7 +784,7 @@ func (s *CashflowService) CreateUserCashAdvance(request dto.CreateCashAdvanceReq
 	return response, nil
 }
 
-func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUsereCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
+func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUserCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -1218,7 +1224,8 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 }
 
 func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSalaryPaymentRequest, userId uuid.UUID) (dto.UserSalaryPaymentResponse, error) {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
 	userSalaryPayment, err := s.repository.GetUserSalaryPayment(id)
 	if err != nil {
@@ -1256,11 +1263,76 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 	userSalaryPayment.BonusSalary = bonusSalary
 	userSalaryPayment.AdditionalWorkSalary = additionalWorkSalary
 	userSalaryPayment.PaymentMethod = paymentMethod
+	userSalaryPayment.PaymentProof = request.PaymentProof
 	userSalaryPayment.IsPaid = true
 	userSalaryPayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateUserSalaryPayment(&userSalaryPayment)
 	if err != nil {
+		return dto.UserSalaryPaymentResponse{}, err
+	}
+
+	if request.UserCashAdvancePayments != nil {
+		for _, capReq := range request.UserCashAdvancePayments {
+			data, err := s.repository.GetUserCashAdvance(capReq.UserCashAdvanceId)
+			if err != nil {
+				s.log.Error("failed get user cash advance", zap.Error(err))
+				return dto.UserSalaryPaymentResponse{}, err
+			}
+
+			paymentDate, err := time.Parse("02-01-2006", capReq.PaymentDate)
+			if err != nil {
+				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid payment date format")
+			}
+
+			paymentMethod := enum.ValueOfPaymentMethod(capReq.PaymentMethod)
+			if !paymentMethod.IsValid() {
+				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid payment method")
+			}
+
+			nominal, err := decimal.NewFromString(capReq.Nominal)
+			if err != nil {
+				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid nominal format")
+			}
+
+			currentPayment := nominal
+			for _, payment := range data.Payments {
+				currentPayment = currentPayment.Add(payment.Nominal)
+			}
+
+			if currentPayment.GreaterThan(data.Nominal) {
+				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("nominal more than needed")
+			} else if currentPayment.Equal(data.Nominal) {
+				data.PaymentStatus = enum.PaymentStatusPaid
+			} else if currentPayment.LessThan(data.Nominal) {
+				data.PaymentStatus = enum.PaymentStatusUnpaid
+			}
+
+			payment := entity.UserCashAdvancePayment{
+				UserCashAdvanceId: capReq.UserCashAdvanceId,
+				Nominal:           nominal,
+				PaymentDate:       paymentDate,
+				PaymentMethod:     paymentMethod,
+				PaymentProof:      capReq.PaymentProof,
+			}
+
+			err = s.repository.CreateUserCashAdvancePayment(&payment)
+			if err != nil {
+				s.log.Error("failed create user cash advance payment", zap.Error(err))
+				return dto.UserSalaryPaymentResponse{}, err
+			}
+
+			err = s.repository.UpdateUserCashAdvance(&data)
+			if err != nil {
+				s.log.Error("failed update user cash advance", zap.Error(err))
+				return dto.UserSalaryPaymentResponse{}, err
+			}
+		}
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
 		return dto.UserSalaryPaymentResponse{}, err
 	}
 
@@ -1634,4 +1706,220 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowF
 	f.DeleteSheet("Sheet1")
 
 	return f, nil
+}
+
+func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFilter) (dto.UserSalarySummaryResponse, error) {
+	s.repository.UseTx(false)
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		return dto.UserSalarySummaryResponse{}, err
+	}
+
+	totalStaff := len(userSalaryPayments)
+	totalBaseSalary := decimal.Zero
+	totalAdditonalWorkSalary := decimal.Zero
+	totalBonusSalary := decimal.Zero
+
+	for _, e := range userSalaryPayments {
+		totalBaseSalary = totalBaseSalary.Add(totalBaseSalary)
+
+		if e.IsPaid {
+			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(e.AdditionalWorkSalary)
+			totalBonusSalary = totalBonusSalary.Add(e.BonusSalary)
+		} else {
+
+			withDeleted := true
+			additionalWorkSalary := decimal.Zero
+			additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(e.UserId,
+				dto.GetAdditionalWorkUserFilter{
+					Month:       param.MonthParam(filter.Month.Value()),
+					Year:        filter.Year,
+					WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				})
+			if err != nil {
+				return dto.UserSalarySummaryResponse{}, nil
+			}
+
+			for _, e := range additionalWorkUsers.AdditionalWorkUsers {
+				salary, err := decimal.NewFromString(e.AdditionalWork.Salary)
+				if err != nil {
+					s.log.Error("failed parse additional work salary", zap.Error(err))
+					return dto.UserSalarySummaryResponse{}, err
+				}
+				additionalWorkSalary = additionalWorkSalary.Add(salary)
+			}
+
+			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
+
+			kpiScore, err := s.userService.CalculateKPIScoreUserPerMonth(e.UserId, filter.Year, filter.Month.Value())
+			if err != nil {
+				return dto.UserSalarySummaryResponse{}, err
+			}
+
+			bonusSalary := decimal.Zero
+			if kpiScore*0.6 == 60 {
+				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
+			}
+
+			diff := kpiScore - 90.0
+			if diff > 0 {
+				percentage := float64(diff) / 2
+				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(e.BaseSalary))
+
+			} else if diff < 0 {
+				percentage := float64(-diff) / 2
+				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage).Mul(e.BaseSalary))
+			}
+
+			totalBonusSalary = totalBonusSalary.Add(bonusSalary)
+		}
+	}
+
+	return dto.UserSalarySummaryResponse{
+		TotalStaff:               uint64(totalStaff),
+		TotalBaseSalary:          totalBaseSalary.String(),
+		TotalAdditonalWorkSalary: totalAdditonalWorkSalary.String(),
+		TotalBonusSalary:         totalBonusSalary.String(),
+	}, nil
+}
+
+func (s *CashflowService) GetUserSalaries(filter dto.GetUserSalaryListFilter) (dto.UserSalaryListPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		LocationId: filter.LocationId,
+		RoleId:     filter.RoleId,
+		Page:       filter.Page,
+		Keyword:    filter.Keyword,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		return dto.UserSalaryListPaginationResponse{}, err
+	}
+
+	totalData, err := s.repository.CountUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		LocationId: filter.LocationId,
+		RoleId:     filter.RoleId,
+		Page:       filter.Page,
+		Keyword:    filter.Keyword,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed count user salary payments", zap.Error(err))
+		return dto.UserSalaryListPaginationResponse{}, err
+	}
+
+	responses := make([]dto.UserSalaryListResponse, 0)
+	for _, e := range userSalaryPayments {
+		responses = append(responses, dto.UserSalaryListResponse{
+			Id:             e.Id,
+			User:           mapper.UserToListResponse(&e.User),
+			SalaryInterval: e.User.SalaryInterval.String(),
+			IsPaid:         e.IsPaid,
+		})
+	}
+
+	response := dto.UserSalaryListPaginationResponse{
+		UserSalaries: responses,
+	}
+
+	if filter.Page > 0 {
+		response.TotalData = uint64(totalData)
+		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+	}
+
+	return response, nil
+}
+
+func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailResponse, error) {
+	s.repository.UseTx(false)
+
+	userSalaryPayment, err := s.repository.GetUserSalaryPayment(id)
+	if err != nil {
+		s.log.Error("failed get user salary payment")
+		return dto.UserSalaryDetailResponse{}, err
+	}
+
+	userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
+	if err != nil {
+		return dto.UserSalaryDetailResponse{}, err
+	}
+
+	additionalWorkUserResponses := make([]dto.AdditionalWorkUserResponse, 0)
+
+	totalAdditonalWorkSalary := decimal.Zero
+	totalBonusSalary := decimal.Zero
+	if userSalaryPayment.IsPaid {
+		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
+		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
+	} else {
+
+		withDeleted := true
+		additionalWorkSalary := decimal.Zero
+		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userSalaryPayment.UserId,
+			dto.GetAdditionalWorkUserFilter{
+				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
+				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			})
+		if err != nil {
+			return dto.UserSalaryDetailResponse{}, nil
+		}
+
+		for _, e := range additionalWorkUsers.AdditionalWorkUsers {
+			if e.IsDone {
+				additionalWorkUserResponses = append(additionalWorkUserResponses, e)
+				salary, err := decimal.NewFromString(e.AdditionalWork.Salary)
+				if err != nil {
+					s.log.Error("failed parse additional work salary", zap.Error(err))
+					return dto.UserSalaryDetailResponse{}, err
+				}
+				additionalWorkSalary = additionalWorkSalary.Add(salary)
+			}
+		}
+
+		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
+
+		kpiScore, err := s.userService.CalculateKPIScoreUserPerMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
+		if err != nil {
+			return dto.UserSalaryDetailResponse{}, err
+		}
+
+		bonusSalary := decimal.Zero
+		if kpiScore*0.6 == 60 {
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
+		}
+
+		diff := kpiScore - 90.0
+		if diff > 0 {
+			percentage := float64(diff) / 2
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(userSalaryPayment.BaseSalary))
+
+		} else if diff < 0 {
+			percentage := float64(-diff) / 2
+			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage).Mul(userSalaryPayment.BaseSalary))
+		}
+
+		totalBonusSalary = totalBonusSalary.Add(bonusSalary)
+	}
+
+	return dto.UserSalaryDetailResponse{
+		AdditionalWorkUsers:      additionalWorkUserResponses,
+		UserCashAdvanceSummaries: userCashAdvanceSummary,
+		BaseSalary:               userSalaryPayment.BaseSalary.String(),
+		CompentationSalary:       userSalaryPayment.CompentationSalary.String(),
+		BonusSalary:              totalBonusSalary.String(),
+		AdditionalWorkSalary:     totalAdditonalWorkSalary.String(),
+	}, nil
 }

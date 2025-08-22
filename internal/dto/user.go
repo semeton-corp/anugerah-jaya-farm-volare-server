@@ -40,9 +40,11 @@ type GetUserOverviewListFilter struct {
 }
 
 type UserListResponse struct {
-	Id   string       `json:"id"`
-	Name string       `json:"name"`
-	Role RoleResponse `json:"role"`
+	Id           string       `json:"id"`
+	Name         string       `json:"name"`
+	Email        string       `json:"email"`
+	PhotoProfile string       `json:"photoProfile"`
+	Role         RoleResponse `json:"role"`
 }
 
 type UserListOverviewPaginationResponse struct {
@@ -73,11 +75,11 @@ type UserWorkInformationResponse struct {
 }
 
 type UserSalaryInformationResponse struct {
-	BaseSalary     string `json:"baseSalary"`
-	OvertimeSalary string `json:"overtimeSalary"`
-	BonusSalary    string `json:"bonusSalary"`
-	Cashbon        string `json:"cashbon"`
-	TotalSalary    string `json:"totalSalary"`
+	BaseSalary         string `json:"baseSalary"`
+	BonusSalary        string `json:"bonusSalary"`
+	UserCashAdvance    string `json:"userCashAdvance"`
+	TotalSalary        string `json:"totalSalary"`
+	CompentationSalary string `json:"compentationSalary"`
 }
 
 type GetUserOverviewFilter struct {
@@ -123,17 +125,8 @@ type UserPerformanceOverviewResponse struct {
 	// Todo : overview user performance in (owner)
 }
 
-type UserSalarySummaryResponse struct {
-	TotalUser uint64 `json:"totalUser"`
-}
-
 type UserSalaryGraphResponse struct {
 	Key    string `json:"key"`
 	Salary string `json:"kpiChickenPerformance"`
 }
 
-type GetUserSalaryPaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
-	IsPaid    *bool           `query:"isPaid"`
-}

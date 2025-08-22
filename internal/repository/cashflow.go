@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
@@ -36,7 +37,6 @@ type ICashflowRepository interface {
 	GetChickenProcurementPayments(filter dto.GetChickenProcurementPaymentFilter) ([]entity.ChickenProcurementPayment, error)
 	GetWarehouseItemCornProcurementPayments(filter dto.GetWarehouseItemCornProcurementPaymentFilter) ([]entity.WarehouseItemCornProcurementPayment, error)
 	GetWarehouseItemProcurementPayments(filter dto.GetWarehouseItemProcurementPaymentFilter) ([]entity.WarehouseItemProcurementPayment, error)
-	GetUserSalaryPayments(filter dto.GetUserSalaryPaymentFilter) ([]entity.UserSalaryPayment, error)
 
 	GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error)
 	GetWarehouseItemProcurementPaymentById(id uint64) (entity.WarehouseItemProcurementPayment, error)
@@ -58,7 +58,9 @@ type ICashflowRepository interface {
 	GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error)
 
 	GetUserSalaryPayment(id uint64) (entity.UserSalaryPayment, error)
+	CountUserSalaryPayments(filter dto.GetUserSalaryPaymentFilter) (int64, error)
 	UpdateUserSalaryPayment(data *entity.UserSalaryPayment) error
+	GetUserSalaryPayments(filter dto.GetUserSalaryPaymentFilter) ([]entity.UserSalaryPayment, error)
 
 	GetWarehouseItemProcurementCashflows(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error)
 	GetWarehouseItemCornProcurementCashflows(filter dto.GetWarehouseItemCornProcurementFilter) ([]entity.WarehouseItemCornProcurement, error)
@@ -241,7 +243,24 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 
 func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPaymentFilter) ([]entity.UserSalaryPayment, error) {
 	var data []entity.UserSalaryPayment
-	query := r.GetDB().Model(&entity.UserSalaryPayment{})
+	query := r.GetDB().Model(&entity.UserSalaryPayment{}).Joins("JOIN users ON user_salary_payments.user_id = users.id")
+
+	if filter.LocationId > 0 {
+		query = query.Where("users.location_id = ?", filter.LocationId)
+	}
+
+	if filter.RoleId > 0 {
+		query = query.Where("users.role_id = ?", filter.LocationId)
+	}
+
+	if filter.Keyword != "" {
+		keyword := "%" + filter.Keyword + "%"
+		query = query.Where("users.name LIKE ?", keyword)
+	}
+
+	if filter.Page > 0 {
+		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
@@ -258,6 +277,39 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 		return nil, err
 	}
 	return data, nil
+}
+
+func (r *CashflowRepository) CountUserSalaryPayments(filter dto.GetUserSalaryPaymentFilter) (int64, error) {
+	var count int64
+	query := r.GetDB().Model(&entity.UserSalaryPayment{}).Joins("JOIN users ON user_salary_payments.user_id = users.id")
+
+	if filter.LocationId > 0 {
+		query = query.Where("users.location_id = ?", filter.LocationId)
+	}
+
+	if filter.RoleId > 0 {
+		query = query.Where("users.role_id = ?", filter.LocationId)
+	}
+
+	if filter.Keyword != "" {
+		keyword := "%" + filter.Keyword + "%"
+		query = query.Where("users.name LIKE ?", keyword)
+	}
+
+	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if filter.IsPaid != nil {
+		query = query.Where("is_paid = ?", filter.IsPaid)
+	}
+
+	err := query.
+		Count(&count).Error
+	if err != nil {
+		return -1, err
+	}
+	return count, nil
 }
 
 func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetWarehouseItemProcurementPaymentFilter) ([]entity.WarehouseItemProcurementPayment, error) {

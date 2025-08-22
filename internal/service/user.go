@@ -11,6 +11,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -30,6 +31,8 @@ type IUserService interface {
 
 	GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
 	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
+
+	CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error)
 }
 
 func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService) IUserService {
@@ -199,12 +202,10 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		}
 	}
 
-	overtimeSalary := decimal.NewFromFloat(100000).Mul(decimal.NewFromFloat(totalOvertime))
-
 	bonusWeek := make(map[int]decimal.Decimal)
 	totalWorkDoneWeek := make(map[int]uint64)
 
-	var bonusSalary decimal.Decimal
+	var additionalWorkSalary decimal.Decimal
 	var totalWorkDone uint64 = 0
 	for _, dailyWorkUser := range dailyWorkUsers.DailyWorkUsers {
 		week := util.FindWeek(dailyWorkUser.CreatedAt, weeks)
@@ -232,7 +233,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 				return dto.UserOverviewResponse{}, nil
 			}
 
-			bonusSalary = bonusSalary.Add(salary)
+			additionalWorkSalary = additionalWorkSalary.Add(salary)
 			bonusWeek[week] = bonusWeek[week].Add(salary)
 		}
 	}
@@ -246,11 +247,11 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 
 	workPresence := totalWorkHour / float64(8*util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month)))
 
-	totalSalary := user.Salary.Add(overtimeSalary).Add(bonusSalary) // Todo : need cashbon
+	totalSalary := user.Salary.Add(additionalWorkSalary) // Todo : need cashbon
 	userInformation := dto.UserInformationResponse{
 		TotalWorkHour: totalWorkHour,
 		TotalSalary:   totalSalary.String(),
-		KPIScore:      (presenceScore + workPresence) / 2, // Todo : how about the overtime
+		KPIScore:      (presenceScore + workPresence) / 2,
 	}
 
 	userPresenceInformation := dto.UserPresenceInformationResponse{
@@ -264,11 +265,11 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 	}
 
 	userSalaryInformation := dto.UserSalaryInformationResponse{
-		BaseSalary:     user.Salary.String(),
-		OvertimeSalary: overtimeSalary.String(),
-		BonusSalary:    bonusSalary.String(),
-		Cashbon:        decimal.Zero.String(),
-		TotalSalary:    totalSalary.String(),
+		BaseSalary:         user.Salary.String(),
+		BonusSalary:        additionalWorkSalary.String(),
+		CompentationSalary: decimal.Zero.String(),
+		UserCashAdvance:    decimal.Zero.String(),
+		TotalSalary:        totalSalary.String(),
 	}
 
 	kpiPerformances := make([]dto.KPIPerformanceResponse, 0)
@@ -326,4 +327,95 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 	}
 
 	return resp, nil
+}
+
+func (s *UserService) CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error) {
+	withDeleted := true
+	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userId,
+		dto.GetAdditionalWorkUserFilter{
+			Month:       param.MonthParam(month),
+			Year:        year,
+			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+		})
+	if err != nil {
+		return -1, nil
+	}
+
+	dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userId,
+		dto.GetDailyWorkUserFilter{
+			Month:       param.MonthParam(month),
+			Year:        year,
+			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+		})
+	if err != nil {
+		return -1, nil
+	}
+
+	userPresences, err := s.presenceService.GetUserPresencesByUserId(userId,
+		dto.GetPresenceFilter{
+			Month: param.MonthParam(month),
+			Year:  year,
+		})
+	if err != nil {
+		return -1, nil
+	}
+
+	var totalPresent uint64 = 0
+	var totalOvertime float64 = 0
+	var totalWorkHour float64 = 0
+	for _, userPresence := range userPresences.Presences {
+		if userPresence.Status == enum.PresenceStatusPresent.String() {
+			totalPresent++
+
+			if userPresence.EndTime != "" {
+				startTime, err := time.Parse("15:04", userPresence.StartTime)
+				if err != nil {
+					continue
+				}
+
+				endTime, err := time.Parse("15:04", userPresence.EndTime)
+				if err != nil {
+					continue
+				}
+
+				diffHours := endTime.Sub(startTime).Hours()
+				if diffHours > 8 {
+					totalWorkHour += 8.0
+				} else {
+					totalWorkHour += diffHours
+				}
+
+				totalOvertime += userPresence.Overtime
+			}
+		}
+	}
+
+	var totalWorkDone uint64 = 0
+	for _, dailyWorkUser := range dailyWorkUsers.DailyWorkUsers {
+		if dailyWorkUser.IsDone {
+			totalWorkDone++
+		}
+	}
+
+	for _, additionalWorkUser := range additionalWorkUsers.AdditionalWorkUsers {
+		if additionalWorkUser.IsDone {
+			totalWorkDone++
+		}
+	}
+
+	var presenceScore float64
+	if len(userPresences.Presences) == 0 {
+		presenceScore = 0
+	} else {
+		presenceScore = float64(totalWorkHour) / float64(56) * 100 // 56 is 8 hours in 7 days
+	}
+
+	var workScore float64
+	if len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers) == 0 {
+		workScore = 0
+	} else {
+		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers)) * 100
+	}
+
+	return (presenceScore * 0.6) + (workScore * 0.4), nil
 }

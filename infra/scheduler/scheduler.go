@@ -161,6 +161,8 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 
 // Todo : create every new month salary for user
 
+// Todo : create monitoring sale and cashflow every month
+
 func (s *Scheduler) Start() {
 	s.cron.Start()
 }

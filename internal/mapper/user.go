@@ -23,8 +23,10 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 
 func UserToListResponse(user *entity.User) dto.UserListResponse {
 	return dto.UserListResponse{
-		Id:   user.Id.String(),
-		Name: user.Name,
+		Id:           user.Id.String(),
+		Name:         user.Name,
+		Email:        user.Email,
+		PhotoProfile: user.PhotoProfile,
 		Role: dto.RoleResponse{
 			Id:   user.Role.Id,
 			Name: user.Role.Name,

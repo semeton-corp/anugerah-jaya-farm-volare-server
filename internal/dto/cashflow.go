@@ -131,7 +131,7 @@ type GetExpenseFilter struct {
 	EndDate   param.DateParam `query:"endDate"`
 }
 
-type CreateCashAdvanceRequest struct {
+type CreateUserCashAdvanceRequest struct {
 	UserId              string `json:"userId" validate:"required"`
 	Nominal             string `json:"nominal" validate:"required"`
 	DeadlinePaymentDate string `json:"deadlinePaymentDate" validate:"required"`
@@ -163,11 +163,12 @@ type UserCashAdvanceResponse struct {
 	UserCashAdvancePayments []UserCashAdvancePaymentResponse `json:"payments"`
 	RemainingPayment        string                           `json:"remainingPayment"`
 }
-type CreateUsereCashAdvancePaymentRequest struct {
-	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
-	PaymentProof  string `json:"paymentProof" validate:"required,url"`
-	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
+type CreateUserCashAdvancePaymentRequest struct {
+	UserCashAdvanceId uint64 `json:"userCashAdvanceId"`
+	PaymentDate       string `json:"paymentDate" validate:"required"`
+	Nominal           string `json:"nominal" validate:"required,number"`
+	PaymentProof      string `json:"paymentProof" validate:"required,url"`
+	PaymentMethod     string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
 
 type GetUserCashAdvanceFilter struct {
@@ -238,13 +239,14 @@ type UserSalaryPaymentResponse struct {
 }
 
 type PayUserSalaryPaymentRequest struct {
-	UserId               string `json:"userId" validate:"required"`
-	BaseSalary           string `json:"baseSalary" validate:"required"`
-	BonusSalary          string `json:"bonusSalary" validate:"required"`
-	CompentationSalary   string `json:"compentationSalary" validate:"required"`
-	AdditionalWorkSalary string `json:"additionalWorkSalary" validate:"required"`
-	PaymentProof         string `json:"paymentProof" validate:"required"`
-	PaymentMethod        string `json:"paymentMethod" validate:"required,paymentMethodd"`
+	UserId                  string                                `json:"userId" validate:"required"`
+	BaseSalary              string                                `json:"baseSalary" validate:"required"`
+	BonusSalary             string                                `json:"bonusSalary" validate:"required"`
+	CompentationSalary      string                                `json:"compentationSalary" validate:"required"`
+	AdditionalWorkSalary    string                                `json:"additionalWorkSalary" validate:"required"`
+	PaymentProof            string                                `json:"paymentProof" validate:"required"`
+	PaymentMethod           string                                `json:"paymentMethod" validate:"required,paymentMethodd"`
+	UserCashAdvancePayments []CreateUserCashAdvancePaymentRequest `json:"userCashAdvancePayments"`
 }
 
 type DebtListResponse struct {
@@ -301,4 +303,58 @@ type DebtPieResponse struct {
 type DebtOverviewResponse struct {
 	DebtPie DebtPieResponse    `json:"debtPie"`
 	Debts   []DebtListResponse `json:"debts"`
+}
+
+type UserSalarySummaryResponse struct {
+	TotalStaff               uint64 `json:"totalStaff"`
+	TotalBaseSalary          string `json:"totalBasedSalary"`
+	TotalAdditonalWorkSalary string `json:"totalAdditionalWorkSalary"`
+	TotalBonusSalary         string `json:"totalBonusSalary"`
+}
+
+type GetUserSalarySummaryFilter struct {
+	LocationId uint64           `query:"locationId"`
+	Month      param.MonthParam `query:"month" validate:"month"`
+	Year       uint64           `query:"year" validate:"year"`
+}
+
+type GetUserSalaryListFilter struct {
+	LocationId uint64           `query:"locationId"`
+	Month      param.MonthParam `query:"month" validate:"month"`
+	Year       uint64           `query:"year" validate:"year"`
+	Keyword    string           `query:"keyword"`
+	RoleId     uint64           `query:"roleId"`
+	Page       uint64           `query:"page"`
+}
+
+type UserSalaryListResponse struct {
+	Id             uint64           `json:"id"`
+	User           UserListResponse `json:"user"`
+	SalaryInterval string           `json:"salaryInterval"`
+	IsPaid         bool             `json:"isPaid"`
+}
+
+type UserSalaryListPaginationResponse struct {
+	TotalData    uint64                   `json:"totalData"`
+	TotalPage    uint64                   `json:"totalPage"`
+	UserSalaries []UserSalaryListResponse `json:"userSalaries"`
+}
+
+type UserSalaryDetailResponse struct {
+	AdditionalWorkUsers      []AdditionalWorkUserResponse     `json:"additionalWorkUsers"`
+	UserCashAdvanceSummaries []UserCashAdvanceSummaryResponse `json:"userCashAdvanceSummaries"`
+	BaseSalary               string                           `json:"baseSalary"`
+	BonusSalary              string                           `json:"bonusSalary"`
+	CompentationSalary       string                           `json:"compentationSalary"`
+	AdditionalWorkSalary     string                           `json:"additionalWorkSalary"`
+}
+
+type GetUserSalaryPaymentFilter struct {
+	LocationId uint64          `query:"locationId"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	IsPaid     *bool           `query:"isPaid"`
+	Keyword    string          `query:"keyword"`
+	RoleId     uint64          `query:"roleId"`
+	Page       uint64          `query:"page"`
 }

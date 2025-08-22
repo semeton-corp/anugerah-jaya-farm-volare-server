@@ -46,6 +46,10 @@ func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/debts/overview", h.GetDebtOverview)
 	v1.Get("/debts/:category/:id", h.GetDebt)
 
+	v1.Get("/salaries/summary", h.GetUserSalarySummary)
+	v1.Get("/salaries", h.GetUserSalaries)
+	v1.Get("/salaries/:id", h.GetUserSalaryDetail)
+
 	v1.Get("/sales/reports", h.ExportSalesToExcel)
 }
 
@@ -212,7 +216,7 @@ func (h *CashflowHandler) GetUserCashAdvanceByUserId(c *fiber.Ctx) error {
 }
 
 func (h *CashflowHandler) CreateUserCashAdvance(c *fiber.Ctx) error {
-	var request dto.CreateCashAdvanceRequest
+	var request dto.CreateUserCashAdvanceRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed parse body request", zap.Error(err))
 		return errx.BadRequest("failed to parse request body")
@@ -243,7 +247,7 @@ func (h *CashflowHandler) CreateUserCashAdvancePayment(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid id param")
 	}
 
-	var request dto.CreateUsereCashAdvancePaymentRequest
+	var request dto.CreateUserCashAdvancePaymentRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed parse body request", zap.Error(err))
 		return errx.BadRequest("failed to parse request body")
@@ -368,4 +372,66 @@ func (h *CashflowHandler) GetDebt(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get debt")
+}
+
+func (h *CashflowHandler) GetUserSalarySummary(c *fiber.Ctx) error {
+	var filter dto.GetUserSalarySummaryFilter
+
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query", zap.Error(err))
+		return errx.BadRequest("invalid query params")
+	}
+
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	resp, err := h.service.GetUserSalarySummary(filter)
+	if err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user salary summary")
+}
+
+func (h *CashflowHandler) GetUserSalaries(c *fiber.Ctx) error {
+	var filter dto.GetUserSalaryListFilter
+
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query", zap.Error(err))
+		return errx.BadRequest("invalid query params")
+	}
+
+	if err := h.validator.Struct(filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	resp, err := h.service.GetUserSalaries(filter)
+	if err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user salaries")
+}
+
+func (h *CashflowHandler) GetUserSalaryDetail(c *fiber.Ctx) error {
+	idStr := c.Params("id")
+
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	resp, err := h.service.GetUserSalaryDetail(id)
+	if err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user salary detail")
 }
