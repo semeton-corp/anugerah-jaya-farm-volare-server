@@ -1704,6 +1704,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
 	}
 
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type")
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
 	data := entity.WarehouseItemProcurement{
 		WarehouseId:           request.WarehouseId,
 		SupplierId:            request.SupplierId,
@@ -1717,6 +1723,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
+		PaymentType:           paymentType,
 	}
 
 	if request.ExpiredAt != nil {
@@ -1848,6 +1855,12 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
 	}
 
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type")
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
 	data := entity.WarehouseItemProcurement{
 		WarehouseId:           request.WarehouseId,
 		SupplierId:            request.SupplierId,
@@ -1861,6 +1874,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
+		PaymentType:           paymentType,
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -2482,6 +2496,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid expired at")
 	}
 
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type")
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
 	data := entity.WarehouseItemCornProcurement{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                request.SupplierId,
@@ -2494,6 +2514,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		CornWaterLevel:            request.Quantity,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
+		PaymentType:               paymentType,
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
@@ -2620,6 +2641,12 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid expired at")
 	}
 
+	paymentType := enum.ValueOfPaymentType(request.PaymentType)
+	if !paymentType.IsValid() {
+		s.log.Error("invalid payment type")
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
 	data := entity.WarehouseItemCornProcurement{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                request.SupplierId,
@@ -2632,6 +2659,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		CornWaterLevel:            request.CornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
+		PaymentType:               paymentType,
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))

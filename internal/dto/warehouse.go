@@ -76,6 +76,7 @@ type CreateWarehouseItemProcurementRequest struct {
 	EstimationArrivalDate string                                         `json:"estimationArrivalDate" validate:"required"`
 	ExpiredAt             *string                                        `json:"expiredAt"`
 	DeadlinePaymentDate   string                                         `json:"deadlinePaymentDate" validate:"required"`
+	PaymentType           string                                         `json:"paymentType" validate:"required,paymentType"`
 	Payments              []CreateWarehouseItemProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
 
@@ -117,7 +118,6 @@ type WarehouseItemProcurementResponse struct {
 	Supplier                      SupplierListResponse                      `json:"supplier"`
 	IsArrived                     bool                                      `json:"IsArrived"`
 	Quantity                      float64                                   `json:"quantity"`
-	Payments                      []WarehouseItemProcurementPaymentResponse `json:"payments"`
 	RemainingPayment              string                                    `json:"remainingPayment"`
 	EstimationArrivalDate         string                                    `json:"estimationArrivalDate"`
 	ProcurementStatus             string                                    `json:"procurementStatus"`
@@ -128,6 +128,8 @@ type WarehouseItemProcurementResponse struct {
 	TotalPrice                    string                                    `json:"totalPrice"`
 	ExpiredAt                     string                                    `json:"expiredAt"`
 	PaymentStatus                 string                                    `json:"paymentStatus"`
+	PaymentType                   string                                    `json:"paymentType"`
+	Payments                      []WarehouseItemProcurementPaymentResponse `json:"payments"`
 }
 
 type WarehouseItemProcurementPaymentResponse struct {
@@ -422,6 +424,7 @@ type CreateWarehouseItemCornProcurementRequest struct {
 	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
 	Discount                  float64                                            `json:"discount" validate:"required"`
 	DeadlinePaymentDate       string                                             `json:"deadlinePaymentDate" validate:"required"`
+	PaymentType               string                                             `json:"paymentType" validate:"required,paymentType"`
 	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
 
@@ -461,12 +464,13 @@ type WarehouseItemCornProcurementResponse struct {
 	Price                         string                                        `json:"price" validate:"required"`
 	Quantity                      float64                                       `json:"quantity"`
 	TotalPrice                    string                                        `json:"totalPrice"`
-	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
 	RemainingPayment              string                                        `json:"remainingPayment"`
 	DeadlinePaymentDate           string                                        `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                                          `json:"isMoreThanDeadlinePaymentDate"`
 	Discount                      float64                                       `json:"discount"`
 	PaymentStatus                 string                                        `json:"paymentStatus"`
+	PaymentType                   string                                        `json:"paymentType"`
+	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
 }
 
 type CreateWarehouseItemCornRequest struct {

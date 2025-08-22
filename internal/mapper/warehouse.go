@@ -220,6 +220,7 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		DaysNeed:              data.DaysNeed,
 		TotalPrice:            data.TotalPrice.String(),
 		PaymentStatus:         data.PaymentStatus.String(),
+		PaymentType:           data.PaymentType.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
@@ -338,6 +339,7 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		Quantity:                  data.Quantity,
 		Discount:                  data.Discount,
 		PaymentStatus:             data.PaymentStatus.String(),
+		PaymentType:               data.PaymentType.String(),
 		DeadlinePaymentDate:       data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 	}
 
