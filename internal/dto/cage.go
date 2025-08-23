@@ -112,7 +112,6 @@ type ChickenCageFeedListResponse struct {
 	TotalChicken      uint64       `json:"totalChicken"`
 	ExpectedTotalFeed float64      `json:"expectedTotalFeed"`
 	TotalFeed         float64      `json:"totalFeed"`
-	RemainingFeed     float64      `json:"remainingFeed"`
 	IsNeedFeed        bool         `json:"isNeedFeed"`
 }
 

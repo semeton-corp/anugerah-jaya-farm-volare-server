@@ -489,21 +489,19 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{})
 	if err != nil {
-		s.log.Error("failed get cage feed histories", zap.Error(err))
+		s.log.Error("failed get cage feed stocks", zap.Error(err))
 		return nil, err
 	}
 
-	monitoringMap := make(map[uint64]float64, 0)
+	cageFeedStockMap := make(map[uint64]float64, 0)
 	for _, m := range cageFeedStocks {
-		monitoringMap[m.CageId] = m.TotalFeed - m.UsedFeed
+		cageFeedStockMap[m.CageId] += m.TotalFeed - m.UsedFeed
 	}
 
 	responses := make([]dto.ChickenCageFeedListResponse, len(data))
 	for i, e := range data {
 		resp := mapper.ChickenCageFeedToListResponse(&e)
-		if yesterdayFeed, ok := monitoringMap[e.CageId]; ok {
-			resp.TotalFeed = resp.ExpectedTotalFeed - yesterdayFeed
-		}
+		resp.TotalFeed = resp.ExpectedTotalFeed - cageFeedStockMap[e.CageId]
 		responses[i] = resp
 	}
 
@@ -524,7 +522,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		CageId: chickenCage.CageId,
 	})
 	if err != nil {
-		s.log.Error("failed get cage feed histories", zap.Error(err))
+		s.log.Error("failed get cage feed stocks", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
@@ -566,7 +564,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		CageId: chickenCage.CageId,
 	})
 	if err != nil {
-		s.log.Error("failed get cage feed histories", zap.Error(err))
+		s.log.Error("failed get cage feed stocks", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
@@ -725,7 +723,7 @@ func (s *CageService) GetTotalCageFeedHistory(cageId uint64) (float64, error) {
 		CageId: cageId,
 	})
 	if err != nil {
-		s.log.Error("failed get cage feed histories", zap.Error(err))
+		s.log.Error("failed get cage feed stocks", zap.Error(err))
 		return -1, err
 	}
 
@@ -751,7 +749,7 @@ func (s *CageService) ReduceCageFeedHistory(latestFeed float64, currentFeeds flo
 		CageId: cageId,
 	})
 	if err != nil {
-		s.log.Error("failed get cage feed histories", zap.Error(err))
+		s.log.Error("failed get cage feed stocks", zap.Error(err))
 		return err
 	}
 
