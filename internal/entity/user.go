@@ -24,7 +24,7 @@ type User struct {
 	Address        string              `gorm:"type:text;not null"`
 	SalaryInterval enum.SalaryInterval `gorm:"type:int;not null;default:1"`
 	Salary         decimal.Decimal     `gorm:"type:decimal;not null"`
-	CreatedBy      uuid.NullUUID       `gorm:"type:varchar(255)"`
+	CreatedByOwner uuid.NullUUID       `gorm:"type:varchar(255)"`
 	CreatedAt      time.Time           `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy      uuid.NullUUID       `gorm:"type:varchar(255)"`
 	UpdatedAt      time.Time           `gorm:"type:timestamp;autoUpdateTime"`

@@ -2341,9 +2341,12 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.CreateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
-	if !ovenCondition.IsValid() {
-		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
+	ovenCondition := enum.OvenConditionNotInput
+	if request.OvenCondition != nil {
+		ovenCondition := enum.ValueOfOvenCondition(*request.OvenCondition)
+		if !ovenCondition.IsValid() {
+			return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
+		}
 	}
 
 	price, err := decimal.NewFromString(request.Price)
@@ -2486,9 +2489,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
-	if !ovenCondition.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
+	ovenCondition := enum.OvenConditionNotInput
+	if request.OvenCondition != nil {
+		ovenCondition = enum.ValueOfOvenCondition(*request.OvenCondition)
+		if !ovenCondition.IsValid() {
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
+		}
 	}
 
 	expiredAt, err := time.Parse("02-01-2006", request.ExpiredAt)
@@ -2500,6 +2506,11 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 	if !paymentType.IsValid() {
 		s.log.Error("invalid payment type")
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment format")
 	}
 
 	data := entity.WarehouseItemCornProcurement{
@@ -2515,6 +2526,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
+		DeadlinePaymentDate:       sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
@@ -2631,9 +2643,12 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
-	if !ovenCondition.IsValid() {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
+	ovenCondition := enum.OvenConditionNotInput
+	if request.OvenCondition != nil {
+		ovenCondition = enum.ValueOfOvenCondition(*request.OvenCondition)
+		if !ovenCondition.IsValid() {
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid oven condition")
+		}
 	}
 
 	expiredAt, err := time.Parse("02-01-2006", request.ExpiredAt)
@@ -2645,6 +2660,11 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 	if !paymentType.IsValid() {
 		s.log.Error("invalid payment type")
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
+	}
+
+	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment format")
 	}
 
 	data := entity.WarehouseItemCornProcurement{
@@ -2660,6 +2680,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
+		DeadlinePaymentDate:       sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))

@@ -86,7 +86,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		Address:        request.Address,
 		Salary:         salary,
 		SalaryInterval: salaryInterval,
-		CreatedBy:      uuid.NullUUID{UUID: userId, Valid: true},
+		CreatedByOwner: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.LocationId != nil {

@@ -379,9 +379,9 @@ type WarehouseItemProcurementDraftResponse struct {
 type CreateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
-	OvenCondition             string  `json:"ovenCondition" validate:"required,ovenCondition"`
+	OvenCondition             *string `json:"ovenCondition"`
 	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
-	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
+	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
 	Discount                  float64 `json:"discount" validate:"required"`
@@ -416,9 +416,9 @@ type WarehouseItemCornProcurementDraftResponse struct {
 type CreateWarehouseItemCornProcurementRequest struct {
 	WarehouseId               uint64                                             `json:"warehouseId" validate:"required"`
 	SupplierId                uint64                                             `json:"supplierId" validate:"required"`
-	OvenCondition             string                                             `json:"ovenCondition" validate:"required,ovenCondition"`
+	OvenCondition             *string                                            `json:"ovenCondition"`
 	CornWaterLevel            float64                                            `json:"cornWaterLevel" validate:"required"`
-	IsOvenCanOperateInNearDay *bool                                              `json:"isOvenCanOperateInNearDay" validate:"required"`
+	IsOvenCanOperateInNearDay *bool                                              `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64                                            `json:"quantity" validate:"required"`
 	Price                     string                                             `json:"price" validate:"required"`
 	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
@@ -471,12 +471,6 @@ type WarehouseItemCornProcurementResponse struct {
 	PaymentStatus                 string                                        `json:"paymentStatus"`
 	PaymentType                   string                                        `json:"paymentType"`
 	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
-}
-
-type CreateWarehouseItemCornRequest struct {
-}
-
-type UpdateWarehouseItemCornRequest struct {
 }
 
 type WarehouseItemCornResponse struct {

@@ -3,15 +3,17 @@ package enum
 type OvenCondition uint8
 
 const (
-	OvenConditionUnknown OvenCondition = 0
-	OvenConditionOn      OvenCondition = 1
-	OvenConditionOff     OvenCondition = 2
+	OvenConditionUnknown  OvenCondition = 0
+	OvenConditionOn       OvenCondition = 1
+	OvenConditionOff      OvenCondition = 2
+	OvenConditionNotInput OvenCondition = 3
 )
 
 var (
 	OvenConditionMap = map[OvenCondition]string{
-		OvenConditionOn:  "Hidup",
-		OvenConditionOff: "Mati",
+		OvenConditionOn:       "Hidup",
+		OvenConditionOff:      "Mati",
+		OvenConditionNotInput: "-",
 	}
 )
 
