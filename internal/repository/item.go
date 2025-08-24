@@ -143,6 +143,10 @@ func (r *ItemRepository) GetItems(filter dto.GetItemFilter) ([]entity.Item, erro
 		query = query.Where("category IN ?", categories)
 	}
 
+	if filter.ItemNames != nil {
+		query = query.Where("name IN ?", filter.ItemNames)
+	}
+
 	err := query.Find(&warehouseItems).Error
 	if err != nil {
 		return nil, err

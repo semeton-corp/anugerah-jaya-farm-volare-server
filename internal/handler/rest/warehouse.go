@@ -59,6 +59,9 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/histories", middleware.Authentication(), h.GetWarehouseItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetWarehouseItemHistory)
 
+	v1.Post("/items/procurements/drafts/raw-feeds", middleware.Authentication(), h.CreateRawFeed)
+	v1.Post("/items/procurements/drafts/ready-to-eat-feeds", middleware.Authentication(), h.CreateReadyToEatFeed)
+
 	v1.Post("/items/procurements/drafts", middleware.Authentication(), h.CreateWarehouseItemProcurementDraft)
 	v1.Get("/items/procurements/drafts/:id", middleware.Authentication(), h.GetWarehouseItemProcurementDraft)
 	v1.Get("/items/procurements/drafts", middleware.Authentication(), h.GetWarehouseItemProcurementDrafts)
@@ -1374,4 +1377,56 @@ func (h *WarehouseHandler) GetWarehouseItemCornPrices(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get warehouse item corn prices")
+}
+
+func (h *WarehouseHandler) CreateRawFeed(c *fiber.Ctx) error {
+	var request dto.CreateRawFeedRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse body", zap.Error(err))
+		return errx.BadRequest("invalid request body")
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("failed to get user id in context")
+	}
+
+	if err := h.service.CreateRawFeed(request, uuid.MustParse(userId)); err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, nil, "success create raw feed")
+}
+
+func (h *WarehouseHandler) CreateReadyToEatFeed(c *fiber.Ctx) error {
+	var request dto.CreateReadyToEatFeedRequest
+
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse body", zap.Error(err))
+		return errx.BadRequest("invalid request body")
+	}
+
+	if err := h.validator.Struct(request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("failed to get user id in context")
+	}
+
+	if err := h.service.CreateReadyToEatFeed(request, uuid.MustParse(userId)); err != nil {
+		h.log.Error("service error", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusCreated, nil, "success create ready-to-eat feed")
 }

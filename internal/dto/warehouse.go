@@ -546,6 +546,7 @@ type CreateRawMaterialRequest struct {
 }
 
 type CreateReadyToEatFeedRequest struct {
+	WarehouseId   uint64  `json:"warehouseId" validate:"required"`
 	ItemId        uint64  `json:"itemId" validate:"itemId"`
 	DaysNeed      uint64  `json:"daysNeed" validate:"required"`
 	Quantity      float64 `json:"quantity" validate:"required"`

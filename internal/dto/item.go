@@ -18,6 +18,7 @@ type UpdateItemRequest struct {
 
 type GetItemFilter struct {
 	Categories []param.ItemCategoryParam `query:"category"`
+	ItemNames  []string                  `query:"itemNames"`
 }
 
 type ItemResponse struct {

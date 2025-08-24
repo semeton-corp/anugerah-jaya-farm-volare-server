@@ -100,7 +100,7 @@ type IWarehouseService interface {
 	GetWarehouseItemCornPrices() ([]dto.WarehouseItemCornPriceResponse, error)
 
 	CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error
-	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error
+	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest, userId uuid.UUID) error
 
 	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID) error
 }
@@ -3185,7 +3185,7 @@ func (s *WarehouseService) CreateRawFeed(request dto.CreateRawFeedRequest, userI
 
 	cornDraft := entity.WarehouseItemCornProcurementDraft{
 		WarehouseId:   request.WarehouseId,
-		OvenCondition: enum.OvenConditionUnknown,
+		OvenCondition: enum.OvenConditionNotInput,
 		Quantity:      request.CornQuantity,
 		Price:         cornPrice,
 		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
@@ -3230,7 +3230,7 @@ func (s *WarehouseService) CreateRawFeed(request dto.CreateRawFeedRequest, userI
 	return nil
 }
 
-func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error {
+func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest, userId uuid.UUID) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -3241,11 +3241,12 @@ func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeed
 	}
 
 	draft := entity.WarehouseItemProcurementDraft{
+		WarehouseId:   request.WarehouseId,
 		ItemId:        request.ItemId,
 		DailySpending: request.DailySpending,
 		DaysNeed:      request.DaysNeed,
 		Price:         price,
-		// Quantity and ExpiredAt are not stored in the draft entity, but you can add them if needed
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateWarehouseItemProcurementDraft(&draft)
@@ -3332,3 +3333,5 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 
 	return nil
 }
+
+
