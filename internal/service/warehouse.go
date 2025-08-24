@@ -3333,5 +3333,3 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 
 	return nil
 }
-
-

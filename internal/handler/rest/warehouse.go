@@ -59,8 +59,8 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/items/histories", middleware.Authentication(), h.GetWarehouseItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetWarehouseItemHistory)
 
-	v1.Post("/items/procurements/drafts/raw-feeds", middleware.Authentication(), h.CreateRawFeed)
-	v1.Post("/items/procurements/drafts/ready-to-eat-feeds", middleware.Authentication(), h.CreateReadyToEatFeed)
+	v1.Post("/procurements/drafts/raw-feeds", middleware.Authentication(), h.CreateRawFeed)
+	v1.Post("/procurements/drafts/ready-to-eat-feeds", middleware.Authentication(), h.CreateReadyToEatFeed)
 
 	v1.Post("/items/procurements/drafts", middleware.Authentication(), h.CreateWarehouseItemProcurementDraft)
 	v1.Get("/items/procurements/drafts/:id", middleware.Authentication(), h.GetWarehouseItemProcurementDraft)

@@ -547,12 +547,10 @@ type CreateRawMaterialRequest struct {
 
 type CreateReadyToEatFeedRequest struct {
 	WarehouseId   uint64  `json:"warehouseId" validate:"required"`
-	ItemId        uint64  `json:"itemId" validate:"itemId"`
+	ItemId        uint64  `json:"itemId" validate:"required"`
 	DaysNeed      uint64  `json:"daysNeed" validate:"required"`
-	Quantity      float64 `json:"quantity" validate:"required"`
 	Price         string  `json:"price" validate:"required"`
 	DailySpending float64 `json:"dailySpending" validate:"required"`
-	ExpiredAt     string  `json:"expiredAt" validate:"expired"`
 }
 
 type ReduceFeedRequest struct {

@@ -16,7 +16,7 @@ type WarehouseItemCornProcurementDraft struct {
 	SupplierId                sql.NullInt64      `gorm:"type:bigint"`
 	Supplier                  Supplier           `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
 	OvenCondition             enum.OvenCondition `gorm:"type:int;not null"`
-	CornWaterLevel            sql.NullFloat64    `gorm:"type:decimal;not null"`
+	CornWaterLevel            sql.NullFloat64    `gorm:"type:decimal"`
 	IsOvenCanOperateInNearDay sql.NullBool       `gorm:"type:bool"`
 	Quantity                  float64            `gorm:"type:decimal;not null"`
 	Price                     decimal.Decimal    `gorm:"type:decimal;not null"`
