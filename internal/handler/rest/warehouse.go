@@ -40,6 +40,12 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/sales/:warehouseSaleId/payments/:id", middleware.Authentication(), h.DeleteWarehouseSalePayment)
 	v1.Patch("sales/:warehouseSaleId/send", middleware.Authentication(), h.SendWarehouseSale)
 
+	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
+	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
+	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
+	v1.Put("/:warehouseId/items/:itemId", middleware.Authentication(), h.UpdateWarehouseItem)
+	v1.Delete("/:warehouseId/items/:itemId", middleware.Authentication(), h.DeleteWarehouseItem)
+
 	v1.Get("/overview/:id", middleware.Authentication(), h.GetWarehouseOverview)
 	v1.Post("/", middleware.Authentication(), h.CreateWarehouse)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateWarehouse)
@@ -49,12 +55,6 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/items/eggs/summary/:warehouseId", middleware.Authentication(), h.GetEggWarehouseItemSummary)
 	v1.Get("/items/corns/summary/:warehouseId", middleware.Authentication(), h.GetCornWarehouseItemSummary)
-
-	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
-	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
-	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
-	v1.Put("/:warehouseId/items/:itemId", middleware.Authentication(), h.UpdateWarehouseItem)
-	v1.Delete("/:warehouseId/items/:itemId", middleware.Authentication(), h.DeleteWarehouseItem)
 
 	v1.Get("/items/histories", middleware.Authentication(), h.GetWarehouseItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetWarehouseItemHistory)

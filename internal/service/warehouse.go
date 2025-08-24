@@ -102,7 +102,7 @@ type IWarehouseService interface {
 	CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error
 	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest) error
 
-	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest) error
+	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID) error
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -3262,7 +3262,7 @@ func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeed
 	return nil
 }
 
-func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest) error {
+func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -3294,6 +3294,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 					corn.Quantity = 0
 				}
 
+				corn.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 				if err := s.repository.UpdateWarehouseItemCorn(&corn); err != nil {
 					s.log.Error("failed update corn item", zap.Error(err))
 					return err
@@ -3317,7 +3318,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 		}
 
 		item.Quantity -= r.Quantity
-
+		item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 		if err := s.repository.UpdateWarehouseItem(&item); err != nil {
 			s.log.Error("failed update warehouse item", zap.Error(err))
 			return err

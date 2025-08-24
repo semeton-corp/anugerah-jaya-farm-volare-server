@@ -262,7 +262,18 @@ func (r *CageRepository) GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage
 }
 
 func (r *CageRepository) UpdateChickenCage(chickenCage *entity.ChickenCage) error {
-	return r.GetDB().Model(&entity.ChickenCage{}).Where("id = ?", chickenCage.Id).Updates(chickenCage).Error
+	return r.GetDB().
+		Model(&entity.ChickenCage{}).
+		Where("id = ?", chickenCage.Id).
+		Updates(map[string]interface{}{
+			"cage_id":                 chickenCage.CageId,
+			"chicken_procurement_id":  chickenCage.ChickenProcurementId,
+			"total_chicken":           chickenCage.TotalChicken,
+			"is_need_routine_vaccine": chickenCage.IsNeedRoutineVaccine,
+			"is_need_feed":            chickenCage.IsNeedFeed,
+			"updated_at":              time.Now(),
+			"updated_by":              chickenCage.UpdatedBy,
+		}).Error
 }
 
 func (r *CageRepository) CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error {

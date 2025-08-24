@@ -239,10 +239,13 @@ func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, us
 	s.repository.UseTx(false)
 
 	chickenCage := entity.ChickenCage{
-		CageId:               request.CageId,
-		ChickenProcurementId: request.ChickenProcurementId,
-		TotalChicken:         request.TotalChicken,
-		CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
+		CageId:       request.CageId,
+		TotalChicken: request.TotalChicken,
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.ChickenProcurementId != nil {
+		chickenCage.ChickenProcurementId = *request.ChickenProcurementId
 	}
 
 	err := s.repository.CreateChickenCage(&chickenCage)
@@ -527,7 +530,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	}
 
 	for _, e := range cageFeedStocks {
-		needCreateFeed -= e.TotalFeed - e.UsedFeed
+		needCreateFeed -= (e.TotalFeed - e.UsedFeed)
 	}
 
 	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
@@ -542,6 +545,8 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	response := mapper.ChickenCageFeedToResponse(&chickenCage)
 	if needCreateFeed < 0 {
 		response.TotalFeed = 0
+	} else {
+		response.TotalFeed = needCreateFeed
 	}
 	response.FeedDetails = feedDetailResponse
 
@@ -551,15 +556,17 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest, userId uuid.UUID) (dto.ChickenCageFeedResponse, error) {
 	s.repository.UseTx(false)
 
-	chickenCage, err := s.repository.GetChickenCageById(chickenCageId)
+	chickenCage, err := s.repository.GetChickenCageFeedById(chickenCageId)
 	if err != nil {
 		s.log.Error("failed get chicken cage by id", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	chickenCage.IsNeedFeed = false
+	if !chickenCage.IsNeedFeed {
+		return dto.ChickenCageFeedResponse{}, errx.BadRequest("chicken cage is already feed")
+	}
 
-	needCreateFeed := float64(0)
+	needCreateFeed := chickenCage.Cage.CageFeed.TotalFeed
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
 		CageId: chickenCage.CageId,
 	})
@@ -569,7 +576,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 	}
 
 	for _, e := range cageFeedStocks {
-		needCreateFeed = e.TotalFeed - e.UsedFeed
+		needCreateFeed -= (e.TotalFeed - e.UsedFeed)
 	}
 
 	requestToWarehouse := make([]dto.ReduceFeedRequest, 0)
@@ -581,12 +588,13 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		})
 	}
 
-	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse)
+	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse, userId)
 	if err != nil {
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
 	chickenCage.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	chickenCage.IsNeedFeed = false
 	err = s.repository.UpdateChickenCage(&chickenCage)
 	if err != nil {
 		s.log.Error("failed update chicken cage", zap.Error(err))

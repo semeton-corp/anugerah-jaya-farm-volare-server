@@ -37,9 +37,9 @@ type UpdateChickenCageRequest struct {
 }
 
 type CreateChickenCageRequest struct {
-	CageId               uint64 `json:"cageId" validate:"required"`
-	ChickenProcurementId uint64 `json:"chickenProcurementId" validate:"required"`
-	TotalChicken         uint64 `json:"totalChicken" validate:"required"`
+	CageId               uint64  `json:"cageId" validate:"required"`
+	ChickenProcurementId *uint64 `json:"chickenProcurementId" validate:"required"`
+	TotalChicken         uint64  `json:"totalChicken" validate:"required"`
 }
 
 type ChickenCageResponse struct {

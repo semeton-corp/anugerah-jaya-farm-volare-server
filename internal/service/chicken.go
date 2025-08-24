@@ -1027,8 +1027,20 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	// Todo : Sage pattern
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,
-		ChickenProcurementId: chickenProcurement.Id,
+		ChickenProcurementId: &chickenProcurement.Id,
 		TotalChicken:         chickenProcurement.Quantity,
+	}, userId)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
+	isUsed := true
+	_, err = s.cageService.UpdateCage(chickenProcurement.CageId, dto.UpdateCageRequest{
+		Name:            chickenProcurement.Cage.Name,
+		Capacity:        chickenProcurement.Cage.Capacity,
+		LocationId:      chickenProcurement.Cage.LocationId,
+		ChickenCategory: chickenProcurement.Cage.ChickenCategory.String(),
+		IsUsed:          &isUsed,
 	}, userId)
 	if err != nil {
 		return dto.ChickenProcurementResponse{}, err
@@ -2085,6 +2097,17 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	if !isUsed {
+		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
+			CageId:               chickenCage.Cage.Id,
+			ChickenProcurementId: nil,
+			TotalChicken:         0,
+		}, userId)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, err
+		}
 	}
 
 	if err = s.repository.Commit(); err != nil {

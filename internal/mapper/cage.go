@@ -169,7 +169,7 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 		TotalChicken:      chickenCage.TotalChicken,
 		IsNeedFeed:        chickenCage.IsNeedFeed,
 		FeedType:          chickenCage.Cage.CageFeed.FeedType.String(),
-		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed,
+		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed * float64(chickenCage.TotalChicken) / 1000.0,
 	}
 
 	return response
