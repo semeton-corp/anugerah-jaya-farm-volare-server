@@ -22,6 +22,7 @@ type UserService struct {
 	repository      repository.IUserRepository
 	workService     IWorkService
 	presenceService IPresenceService
+	chickenService  IChickenService
 }
 
 type IUserService interface {
@@ -32,15 +33,18 @@ type IUserService interface {
 	GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
 	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 
-	CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error)
+	CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error)
+
+	GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error)
 }
 
-func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService) IUserService {
+func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService) IUserService {
 	return &UserService{
 		log:             log,
 		repository:      repository,
 		workService:     workService,
 		presenceService: presenceService,
+		chickenService:  chickenService,
 	}
 }
 
@@ -157,14 +161,10 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		return dto.UserOverviewResponse{}, nil
 	}
 
-	// TODO : get cashbon from cashflow tabel later
-
 	totalPresentWeek := make(map[int]uint64)
-	totalOvertimeHourWeek := make(map[int]uint64)
 	totalWorkHourWeek := make(map[int]uint64)
 
 	var totalPresent uint64 = 0
-	var totalOvertime float64 = 0
 	var totalWorkHour float64 = 0
 	for _, userPresence := range userPresences.Presences {
 		week := util.FindWeek(user.CreatedAt, weeks)
@@ -194,15 +194,11 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 					totalWorkHour += diffHours
 				}
 
-				totalOvertime += userPresence.Overtime
-
 				totalWorkHourWeek[week] += uint64(diffHours)
-				totalOvertimeHourWeek[week] += uint64(userPresence.Overtime)
 			}
 		}
 	}
 
-	bonusWeek := make(map[int]decimal.Decimal)
 	totalWorkDoneWeek := make(map[int]uint64)
 
 	var additionalWorkSalary decimal.Decimal
@@ -234,7 +230,6 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 			}
 
 			additionalWorkSalary = additionalWorkSalary.Add(salary)
-			bonusWeek[week] = bonusWeek[week].Add(salary)
 		}
 	}
 
@@ -264,6 +259,8 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		TotalWorkNotDone: uint64(len(dailyWorkUsers.DailyWorkUsers) + len(additionalWorkUsers.AdditionalWorkUsers) - int(totalWorkDone)),
 	}
 
+	// Todo : get the user salary payment that month
+
 	userSalaryInformation := dto.UserSalaryInformationResponse{
 		BaseSalary:         user.Salary.String(),
 		BonusSalary:        additionalWorkSalary.String(),
@@ -276,11 +273,11 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 	for key, value := range weeks {
 
 		presenceScore := float64(totalPresentWeek[key]) / float64(value.TotalDays) * 100
-		workPresence := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
+		workScore := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
 
 		kpiPerformance := dto.KPIPerformanceResponse{
 			Key:   fmt.Sprintf("Minggu %d", key),
-			Value: (presenceScore + workPresence) / 2,
+			Value: (presenceScore * 0.6) + (workScore * 0.4),
 		}
 
 		kpiPerformances = append(kpiPerformances, kpiPerformance)
@@ -300,7 +297,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {
 	s.repository.UseTx(false)
 
-	users, err := s.repository.GetUserOverviews(&filter)
+	users, err := s.repository.GetUserOverviewLists(&filter)
 	if err != nil {
 		s.log.Error("failed to get user overview", zap.Error(err))
 		return dto.UserListOverviewPaginationResponse{}, err
@@ -311,7 +308,7 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 		response = append(response, mapper.UserOverviewToListResponse(&user))
 	}
 
-	totalData, err := s.repository.CountTotalUserOverview(&filter)
+	totalData, err := s.repository.CountTotalUserOverviewList(&filter)
 	if err != nil {
 		s.log.Error("failed count user overview", zap.Error(err))
 		return dto.UserListOverviewPaginationResponse{}, err
@@ -329,7 +326,7 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 	return resp, nil
 }
 
-func (s *UserService) CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error) {
+func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error) {
 	withDeleted := true
 	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userId,
 		dto.GetAdditionalWorkUserFilter{
@@ -407,7 +404,7 @@ func (s *UserService) CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint6
 	if len(userPresences.Presences) == 0 {
 		presenceScore = 0
 	} else {
-		presenceScore = float64(totalWorkHour) / float64(56) * 100 // 56 is 8 hours in 7 days
+		presenceScore = float64(totalWorkHour) / float64(len(userPresences.Presences)*8) * 100
 	}
 
 	var workScore float64
@@ -418,4 +415,188 @@ func (s *UserService) CalculateKPIScoreUserPerMonth(userId uuid.UUID, year uint6
 	}
 
 	return (presenceScore * 0.6) + (workScore * 0.4), nil
+}
+
+func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error) {
+	s.repository.UseTx(false)
+
+	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
+
+	ownerRole, err := s.repository.GetRoleByName("Owner")
+	if err != nil {
+		s.log.Error("failed get role by name", zap.Error(err))
+		return dto.UserPerformanceOverviewResponse{}, err
+	}
+
+	users, err := s.repository.GetUsers(&dto.GetUserListFilter{
+		ExcluseRoleIds: []uint64{ownerRole.Id},
+	})
+	if err != nil {
+		s.log.Error("failed get users", zap.Error(err))
+		return dto.UserPerformanceOverviewResponse{}, err
+	}
+
+	kpiUser := float64(0)
+	kpiUserPerWeek := make(map[int]float64)
+
+	kpiChicken, err := s.chickenService.GetKPIScoreChickenInMonth(filter.LocationId, enum.Month(filter.Month.Value()), filter.Year)
+	if err != nil {
+		return dto.UserPerformanceOverviewResponse{}, err
+	}
+
+	kpiChickenPerWeek, err := s.chickenService.GetKPIScoreChickenPerWeek(filter.LocationId, enum.Month(filter.Month.Value()), filter.Year)
+	if err != nil {
+		return dto.UserPerformanceOverviewResponse{}, err
+	}
+
+	for _, user := range users {
+		withDeleted := true
+		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(user.Id,
+			dto.GetAdditionalWorkUserFilter{
+				Month:       filter.Month,
+				Year:        filter.Year,
+				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			})
+		if err != nil {
+			return dto.UserPerformanceOverviewResponse{}, nil
+		}
+
+		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(user.Id,
+			dto.GetDailyWorkUserFilter{
+				Month:       filter.Month,
+				Year:        filter.Year,
+				WithDeleted: &withDeleted,
+			})
+		if err != nil {
+			return dto.UserPerformanceOverviewResponse{}, nil
+		}
+
+		userPresences, err := s.presenceService.GetUserPresencesByUserId(user.Id,
+			dto.GetPresenceFilter{
+				Month: filter.Month,
+				Year:  filter.Year,
+			})
+		if err != nil {
+			return dto.UserPerformanceOverviewResponse{}, nil
+		}
+
+		totalPresentWeek := make(map[int]uint64)
+		totalWorkHourWeek := make(map[int]uint64)
+
+		var totalPresent uint64 = 0
+		var totalWorkHour float64 = 0
+		for _, userPresence := range userPresences.Presences {
+			week := util.FindWeek(user.CreatedAt, weeks)
+			if week == 0 {
+				continue
+			}
+
+			if userPresence.Status == enum.PresenceStatusPresent.String() {
+				totalPresent++
+				totalPresentWeek[week]++
+
+				if userPresence.EndTime != "" {
+					startTime, err := time.Parse("15:04", userPresence.StartTime)
+					if err != nil {
+						continue
+					}
+
+					endTime, err := time.Parse("15:04", userPresence.EndTime)
+					if err != nil {
+						continue
+					}
+
+					diffHours := endTime.Sub(startTime).Hours()
+					if diffHours > 8 {
+						totalWorkHour += 8.0
+					} else {
+						totalWorkHour += diffHours
+					}
+
+					totalWorkHourWeek[week] += uint64(diffHours)
+				}
+			}
+		}
+
+		totalWorkDoneWeek := make(map[int]uint64)
+		totalDailyWorkInWeek := make(map[int]uint64)
+		totalAdditionalWorkInWeek := make(map[int]uint64)
+
+		var totalWorkDone uint64 = 0
+		for _, dailyWorkUser := range dailyWorkUsers.DailyWorkUsers {
+			week := util.FindWeek(dailyWorkUser.CreatedAt, weeks)
+			if week == 0 {
+				continue
+			}
+
+			totalDailyWorkInWeek[week]++
+			if dailyWorkUser.IsDone {
+				totalWorkDone++
+				totalWorkDoneWeek[week]++
+			}
+		}
+
+		for _, additionalWorkUser := range additionalWorkUsers.AdditionalWorkUsers {
+			week := util.FindWeek(additionalWorkUser.CreatedAt, weeks)
+			if week == 0 {
+				continue
+			}
+			totalAdditionalWorkInWeek[week]++
+			if additionalWorkUser.IsDone {
+				totalWorkDone++
+				totalWorkDoneWeek[week]++
+			}
+		}
+
+		var workScore float64
+		if len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers) == 0 {
+			workScore = 0
+		} else {
+			workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers)) * 100
+		}
+
+		var presenceScore float64
+		if len(userPresences.Presences) == 0 {
+			presenceScore = 0
+		} else {
+			presenceScore = float64(totalWorkHour) / float64(len(userPresences.Presences)*8) * 100
+		}
+
+		if kpiUser == 0 {
+			kpiUser = (presenceScore * 0.6) + (workScore * 0.4)
+		} else {
+			kpiUser = ((presenceScore * 0.6) + (workScore * 0.4) + kpiUser) / 2
+		}
+
+		for key, value := range weeks {
+			presenceScore := float64(totalPresentWeek[key]) / float64(value.TotalDays) * 100
+			workScore := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
+
+			if kpiUserPerWeek[key] == 0 {
+				kpiUserPerWeek[key] = (presenceScore * 0.6) + (workScore * 0.4)
+			} else {
+				kpiUserPerWeek[key] = ((presenceScore * 0.6) + (workScore * 0.4) + kpiUserPerWeek[key]) / 2
+			}
+		}
+	}
+
+	performancesGraphsResponses := make([]dto.PerformanceGraphResponse, 0)
+	for key := range weeks {
+		performancesGraphsResponses = append(performancesGraphsResponses, dto.PerformanceGraphResponse{
+			Key:                   fmt.Sprintf("Minggu %d", key),
+			KPIChickenPerformance: kpiChickenPerWeek[key],
+			KPIUserPerformance:    kpiUserPerWeek[key],
+		})
+
+	}
+
+	return dto.UserPerformanceOverviewResponse{
+		UserPerformanceDetail: dto.UserPerformanceSummaryResponse{
+			TotalUser:  uint64(len(users)),
+			KPIUser:    kpiUser,
+			KPIChicken: kpiChicken,
+			KPIAll:     (kpiChicken + kpiUser) / 2,
+		},
+		UserPerformanceGraphs: performancesGraphsResponses,
+	}, nil
 }

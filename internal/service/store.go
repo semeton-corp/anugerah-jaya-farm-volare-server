@@ -76,14 +76,13 @@ type IStoreService interface {
 	AllocateStoreSaleQueue(id uint64, request dto.CreateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
 }
 
-func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, userService IUserService, itemService IItemService, customerService ICustomerService) IStoreService {
+func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, itemService IItemService, customerService ICustomerService) IStoreService {
 	return &StoreService{
 		log:              log,
 		repository:       repository,
 		cacheService:     cacheService,
 		placementService: placementService,
 		warehouseService: warehouseService,
-		userService:      userService,
 		itemService:      itemService,
 		customerService:  customerService,
 	}
@@ -304,13 +303,8 @@ func (s *StoreService) GetStoreRequestItemById(id uint64) (dto.StoreRequestItemR
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	user, err := s.userService.GetUserById(storeRequestItem.CreatedBy.UUID)
-	if err != nil {
-		return dto.StoreRequestItemResponse{}, err
-	}
-
 	response := mapper.StoreRequestItemToResponse(&storeRequestItem)
-	response.CreatedBy = user.Name
+	response.CreatedBy = storeRequestItem.CreatedByUser.Name
 
 	return response, nil
 }

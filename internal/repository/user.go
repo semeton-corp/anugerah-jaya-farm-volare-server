@@ -24,9 +24,11 @@ type IUserRepository interface {
 	GetUserById(id uuid.UUID) (entity.User, error)
 	UpdateUser(user *entity.User) error
 	GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error)
-	CountTotalUserOverview(filter *dto.GetUserOverviewListFilter) (uint64, error)
 
-	GetUserOverviews(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
+	GetRoleByName(name string) (entity.Role, error)
+
+	GetUserOverviewLists(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
+	CountTotalUserOverviewList(filter *dto.GetUserOverviewListFilter) (uint64, error)
 }
 
 func NewUserRepository(db *gorm.DB) IUserRepository {
@@ -93,6 +95,10 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User,
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
+	if filter.ExcluseRoleIds != nil {
+		query = query.Where("role_id NOT IN ?", filter.ExcluseRoleIds)
+	}
+
 	if err := query.Preload("Role").Find(&users).Error; err != nil {
 		return nil, err
 	}
@@ -100,7 +106,7 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User,
 	return users, nil
 }
 
-func (r *UserRepository) CountTotalUserOverview(filter *dto.GetUserOverviewListFilter) (uint64, error) {
+func (r *UserRepository) CountTotalUserOverviewList(filter *dto.GetUserOverviewListFilter) (uint64, error) {
 	var totalData int64
 
 	query := r.db.Model(&entity.User{})
@@ -122,7 +128,7 @@ func (r *UserRepository) CountTotalUserOverview(filter *dto.GetUserOverviewListF
 	return uint64(totalData), err
 }
 
-func (r *UserRepository) GetUserOverviews(filter *dto.GetUserOverviewListFilter) ([]entity.User, error) {
+func (r *UserRepository) GetUserOverviewLists(filter *dto.GetUserOverviewListFilter) ([]entity.User, error) {
 	users := make([]entity.User, 0)
 	query := r.db.Model(&entity.User{})
 
@@ -145,4 +151,14 @@ func (r *UserRepository) GetUserOverviews(filter *dto.GetUserOverviewListFilter)
 	}
 
 	return users, nil
+}
+
+func (r *UserRepository) GetRoleByName(name string) (entity.Role, error) {
+	var data entity.Role
+	err := r.GetDB().Model(&entity.Role{}).Where("name = ?", name).First(&data).Error
+	if err != nil {
+		return entity.Role{}, err
+	}
+
+	return data, nil
 }

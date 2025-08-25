@@ -102,10 +102,6 @@ func (b *Bootstrap) DepedencyInjection() {
 	supplierService := service.NewSupplierService(b.log, supplierRepository)
 	supplierHandler := rest.NewSupplierHandler(b.log, supplierService, b.validator)
 
-	userRepository := repository.NewUserRepository(b.db)
-	userService := service.NewUserService(b.log, userRepository, workService, presenceService)
-	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
-
 	customerRepository := repository.NewCustomerRepository(b.db)
 	customerService := service.NewCustomerService(b.log, customerRepository)
 	customerHandler := rest.NewCustomerHandler(b.log, customerService, b.validator)
@@ -114,13 +110,13 @@ func (b *Bootstrap) DepedencyInjection() {
 	warehouseService := service.NewWarehouseService(b.log, warehouseRepository, b.cache, placementService, itemService, customerService)
 	warehouseHandler := rest.NewWarehouseHandler(b.log, warehouseService, b.validator)
 
-	storeRepository := repository.NewStoreRepository(b.db)
-	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService, userService, itemService, customerService)
-	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
-
 	cageRepository := repository.NewCageRepository(b.db)
 	cageService := service.NewCageService(b.log, cageRepository, warehouseService)
 	cageHandler := rest.NewCageHandler(b.log, cageService, b.validator)
+
+	storeRepository := repository.NewStoreRepository(b.db)
+	storeService := service.NewStoreService(b.log, storeRepository, b.cache, placementService, warehouseService, itemService, customerService)
+	storeHandler := rest.NewStoreHandler(b.log, storeService, b.validator)
 
 	eggRepository := repository.NewEggRepository(b.db)
 	eggService := service.NewEggService(b.log, eggRepository, warehouseService, cageService, itemService, b.cache, storeService)
@@ -132,6 +128,10 @@ func (b *Bootstrap) DepedencyInjection() {
 
 	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)
 	generalHandler := rest.NewGeneralHandler(b.log, generalService, b.validator)
+
+	userRepository := repository.NewUserRepository(b.db)
+	userService := service.NewUserService(b.log, userRepository, workService, presenceService, chickenService)
+	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
 	b.handlers = []Handler{
 		authenticationHandler,

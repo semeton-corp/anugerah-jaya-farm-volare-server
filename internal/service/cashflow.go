@@ -420,7 +420,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	totalWarehouseItemCornProcurement := decimal.Zero
 	totalOperational := decimal.Zero
 	totalOther := decimal.Zero
-	totalStaffSalary := decimal.Zero
+	totalUserSalary := decimal.Zero
 
 	for _, p := range chickenProcurementPayments {
 		totalPayment = totalPayment.Add(p.Nominal)
@@ -543,7 +543,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 
 	return dto.ExpenseOverviewResponse{
 		ExpensePie: dto.ExpensePieResponse{
-			StaffPercentage:                        totalStaffSalary.Div(totalPayment).InexactFloat64() * 100.0,
+			StaffPercentage:                        totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0,
 			ChikckenProcuremtnPercentage:           totalChickenProcurement.Div(totalPayment).InexactFloat64() * 100.0,
 			WarehouseItemProcurementPercentage:     totalWarehouseItemProcurement.Div(totalPayment).InexactFloat64() * 100.0,
 			WarehouseItemCornProcurementPercentage: totalWarehouseItemCornProcurement.Div(totalPayment).InexactFloat64() * 100.0,
@@ -1722,7 +1722,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 		return dto.UserSalarySummaryResponse{}, err
 	}
 
-	totalStaff := len(userSalaryPayments)
+	totalUser := len(userSalaryPayments)
 	totalBaseSalary := decimal.Zero
 	totalAdditonalWorkSalary := decimal.Zero
 	totalBonusSalary := decimal.Zero
@@ -1758,7 +1758,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-			kpiScore, err := s.userService.CalculateKPIScoreUserPerMonth(e.UserId, filter.Year, filter.Month.Value())
+			kpiScore, err := s.userService.CalculateKPIScoreUserInMonth(e.UserId, filter.Year, filter.Month.Value())
 			if err != nil {
 				return dto.UserSalarySummaryResponse{}, err
 			}
@@ -1783,7 +1783,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 	}
 
 	return dto.UserSalarySummaryResponse{
-		TotalStaff:               uint64(totalStaff),
+		TotalUser:                uint64(totalUser),
 		TotalBaseSalary:          totalBaseSalary.String(),
 		TotalAdditonalWorkSalary: totalAdditonalWorkSalary.String(),
 		TotalBonusSalary:         totalBonusSalary.String(),
@@ -1891,7 +1891,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-		kpiScore, err := s.userService.CalculateKPIScoreUserPerMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
+		kpiScore, err := s.userService.CalculateKPIScoreUserInMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
 		if err != nil {
 			return dto.UserSalaryDetailResponse{}, err
 		}

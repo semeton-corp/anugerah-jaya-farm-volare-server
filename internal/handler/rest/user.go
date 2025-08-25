@@ -30,6 +30,8 @@ func (h *UserHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("", middleware.Authentication(), h.GetUsers)
 	v1.Get("/:id", middleware.Authentication(), h.GetUserById)
 	v1.Put("/:id", middleware.Authentication(), h.UpdateUser)
+
+	v1.Get("/performances/overview", middleware.Authentication(), h.GetUserPerformanceOverview)
 }
 
 func NewUserHandler(log *zap.Logger, service service.IUserService, validator *validator.Validate) *UserHandler {
@@ -188,4 +190,25 @@ func (h *UserHandler) GetUserOverviews(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get user overview list")
+}
+
+func (h *UserHandler) GetUserPerformanceOverview(c *fiber.Ctx) error {
+	var filter dto.GetUserPerformanceOverviewFilter
+
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetUserPerformanceOverview(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get user performance overview")
 }

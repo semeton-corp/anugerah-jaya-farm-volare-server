@@ -306,7 +306,7 @@ type DebtOverviewResponse struct {
 }
 
 type UserSalarySummaryResponse struct {
-	TotalStaff               uint64 `json:"totalStaff"`
+	TotalUser                uint64 `json:"totalUser"`
 	TotalBaseSalary          string `json:"totalBasedSalary"`
 	TotalAdditonalWorkSalary string `json:"totalAdditionalWorkSalary"`
 	TotalBonusSalary         string `json:"totalBonusSalary"`

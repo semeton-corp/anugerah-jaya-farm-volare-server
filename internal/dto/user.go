@@ -29,8 +29,9 @@ type UpdateUserRequest struct {
 }
 
 type GetUserListFilter struct {
-	RoleId     uint64 `query:"roleId"`
-	LocationId uint64 `query:"locationId"`
+	RoleId         uint64   `query:"roleId"`
+	LocationId     uint64   `query:"locationId"`
+	ExcluseRoleIds []uint64 `query:"excludeRoleIds"`
 }
 
 type GetUserOverviewListFilter struct {
@@ -106,7 +107,7 @@ type UserListOverviewResponse struct {
 	Role                 RoleResponse `json:"role"`
 }
 
-type UserPerformanceGraphResponse struct {
+type PerformanceGraphResponse struct {
 	Key                   string  `json:"key"`
 	KPIChickenPerformance float64 `json:"kpiChickenPerformance"`
 	KPIUserPerformance    float64 `json:"kpiUserPerformance"`
@@ -121,12 +122,16 @@ type UserPerformanceSummaryResponse struct {
 
 type UserPerformanceOverviewResponse struct {
 	UserPerformanceDetail UserPerformanceSummaryResponse `json:"userPerformanceSummary"`
-	UserPerformanceGraphs []UserPerformanceGraphResponse `json:"userPerformanceGraphs"`
-	// Todo : overview user performance in (owner)
+	UserPerformanceGraphs []PerformanceGraphResponse     `json:"userPerformanceGraphs"`
+}
+
+type GetUserPerformanceOverviewFilter struct {
+	LocationId uint64           `query:"locationId"`
+	Month      param.MonthParam `query:"month"`
+	Year       uint64           `query:"year"`
 }
 
 type UserSalaryGraphResponse struct {
 	Key    string `json:"key"`
 	Salary string `json:"kpiChickenPerformance"`
 }
-
