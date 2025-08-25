@@ -31,7 +31,7 @@ type IUserService interface {
 	GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResponse, error)
 
 	GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
-	GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
+	GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 
 	CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error)
 
@@ -121,7 +121,7 @@ func (s *UserService) GetUsers(filter dto.GetUserListFilter) ([]dto.UserListResp
 	return userResponses, nil
 }
 
-func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error) {
+func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error) {
 	s.repository.UseTx(false)
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
@@ -233,6 +233,12 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		}
 	}
 
+	cageStaffRole, err := s.repository.GetRoleByName("Pekerja Kandang")
+	if err != nil {
+		s.log.Error("failed get role by name", zap.Error(err))
+		return dto.UserOverviewResponse{}, err
+	}
+
 	var presenceScore float64
 	if len(userPresences.Presences) == 0 {
 		presenceScore = 0
@@ -245,8 +251,7 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 	totalSalary := user.Salary.Add(additionalWorkSalary) // Todo : need cashbon
 	userInformation := dto.UserInformationResponse{
 		TotalWorkHour: totalWorkHour,
-		TotalSalary:   totalSalary.String(),
-		KPIScore:      (presenceScore + workPresence) / 2,
+		WorkKpiScore:  (presenceScore + workPresence) / 2,
 	}
 
 	userPresenceInformation := dto.UserPresenceInformationResponse{
@@ -259,14 +264,28 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		TotalWorkNotDone: uint64(len(dailyWorkUsers.DailyWorkUsers) + len(additionalWorkUsers.AdditionalWorkUsers) - int(totalWorkDone)),
 	}
 
-	// Todo : get the user salary payment that month
+	var userSalaryInformation dto.UserSalaryInformationResponse
+	if time.Month(filter.Month.Value()) == time.Now().Month() && time.Now().Year() == int(filter.Year) {
+		userSalaryInformation = dto.UserSalaryInformationResponse{
+			BaseSalary:           user.Salary.String(),
+			AdditionalWorkSalary: additionalWorkSalary.String(),
+			CompentationSalary:   decimal.Zero.String(),
+			TotalSalary:          totalSalary.String(),
+		}
+	} else {
+		userSalary, err := s.repository.GetUserSalaryPaymentSpesificMonth(user.Id, time.Month(filter.Month.Value()), filter.Year)
+		if err != nil {
+			s.log.Error("failed get user salary payment spesific month", zap.Error(err))
+			return dto.UserOverviewResponse{}, err
+		}
 
-	userSalaryInformation := dto.UserSalaryInformationResponse{
-		BaseSalary:         user.Salary.String(),
-		BonusSalary:        additionalWorkSalary.String(),
-		CompentationSalary: decimal.Zero.String(),
-		UserCashAdvance:    decimal.Zero.String(),
-		TotalSalary:        totalSalary.String(),
+		userSalaryInformation = dto.UserSalaryInformationResponse{
+			BaseSalary:           userSalary.BaseSalary.String(),
+			AdditionalWorkSalary: userSalary.AdditionalWorkSalary.String(),
+			BonusSalary:          userSalary.BonusSalary.String(),
+			CompentationSalary:   userSalary.CompentationSalary.String(),
+			TotalSalary:          userSalary.BaseSalary.Add(userSalary.BonusSalary).Add(userSalary.CompentationSalary).String(),
+		}
 	}
 
 	kpiPerformances := make([]dto.KPIPerformanceResponse, 0)
@@ -276,11 +295,29 @@ func (s *UserService) GetOverviewDetailUser(id uuid.UUID, filter dto.GetUserOver
 		workScore := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
 
 		kpiPerformance := dto.KPIPerformanceResponse{
-			Key:   fmt.Sprintf("Minggu %d", key),
-			Value: (presenceScore * 0.6) + (workScore * 0.4),
+			Key:          fmt.Sprintf("Minggu %d", key),
+			WorkKpiScore: (presenceScore * 0.6) + (workScore * 0.4),
 		}
 
 		kpiPerformances = append(kpiPerformances, kpiPerformance)
+	}
+
+	if user.RoleId != cageStaffRole.Id {
+		chickenKpi, err := s.chickenService.GetKPIScoreChickenInMonth(uint64(user.LocationId.Int64), filter.Month.Value(), filter.Year)
+		if err != nil {
+			return dto.UserOverviewResponse{}, err
+		}
+
+		userInformation.ChickenKpiScore = chickenKpi
+
+		chickenKpiPerWeek, err := s.chickenService.GetKPIScoreChickenPerWeek(uint64(user.LocationId.Int64), filter.Month.Value(), filter.Year)
+		if err != nil {
+			return dto.UserOverviewResponse{}, err
+		}
+
+		for key := range kpiPerformances {
+			kpiPerformances[key].ChickenKpiScore = chickenKpiPerWeek[key]
+		}
 	}
 
 	overviewResponse := dto.UserOverviewResponse{

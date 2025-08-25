@@ -2,6 +2,8 @@ package repository
 
 import (
 	"errors"
+	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -29,6 +31,8 @@ type IUserRepository interface {
 
 	GetUserOverviewLists(filter *dto.GetUserOverviewListFilter) ([]entity.User, error)
 	CountTotalUserOverviewList(filter *dto.GetUserOverviewListFilter) (uint64, error)
+
+	GetUserSalaryPaymentSpesificMonth(userId uuid.UUID, month time.Month, year uint64) (entity.UserSalaryPayment, error)
 }
 
 func NewUserRepository(db *gorm.DB) IUserRepository {
@@ -161,4 +165,14 @@ func (r *UserRepository) GetRoleByName(name string) (entity.Role, error) {
 	}
 
 	return data, nil
+}
+
+func (r *UserRepository) GetUserSalaryPaymentSpesificMonth(userId uuid.UUID, month time.Month, year uint64) (entity.UserSalaryPayment, error) {
+	var userSalaryPayment entity.UserSalaryPayment
+	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Where("user_id = ? AND (EXTRACT(month FROM created_at), (year FROM created_at)) = ?", userId, fmt.Sprintf("(%d,%d)", month, year)).First(&userSalaryPayment).Error
+	if err != nil {
+		return entity.UserSalaryPayment{}, err
+	}
+
+	return userSalaryPayment, nil
 }

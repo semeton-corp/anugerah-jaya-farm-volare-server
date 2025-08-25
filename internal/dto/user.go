@@ -55,14 +55,15 @@ type UserListOverviewPaginationResponse struct {
 }
 
 type UserInformationResponse struct {
-	TotalWorkHour float64 `json:"totalWorkHour"`
-	KPIScore      float64 `json:"kpiScore"`
-	TotalSalary   string  `json:"totalSalary"`
+	TotalWorkHour   float64 `json:"totalWorkHour"`
+	WorkKpiScore    float64 `json:"workKpiScore"`
+	ChickenKpiScore float64 `json:"chickenKpiScore"`
 }
 
 type KPIPerformanceResponse struct {
-	Key   string  `json:"key"`
-	Value float64 `json:"value"`
+	Key             string  `json:"key"`
+	WorkKpiScore    float64 `json:"workKpiScore"`
+	ChickenKpiScore float64 `json:"chickenKpiScore"`
 }
 
 type UserPresenceInformationResponse struct {
@@ -76,11 +77,11 @@ type UserWorkInformationResponse struct {
 }
 
 type UserSalaryInformationResponse struct {
-	BaseSalary         string `json:"baseSalary"`
-	BonusSalary        string `json:"bonusSalary"`
-	UserCashAdvance    string `json:"userCashAdvance"`
-	TotalSalary        string `json:"totalSalary"`
-	CompentationSalary string `json:"compentationSalary"`
+	BaseSalary           string `json:"baseSalary"`
+	AdditionalWorkSalary string `json:"additionalWorkSalary"`
+	BonusSalary          string `json:"bonusSalary"`
+	CompentationSalary   string `json:"compentationSalary"`
+	TotalSalary          string `json:"totalSalary"`
 }
 
 type GetUserOverviewFilter struct {

@@ -8,7 +8,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// Note : created every month
+/*
+Note : created every month
+*/
 type UserSalaryPayment struct {
 	Id                   uint64             `gorm:"primaryKey;autoIncrement"`
 	UserId               uuid.UUID          `gorm:"type:varchar(255);not null"`

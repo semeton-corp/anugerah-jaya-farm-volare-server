@@ -168,7 +168,7 @@ func (h *UserHandler) GetOverviewUser(c *fiber.Ctx) error {
 		return errx.BadRequest("id param is empty")
 	}
 
-	resp, err := h.service.GetOverviewDetailUser(uuid.MustParse(idParam), filter)
+	resp, err := h.service.GetUserOverview(uuid.MustParse(idParam), filter)
 	if err != nil {
 		h.log.Error("failed to get overview user", zap.Error(err))
 		return err
