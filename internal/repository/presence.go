@@ -34,12 +34,13 @@ type IPresenceRepository interface {
 	GetUserPresences(filter dto.GetUserPresenceFilter) ([]entity.UserPresence, error)
 	UpdateSubmissionPresenceStatusUserIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus) error
 
-	GetHeadCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
-	GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
-	GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
-	GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
+	GetLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
+
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]entity.UserPresenceSummary, error)
+
 	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceWorkDetailSummary, error)
+
+	GetLocationUserPresence(filter dto.GetLocationUserPresenceFilter) ([]entity.UserPresence, error)
 }
 
 func NewPresenceRepository(db *gorm.DB) IPresenceRepository {
@@ -96,13 +97,17 @@ func (r *PresenceRepository) GetUserPresencesByUserId(userId uuid.UUID, filter d
 	var userPresences []entity.UserPresence
 	query := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ?", userId)
 
-	if filter.Month.Value().IsValid() {
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
 		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
 	}
 
 	if filter.Page > 0 {
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	if filter.PresenceStatus.Value().IsValid() {
+		query = query.Where("status = ?", filter.PresenceStatus.Value())
 	}
 
 	err := query.Find(&userPresences).Order("created_at DESC").Error
@@ -155,81 +160,51 @@ func (r *PresenceRepository) CountTotalUserPresenceByUserId(userId uuid.UUID, fi
 	return totalData, nil
 }
 
-func (r *PresenceRepository) GetHeadCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
+func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
 	var locationPresenceSummaries []entity.LocationPresenceSummary
 
-	query := r.GetDB().Table("locations").
-		Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status").
-		Joins("LEFT JOIN users ON locations.id = users.location_id").
-		Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
-		Joins("LEFT JOIN roles ON users.role_id = roles.id").
-		Where("roles.name = 'Kepala Kandang'")
-
-	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
+	if !filter.LocationType.Value().IsValid() {
+		return nil, errors.New("invalid location type")
 	}
 
-	err := query.Scan(&locationPresenceSummaries).Error
-	if err != nil {
-		return nil, err
+	query := r.GetDB().Model(&entity.LocationPresenceSummary{})
+
+	switch filter.LocationType.Value() {
+	case enum.LocationTypeCage:
+		query = query.Table("locations").
+			Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
+			Joins("LEFT JOIN users ON locations.id = users.location_id").
+			Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
+			Joins("LEFT JOIN roles ON users.role_id = roles.id").
+			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements)")
+
+	case enum.LocationTypeStore:
+		query = query.Table("stores").
+			Select("roles.id AS role_id, roles.name AS role_name, stores.id AS place_id, stores.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
+			Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
+			Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
+			Joins("LEFT JOIN roles ON users.role_id = roles.id").
+			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements)")
+
+	case enum.LocationTypeWarehouse:
+		query = query.Table("warehouses").
+			Select("roles.id AS role_id, roles.name AS role_name, warehouses.id AS place_id, warehouses.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
+			Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
+			Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
+			Joins("LEFT JOIN roles ON users.role_id = roles.id").
+			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements)")
+
+	case enum.LocationTypeSite:
+		query = query.Table("locations").
+			Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
+			Joins("LEFT JOIN users ON locations.id = users.location_id").
+			Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
+			Joins("LEFT JOIN roles ON users.role_id = roles.id").
+			Where("roles.name = 'Kepala Kandang'")
+
+	default:
+		return nil, errors.New("unsupported location type")
 	}
-
-	return locationPresenceSummaries, nil
-}
-
-func (r *PresenceRepository) GetCageLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
-	var locationPresenceSummaries []entity.LocationPresenceSummary
-
-	query := r.GetDB().Table("locations").
-		Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status").
-		Joins("LEFT JOIN users ON locations.id = users.location_id").
-		Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
-		Joins("LEFT JOIN roles ON users.role_id = roles.id").
-		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements)")
-
-	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
-	}
-
-	err := query.Scan(&locationPresenceSummaries).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return locationPresenceSummaries, nil
-}
-
-func (r *PresenceRepository) GetStoreLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
-	var locationPresenceSummaries []entity.LocationPresenceSummary
-
-	query := r.GetDB().Table("stores").
-		Select("roles.id AS role_id, roles.name AS role_name, stores.id AS place_id, stores.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status").
-		Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
-		Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
-		Joins("LEFT JOIN roles ON users.role_id = roles.id").
-		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements)")
-
-	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
-	}
-
-	err := query.Scan(&locationPresenceSummaries).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return locationPresenceSummaries, nil
-}
-
-func (r *PresenceRepository) GetWarehouseLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error) {
-	var locationPresenceSummaries []entity.LocationPresenceSummary
-
-	query := r.GetDB().Table("warehouses").
-		Select("roles.id AS role_id, roles.name AS role_name, warehouses.id AS place_id, warehouses.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status").
-		Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
-		Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
-		Joins("LEFT JOIN roles ON users.role_id = roles.id").
-		Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements)")
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
@@ -337,6 +312,59 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		return nil, err
 	}
 	return results, nil
+}
+
+func (r *PresenceRepository) GetLocationUserPresence(filter dto.GetLocationUserPresenceFilter) ([]entity.UserPresence, error) {
+	var data []entity.UserPresence
+
+	query := r.GetDB().Model(&entity.UserPresence{})
+
+	if filter.LocationType.Value().IsValid() {
+		switch filter.LocationType.Value() {
+		case enum.LocationTypeCage:
+			query = query.Table("locations").
+				Joins("LEFT JOIN users ON locations.id = users.location_id").
+				Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
+				Joins("LEFT JOIN roles ON users.role_id = roles.id").
+				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements) AND users.location_id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+
+		case enum.LocationTypeStore:
+			query = r.GetDB().Table("stores").
+				Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
+				Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
+				Joins("LEFT JOIN roles ON users.role_id = roles.id").
+				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements) AND stores.id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+
+		case enum.LocationTypeWarehouse:
+			query = query.Table("warehouses").
+				Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
+				Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
+				Joins("LEFT JOIN roles ON users.role_id = roles.id").
+				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements) AND warehouses.id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+
+		case enum.LocationTypeSite:
+			query = query.Table("locations").
+				Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
+				Joins("LEFT JOIN users ON locations.id = users.location_id").
+				Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
+				Joins("LEFT JOIN roles ON users.role_id = roles.id").
+				Where("users.location_id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?",
+					filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+		default:
+			return nil, errors.New("unsupported location type")
+		}
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
+	}
+
+	err := query.Preload("User").Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
 func (r *PresenceRepository) GetUserPresences(filter dto.GetUserPresenceFilter) ([]entity.UserPresence, error) {

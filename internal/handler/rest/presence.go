@@ -31,6 +31,9 @@ func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
 	v1.Get("/users/summaries", middleware.Authentication(), h.GetUserPresenceSummaries)
 	v1.Get("/users/works/summaries", middleware.Authentication(), h.GetUserPresenceWorkDetailSummaries)
+
+	v1.Post("/approval", middleware.Authentication(), h.ApprovalUserPresence)
+	v1.Get("/pending", middleware.Authentication(), h.GetUserPresencePending)
 }
 
 func NewPresenceHandler(log *zap.Logger, service service.IPresenceService, validator *validator.Validate) *PresenceHandler {
@@ -181,4 +184,50 @@ func (s *PresenceHandler) GetUserPresenceWorkDetailSummaries(c *fiber.Ctx) error
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get user presense work detail summaries")
+}
+
+func (h *PresenceHandler) ApprovalUserPresence(c *fiber.Ctx) error {
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("userId not found in context")
+		return errx.NotFound("userId not found in context")
+	}
+
+	var request dto.ApprovalPresenceRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request body", zap.Error(err))
+		return errx.BadRequest("invalid request body")
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.ApprovalUserPresence(request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success approval user presence")
+}
+
+func (h *PresenceHandler) GetUserPresencePending(c *fiber.Ctx) error {
+	var filter dto.GetUserPresencePendingFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse query param", zap.Error(err))
+		return errx.BadRequest("invalid query params")
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetUserPresencePending(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get pending user presences")
 }

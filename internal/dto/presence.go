@@ -35,7 +35,6 @@ type PresenceResponse struct {
 }
 
 type GetPresenceFilter struct {
-	UserId         uuid.UUID
 	Page           uint64                    `query:"page"`
 	PresenceStatus param.PresenceStatusParam `query:"presenceStatus"`
 	Month          param.MonthParam          `query:"month" validate:"required"`
@@ -59,35 +58,38 @@ type PresenceListPaginationResponse struct {
 }
 
 type RoleLocationPresenceSummaryResponse struct {
-	RoleId              uint64 `json:"roleId"`
-	RoleName            string `json:"roleName"`
-	PlaceId             uint64 `json:"placeId"`
-	PlaceName           string `json:"placeName"`
-	PlaceType           string `json:"placeType"`
-	TotalUser           uint64 `json:"totalUser"`
-	TotalPresentUser    uint64 `json:"totalPresentUser"`
-	TotalSickUser       uint64 `json:"totalSickUser"`
-	TotalPermissionUser uint64 `json:"totalPermissionUser"`
-	TotalAlphaUser      uint64 `json:"totalAlphaUser"`
+	RoleId                       uint64 `json:"roleId"`
+	RoleName                     string `json:"roleName"`
+	PlaceId                      uint64 `json:"placeId"`
+	PlaceName                    string `json:"placeName"`
+	PlaceType                    string `json:"placeType"`
+	TotalUser                    uint64 `json:"totalUser"`
+	TotalPresentUser             uint64 `json:"totalPresentUser"`
+	TotalSickUser                uint64 `json:"totalSickUser"`
+	TotalPermissionUser          uint64 `json:"totalPermissionUser"`
+	TotalAlphaUser               uint64 `json:"totalAlphaUser"`
+	IsSickUserPendingExist       bool   `json:"isSickUserPendingExist"`
+	IsPermissionUserPendingExist bool   `json:"isPermissionUserPendingExist"`
 }
 
 type GetLocationPresenceSummaryFilter struct {
-	Date param.DateParam `query:"date"`
+	Date         param.DateParam         `query:"date"`
+	LocationType param.LocationTypeParam `query:"locationType"`
 }
 
 type GetUserPresenceSummaryFilter struct {
-	RoleId    uint64                      `query:"roleId" validate:"roleId"`
-	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
-	PlaceId   uint64                      `query:"placeId" validate:"required"`
-	Month     param.MonthParam            `query:"month" validate:"required"`
-	Year      uint64                      `query:"year" validate:"required"`
+	RoleId    uint64                  `query:"roleId" validate:"roleId"`
+	PlaceType param.LocationTypeParam `query:"placeType" validate:"required"`
+	PlaceId   uint64                  `query:"placeId" validate:"required"`
+	Month     param.MonthParam        `query:"month" validate:"required"`
+	Year      uint64                  `query:"year" validate:"required"`
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {
-	RoleId    uint64                      `query:"roleId" validate:"roleId"`
-	PlaceType param.LocationWorkTypeParam `query:"placeType" validate:"required"`
-	PlaceId   uint64                      `query:"placeId" validate:"required"`
-	Date      param.DateParam             `query:"date"`
+	RoleId    uint64                  `query:"roleId" validate:"roleId"`
+	PlaceType param.LocationTypeParam `query:"placeType" validate:"required"`
+	PlaceId   uint64                  `query:"placeId" validate:"required"`
+	Date      param.DateParam         `query:"date"`
 }
 
 type UserPresenceSummaryResponse struct {
@@ -115,11 +117,35 @@ type UserPresenceWorkDetailSummaryResponse struct {
 }
 
 type ApprovalPresenceRequest struct {
-	AcceptedUserIds []string `json:"acceptedUserIds"`
-	RejectedUserIds []string `json:"rejectedUserIds"`
+	ApprovalStatus string   `json:"approvalStatus" validate:"required,approvalStatus"`
+	UserIds        []string `json:"userIds" validate:"required"`
 }
 
 type GetUserPresenceFilter struct {
 	UserIds []uuid.UUID     `query:"userIds"`
 	Date    param.DateParam `query:"date"`
+}
+
+type GetLocationUserPresenceFilter struct {
+	Date                     param.DateParam                     `query:"date"`
+	PlaceId                  uint64                              `query:"placeId"`
+	RoleId                   uint64                              `query:"roleId"`
+	PresenceStatus           param.PresenceStatusParam           `query:"presenceStatus"`
+	SubmissionPresenceStatus param.SubmissionPresenceStatusParam `query:"submissionPresence"`
+	LocationType             param.LocationTypeParam             `query:"locationType"`
+}
+
+type UserPresencePendingResponse struct {
+	Date     string `json:"date"`
+	Name     string `json:"name"`
+	Status   string `json:"status"`
+	Note     string `json:"note"`
+	Evidence string `json:"evidence"`
+}
+
+type GetUserPresencePendingFilter struct {
+	RoleId                   uint64                              `query:"roleId" validate:"required"`
+	PlaceId                  uint64                              `json:"placeId" validate:"required"`
+	PresenceStatus           param.PresenceStatusParam           `query:"presenceStatus" validate:"required"`
+	SubmissionPresenceStatus param.SubmissionPresenceStatusParam `query:"submissionPresence" validate:"required"`
 }

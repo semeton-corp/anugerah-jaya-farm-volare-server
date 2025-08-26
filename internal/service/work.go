@@ -243,7 +243,7 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	w.repository.UseTx(true)
 	defer w.repository.Rollback()
 
-	locationType := enum.ValueOfLocationWorkType(request.LocationType)
+	locationType := enum.ValueOfLocationType(request.LocationType)
 	if !locationType.IsValid() {
 		w.log.Error("invalid location", zap.String("location", request.LocationType))
 		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
@@ -361,7 +361,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 		return dto.AdditionalWorkResponse{}, err
 	}
 
-	locationType := enum.ValueOfLocationWorkType(request.LocationType)
+	locationType := enum.ValueOfLocationType(request.LocationType)
 	if !locationType.IsValid() {
 		w.log.Error("invalid location", zap.String("location", request.LocationType))
 		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")

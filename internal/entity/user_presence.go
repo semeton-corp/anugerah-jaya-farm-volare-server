@@ -26,12 +26,13 @@ type UserPresence struct {
 }
 
 type LocationPresenceSummary struct {
-	RoleId         uint64              `gorm:"column:role_id"`
-	RoleName       string              `gorm:"column:role_name"`
-	PlaceId        uint64              `gorm:"column:place_id"`
-	PlaceName      string              `gorm:"column:place_name"`
-	UserId         uuid.UUID           `gorm:"column:user_id"`
-	PresenceStatus enum.PresenceStatus `gorm:"column:presence_status"`
+	RoleId                   uint64                        `gorm:"column:role_id"`
+	RoleName                 string                        `gorm:"column:role_name"`
+	PlaceId                  uint64                        `gorm:"column:place_id"`
+	PlaceName                string                        `gorm:"column:place_name"`
+	UserId                   uuid.UUID                     `gorm:"column:user_id"`
+	PresenceStatus           enum.PresenceStatus           `gorm:"column:presence_status"`
+	SubmissionPresenceStatus enum.SubmissionPresenceStatus `gorm:"column:submission_presences_status"`
 }
 
 type UserPresenceSummary struct {

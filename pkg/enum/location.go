@@ -7,6 +7,7 @@ const (
 	LocationTypeCage      LocationType = 1
 	LocationTypeStore     LocationType = 2
 	LocationTypeWarehouse LocationType = 3
+	LocationTypeSite      LocationType = 4
 )
 
 var (
@@ -14,6 +15,7 @@ var (
 		LocationTypeCage:      "Kandang",
 		LocationTypeStore:     "Toko",
 		LocationTypeWarehouse: "Gudang",
+		LocationTypeSite:      "Site",
 	}
 )
 
@@ -21,7 +23,7 @@ func (c LocationType) String() string {
 	return LocationWorkTypeMap[c]
 }
 
-func ValueOfLocationWorkType(value string) LocationType {
+func ValueOfLocationType(value string) LocationType {
 	for k, v := range LocationWorkTypeMap {
 		if v == value {
 			return k

@@ -102,19 +102,19 @@ func (p ChickenHealthItemTypeParam) Value() enum.ChickenHealthItemType {
 	return enum.ChickenHealthItemType(p)
 }
 
-type LocationWorkTypeParam enum.LocationType
+type LocationTypeParam enum.LocationType
 
-func (p *LocationWorkTypeParam) UnmarshalText(text []byte) error {
-	parsedFilter := enum.ValueOfLocationWorkType(string(text))
+func (p *LocationTypeParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfLocationType(string(text))
 	if !parsedFilter.IsValid() {
 		return errx.BadRequest("invalid location work type")
 	}
 
-	*p = LocationWorkTypeParam(parsedFilter)
+	*p = LocationTypeParam(parsedFilter)
 	return nil
 }
 
-func (p LocationWorkTypeParam) Value() enum.LocationType {
+func (p LocationTypeParam) Value() enum.LocationType {
 	return enum.LocationType(p)
 }
 
@@ -132,6 +132,22 @@ func (p *PresenceStatusParam) UnmarshalText(text []byte) error {
 
 func (p PresenceStatusParam) Value() enum.PresenceStatus {
 	return enum.PresenceStatus(p)
+}
+
+type SubmissionPresenceStatusParam enum.SubmissionPresenceStatus
+
+func (p *SubmissionPresenceStatusParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfSubmissionPresenceStatus(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid presence status")
+	}
+
+	*p = SubmissionPresenceStatusParam(parsedFilter)
+	return nil
+}
+
+func (p SubmissionPresenceStatusParam) Value() enum.SubmissionPresenceStatus {
+	return enum.SubmissionPresenceStatus(p)
 }
 
 type PaymentStatusParam enum.PaymentStatus

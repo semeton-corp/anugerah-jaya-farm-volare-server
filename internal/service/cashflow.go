@@ -287,7 +287,7 @@ func (s *CashflowService) CreateExpense(request dto.CreateExpenseRequest, userId
 		return dto.ExpenseResponse{}, errx.BadRequest("invalid payment method")
 	}
 
-	locationType := enum.ValueOfLocationWorkType(request.LocationType)
+	locationType := enum.ValueOfLocationType(request.LocationType)
 	if !locationType.IsValid() {
 		s.log.Error("invalid location", zap.String("location", request.LocationType))
 		return dto.ExpenseResponse{}, errx.BadRequest("invalid location")

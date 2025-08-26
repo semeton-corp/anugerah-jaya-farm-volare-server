@@ -60,7 +60,7 @@ func (c SubmissionPresenceStatus) String() string {
 	return SubmissionPresenceStatusMap[c]
 }
 
-func ValueOfWarehouseSubmissionPresenceStatus(value string) SubmissionPresenceStatus {
+func ValueOfSubmissionPresenceStatus(value string) SubmissionPresenceStatus {
 	for k, v := range SubmissionPresenceStatusMap {
 		if v == value {
 			return k

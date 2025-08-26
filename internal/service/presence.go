@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ type PresenceService struct {
 	log             *zap.Logger
 	repository      repository.IPresenceRepository
 	locationService ILocationService
+	roleService     IRoleService
 }
 
 type IPresenceService interface {
@@ -34,13 +36,16 @@ type IPresenceService interface {
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
 	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
 	ApprovalUserPresence(request dto.ApprovalPresenceRequest, userId uuid.UUID) ([]dto.PresenceResponse, error)
+
+	GetUserPresencePending(filter dto.GetUserPresencePendingFilter) ([]dto.UserPresencePendingResponse, error)
 }
 
-func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
+func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService, roleService IRoleService) IPresenceService {
 	return &PresenceService{
 		log:             log,
 		repository:      repository,
 		locationService: locationService,
+		roleService:     roleService,
 	}
 }
 
@@ -168,6 +173,9 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 
 	processPresenceSummaries := func(summaries []entity.LocationPresenceSummary, placeType string) map[uint64]dto.RoleLocationPresenceSummaryResponse {
 		result := make(map[uint64]dto.RoleLocationPresenceSummaryResponse)
+		isSickUserPendingExist := false
+		isPermissionUserPendingExist := false
+
 		for _, e := range summaries {
 			summary := result[e.PlaceId]
 			if summary.PlaceName == "" {
@@ -190,12 +198,24 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 				summary.TotalAlphaUser += 1
 			}
 			result[e.PlaceId] = summary
+
+			if e.PresenceStatus == enum.PresenceStatusPermission && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isSickUserPendingExist {
+				isSickUserPendingExist = true
+				summary.IsSickUserPendingExist = true
+			} else if e.PresenceStatus == enum.PresenceStatusSick && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isPermissionUserPendingExist {
+				isPermissionUserPendingExist = true
+				summary.IsPermissionUserPendingExist = true
+			}
 		}
+
 		return result
 	}
 
-	cageSummaries, err := s.repository.GetCageLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
-		Date: param.DateParam(today),
+	//  Todo : check the head of warehouse in the presence exist or no
+
+	cageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date:         param.DateParam(today),
+		LocationType: param.LocationTypeParam(enum.LocationTypeCage),
 	})
 	if err != nil {
 		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
@@ -203,8 +223,19 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	}
 	cagePresenceMap := processPresenceSummaries(cageSummaries, enum.LocationTypeCage.String())
 
-	storeSummaries, err := s.repository.GetStoreLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
-		Date: param.DateParam(today),
+	headCageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date:         param.DateParam(today),
+		LocationType: param.LocationTypeParam(enum.LocationTypeSite),
+	})
+	if err != nil {
+		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
+		return nil, err
+	}
+	headPresenceMap := processPresenceSummaries(headCageSummaries, enum.LocationTypeSite.String())
+
+	storeSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date:         param.DateParam(today),
+		LocationType: param.LocationTypeParam(enum.LocationTypeStore),
 	})
 	if err != nil {
 		s.log.Error("failed to get store location presence summaries", zap.Error(err))
@@ -212,8 +243,9 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	}
 	storePresenceMap := processPresenceSummaries(storeSummaries, enum.LocationTypeStore.String())
 
-	warehouseSummaries, err := s.repository.GetWarehouseLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
-		Date: param.DateParam(today),
+	warehouseSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date:         param.DateParam(today),
+		LocationType: param.LocationTypeParam(enum.LocationTypeWarehouse),
 	})
 	if err != nil {
 		s.log.Error("failed to get warehouse location presence summaries", zap.Error(err))
@@ -222,7 +254,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationTypeWarehouse.String())
 
 	response := make([]dto.RoleLocationPresenceSummaryResponse, 0,
-		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap))
+		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap)+len(headPresenceMap))
 
 	for _, v := range cagePresenceMap {
 		response = append(response, v)
@@ -231,6 +263,9 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 		response = append(response, v)
 	}
 	for _, v := range warehousePresenceMap {
+		response = append(response, v)
+	}
+	for _, v := range headPresenceMap {
 		response = append(response, v)
 	}
 
@@ -311,11 +346,7 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 	defer s.repository.Rollback()
 
 	userIds := make([]uuid.UUID, 0)
-	for _, userId := range request.AcceptedUserIds {
-		userIds = append(userIds, uuid.MustParse(userId))
-	}
-
-	for _, userId := range request.RejectedUserIds {
+	for _, userId := range request.UserIds {
 		userIds = append(userIds, uuid.MustParse(userId))
 	}
 
@@ -328,37 +359,24 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 		return nil, err
 	}
 
-	acceptedUserPresenceIds := make([]uint64, 0)
-	rejectedUserPresenceIds := make([]uint64, 0)
-
+	userPresencesIds := make([]uint64, 0)
 	for _, userPresence := range userPresences {
-		for _, acceptedUserId := range request.AcceptedUserIds {
-			if uuid.MustParse(acceptedUserId) == userPresence.UserId {
-				userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusAccepted
-				acceptedUserPresenceIds = append(acceptedUserPresenceIds, userPresence.Id)
-				break
-			}
-		}
-
-		for _, rejectedUserId := range request.RejectedUserIds {
-			if uuid.MustParse(rejectedUserId) == userPresence.UserId {
-				userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusRejected
-				rejectedUserPresenceIds = append(rejectedUserPresenceIds, userPresence.Id)
-				break
-			}
-		}
+		userPresencesIds = append(userPresencesIds, userPresence.Id)
 	}
 
-	err = s.repository.UpdateSubmissionPresenceStatusUserIds(acceptedUserPresenceIds, enum.SubmissionPresenceStatusAccepted)
-	if err != nil {
-		s.log.Error("failed update submission presence status by ids", zap.Error(err))
-		return nil, err
-	}
-
-	err = s.repository.UpdateSubmissionPresenceStatusUserIds(rejectedUserPresenceIds, enum.SubmissionPresenceStatusRejected)
-	if err != nil {
-		s.log.Error("failed update submission presence status by ids", zap.Error(err))
-		return nil, err
+	switch request.ApprovalStatus {
+	case constant.ApprovalStatusAccepted:
+		err = s.repository.UpdateSubmissionPresenceStatusUserIds(userPresencesIds, enum.SubmissionPresenceStatusAccepted)
+		if err != nil {
+			s.log.Error("failed update submission presence status by ids", zap.Error(err))
+			return nil, err
+		}
+	case constant.ApprovalStatusRejected:
+		err = s.repository.UpdateSubmissionPresenceStatusUserIds(userPresencesIds, enum.SubmissionPresenceStatusRejected)
+		if err != nil {
+			s.log.Error("failed update submission presence status by ids", zap.Error(err))
+			return nil, err
+		}
 	}
 
 	err = s.repository.Commit()
@@ -373,4 +391,119 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 	}
 
 	return userPresenceResponses, nil
+}
+
+func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendingFilter) ([]dto.UserPresencePendingResponse, error) {
+	s.repository.UseTx(false)
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+
+	cageSiteRoleType := []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
+	siteRoleType := []string{constant.RoleKepalaKandang}
+	storeRoleType := []string{constant.RolePekerjaToko}
+	warehouseRoleType := []string{constant.RolePekerjaGudang}
+
+	role, err := s.roleService.GetRoleById(filter.RoleId)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]dto.UserPresencePendingResponse, 0)
+	if slices.Contains(cageSiteRoleType, role.Name) {
+		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
+			PlaceId:                  filter.PlaceId,
+			RoleId:                   filter.RoleId,
+			PresenceStatus:           filter.PresenceStatus,
+			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
+			Date:                     param.DateParam(today),
+			LocationType:             param.LocationTypeParam(enum.LocationTypeCage),
+		})
+		if err != nil {
+			s.log.Error("failed get location user presence", zap.Error(err))
+			return nil, err
+		}
+
+		for _, e := range userPresences {
+			responses = append(responses, dto.UserPresencePendingResponse{
+				Date:     e.CreatedAt.Format("02 Jan 2006"),
+				Name:     e.User.Name,
+				Status:   e.Status.String(),
+				Evidence: e.Evidence.String,
+				Note:     e.Note.String,
+			})
+		}
+
+	} else if slices.Contains(siteRoleType, role.Name) {
+		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
+			PlaceId:                  filter.PlaceId,
+			RoleId:                   filter.RoleId,
+			PresenceStatus:           filter.PresenceStatus,
+			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
+			Date:                     param.DateParam(today),
+			LocationType:             param.LocationTypeParam(enum.LocationTypeSite),
+		})
+		if err != nil {
+			s.log.Error("failed get location user presence", zap.Error(err))
+			return nil, err
+		}
+
+		for _, e := range userPresences {
+			responses = append(responses, dto.UserPresencePendingResponse{
+				Date:     e.CreatedAt.Format("02 Jan 2006"),
+				Name:     e.User.Name,
+				Status:   e.Status.String(),
+				Evidence: e.Evidence.String,
+				Note:     e.Note.String,
+			})
+		}
+
+	} else if slices.Contains(storeRoleType, role.Name) {
+		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
+			PlaceId:                  filter.PlaceId,
+			RoleId:                   filter.RoleId,
+			PresenceStatus:           filter.PresenceStatus,
+			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
+			Date:                     param.DateParam(today),
+			LocationType:             param.LocationTypeParam(enum.LocationTypeStore),
+		})
+		if err != nil {
+			s.log.Error("failed get location user presence", zap.Error(err))
+			return nil, err
+		}
+
+		for _, e := range userPresences {
+			responses = append(responses, dto.UserPresencePendingResponse{
+				Date:     e.CreatedAt.Format("02 Jan 2006"),
+				Name:     e.User.Name,
+				Status:   e.Status.String(),
+				Evidence: e.Evidence.String,
+				Note:     e.Note.String,
+			})
+		}
+
+	} else if slices.Contains(warehouseRoleType, role.Name) {
+		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
+			PlaceId:                  filter.PlaceId,
+			RoleId:                   filter.RoleId,
+			PresenceStatus:           filter.PresenceStatus,
+			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
+			Date:                     param.DateParam(today),
+			LocationType:             param.LocationTypeParam(enum.LocationTypeWarehouse),
+		})
+		if err != nil {
+			s.log.Error("failed get location user presence", zap.Error(err))
+			return nil, err
+		}
+
+		for _, e := range userPresences {
+			responses = append(responses, dto.UserPresencePendingResponse{
+				Date:     e.CreatedAt.Format("02 Jan 2006"),
+				Name:     e.User.Name,
+				Status:   e.Status.String(),
+				Evidence: e.Evidence.String,
+				Note:     e.Note.String,
+			})
+		}
+	}
+
+	return responses, nil
 }

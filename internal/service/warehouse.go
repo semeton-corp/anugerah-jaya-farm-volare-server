@@ -2366,7 +2366,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 	data := entity.WarehouseItemCornProcurementDraft{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
-		CornWaterLevel:            sql.NullFloat64{Float64: request.Quantity, Valid: true},
+		CornWaterLevel:            sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true},
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true},
 		Quantity:                  request.Quantity,
@@ -2453,7 +2453,7 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 
 	data.WarehouseId = request.WarehouseId
 	data.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
-	data.CornWaterLevel = sql.NullFloat64{Float64: request.Quantity, Valid: true}
+	data.CornWaterLevel = sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true}
 	data.OvenCondition = ovenCondition
 	data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
 	data.Price = price

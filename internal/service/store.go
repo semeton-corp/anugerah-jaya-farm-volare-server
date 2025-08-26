@@ -27,7 +27,6 @@ type StoreService struct {
 	cacheService     cache.ICache
 	placementService IPlacementService
 	warehouseService IWarehouseService
-	userService      IUserService
 	itemService      IItemService
 	customerService  ICustomerService
 }

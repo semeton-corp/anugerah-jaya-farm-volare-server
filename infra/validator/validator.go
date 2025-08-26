@@ -23,6 +23,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("supplierType", ValidationSupplierType)
 	validate.RegisterValidation("incomeCategory", ValidationIncomeCategory)
 	validate.RegisterValidation("expenseCategory", ValidationExpenseCategory)
+	validate.RegisterValidation("approvalStatus", ValidationApprovalStatus)
 
 	return validate
 }
@@ -191,6 +192,16 @@ func ValidationExpenseCategory(fl validator.FieldLevel) bool {
 	expenseCategory := fl.Field().String()
 	switch expenseCategory {
 	case "Operasional", "Lain-lain":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationApprovalStatus(fl validator.FieldLevel) bool {
+	approvalStatus := fl.Field().String()
+	switch approvalStatus {
+	case "Ditolak", "Disetujui":
 		return true
 	default:
 		return false
