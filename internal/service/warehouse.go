@@ -1698,12 +1698,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
 	}
 
-	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
-	if err != nil {
-		s.log.Error("failed parse deadline payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
-	}
-
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
 		s.log.Error("invalid payment type")
@@ -1720,10 +1714,20 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		TotalPrice:            price.Mul(decimal.NewFromFloat(request.DailySpending * float64(request.DaysNeed))),
 		Quantity:              request.DailySpending * float64(request.DaysNeed),
 		EstimationArrivalDate: estimationArrivalDate,
-		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 		PaymentType:           paymentType,
+	}
+
+	if request.DeadlinePaymentDate != nil {
+		deadlinePaymentDate, err := time.Parse("02-01-2006", *request.DeadlinePaymentDate)
+		if err != nil {
+			s.log.Error("failed parse deadline payment date", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
+		}
+
+		data.DeadlinePaymentDate = sql.NullTime{Time: deadlinePaymentDate, Valid: true}
+
 	}
 
 	if request.ExpiredAt != nil {
@@ -1849,12 +1853,6 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
 	}
 
-	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
-	if err != nil {
-		s.log.Error("failed parse deadline payment date", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
-	}
-
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
 		s.log.Error("invalid payment type")
@@ -1873,9 +1871,19 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		EstimationArrivalDate: estimationArrivalDate,
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
-		DeadlinePaymentDate:   sql.NullTime{Time: deadlinePaymentDate, Valid: true},
 		PaymentType:           paymentType,
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.DeadlinePaymentDate != nil {
+		deadlinePaymentDate, err := time.Parse("02-01-2006", *request.DeadlinePaymentDate)
+		if err != nil {
+			s.log.Error("failed parse deadline payment date", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
+		}
+
+		data.DeadlinePaymentDate = sql.NullTime{Time: deadlinePaymentDate, Valid: true}
+
 	}
 
 	if request.ExpiredAt != nil {
@@ -2508,11 +2516,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
 	}
 
-	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
-	if err != nil {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment format")
-	}
-
 	data := entity.WarehouseItemCornProcurement{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                request.SupplierId,
@@ -2526,7 +2529,16 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
-		DeadlinePaymentDate:       sql.NullTime{Time: deadlinePaymentDate, Valid: true},
+	}
+
+	if request.DeadlinePaymentDate != nil {
+		deadlinePaymentDate, err := time.Parse("02-01-2006", *request.DeadlinePaymentDate)
+		if err != nil {
+			s.log.Error("failed parse deadline payment date", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
+		}
+
+		data.DeadlinePaymentDate = sql.NullTime{Time: deadlinePaymentDate, Valid: true}
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
@@ -2662,11 +2674,6 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid payment type")
 	}
 
-	deadlinePaymentDate, err := time.Parse("02-01-2006", request.DeadlinePaymentDate)
-	if err != nil {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment format")
-	}
-
 	data := entity.WarehouseItemCornProcurement{
 		WarehouseId:               request.WarehouseId,
 		SupplierId:                request.SupplierId,
@@ -2680,7 +2687,17 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
-		DeadlinePaymentDate:       sql.NullTime{Time: deadlinePaymentDate, Valid: true},
+	}
+
+	if request.DeadlinePaymentDate != nil {
+		deadlinePaymentDate, err := time.Parse("02-01-2006", *request.DeadlinePaymentDate)
+		if err != nil {
+			s.log.Error("failed parse deadline payment date", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("invalid deadline payment date format")
+		}
+
+		data.DeadlinePaymentDate = sql.NullTime{Time: deadlinePaymentDate, Valid: true}
+
 	}
 
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))

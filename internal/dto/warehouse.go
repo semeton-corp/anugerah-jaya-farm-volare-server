@@ -75,7 +75,7 @@ type CreateWarehouseItemProcurementRequest struct {
 	Price                 string                                         `json:"price" validate:"required"`
 	EstimationArrivalDate string                                         `json:"estimationArrivalDate" validate:"required"`
 	ExpiredAt             *string                                        `json:"expiredAt"`
-	DeadlinePaymentDate   string                                         `json:"deadlinePaymentDate" validate:"required"`
+	DeadlinePaymentDate   *string                                        `json:"deadlinePaymentDate"`
 	PaymentType           string                                         `json:"paymentType" validate:"required,paymentType"`
 	Payments              []CreateWarehouseItemProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }
@@ -423,7 +423,7 @@ type CreateWarehouseItemCornProcurementRequest struct {
 	Price                     string                                             `json:"price" validate:"required"`
 	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
 	Discount                  float64                                            `json:"discount" validate:"required"`
-	DeadlinePaymentDate       string                                             `json:"deadlinePaymentDate" validate:"required"`
+	DeadlinePaymentDate       *string                                            `json:"deadlinePaymentDate"`
 	PaymentType               string                                             `json:"paymentType" validate:"required,paymentType"`
 	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
 }

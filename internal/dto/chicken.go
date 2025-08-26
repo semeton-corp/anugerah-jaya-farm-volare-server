@@ -171,7 +171,7 @@ type ConfirmationChickenProcurementRequest struct {
 	Quantity            uint64                                   `json:"quantity" validate:"required"`
 	PaymentType         string                                   `json:"paymentType" validate:"required,paymentType"`
 	TotalPrice          string                                   `json:"totalPrice" validate:"required"`
-	DeadlinePaymentDate string                                   `json:"deadlinePaymentDate" validate:"required"`
+	DeadlinePaymentDate *string                                  `json:"deadlinePaymentDate"`
 	EstimateArrivalDate string                                   `json:"estimationArrivalDate" validate:"required"`
 	Payments            []CreateChickenProcurementPaymentRequest `json:"payments"`
 }
