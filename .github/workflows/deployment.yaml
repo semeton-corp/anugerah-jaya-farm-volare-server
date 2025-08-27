@@ -11,16 +11,15 @@ jobs:
       - name: 🛒 Checkout code
         uses: actions/checkout@v4
 
-      - name: 📦 Copy files to Remote VM via SCP
-        uses: appleboy/scp-action@master
+      - name: rsync deployments
+        uses: burnett01/rsync-deployments@7.0.2
         with:
-          host: "${{ secrets.VM_HOST }}"
-          username: "${{ secrets.VM_USERNAME }}"
-          password: "${{ secrets.VM_PASSWORD }}"
-          key: "${{ secrets.VM_PRIVATE_KEY }}"
-          port: "${{ secrets.VM_SSH_PORT }}"
-          source: "."
-          target: "./Anugerah-Jaya-Farm-Volare"
+          switches: -avzr --delete --filter='merge .rsync-filter'
+          path: ./
+          remote_path: ./Anugerah-Jaya-Farm-Volare
+          remote_host: "${{ secrets.VM_HOST }}"
+          remote_user: "${{ secrets.VM_USERNAME }}"
+          remote_key: "${{ secrets.VM_PRIVATE_KEY }}"
 
       - name: 🖥️ Run compose up on Remote VM
         uses: appleboy/ssh-action@master
