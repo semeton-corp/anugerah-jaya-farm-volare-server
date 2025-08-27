@@ -24,8 +24,8 @@ func (h *UserHandler) SetEndpoint(router *fiber.App) {
 	v1.Put("/me", middleware.Authentication(), h.UpdateSelfUser)
 	v1.Get("/me", middleware.Authentication(), h.GetSelfUser)
 
-	v1.Get("/overviews", middleware.Authentication(), h.GetUserOverviews)
-	v1.Get("/overviews/:id", middleware.Authentication(), h.GetOverviewUser)
+	v1.Get("/overview", middleware.Authentication(), h.GetUserOverviews)
+	v1.Get("/overview/:id", middleware.Authentication(), h.GetOverviewUser)
 
 	v1.Get("", middleware.Authentication(), h.GetUsers)
 	v1.Get("/:id", middleware.Authentication(), h.GetUserById)
