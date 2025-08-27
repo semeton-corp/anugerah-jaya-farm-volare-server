@@ -390,9 +390,9 @@ type CreateWarehouseItemCornProcurementDraftRequest struct {
 type UpdateWarehouseItemCornProcurementDraftRequest struct {
 	WarehouseId               uint64  `json:"warehouseId" validate:"required"`
 	SupplierId                uint64  `json:"supplierId" validate:"required"`
-	OvenCondition             string  `json:"ovenCondition" validate:"required,ovenCondition"`
+	OvenCondition             *string `json:"ovenCondition"`
 	CornWaterLevel            float64 `json:"cornWaterLevel" validate:"required"`
-	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
+	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
 	Discount                  float64 `json:"discount" validate:"min=0"`

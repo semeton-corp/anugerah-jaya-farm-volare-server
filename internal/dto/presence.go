@@ -117,12 +117,13 @@ type UserPresenceWorkDetailSummaryResponse struct {
 }
 
 type ApprovalPresenceRequest struct {
-	ApprovalStatus string   `json:"approvalStatus" validate:"required,approvalStatus"`
-	UserIds        []string `json:"userIds" validate:"required"`
+	ApprovalStatus  string   `json:"approvalStatus" validate:"required,approvalStatus"`
+	UserPresenceIds []uint64 `json:"userPresenceIds" validate:"required"`
 }
 
 type GetUserPresenceFilter struct {
 	UserIds []uuid.UUID     `query:"userIds"`
+	Ids     []uint64        `query:"ids"`
 	Date    param.DateParam `query:"date"`
 }
 
@@ -136,6 +137,7 @@ type GetLocationUserPresenceFilter struct {
 }
 
 type UserPresencePendingResponse struct {
+	Id       uint64 `json:"id"`
 	Date     string `json:"date"`
 	Name     string `json:"name"`
 	Status   string `json:"status"`

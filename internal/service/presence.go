@@ -345,43 +345,32 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	userIds := make([]uuid.UUID, 0)
-	for _, userId := range request.UserIds {
-		userIds = append(userIds, uuid.MustParse(userId))
-	}
-
-	userPresences, err := s.repository.GetUserPresences(dto.GetUserPresenceFilter{
-		UserIds: userIds,
-		Date:    param.DateParam(time.Now()),
-	})
-	if err != nil {
-		s.log.Error("failed to get user presences", zap.Error(err))
-		return nil, err
-	}
-
-	userPresencesIds := make([]uint64, 0)
-	for _, userPresence := range userPresences {
-		userPresencesIds = append(userPresencesIds, userPresence.Id)
-	}
-
 	switch request.ApprovalStatus {
 	case constant.ApprovalStatusAccepted:
-		err = s.repository.UpdateSubmissionPresenceStatusUserIds(userPresencesIds, enum.SubmissionPresenceStatusAccepted)
+		err := s.repository.UpdateSubmissionPresenceStatusUserIds(request.UserPresenceIds, enum.SubmissionPresenceStatusAccepted)
 		if err != nil {
 			s.log.Error("failed update submission presence status by ids", zap.Error(err))
 			return nil, err
 		}
 	case constant.ApprovalStatusRejected:
-		err = s.repository.UpdateSubmissionPresenceStatusUserIds(userPresencesIds, enum.SubmissionPresenceStatusRejected)
+		err := s.repository.UpdateSubmissionPresenceStatusUserIds(request.UserPresenceIds, enum.SubmissionPresenceStatusRejected)
 		if err != nil {
 			s.log.Error("failed update submission presence status by ids", zap.Error(err))
 			return nil, err
 		}
 	}
 
-	err = s.repository.Commit()
+	err := s.repository.Commit()
 	if err != nil {
 		s.log.Error("failed commit transaction", zap.Error(err))
+		return nil, err
+	}
+
+	userPresences, err := s.repository.GetUserPresences(dto.GetUserPresenceFilter{
+		Ids: request.UserPresenceIds,
+	})
+	if err != nil {
+		s.log.Error("failed get user presence", zap.Error(err))
 		return nil, err
 	}
 
@@ -424,6 +413,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
+				Id:       e.Id,
 				Date:     e.CreatedAt.Format("02 Jan 2006"),
 				Name:     e.User.Name,
 				Status:   e.Status.String(),

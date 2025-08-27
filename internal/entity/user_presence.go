@@ -11,14 +11,14 @@ import (
 
 type UserPresence struct {
 	Id                       uint64                        `gorm:"primaryKey;autoIncrement"`
-	UserId                   uuid.UUID                     `gorm:"type:bigint;not null"`
+	UserId                   uuid.UUID                     `gorm:"type:varchar(255);not null"`
 	User                     User                          `gorm:"foreignKey:UserId;references:Id;constraint:OnDelete:CASCADE"`
 	StartTime                datatype.TimeOnly             `gorm:"type:timestamp"`
 	EndTime                  datatype.TimeOnly             `gorm:"type:timestamp"`
 	Status                   enum.PresenceStatus           `gorm:"type:int;not null"`
 	Note                     sql.NullString                `gorm:"type:text"`
 	Evidence                 sql.NullString                `gorm:"type:text"`
-	SubmissionPresenceStatus enum.SubmissionPresenceStatus `gorm:"int;not null"`
+	SubmissionPresenceStatus enum.SubmissionPresenceStatus `gorm:"type:int;not null"`
 	CreatedAt                time.Time                     `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                uuid.NullUUID                 `gorm:"type:varchar(255)"`
 	UpdatedAt                time.Time                     `gorm:"type:timestamp;autoUpdateTime"`

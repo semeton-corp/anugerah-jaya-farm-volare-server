@@ -322,32 +322,23 @@ func (r *PresenceRepository) GetLocationUserPresence(filter dto.GetLocationUserP
 	if filter.LocationType.Value().IsValid() {
 		switch filter.LocationType.Value() {
 		case enum.LocationTypeCage:
-			query = query.Table("locations").
-				Joins("LEFT JOIN users ON locations.id = users.location_id").
-				Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
-				Joins("LEFT JOIN roles ON users.role_id = roles.id").
-				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements) AND users.location_id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+			query = query.
+				Joins("LEFT JOIN users ON users.id = user_presences.user_id").
+				Where("user_presences.user_id IN (SELECT DISTINCT cage_placements.user_id FROM cage_placements) AND users.location_id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
 
 		case enum.LocationTypeStore:
-			query = r.GetDB().Table("stores").
-				Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
-				Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
-				Joins("LEFT JOIN roles ON users.role_id = roles.id").
-				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements) AND stores.id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+			query = query.
+				Joins("LEFT JOIN users ON user_presences.user_id = users.id").
+				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements) AND stores.id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
 
 		case enum.LocationTypeWarehouse:
-			query = query.Table("warehouses").
-				Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
-				Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
-				Joins("LEFT JOIN roles ON users.role_id = roles.id").
-				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements) AND warehouses.id = ? AND users.role_id = ? AND status = ? AND submission_present_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+			query = query.
+				Joins("LEFT JOIN users ON user_presences.user_id = users.id").
+				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements) AND warehouses.id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?", filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
 
 		case enum.LocationTypeSite:
-			query = query.Table("locations").
-				Select("roles.id AS role_id, roles.name AS role_name, locations.id AS place_id, locations.name AS place_name, users.id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
-				Joins("LEFT JOIN users ON locations.id = users.location_id").
-				Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
-				Joins("LEFT JOIN roles ON users.role_id = roles.id").
+			query = query.
+				Joins("LEFT JOIN users ON users.id = user_presences.user_id").
 				Where("users.location_id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?",
 					filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
 		default:
@@ -380,6 +371,10 @@ func (r *PresenceRepository) GetUserPresences(filter dto.GetUserPresenceFilter) 
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
+	if filter.Ids != nil {
+		query = query.Where("id In ?", filter.Ids)
+	}
+
 	err := query.Preload("User").Find(&userPresences).Error
 	if err != nil {
 		return nil, err
@@ -390,6 +385,6 @@ func (r *PresenceRepository) GetUserPresences(filter dto.GetUserPresenceFilter) 
 
 func (r *PresenceRepository) UpdateSubmissionPresenceStatusUserIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus) error {
 	return r.GetDB().Model(entity.UserPresence{}).Where("id IN ?", ids).Updates(map[string]any{
-		"submission_presences_status": submissionPresenceStatus,
+		"submission_presence_status": submissionPresenceStatus,
 	}).Error
 }

@@ -115,6 +115,7 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 	var users []entity.User
 	tx.Model(&entity.User{}).Preload("Role").Find(&users)
 
+	totalCreatedUserPresence := 0
 	for _, user := range users {
 		if user.Role.Name != ownerRole {
 			userPresence := entity.UserPresence{
@@ -126,10 +127,12 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 			if err := tx.Create(&userPresence).Error; err != nil {
 				return err
 			}
+
+			totalCreatedUserPresence++
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("User presence created: %d", len(users)))
+	s.log.Info(fmt.Sprintf("User presence created: %d", totalCreatedUserPresence))
 	return nil
 }
 
@@ -166,7 +169,7 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 func (s *Scheduler) Start() {
 	s.cron.Start()
 }
- 
+
 func (s *Scheduler) Stop() {
 	s.cron.Stop()
 }

@@ -69,7 +69,6 @@ func (h *EggPriceHandler) CreateItemPrice(c *fiber.Ctx) error {
 
 	resp, err := h.service.CreateItemPrice(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create item price", zap.Error(err))
 		return err
 	}
 
@@ -105,7 +104,6 @@ func (h *EggPriceHandler) GetItemPriceById(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetItemPriceById(id)
 	if err != nil {
-		h.log.Error("failed to get item price by id", zap.Error(err))
 		return err
 	}
 
@@ -143,7 +141,6 @@ func (h *EggPriceHandler) UpdateItemPrice(c *fiber.Ctx) error {
 
 	resp, err := h.service.UpdateItemPrice(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update item price", zap.Error(err))
 		return err
 	}
 
@@ -164,7 +161,6 @@ func (h *EggPriceHandler) DeleteItemPrice(c *fiber.Ctx) error {
 
 	err = h.service.DeleteItemPrice(id)
 	if err != nil {
-		h.log.Error("failed to delete item price", zap.Error(err))
 		return err
 	}
 
@@ -191,7 +187,6 @@ func (h *EggPriceHandler) CreateItemPriceDiscount(c *fiber.Ctx) error {
 
 	resp, err := h.service.CreateItemDiscount(filter, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create item price discount", zap.Error(err))
 		return err
 	}
 
@@ -212,7 +207,6 @@ func (h *EggPriceHandler) GetItemPriceDiscountById(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetItemDiscountById(id)
 	if err != nil {
-		h.log.Error("failed to get item price discount by id", zap.Error(err))
 		return err
 	}
 
@@ -227,7 +221,6 @@ func (h *EggPriceHandler) GetItemPriceDiscountById(c *fiber.Ctx) error {
 func (h *EggPriceHandler) GetItemPriceDiscounts(c *fiber.Ctx) error {
 	resp, err := h.service.GetItemDiscounts()
 	if err != nil {
-		h.log.Error("failed to get item price discounts", zap.Error(err))
 		return err
 	}
 
@@ -265,7 +258,6 @@ func (h *EggPriceHandler) UpdateItemPriceDiscount(c *fiber.Ctx) error {
 
 	resp, err := h.service.UpdateItemDiscount(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update item price discount", zap.Error(err))
 		return err
 	}
 
@@ -286,7 +278,6 @@ func (h *EggPriceHandler) DeleteItemPriceDiscount(c *fiber.Ctx) error {
 
 	err = h.service.DeleteItemDiscount(id)
 	if err != nil {
-		h.log.Error("failed to delete item price discount", zap.Error(err))
 		return err
 	}
 
@@ -313,7 +304,6 @@ func (h *EggPriceHandler) CreateItem(c *fiber.Ctx) error {
 
 	res, err := h.service.CreateItem(request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to create item", zap.Error(err))
 		return err
 	}
 
@@ -351,7 +341,6 @@ func (h *EggPriceHandler) GetItemById(c *fiber.Ctx) error {
 
 	res, err := h.service.GetItemById(id)
 	if err != nil {
-		h.log.Error("failed to get item", zap.Error(err))
 		return err
 	}
 
@@ -390,7 +379,6 @@ func (h *EggPriceHandler) UpdateItem(c *fiber.Ctx) error {
 
 	res, err := h.service.UpdateItem(id, request, uuid.MustParse(userId))
 	if err != nil {
-		h.log.Error("failed to update item", zap.Error(err))
 		return err
 	}
 
@@ -412,7 +400,6 @@ func (h *EggPriceHandler) DeleteItem(c *fiber.Ctx) error {
 
 	err = h.service.DeleteItem(id)
 	if err != nil {
-		h.log.Error("failed to delete item", zap.Error(err))
 		return err
 	}
 

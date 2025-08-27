@@ -2444,11 +2444,6 @@ func (s *WarehouseService) GetWarehouseItemCornProcurementDraft(id uint64) (dto.
 func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, request dto.UpdateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	ovenCondition := enum.ValueOfOvenCondition(request.OvenCondition)
-	if !ovenCondition.IsValid() {
-		return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
-	}
-
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
 		s.log.Error("failed parse price", zap.Error(err))
@@ -2463,7 +2458,6 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	data.WarehouseId = request.WarehouseId
 	data.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
 	data.CornWaterLevel = sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true}
-	data.OvenCondition = ovenCondition
 	data.Price = price
 	data.Quantity = request.Quantity
 	data.Discount = sql.NullFloat64{Float64: request.Discount, Valid: true}
@@ -2471,6 +2465,16 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 
 	if request.IsOvenCanOperateInNearDay != nil {
 		data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
+	}
+
+	if request.OvenCondition != nil {
+		ovenCondition := enum.ValueOfOvenCondition(*request.OvenCondition)
+		if !ovenCondition.IsValid() {
+			return dto.WarehouseItemCornProcurementDraftResponse{}, errx.BadRequest("invalid oven condition")
+
+		}
+		data.OvenCondition = ovenCondition
+
 	}
 
 	err = s.repository.UpdateWarehouseItemCornProcurementDraft(&data)
@@ -3333,7 +3337,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 
 			if qtyNeeded > 0 {
 				return errx.BadRequest(fmt.Sprintf(
-					"insufficient corn stock: need %.2f more", qtyNeeded,
+					"stok jagung tidak mencukupi, memerlukan %.2f", qtyNeeded,
 				))
 			}
 
@@ -3342,7 +3346,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 
 		if item.Quantity < r.Quantity {
 			return errx.BadRequest(fmt.Sprintf(
-				"insufficient stock for item %d: have %.2f, need %.2f",
+				"stok barang dengan id %d tidak cukup memiliki %.2f, sedangkan memerlukan %.2f",
 				r.ItemId, item.Quantity, r.Quantity,
 			))
 		}
