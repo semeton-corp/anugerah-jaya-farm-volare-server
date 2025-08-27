@@ -214,7 +214,7 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 
 func (r *CageRepository) GetChickenCageFeedById(id uint64) (entity.ChickenCage, error) {
 	var chickenCage entity.ChickenCage
-	err := r.GetDB().Preload("Cage.Location").Preload("ChickenProcurement").Preload("Cage.CagePlacement.User.Role").Preload("Cage.CageFeed.CageFeedDetails.Item").Where("id = ?", id).First(&chickenCage).Error
+	err := r.GetDB().Preload("Cage.Location").Preload("ChickenProcurement").Preload("Cage.CagePlacement.User.Role").Where("id = ?", id).First(&chickenCage).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.ChickenCage{}, errx.NotFound("chicken cage not found")
