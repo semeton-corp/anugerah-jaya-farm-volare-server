@@ -104,7 +104,6 @@ func CageFeedDetailToResponse(data *entity.CageFeedDetail) dto.CageFeedDetailRes
 	}
 }
 
-// Note : without totalFeed and yesterdayTotalFeed
 func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedListResponse {
 	var (
 		chickenAgeInWeek uint64
@@ -127,19 +126,17 @@ func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenC
 	}
 
 	response := dto.ChickenCageFeedListResponse{
-		Id:                chickenCage.Id,
-		Cage:              CageToResponse(&chickenCage.Cage),
-		ChickenCategory:   chickenCategory.String(),
-		ChickenAge:        chickenAgeInWeek,
-		TotalChicken:      chickenCage.TotalChicken,
-		IsNeedFeed:        chickenCage.IsNeedFeed,
-		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed * float64(chickenCage.TotalChicken) / 1000.0,
+		Id:              chickenCage.Id,
+		Cage:            CageToResponse(&chickenCage.Cage),
+		ChickenCategory: chickenCategory.String(),
+		ChickenAge:      chickenAgeInWeek,
+		TotalChicken:    chickenCage.TotalChicken,
+		IsNeedFeed:      chickenCage.IsNeedFeed,
 	}
 
 	return response
 }
 
-// Note : without totalFeed and yesterdayTotalFeed and feedDetails
 func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedResponse {
 	var (
 		chickenAgeInWeek uint64
@@ -162,14 +159,12 @@ func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageF
 	}
 
 	response := dto.ChickenCageFeedResponse{
-		Id:                chickenCage.Id,
-		Cage:              CageToResponse(&chickenCage.Cage),
-		ChickenCategory:   chickenCategory.String(),
-		ChickenAge:        chickenAgeInWeek,
-		TotalChicken:      chickenCage.TotalChicken,
-		IsNeedFeed:        chickenCage.IsNeedFeed,
-		FeedType:          chickenCage.Cage.CageFeed.FeedType.String(),
-		ExpectedTotalFeed: chickenCage.Cage.CageFeed.TotalFeed * float64(chickenCage.TotalChicken) / 1000.0,
+		Id:              chickenCage.Id,
+		Cage:            CageToResponse(&chickenCage.Cage),
+		ChickenCategory: chickenCategory.String(),
+		ChickenAge:      chickenAgeInWeek,
+		TotalChicken:    chickenCage.TotalChicken,
+		IsNeedFeed:      chickenCage.IsNeedFeed,
 	}
 
 	return response

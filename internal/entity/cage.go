@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,8 +16,6 @@ type Cage struct {
 	ChickenCategory enum.ChickenCategory `gorm:"type:bigint;not null"`
 	CagePlacement   []CagePlacement      `gorm:"foreignKey:CageId;references:Id"`
 	IsUsed          bool                 `gorm:"type:boolean;default:false"`
-	CageFeedId      sql.NullInt64        `gorm:"type:bigint"`
-	CageFeed        CageFeed             `gorm:"foreignKey:CageFeedId;references:Id;constraint:OnDelete:CASCADE"`
 	CreatedAt       time.Time            `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time            `gorm:"type:timestamp;autoUpdateTime"`

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -11,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"go.uber.org/zap"
 )
 
@@ -32,6 +32,7 @@ type ICageService interface {
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
+
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]dto.ChickenCageFeedListResponse, error)
 	GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error)
 
@@ -80,22 +81,15 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 		return dto.CageResponse{}, errx.BadRequest("invalid chicken category")
 	}
 
-	cageFeed, err := s.repository.GetCageFeedByChickenCategoery(chickenCategory)
-	if err != nil {
-		s.log.Error("failed get cage feed by chicken category", zap.Error(err))
-		return dto.CageResponse{}, err
-	}
-
 	cage := entity.Cage{
 		LocationId:      request.LocationId,
 		Name:            request.Name,
 		Capacity:        request.Capacity,
 		ChickenCategory: chickenCategory,
-		CageFeedId:      sql.NullInt64{Int64: int64(cageFeed.Id), Valid: true},
 		CreatedBy:       uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
-	err = s.repository.CreateCage(&cage)
+	err := s.repository.CreateCage(&cage)
 	if err != nil {
 		s.log.Error("failed to create cage", zap.Error(err))
 		return dto.CageResponse{}, err
@@ -501,10 +495,20 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 		cageFeedStockMap[m.CageId] += m.TotalFeed - m.UsedFeed
 	}
 
+	cageFeeds, err := s.repository.GetCageFeeds()
+	if err != nil {
+		return nil, err
+	}
+
+	cageFeedsMapByCategory := make(map[string]entity.CageFeed)
+	for _, e := range cageFeeds {
+		cageFeedsMapByCategory[e.ChickenCategory.String()] = e
+	}
+
 	responses := make([]dto.ChickenCageFeedListResponse, len(data))
 	for i, e := range data {
 		resp := mapper.ChickenCageFeedToListResponse(&e)
-		resp.TotalFeed = resp.ExpectedTotalFeed - cageFeedStockMap[e.CageId]
+		resp.TotalFeed = (cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed * float64(e.TotalChicken) / 1000.0) - cageFeedStockMap[e.CageId]
 		responses[i] = resp
 	}
 
@@ -520,7 +524,13 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	needCreateFeed := chickenCage.Cage.CageFeed.TotalFeed
+	chickenCategory := util.GetChickenCategory(&chickenCage)
+	cageFeed, err := s.repository.GetCageFeedByChickenCategory(chickenCategory)
+	if err != nil {
+		return dto.ChickenCageFeedResponse{}, err
+	}
+
+	needCreateFeed := cageFeed.TotalFeed
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
 		CageId: chickenCage.CageId,
 	})
@@ -534,7 +544,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	}
 
 	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
-	for _, cageFeedDetail := range chickenCage.Cage.CageFeed.CageFeedDetails {
+	for _, cageFeedDetail := range cageFeed.CageFeedDetails {
 		feedDetailResponse = append(feedDetailResponse, dto.FeedDetailResponse{
 			Item:       mapper.ItemToResponse(&cageFeedDetail.Item),
 			Percentage: cageFeedDetail.Percentage,
@@ -543,6 +553,9 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	}
 
 	response := mapper.ChickenCageFeedToResponse(&chickenCage)
+	response.FeedType = cageFeed.FeedType.String()
+	response.ExpectedTotalFeed = cageFeed.TotalFeed * float64(chickenCage.TotalChicken) / 1000.0
+
 	if needCreateFeed < 0 {
 		response.TotalFeed = 0
 	} else {
@@ -566,7 +579,13 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		return dto.ChickenCageFeedResponse{}, errx.BadRequest("chicken cage is already feed")
 	}
 
-	needCreateFeed := chickenCage.Cage.CageFeed.TotalFeed
+	chickenCategory := util.GetChickenCategory(&chickenCage)
+	cageFeed, err := s.repository.GetCageFeedByChickenCategory(chickenCategory)
+	if err != nil {
+		return dto.ChickenCageFeedResponse{}, err
+	}
+
+	needCreateFeed := cageFeed.TotalFeed
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
 		CageId: chickenCage.CageId,
 	})
@@ -580,7 +599,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 	}
 
 	requestToWarehouse := make([]dto.ReduceFeedRequest, 0)
-	for _, cageFeedDetail := range chickenCage.Cage.CageFeed.CageFeedDetails {
+	for _, cageFeedDetail := range cageFeed.CageFeedDetails {
 		requestToWarehouse = append(requestToWarehouse, dto.ReduceFeedRequest{
 			ItemId:       cageFeedDetail.ItemId,
 			ItemCategory: cageFeedDetail.Item.Category.String(),

@@ -41,12 +41,12 @@ type ICageRepository interface {
 	GetCageFeeds() ([]entity.CageFeed, error)
 	UpdateCageFeed(data *entity.CageFeed) error
 	GetCageFeed(id uint64) (entity.CageFeed, error)
+	GetCageFeedByChickenCategory(chickenCategory enum.ChickenCategory) (entity.CageFeed, error)
 	CreateCageFeedDetail(data *entity.CageFeedDetail) error
 	UpdateCageFeedDetail(data *entity.CageFeedDetail) error
 	CreateCageFeedDetails(details *[]entity.CageFeedDetail) error
 	DeleteCageFeedDetailsNotIn(cageFeedId uint64, ids []uint64) error
 	UpsertCageFeedDetails(details *[]entity.CageFeedDetail) error
-	GetCageFeedByChickenCategoery(chickenCategory enum.ChickenCategory) (entity.CageFeed, error)
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]entity.ChickenCage, error)
 	GetChickenCageFeedById(id uint64) (entity.ChickenCage, error)
@@ -140,7 +140,6 @@ func (r *CageRepository) UpdateCage(cage *entity.Cage) error {
 		"name":             cage.Name,
 		"chicken_category": cage.ChickenCategory,
 		"is_used":          cage.IsUsed,
-		"cage_feed_id":     cage.CageFeedId,
 		"updated_by":       cage.UpdatedBy,
 	}).Error
 }
@@ -378,8 +377,6 @@ func (r *CageRepository) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter
 	err := query.
 		Preload("Cage.Location").
 		Preload("ChickenProcurement").
-		Preload("Cage.CagePlacement.User.Role").
-		Preload("Cage.CageFeed.CageFeedDetails.Item").
 		Order("chicken_cages.created_at DESC").
 		Find(&chickenCages).Error
 
@@ -411,16 +408,6 @@ func (r *CageRepository) GetChickenMonitoringYesterdayByChickenCageIds(chickenCa
 	}
 
 	return chickenMonitorings, nil
-}
-
-func (r *CageRepository) GetCageFeedByChickenCategoery(chickenCategory enum.ChickenCategory) (entity.CageFeed, error) {
-	var cageFeed entity.CageFeed
-	err := r.GetDB().Model(&entity.CageFeed{}).Where("chicken_category = ?", chickenCategory).First(&cageFeed).Error
-	if err != nil {
-		return entity.CageFeed{}, err
-	}
-
-	return cageFeed, nil
 }
 
 func (r *CageRepository) CreateCageFeedStock(data *entity.CageFeedStock) error {
@@ -455,4 +442,17 @@ func (r *CageRepository) GetCageFeedStocks(filter dto.GetCageFeedStockFilter) ([
 	}
 
 	return data, nil
+}
+
+func (r *CageRepository) GetCageFeedByChickenCategory(chickenCategory enum.ChickenCategory) (entity.CageFeed, error) {
+	var cageFeed entity.CageFeed
+	err := r.GetDB().Model(&entity.CageFeed{}).Where("chicken_category = ?", chickenCategory).Preload("CageFeedDetails.Item").First(&cageFeed).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.CageFeed{}, errx.NotFound("cage feed not found")
+		}
+		return entity.CageFeed{}, err
+	}
+
+	return cageFeed, nil
 }
