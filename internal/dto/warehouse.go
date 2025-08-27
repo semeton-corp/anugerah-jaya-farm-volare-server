@@ -384,7 +384,7 @@ type CreateWarehouseItemCornProcurementDraftRequest struct {
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
-	Discount                  float64 `json:"discount" validate:"required,min=0"`
+	Discount                  float64 `json:"discount" validate:"min=0"`
 }
 
 type UpdateWarehouseItemCornProcurementDraftRequest struct {
@@ -395,7 +395,7 @@ type UpdateWarehouseItemCornProcurementDraftRequest struct {
 	IsOvenCanOperateInNearDay *bool   `json:"isOvenCanOperateInNearDay" validate:"required"`
 	Quantity                  float64 `json:"quantity" validate:"required"`
 	Price                     string  `json:"price" validate:"required"`
-	Discount                  float64 `json:"discount" validate:"required,min=0"`
+	Discount                  float64 `json:"discount" validate:"min=0"`
 }
 
 type WarehouseItemCornProcurementDraftResponse struct {
@@ -422,7 +422,7 @@ type CreateWarehouseItemCornProcurementRequest struct {
 	Quantity                  float64                                            `json:"quantity" validate:"required"`
 	Price                     string                                             `json:"price" validate:"required"`
 	ExpiredAt                 string                                             `json:"expiredAt" validate:"required"`
-	Discount                  float64                                            `json:"discount" validate:"required,min=0"`
+	Discount                  float64                                            `json:"discount" validate:"min=0"`
 	DeadlinePaymentDate       *string                                            `json:"deadlinePaymentDate"`
 	PaymentType               string                                             `json:"paymentType" validate:"required,paymentType"`
 	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
