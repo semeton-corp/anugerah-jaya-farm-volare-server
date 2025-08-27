@@ -188,7 +188,6 @@ func (r *CageRepository) GetChickenCages(filter dto.GetChickenCageFilter) ([]ent
 		Preload("Cage.Location").
 		Preload("ChickenProcurement").
 		Preload("Cage.CagePlacement.User.Role").
-		Preload("Cage.CageFeed.CageFeedDetails.Item").
 		Order("chicken_cages.created_at DESC").
 		Find(&chickenCages).Error
 
