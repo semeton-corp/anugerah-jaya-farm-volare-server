@@ -33,7 +33,7 @@ type IUserService interface {
 	GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error)
 	GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFilter) (dto.UserOverviewResponse, error)
 
-	CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error)
+	CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, float64, error)
 
 	GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error)
 }
@@ -356,14 +356,14 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 	}
 
 	if filter.Page > 0 {
-		resp.TotalData = totalData
+		resp.TotalData = uint64(totalData)
 		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return resp, nil
 }
 
-func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, error) {
+func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64, month enum.Month) (float64, float64, error) {
 	withDeleted := true
 	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userId,
 		dto.GetAdditionalWorkUserFilter{
@@ -372,7 +372,7 @@ func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64
 			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 		})
 	if err != nil {
-		return -1, nil
+		return -1, -1, nil
 	}
 
 	dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userId,
@@ -382,7 +382,7 @@ func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64
 			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 		})
 	if err != nil {
-		return -1, nil
+		return -1, -1, nil
 	}
 
 	userPresences, err := s.presenceService.GetUserPresencesByUserId(userId,
@@ -391,7 +391,7 @@ func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64
 			Year:  year,
 		})
 	if err != nil {
-		return -1, nil
+		return -1, -1, nil
 	}
 
 	var totalPresent uint64 = 0
@@ -451,7 +451,7 @@ func (s *UserService) CalculateKPIScoreUserInMonth(userId uuid.UUID, year uint64
 		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers)) * 100
 	}
 
-	return (presenceScore * 0.6) + (workScore * 0.4), nil
+	return presenceScore, workScore, nil
 }
 
 func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error) {

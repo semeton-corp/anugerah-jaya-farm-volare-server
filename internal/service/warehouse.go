@@ -671,19 +671,18 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	warehouseSale := entity.WarehouseSale{
-		WarehouseId:         request.WarehouseId,
-		ItemId:              request.ItemId,
-		Quantity:            request.Quantity,
-		Price:               price,
-		TotalPrice:          totalPrice,
-		SendDate:            sendDate,
-		Discount:            request.Discount,
-		IsSend:              false,
-		SaleUnit:            saleUnit,
-		PaymentType:         paymentType,
-		PaymentStatus:       enum.PaymentStatusNotPaid,
-		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7)},
-		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+		WarehouseId:   request.WarehouseId,
+		ItemId:        request.ItemId,
+		Quantity:      request.Quantity,
+		Price:         price,
+		TotalPrice:    totalPrice,
+		SendDate:      sendDate,
+		Discount:      request.Discount,
+		IsSend:        false,
+		SaleUnit:      saleUnit,
+		PaymentType:   paymentType,
+		PaymentStatus: enum.PaymentStatusNotPaid,
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {
@@ -734,6 +733,10 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		}
 		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
 	}
 
 	err = s.repository.CreateWarehouseSale(&warehouseSale)
@@ -1442,19 +1445,18 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	warehouseSale := entity.WarehouseSale{
-		WarehouseId:         request.WarehouseId,
-		ItemId:              request.ItemId,
-		Quantity:            request.Quantity,
-		Price:               price,
-		TotalPrice:          totalPrice,
-		SendDate:            sendDate,
-		Discount:            request.Discount,
-		IsSend:              false,
-		SaleUnit:            saleUnit,
-		PaymentType:         paymentType,
-		PaymentStatus:       enum.PaymentStatusNotPaid,
-		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
-		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+		WarehouseId:   request.WarehouseId,
+		ItemId:        request.ItemId,
+		Quantity:      request.Quantity,
+		Price:         price,
+		TotalPrice:    totalPrice,
+		SendDate:      sendDate,
+		Discount:      request.Discount,
+		IsSend:        false,
+		SaleUnit:      saleUnit,
+		PaymentType:   paymentType,
+		PaymentStatus: enum.PaymentStatusNotPaid,
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {
@@ -1505,6 +1507,10 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		}
 		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+	}
+
+	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
 	}
 
 	err = s.repository.CreateWarehouseSale(&warehouseSale)
@@ -2006,7 +2012,7 @@ func (s *WarehouseService) GetWarehouseItemProcurements(filter dto.GetWarehouseI
 
 	if filter.Page > 0 {
 		response.TotalData = uint64(totalData)
-		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+		response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return response, nil
@@ -2277,7 +2283,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	warehouseItemProcurement.RecieveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
+	warehouseItemProcurement.ReceiveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
 	warehouseItemProcurement.Note = request.Note
 	warehouseItemProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	warehouseItemProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
@@ -2823,7 +2829,7 @@ func (s *WarehouseService) GetWarehouseItemCornProcurements(filter dto.GetWareho
 
 	if filter.Page > 0 {
 		response.TotalData = uint64(totalData)
-		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+		response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return response, nil
@@ -3109,7 +3115,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	warehouseItemCornProcurement.RecieveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
+	warehouseItemCornProcurement.ReceiveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
 	warehouseItemCornProcurement.Note = request.Note
 	warehouseItemCornProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	warehouseItemCornProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}

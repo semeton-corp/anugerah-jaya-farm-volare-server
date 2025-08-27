@@ -16,7 +16,7 @@ type ChickenProcurement struct {
 	SupplierId            uint64                      `gorm:"type:bigint;not null"`
 	Supplier              Supplier                    `gorm:"foreignKey:SupplierId;refereces:Id;constraint:OnDelete:SET NULL"`
 	Quantity              uint64                      `gorm:"type:bigint;not null"`
-	RecieveQuantity       sql.NullInt64               `gorm:"type:bigint"`
+	ReceiveQuantity       sql.NullInt64               `gorm:"type:bigint"`
 	Note                  string                      `gorm:"type:text"`
 	TotalPrice            decimal.Decimal             `gorm:"type:decimal;not null"`
 	PaymentStatus         enum.PaymentStatus          `gorm:"type:int;not null"`

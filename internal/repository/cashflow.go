@@ -110,7 +110,7 @@ func (r *CashflowRepository) GetWarehouseSalePayments(filter dto.GetWarehouseSal
 	query := r.GetDB().Model(&entity.WarehouseSalePayment{})
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= > ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	err := query.Preload("WarehouseSale.Customer").
@@ -128,7 +128,7 @@ func (r *CashflowRepository) GetStoreSalePayments(filter dto.GetStoreSalePayment
 	query := r.GetDB().Model(&entity.StoreSalePayment{})
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= > ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	err := query.Preload("StoreSale.Customer").
@@ -146,7 +146,7 @@ func (r *CashflowRepository) GetAfkirChickenSalePayments(filter dto.GetAfkirChic
 	query := r.GetDB().Model(&entity.AfkirChickenSalePayment{})
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= > ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	err := query.Preload("AfkirChickenSale.AfkirChickenCustomer").
@@ -166,7 +166,16 @@ func (r *CashflowRepository) GetWarehouseSalePaymentById(id uint64) (entity.Ware
 		Preload("WarehouseSale.Warehouse.Location").
 		Preload("CreatedByUser").
 		First(&payment, id).Error
-	return payment, err
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.WarehouseSalePayment{}, errx.NotFound("afkir chicken sale payment not fount")
+		}
+
+		return entity.WarehouseSalePayment{}, nil
+	}
+
+	return payment, nil
 }
 
 func (r *CashflowRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error) {
@@ -177,7 +186,16 @@ func (r *CashflowRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSal
 		Preload("StoreSale.Store.Location").
 		Preload("CreatedByUser").
 		First(&payment, id).Error
-	return payment, err
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.StoreSalePayment{}, errx.NotFound("afkir chicken sale payment not fount")
+		}
+
+		return entity.StoreSalePayment{}, nil
+	}
+
+	return payment, nil
 }
 
 func (r *CashflowRepository) GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error) {
@@ -187,7 +205,14 @@ func (r *CashflowRepository) GetAfkirChickenSalePaymentById(id uint64) (entity.A
 		Preload("AfkirChickenSale.ChickenCage.Cage.Location").
 		Preload("CreatedByUser").
 		First(&payment, id).Error
-	return payment, err
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.AfkirChickenSalePayment{}, errx.NotFound("afkir chicken sale payment not fount")
+		}
+
+		return entity.AfkirChickenSalePayment{}, nil
+	}
+	return payment, nil
 }
 
 func (r *CashflowRepository) CreateExpense(data *entity.Expense) error {
@@ -196,7 +221,7 @@ func (r *CashflowRepository) CreateExpense(data *entity.Expense) error {
 
 func (r *CashflowRepository) GetExpense(id uint64) (entity.Expense, error) {
 	var data entity.Expense
-	err := r.GetDB().Model(&entity.Expense{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.Expense{}).Where("id = ?", id).Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Expense{}, errx.NotFound("expense not found")
@@ -215,7 +240,7 @@ func (r *CashflowRepository) GetExpenses(filter dto.GetExpenseFilter) ([]entity.
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Find(&data).Error
+	err := query.Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +288,7 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 	}
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(user_salary_payments.created_at) >= ? AND DATE(user_salary_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.IsPaid != nil {
@@ -271,7 +296,7 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 	}
 
 	err := query.
-		Preload("User").
+		Preload("User.Role").
 		Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -297,7 +322,7 @@ func (r *CashflowRepository) CountUserSalaryPayments(filter dto.GetUserSalaryPay
 	}
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(user_salary_payments.created_at) >= ? AND DATE(user_salary_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.IsPaid != nil {
@@ -394,7 +419,7 @@ func (r *CashflowRepository) CreateUserCashAdvancePayment(data *entity.UserCashA
 
 func (r *CashflowRepository) GetUserCashAdvance(id uint64) (entity.UserCashAdvance, error) {
 	var data entity.UserCashAdvance
-	err := r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", id).Preload("User").Preload("Payments").First(&data).Error
+	err := r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", id).Preload("User.Role").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		return entity.UserCashAdvance{}, err
 	}
@@ -427,7 +452,7 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Payments").Find(&data).Error
+	err := query.Preload("User.Location").Preload("Payments").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +461,13 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 }
 
 func (r *CashflowRepository) UpdateUserCashAdvance(data *entity.UserCashAdvance) error {
-	return r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", data.Id).Updates(data).Error
+	return r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"user_id":               data.UserId,
+		"nominal":               data.Nominal,
+		"deadline_payment_date": data.DeadlinePaymentDate,
+		"payment_status":        data.PaymentStatus,
+		"updated_by":            data.UpdatedBy,
+	}).Error
 }
 
 func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error) {
@@ -486,7 +517,7 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 
 func (r *CashflowRepository) GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error) {
 	var afkirChickenSale entity.AfkirChickenSale
-	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", id).First(&afkirChickenSale).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Preload("CreatedByUser").Where("id = ?", id).First(&afkirChickenSale).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not found")
@@ -499,7 +530,7 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflow(id uint64) (entity.Afki
 
 func (r *CashflowRepository) GetWarehouseSaleCashflow(id uint64) (entity.WarehouseSale, error) {
 	var warehouseSale entity.WarehouseSale
-	err := r.GetDB().Model(&entity.WarehouseSale{}).Where("id = ?", id).First(&warehouseSale).Error
+	err := r.GetDB().Model(&entity.WarehouseSale{}).Where("id = ?", id).Preload("Warehouse.Location").Preload("Customer").Preload("Item").Preload("Payments").Preload("CreatedByUser").First(&warehouseSale).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.WarehouseSale{}, errx.NotFound("warehouse sale not found")
@@ -513,7 +544,7 @@ func (r *CashflowRepository) GetWarehouseSaleCashflow(id uint64) (entity.Warehou
 func (r *CashflowRepository) GetStoreSaleCashflow(id uint64) (entity.StoreSale, error) {
 	var storeSale entity.StoreSale
 
-	err := r.GetDB().Model(&entity.StoreSale{}).Where("id = ?", id).First(&storeSale).Error
+	err := r.GetDB().Model(&entity.StoreSale{}).Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Preload("CreatedByUser").Where("id = ?", id).First(&storeSale).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.StoreSale{}, errx.NotFound("warehouse sale not found")
@@ -526,8 +557,11 @@ func (r *CashflowRepository) GetStoreSaleCashflow(id uint64) (entity.StoreSale, 
 
 func (r *CashflowRepository) GetUserSalaryPayment(id uint64) (entity.UserSalaryPayment, error) {
 	var data entity.UserSalaryPayment
-	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Preload("User").Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Preload("User.Role").Preload("CreatedByUser").Where("id = ?", id).First(&data).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.UserSalaryPayment{}, errx.NotFound("user cash advance not found")
+		}
 		return entity.UserSalaryPayment{}, err
 	}
 
@@ -535,7 +569,17 @@ func (r *CashflowRepository) GetUserSalaryPayment(id uint64) (entity.UserSalaryP
 }
 
 func (r *CashflowRepository) UpdateUserSalaryPayment(data *entity.UserSalaryPayment) error {
-	return r.GetDB().Model(&entity.UserSalaryPayment{}).Where("id = ?", data.Id).Updates(data).Error
+	return r.GetDB().Model(&entity.UserSalaryPayment{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"user_id":                data.UserId,
+		"base_salary":            data.BaseSalary,
+		"bonus_salary":           data.BonusSalary,
+		"compentation_salary":    data.CompentationSalary,
+		"additional_work_salary": data.AdditionalWorkSalary,
+		"payment_proof":          data.PaymentProof,
+		"payment_method":         data.PaymentMethod,
+		"is_paid":                data.IsPaid,
+		"updated_by":             data.UpdatedBy,
+	}).Error
 }
 
 func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.GetWarehouseItemProcurementFilter) ([]entity.WarehouseItemProcurement, error) {
@@ -555,7 +599,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.Get
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Find(&data).Error
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -580,7 +624,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflows(filter dto
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Find(&data).Error
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +649,7 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Find(&data).Error
+	err := query.Preload("Cage.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -615,7 +659,7 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 
 func (r *CashflowRepository) GetChickenProcurementCashflow(id uint64) (entity.ChickenProcurement, error) {
 	var data entity.ChickenProcurement
-	err := r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id).Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		return entity.ChickenProcurement{}, err
 	}
@@ -625,7 +669,7 @@ func (r *CashflowRepository) GetChickenProcurementCashflow(id uint64) (entity.Ch
 
 func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflow(id uint64) (entity.WarehouseItemCornProcurement, error) {
 	var data entity.WarehouseItemCornProcurement
-	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Where("id = ?", id).Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		return entity.WarehouseItemCornProcurement{}, err
 	}
@@ -636,7 +680,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflow(id uint64) 
 
 func (r *CashflowRepository) GetWarehouseItemProcurementCashflow(id uint64) (entity.WarehouseItemProcurement, error) {
 	var data entity.WarehouseItemProcurement
-	err := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Where("id = ?", id).Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		return entity.WarehouseItemProcurement{}, err
 	}

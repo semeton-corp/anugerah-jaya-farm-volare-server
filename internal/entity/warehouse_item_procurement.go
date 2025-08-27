@@ -20,7 +20,7 @@ type WarehouseItemProcurement struct {
 	DailySpending         float64                           `gorm:"type:decimal;not null"`
 	DaysNeed              uint64                            `gorm:"type:int;not null"`
 	Quantity              float64                           `gorm:"type:decimal;not null"`
-	RecieveQuantity       sql.NullFloat64                   `gorm:"type:decimal;not null;default:0"`
+	ReceiveQuantity       sql.NullFloat64                   `gorm:"type:decimal;not null;default:0"`
 	Note                  string                            `gorm:"type:text"`
 	Price                 decimal.Decimal                   `gorm:"type:decimal;not null"`
 	TotalPrice            decimal.Decimal                   `gorm:"type:decimal;not null"`

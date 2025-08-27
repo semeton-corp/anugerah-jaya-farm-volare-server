@@ -11,7 +11,7 @@ import (
 
 type IEmail interface {
 	SetSender(sender string)
-	SetReciever(to ...string)
+	SetReceiver(to ...string)
 	SetSubject(subject string)
 	SetBodyHTML(path string, data interface{}) error
 	Send() error
@@ -40,7 +40,7 @@ func (g *Email) SetSender(sender string) {
 	g.message.SetHeader("From", sender)
 }
 
-func (g *Email) SetReciever(to ...string) {
+func (g *Email) SetReceiver(to ...string) {
 	g.message.SetHeader("To", to...)
 }
 

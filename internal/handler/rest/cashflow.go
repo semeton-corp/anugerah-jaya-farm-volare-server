@@ -2,6 +2,7 @@ package rest
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
@@ -22,35 +24,31 @@ type CashflowHandler struct {
 }
 
 func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
-	v1 := router.Group("/cashflow")
+	v1 := router.Group("/api/v1/cashflows")
 
-	v1.Get("/incomes/overview", h.GetIncomeOverview)
-	v1.Get("/incomes/:category/:id", h.GetIncome)
+	v1.Get("/incomes/:category/:id", middleware.Authentication(), h.GetIncome)
+	v1.Get("/incomes/overview", middleware.Authentication(), h.GetIncomeOverview)
 
-	v1.Get("/expenses/overview", h.GetExpenseOverview)
-	v1.Get("/expenses/:category/:id", h.GetExpense)
+	v1.Post("/expenses", middleware.Authentication(), h.CreateExpense)
+	v1.Get("/expenses/:category/:id", middleware.Authentication(), h.GetExpense)
+	v1.Get("/expenses/overview", middleware.Authentication(), h.GetExpenseOverview)
 
-	v1.Post("/expenses", h.CreateExpense)
-	v1.Get("/expenses/overview", h.GetExpenseOverview)
-	v1.Get("/expenses/:category/:id", h.GetExpense)
+	v1.Get("/cash-advances/:userId", middleware.Authentication(), h.GetUserCashAdvanceByUserId)
+	v1.Post("/cash-advances", middleware.Authentication(), h.CreateUserCashAdvance)
+	v1.Post("/cash-advances/:id/payments", middleware.Authentication(), h.CreateUserCashAdvancePayment)
 
-	v1.Get("/cash-advances/:userId", h.GetUserCashAdvanceByUserId)
-	v1.Post("/cash-advances", h.CreateUserCashAdvance)
-	v1.Post("/cash-advances/:id/payments", h.CreateUserCashAdvancePayment)
+	v1.Get("/receivables/overview", middleware.Authentication(), h.GetReceivablesOverview)
+	v1.Get("/receivables/:category/:id", middleware.Authentication(), h.GetReceivables)
 
-	v1.Get("/receivables/overview", h.GetReceivablesOverview)
-	v1.Get("/receivables/:category/:id", h.GetReceivables)
+	v1.Get("/debts/overview", middleware.Authentication(), h.GetDebtOverview)
+	v1.Get("/debts/:category/:id", middleware.Authentication(), h.GetDebt)
 
-	v1.Post("/salary-payments/:id/pay", h.PayUserSalaryPayment)
+	v1.Post("/salaries/:id/pay", middleware.Authentication(), h.PayUserSalaryPayment)
+	v1.Get("/salaries/summary", middleware.Authentication(), h.GetUserSalarySummary)
+	v1.Get("/salaries", middleware.Authentication(), h.GetUserSalaries)
+	v1.Get("/salaries/:id", middleware.Authentication(), h.GetUserSalaryDetail)
 
-	v1.Get("/debts/overview", h.GetDebtOverview)
-	v1.Get("/debts/:category/:id", h.GetDebt)
-
-	v1.Get("/salaries/summary", h.GetUserSalarySummary)
-	v1.Get("/salaries", h.GetUserSalaries)
-	v1.Get("/salaries/:id", h.GetUserSalaryDetail)
-
-	v1.Get("/sales/reports", h.ExportSalesToExcel)
+	v1.Get("/sales/reports", middleware.Authentication(), h.ExportSalesToExcel)
 }
 
 func NewCashflowHandler(log *zap.Logger, service service.ICashflowService, validator *validator.Validate) *CashflowHandler {
@@ -80,20 +78,20 @@ func (h *CashflowHandler) GetIncomeOverview(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetIncomeOverview(filter)
 	if err != nil {
-		h.log.Error("service error", zap.Error(err))
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to get income overview",
-		})
+		return err
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get income overview")
 }
 
 func (h *CashflowHandler) GetIncome(c *fiber.Ctx) error {
-	category := c.Params("category")
-	idStr := c.Params("id")
+	category, err := url.QueryUnescape(c.Params("category"))
+	if err != nil {
+		h.log.Error("failed to decode category param", zap.Error(err))
+		return errx.BadRequest("invalid category param")
+	}
 
-	id, err := strconv.ParseUint(idStr, 10, 64)
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
 		return errx.BadRequest("invalid id param")
@@ -108,7 +106,7 @@ func (h *CashflowHandler) GetIncome(c *fiber.Ctx) error {
 }
 
 func (h *CashflowHandler) ExportSalesToExcel(c *fiber.Ctx) error {
-	var filter dto.GetSaleCashflowFilter
+	var filter dto.GetCashflowSaleReportFilter
 	if err := c.QueryParser(&filter); err != nil {
 		h.log.Error("failed parse query", zap.Error(err))
 		return err
@@ -121,10 +119,7 @@ func (h *CashflowHandler) ExportSalesToExcel(c *fiber.Ctx) error {
 
 	f, err := h.service.ExportSalesCashflowToExcel(filter)
 	if err != nil {
-		h.log.Error("failed to export sales", zap.Error(err))
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "failed to export sales",
-		})
+		return err
 	}
 
 	fileName := fmt.Sprintf("sales_report_%s.xlsx", time.Now().Format("20060102_150405"))
@@ -149,14 +144,15 @@ func (h *CashflowHandler) CreateExpense(c *fiber.Ctx) error {
 		return err
 	}
 
-	if err := h.validator.Struct(request); err != nil {
+	if err := h.validator.Struct(&request); err != nil {
 		h.log.Error("error validation", zap.Error(err))
 		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
 	if !ok {
-		return errx.Unauthorized("user id not found in contenxt")
+		h.log.Warn("user id not found in context")
+		return errx.Unauthorized("user id not found in context")
 	}
 
 	resp, err := h.service.CreateExpense(request, uuid.MustParse(userId))
@@ -182,7 +178,6 @@ func (h *CashflowHandler) GetExpenseOverview(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetExpenseOverview(filter)
 	if err != nil {
-		h.log.Error("service error", zap.Error(err))
 		return err
 	}
 
@@ -190,7 +185,12 @@ func (h *CashflowHandler) GetExpenseOverview(c *fiber.Ctx) error {
 }
 
 func (h *CashflowHandler) GetExpense(c *fiber.Ctx) error {
-	category := c.Params("category")
+	category, err := url.QueryUnescape(c.Params("category"))
+	if err != nil {
+		h.log.Error("failed to decode category param", zap.Error(err))
+		return errx.BadRequest("invalid category param")
+	}
+
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
@@ -278,7 +278,7 @@ func (h *CashflowHandler) GetReceivablesOverview(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid query parameters")
 	}
 
-	if err := h.validator.Struct(filter); err != nil {
+	if err := h.validator.Struct(&filter); err != nil {
 		h.log.Error("error validation", zap.Error(err))
 		return errx.BadRequest(err.Error())
 	}
@@ -292,7 +292,12 @@ func (h *CashflowHandler) GetReceivablesOverview(c *fiber.Ctx) error {
 }
 
 func (h *CashflowHandler) GetReceivables(c *fiber.Ctx) error {
-	category := c.Params("category")
+	category, err := url.QueryUnescape(c.Params("category"))
+	if err != nil {
+		h.log.Error("failed to decode category param", zap.Error(err))
+		return errx.BadRequest("invalid category param")
+	}
+
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
@@ -345,7 +350,7 @@ func (h *CashflowHandler) GetDebtOverview(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid query parameters")
 	}
 
-	if err := h.validator.Struct(filter); err != nil {
+	if err := h.validator.Struct(&filter); err != nil {
 		h.log.Error("error validation", zap.Error(err))
 		return errx.BadRequest(err.Error())
 	}
@@ -359,7 +364,12 @@ func (h *CashflowHandler) GetDebtOverview(c *fiber.Ctx) error {
 }
 
 func (h *CashflowHandler) GetDebt(c *fiber.Ctx) error {
-	category := c.Params("category")
+	category, err := url.QueryUnescape(c.Params("category"))
+	if err != nil {
+		h.log.Error("failed to decode category param", zap.Error(err))
+		return errx.BadRequest("invalid category param")
+	}
+
 	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
 	if err != nil {
 		h.log.Error("invalid id param", zap.Error(err))
@@ -382,7 +392,7 @@ func (h *CashflowHandler) GetUserSalarySummary(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid query params")
 	}
 
-	if err := h.validator.Struct(filter); err != nil {
+	if err := h.validator.Struct(&filter); err != nil {
 		h.log.Error("validation error", zap.Error(err))
 		return errx.BadRequest(err.Error())
 	}
@@ -411,7 +421,6 @@ func (h *CashflowHandler) GetUserSalaries(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetUserSalaries(filter)
 	if err != nil {
-		h.log.Error("service error", zap.Error(err))
 		return err
 	}
 

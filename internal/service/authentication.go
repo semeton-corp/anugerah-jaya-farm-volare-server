@@ -251,7 +251,7 @@ func (s *AuthenticationService) ForgotPassword(request dto.ForgotPasswordRequest
 		return dto.ForgotPasswordResponse{}, err
 	}
 
-	s.emailService.SetReciever(user.Email)
+	s.emailService.SetReceiver(user.Email)
 	s.emailService.SetSubject("Forgot Password")
 	s.emailService.SetSender(viper.GetString("email.from"))
 	s.emailService.SetBodyHTML("forgot_password.html", struct {

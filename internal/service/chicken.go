@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -948,7 +949,7 @@ func (s *ChickenService) GetChickenProcurements(filter dto.GetChickenProcurement
 
 	if filter.Page > 0 {
 		response.TotalData = uint64(count)
-		response.TotalPage = uint64(count) / constant.PaginationDefaultLimit
+		response.TotalPage = uint64(math.Ceil(float64(count) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return response, nil
@@ -1071,8 +1072,10 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 
 	if totalPayment.Equal(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
-	} else if totalPayment.GreaterThan(decimal.Zero) {
+	} else if totalPayment.LessThan(decimal.Zero) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+	} else {
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("nominal greater than total price")
 	}
 
 	err = s.repository.CreateChickenProcurement(&chickenProcurement)
@@ -1135,7 +1138,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 		return dto.ChickenProcurementResponse{}, err
 	}
 
-	chickenProcurement.RecieveQuantity = sql.NullInt64{Int64: int64(request.Quantity), Valid: true}
+	chickenProcurement.ReceiveQuantity = sql.NullInt64{Int64: int64(request.Quantity), Valid: true}
 	chickenProcurement.Note = request.Note
 	chickenProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	chickenProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
@@ -1691,7 +1694,6 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		ChickenAge:             chickenCage.ChickenAge,
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
-		DeadlinePaymentDate:    sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -1738,6 +1740,10 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		} else {
 			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid
 		}
+	}
+
+	if afkirSale.PaymentStatus != enum.PaymentStatusPaid {
+		afkirSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateAfkirChickenSale(&afkirSale)
@@ -1826,9 +1832,10 @@ func (s *ChickenService) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilt
 	response := dto.AfkirChickenSaleListPaginationResponse{
 		AfkirChickenSales: afkirChickenSaleResponse,
 	}
+
 	if filter.Page > 0 {
 		response.TotalData = uint64(totalData)
-		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+		response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return response, nil
@@ -2134,7 +2141,6 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		ChickenAge:             chickenCage.ChickenAge,
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
-		DeadlinePaymentDate:    sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
@@ -2181,6 +2187,10 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		} else {
 			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid
 		}
+	}
+
+	if afkirSale.PaymentStatus != enum.PaymentStatusPaid {
+		afkirSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateAfkirChickenSale(&afkirSale)

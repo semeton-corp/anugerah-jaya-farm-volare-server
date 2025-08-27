@@ -27,7 +27,7 @@ type WarehouseSale struct {
 	PaymentStatus       enum.PaymentStatus     `gorm:"type:int;not null"`
 	IsSend              bool                   `gorm:"type:boolean;not null"`
 	Payments            []WarehouseSalePayment `gorm:"foreignKey:WarehouseSaleId;references:Id;constraint:OnDelete:CASCADE"`
-	DeadlinePaymentDate sql.NullTime           `gorm:"timestamp"`
+	DeadlinePaymentDate sql.NullTime           `gorm:"date"`
 	CreatedAt           time.Time              `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy           uuid.NullUUID          `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time              `gorm:"type:timestamp;autoUpdateTime"`

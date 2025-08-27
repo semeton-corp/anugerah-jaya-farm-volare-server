@@ -127,6 +127,9 @@ func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseS
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response
@@ -164,6 +167,9 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response
@@ -230,6 +236,9 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	if data.ExpiredAt.Valid {
@@ -262,6 +271,9 @@ func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcuremen
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	if data.ExpiredAt.Valid {
@@ -340,7 +352,6 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		Discount:                  data.Discount,
 		PaymentStatus:             data.PaymentStatus.String(),
 		PaymentType:               data.PaymentType.String(),
-		DeadlinePaymentDate:       data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 	}
 
 	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))
@@ -353,6 +364,9 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response
@@ -383,6 +397,9 @@ func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornPr
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response

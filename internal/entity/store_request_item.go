@@ -17,13 +17,13 @@ type StoreRequestItem struct {
 	StoreId              sql.NullInt64          `gorm:"type:bigint"`
 	Store                Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	Quantity             float64                `gorm:"type:bigint;not null"`
-	RecieveQuantity      float64                `gorm:"type:bigint;not null;default:0"`
+	ReceiveQuantity      float64                `gorm:"type:bigint;not null;default:0"`
 	WarehouseFulfillment float64                `gorm:"type:bigint;not null;default:-1"`
 	Status               enum.RequestItemStatus `gorm:"type:int;not null"`
 	WarehouseNote        string                 `gorm:"type:text"`
 	StoreNote            string                 `gorm:"type:text"`
 	IsSorted             bool                   `gorm:"type:boolean;default:false;not null"`
-	RecieveDate          sql.NullTime           `gorm:"type:timestamp"`
+	ReceiveDate          sql.NullTime           `gorm:"type:timestamp"`
 	CreatedAt            time.Time              `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID          `gorm:"type:varchar(255)"`
 	UpdatedAt            time.Time              `gorm:"type:timestamp;autoUpdateTime"`

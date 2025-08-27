@@ -12,20 +12,21 @@ type IncomePieResponse struct {
 }
 
 type IncomeListResponse struct {
-	ParentId     uint64 `json:"parentId"`
-	Id           uint64 `json:"id"`
-	Date         string `json:"date"`
-	PlaceName    string `json:"placeName"`
-	Category     string `json:"category"`
-	ItemName     string `json:"itemName"`
-	ItemUnit     string `json:"itemUnit"`
-	Quantity     string `json:"quantity"`
-	CustomerName string `json:"customerName" `
-	Nominal      string `json:"nominal"`
-	PaymentProof string `json:"paymentProof"`
+	ParentId     uint64  `json:"parentId"`
+	Id           uint64  `json:"id"`
+	Date         string  `json:"date"`
+	PlaceName    string  `json:"placeName"`
+	Category     string  `json:"category"`
+	ItemName     string  `json:"itemName"`
+	ItemUnit     string  `json:"itemUnit"`
+	Quantity     float64 `json:"quantity"`
+	CustomerName string  `json:"customerName" `
+	Nominal      string  `json:"nominal"`
+	PaymentProof string  `json:"paymentProof"`
 }
 
 type IncomeResponse struct {
+	ParentId            uint64 `json:"parentId"`
 	Id                  uint64 `json:"id"`
 	Date                string `json:"date"`
 	Time                string `json:"time"`
@@ -102,27 +103,27 @@ type GetExpenseOverviewFilter struct {
 }
 
 type GetReceivablesOverviewFilter struct {
-	Month                 param.MonthParam `query:"month" validate:"required"`
-	Year                  uint64           `query:"year" validate:"required"`
-	ReceieveablesCategory string           `query:"category" validate:"required,receieveablesCategory"`
+	Month               param.MonthParam `query:"month" validate:"required"`
+	Year                uint64           `query:"year" validate:"required"`
+	ReceivablesCategory string           `query:"category" validate:"required,receivablesCategory"`
 }
 
-type GetSaleCashflowFilter struct {
-	Year  uint64           `query:"year"`
-	Month param.MonthParam `query:"month"`
+type GetCashflowSaleReportFilter struct {
+	Year  uint64           `query:"year" validate:"required"`
+	Month param.MonthParam `query:"month" validate:"required"`
 }
 
 type CreateExpenseRequest struct {
 	ExpenseCategory     string `json:"expenseCategory" validate:"required,expenseCategory"`
 	LocationId          uint64 `json:"locationId" validate:"required,min=1"`
-	LocationType        string `json:"locationType" validate:"required"`
+	LocationType        string `json:"locationType" validate:"required,locationType"`
 	PlaceId             uint64 `json:"placeId" validate:"required"`
 	Name                string `json:"name" validate:"required"`
 	ReceiverName        string `json:"receiverName" validate:"required"`
 	ReceiverPhoneNumber string `json:"receiverPhoneNumber"`
 	Nominal             string `json:"nominal" validate:"required"`
 	PaymentMethod       string `json:"paymentMethod" validate:"required,paymentMethod"`
-	PaymentProof        string `json:"paymentProof" validate:"required"`
+	PaymentProof        string `json:"PaymentProof" validate:"required"`
 	Description         string `json:"description"`
 }
 
@@ -159,7 +160,7 @@ type UserCashAdvanceResponse struct {
 	User                    UserListResponse                 `json:"user"`
 	Nominal                 string                           `json:"nominal"`
 	DeadlinePaymentDate     string                           `json:"deadlinePaymentDate"`
-	PaymentStatus           string                           `json:"deadlinePaymentStatus"`
+	PaymentStatus           string                           `json:"paymentStatus"`
 	UserCashAdvancePayments []UserCashAdvancePaymentResponse `json:"payments"`
 	RemainingPayment        string                           `json:"remainingPayment"`
 }
@@ -179,23 +180,23 @@ type GetUserCashAdvanceFilter struct {
 	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 }
 
-type ReceiveablesResponse struct {
-	Id                    uint64                         `json:"id"`
-	Date                  string                         `json:"date"`
-	Time                  string                         `json:"time"`
-	Category              string                         `json:"category"`
-	PlaceName             string                         `json:"placeName"`
-	Name                  string                         `json:"name"`
-	PhoneNumber           string                         `json:"phoneNumber"`
-	RemainingPayment      string                         `json:"remainingPayment"`
-	PaymentType           string                         `json:"paymentType"`
-	PaymentStatus         string                         `json:"paymentStatus"`
-	DeadlinePaymentDate   string                         `json:"deadlinePaymentDate"`
-	InputBy               string                         `json:"inputBy"`
-	ReceieveablesPayments []ReceieveablesPaymentResponse `json:"payments"`
+type ReceivablesResponse struct {
+	Id                    uint64                        `json:"id"`
+	Date                  string                        `json:"date"`
+	Time                  string                        `json:"time"`
+	Category              string                        `json:"category"`
+	PlaceName             string                        `json:"placeName"`
+	Name                  string                        `json:"name"`
+	PhoneNumber           string                        `json:"phoneNumber"`
+	RemainingPayment      string                        `json:"remainingPayment"`
+	PaymentType           string                        `json:"paymentType"`
+	PaymentStatus         string                        `json:"paymentStatus"`
+	DeadlinePaymentDate   string                        `json:"deadlinePaymentDate"`
+	InputBy               string                        `json:"inputBy"`
+	ReceieveablesPayments []ReceievablesPaymentResponse `json:"payments"`
 }
 
-type ReceieveablesPaymentResponse struct {
+type ReceievablesPaymentResponse struct {
 	Id            uint64 `json:"id"`
 	Date          string `json:"date"`
 	Nominal       string `json:"nominal"`
@@ -204,7 +205,7 @@ type ReceieveablesPaymentResponse struct {
 	PaymentProof  string `json:"paymentProof"`
 }
 
-type ReceiveablesListResponse struct {
+type ReceivablesListResponse struct {
 	Id                  uint64 `json:"id"`
 	DeadlinePaymentDate string `json:"deadlinePaymentDate"`
 	Category            string `json:"category"`
@@ -216,14 +217,14 @@ type ReceiveablesListResponse struct {
 	PaymentStatus       string `json:"paymentStatus"`
 }
 
-type ReceiveablesPieResponse struct {
+type ReceivablesPieResponse struct {
 	UnpaidPercentage float64 `json:"unpaidPercentage"`
 	PaidPercentage   float64 `json:"paidPercentage"`
 }
 
-type ReceievablesOverviewResponse struct {
-	ReceivablesPie ReceiveablesPieResponse    `json:"receivablesPie"`
-	Receivables    []ReceiveablesListResponse `json:"receivables"`
+type ReceivablesOverviewResponse struct {
+	ReceivablesPie ReceivablesPieResponse    `json:"receivablesPie"`
+	Receivables    []ReceivablesListResponse `json:"receivables"`
 }
 
 type UserSalaryPaymentResponse struct {
@@ -244,8 +245,8 @@ type PayUserSalaryPaymentRequest struct {
 	BonusSalary             string                                `json:"bonusSalary" validate:"required"`
 	CompentationSalary      string                                `json:"compentationSalary" validate:"required"`
 	AdditionalWorkSalary    string                                `json:"additionalWorkSalary" validate:"required"`
-	PaymentProof            string                                `json:"paymentProof" validate:"required"`
-	PaymentMethod           string                                `json:"paymentMethod" validate:"required,paymentMethodd"`
+	PaymentProof            string                                `json:"paymentProof" validate:"required,url"`
+	PaymentMethod           string                                `json:"paymentMethod" validate:"required,paymentMethod"`
 	UserCashAdvancePayments []CreateUserCashAdvancePaymentRequest `json:"userCashAdvancePayments"`
 }
 
@@ -295,9 +296,8 @@ type GetDebtOverviewFilter struct {
 }
 
 type DebtPieResponse struct {
-	UnpaidPercentage  float64 `json:"unpaidPercentage"`
-	PaidPercentage    float64 `json:"paidPercentage"`
-	NotPaidPercentage float64 `json:"notPaidPercentage"`
+	UnpaidPercentage float64 `json:"unpaidPercentage"`
+	PaidPercentage   float64 `json:"paidPercentage"`
 }
 
 type DebtOverviewResponse struct {
@@ -307,21 +307,21 @@ type DebtOverviewResponse struct {
 
 type UserSalarySummaryResponse struct {
 	TotalUser                uint64 `json:"totalUser"`
-	TotalBaseSalary          string `json:"totalBasedSalary"`
+	TotalBaseSalary          string `json:"totalBaseSalary"`
 	TotalAdditonalWorkSalary string `json:"totalAdditionalWorkSalary"`
 	TotalBonusSalary         string `json:"totalBonusSalary"`
 }
 
 type GetUserSalarySummaryFilter struct {
 	LocationId uint64           `query:"locationId"`
-	Month      param.MonthParam `query:"month" validate:"month"`
-	Year       uint64           `query:"year" validate:"year"`
+	Month      param.MonthParam `query:"month" validate:"required"`
+	Year       uint64           `query:"year" validate:"required"`
 }
 
 type GetUserSalaryListFilter struct {
 	LocationId uint64           `query:"locationId"`
-	Month      param.MonthParam `query:"month" validate:"month"`
-	Year       uint64           `query:"year" validate:"year"`
+	Month      param.MonthParam `query:"month" validate:"required"`
+	Year       uint64           `query:"year" validate:"required"`
 	Keyword    string           `query:"keyword"`
 	RoleId     uint64           `query:"roleId"`
 	Page       uint64           `query:"page"`
@@ -335,8 +335,8 @@ type UserSalaryListResponse struct {
 }
 
 type UserSalaryListPaginationResponse struct {
-	TotalData    uint64                   `json:"totalData"`
-	TotalPage    uint64                   `json:"totalPage"`
+	TotalData    uint64                   `json:"totalData,omitempty"`
+	TotalPage    uint64                   `json:"totalPage,omitempty"`
 	UserSalaries []UserSalaryListResponse `json:"userSalaries"`
 }
 
@@ -357,4 +357,74 @@ type GetUserSalaryPaymentFilter struct {
 	Keyword    string          `query:"keyword"`
 	RoleId     uint64          `query:"roleId"`
 	Page       uint64          `query:"page"`
+}
+
+type CashflowSaleSummaryResponse struct {
+	Income      string `json:"income"`
+	NoteIncome  string `json:"noteIncome"`
+	Profit      string `json:"profit"`
+	NoteProfit  string `json:"noteProfit"`
+	Expense     string `json:"expense"`
+	NoteExpense string `json:"noteExpense"`
+}
+
+type CashflowSaleGraphResponse struct {
+	Key     string `json:"key"`
+	Income  string `json:"income"`
+	Profit  string `json:"profit"`
+	Expense string `json:"expense"`
+}
+
+type LocationSaleSummaryResponse struct {
+	PlaceId       uint64 `json:"placeId"`
+	PlaceName     string `json:"placeName"`
+	LocationType  string `json:"locationType"`
+	Income        string `json:"income"`
+	Receieveables string `json:"receieveables"`
+}
+
+type LocationPieChartResponse struct {
+	Place      string  `json:"place"`
+	Percentage float64 `json:"percentage"` // Dari pendapatan
+}
+
+type CashflowSaleOverviewResponse struct {
+	CashflowSaleSummary CashflowSaleSummaryResponse `json:"cashflowSaleSummary"`
+	EggSaleSummary      EggSaleSummaryResponse      `json:"eggSaleSummary"`
+	CashflowSaleGraphs  []CashflowSaleGraphResponse `json:"cashflowSaleGraphs"`
+	EggSaleGraphs       []EggSaleGraphResponse      `json:"eggSaleGraphs"`
+	LocationSaleSummary LocationSaleSummaryResponse `json:"locationSaleSummary"`
+	LocationPieChart    []LocationPieChartResponse  `json:"LocationPieChart"`
+}
+
+type GetCashflowSaleOverviewFilter struct {
+	LocationId uint64           `query:"locationId"`
+	Month      param.MonthParam `query:"month" validate:"required"`
+	Year       uint64           `query:"year" validate:"required"`
+	ItemId     uint64           `query:"itemId" validate:"required"`
+}
+
+type CashflowSummaryResponse struct {
+	Income      string `json:"income"`
+	NoteIncome  string `json:"noteIncome"`
+	Profit      string `json:"profit"`
+	NoteProfit  string `json:"noteProfit"`
+	Expense     string `json:"expense"`
+	NoteExpense string `json:"noteExpense"`
+	Debt        string `json:"debt"`
+	NoteDebt    string `json:"noteDebt"`
+	Cash        string `json:"cash"`
+	NoteCash    string `json:"noteCash"`
+}
+
+type CashflowGraphResponse struct {
+}
+
+type EggSaleGraphResponse struct {
+}
+
+type GetCashflowOverviewFilter struct {
+}
+
+type GetCashflowOverviewResponse struct {
 }

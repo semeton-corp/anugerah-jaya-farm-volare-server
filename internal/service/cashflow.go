@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,8 +43,8 @@ type ICashflowService interface {
 	CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
 	CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUserCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
 
-	GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error)
-	GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceiveablesResponse, error)
+	GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceivablesOverviewResponse, error)
+	GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceivablesResponse, error)
 
 	PayUserSalaryPayment(id uint64, request dto.PayUserSalaryPaymentRequest, userId uuid.UUID) (dto.UserSalaryPaymentResponse, error)
 
@@ -54,7 +55,10 @@ type ICashflowService interface {
 	GetUserSalaries(filter dto.GetUserSalaryListFilter) (dto.UserSalaryListPaginationResponse, error)
 	GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailResponse, error)
 
-	ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error)
+	ExportSalesCashflowToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error)
+
+	GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error)
+	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.GetCashflowOverviewResponse, error)
 }
 
 func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService, workService IWorkService) ICashflowService {
@@ -131,13 +135,15 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				Category:     constant.IncomeCategoryStoreEggSale,
 				ItemName:     payment.StoreSale.Item.Name,
 				ItemUnit:     payment.StoreSale.SaleUnit.String(),
-				Quantity:     fmt.Sprintf("%v", payment.StoreSale.Quantity),
+				Quantity:     payment.StoreSale.Quantity,
 				CustomerName: payment.StoreSale.Customer.Name,
 				Nominal:      payment.Nominal.String(),
 				PaymentProof: payment.PaymentProof,
 			})
 		}
-	} else if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale {
+	}
+
+	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale {
 		for _, payment := range warehouseSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.WarehouseSaleId,
@@ -147,13 +153,15 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				Category:     constant.IncomeCategoryWarehouseEggSale,
 				ItemName:     payment.WarehouseSale.Item.Name,
 				ItemUnit:     payment.WarehouseSale.SaleUnit.String(),
-				Quantity:     fmt.Sprintf("%v", payment.WarehouseSale.Quantity),
+				Quantity:     payment.WarehouseSale.Quantity,
 				CustomerName: payment.WarehouseSale.Customer.Name,
 				Nominal:      payment.Nominal.String(),
 				PaymentProof: payment.PaymentProof,
 			})
 		}
-	} else if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale {
+	}
+
+	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale {
 		for _, payment := range afkirChickenSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
@@ -161,9 +169,9 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				Date:         payment.PaymentDate.Format("02 Jan 2006"),
 				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Location.Name + " - " + payment.AfkirChickenSale.ChickenCage.Cage.Name,
 				Category:     constant.IncomeCategoryAfkirChickenSale,
-				ItemName:     "Afkir Chicken",
-				ItemUnit:     "Ekor",
-				Quantity:     fmt.Sprintf("%v", payment.AfkirChickenSale.TotalSellChicken),
+				ItemName:     constant.AfkirChicken,
+				ItemUnit:     constant.AfkirChickenUnitEkor,
+				Quantity:     float64(payment.AfkirChickenSale.TotalSellChicken),
 				CustomerName: payment.AfkirChickenSale.AfkirChickenCustomer.Name,
 				Nominal:      payment.Nominal.String(),
 				PaymentProof: payment.PaymentProof,
@@ -171,11 +179,20 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
+	warehouseEggSalePercentage := 0.0
+	storeEggSalePercentage := 0.0
+	afkirChickenSalePercentage := 0.0
+	if !totalPayment.IsZero() {
+		warehouseEggSalePercentage = totalWarehouseSalePayment.Div(totalPayment).InexactFloat64() * 100.0
+		storeEggSalePercentage = totalStoreSalePayment.Div(totalPayment).InexactFloat64() * 100.0
+		afkirChickenSalePercentage = totalAfkirChickenSalePayment.Div(totalPayment).InexactFloat64() * 100.0
+	}
+
 	return dto.IncomeOverviewResponse{
 		IncomePie: dto.IncomePieResponse{
-			WarehouseEggSalePercentage: totalWarehouseSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
-			StoreEggSalePercentage:     totalStoreSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
-			AfkirChickenSalePercentage: totalAfkirChickenSalePayment.Div(totalPayment).InexactFloat64() * 100.0,
+			WarehouseEggSalePercentage: warehouseEggSalePercentage,
+			StoreEggSalePercentage:     storeEggSalePercentage,
+			AfkirChickenSalePercentage: afkirChickenSalePercentage,
 		},
 		Incomes: incomeResponses,
 	}, nil
@@ -191,6 +208,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		}
 
 		return dto.IncomeResponse{
+			ParentId:            payment.WarehouseSaleId,
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
@@ -217,6 +235,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		}
 
 		return dto.IncomeResponse{
+			ParentId:            payment.StoreSaleId,
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
@@ -243,6 +262,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		}
 
 		return dto.IncomeResponse{
+			ParentId:            payment.AfkirChickenSaleId,
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
@@ -262,7 +282,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		}, nil
 
 	default:
-		return dto.IncomeResponse{}, fmt.Errorf("invalid income category")
+		return dto.IncomeResponse{}, errx.BadRequest("invalid income category")
 	}
 }
 
@@ -541,14 +561,30 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
+	staffPercentage := 0.0
+	chickenProcurementPercentage := 0.0
+	warehouseItemProcurementPercentage := 0.0
+	warehouseItemCornProcurementPercentage := 0.0
+	operationalPercentage := 0.0
+	otherPercentage := 0.0
+
+	if !totalPayment.IsZero() {
+		staffPercentage = totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0
+		chickenProcurementPercentage = totalChickenProcurement.Div(totalPayment).InexactFloat64() * 100.0
+		warehouseItemProcurementPercentage = totalWarehouseItemProcurement.Div(totalPayment).InexactFloat64() * 100.0
+		warehouseItemCornProcurementPercentage = totalWarehouseItemCornProcurement.Div(totalPayment).InexactFloat64() * 100.0
+		operationalPercentage = totalOperational.Div(totalPayment).InexactFloat64() * 100.0
+		otherPercentage = totalOther.Div(totalPayment).InexactFloat64() * 100.0
+	}
+
 	return dto.ExpenseOverviewResponse{
 		ExpensePie: dto.ExpensePieResponse{
-			StaffPercentage:                        totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0,
-			ChikckenProcuremtnPercentage:           totalChickenProcurement.Div(totalPayment).InexactFloat64() * 100.0,
-			WarehouseItemProcurementPercentage:     totalWarehouseItemProcurement.Div(totalPayment).InexactFloat64() * 100.0,
-			WarehouseItemCornProcurementPercentage: totalWarehouseItemCornProcurement.Div(totalPayment).InexactFloat64() * 100.0,
-			OperationalPercentage:                  totalOperational.Div(totalPayment).InexactFloat64() * 100.0,
-			OtherPercentage:                        totalOther.Div(totalPayment).InexactFloat64() * 100.0,
+			StaffPercentage:                        staffPercentage,
+			ChikckenProcuremtnPercentage:           chickenProcurementPercentage,
+			WarehouseItemProcurementPercentage:     warehouseItemProcurementPercentage,
+			WarehouseItemCornProcurementPercentage: warehouseItemCornProcurementPercentage,
+			OperationalPercentage:                  operationalPercentage,
+			OtherPercentage:                        otherPercentage,
 		},
 		Expenses: expenseResponses,
 	}, nil
@@ -565,12 +601,11 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			return dto.ExpenseResponse{}, err
 		}
 
-		return dto.ExpenseResponse{
+		response := dto.ExpenseResponse{
 			Id:                  expense.Id,
 			Date:                expense.CreatedAt.Format("2006-01-02"),
 			Time:                expense.CreatedAt.Format("15:04:05"),
 			Category:            constant.ExpenseCategoryOperational,
-			PlaceName:           expense.Location.Name,
 			Name:                expense.Name,
 			ReceiverName:        expense.ReceiverName,
 			ReceiverPhoneNumber: expense.ReceiverPhoneNumber,
@@ -578,8 +613,18 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			PaymentMethod:       expense.PaymentMethod.String(),
 			PaymentProof:        expense.PaymentProof,
 			InputBy:             expense.CreatedByUser.Name,
-		}, nil
+		}
 
+		switch expense.LocationType {
+		case enum.LocationTypeCage:
+			response.PlaceName = expense.Cage.Name + " - " + expense.Location.Name
+		case enum.LocationTypeStore:
+			response.PlaceName = expense.Store.Name + " - " + expense.Location.Name
+		case enum.LocationTypeWarehouse:
+			response.PlaceName = expense.Warehouse.Name + " - " + expense.Location.Name
+		}
+
+		return response, nil
 	case constant.ExpenseCategoryChickenProcurement:
 		expense, err := s.repository.GetChickenProcurementPaymentById(id)
 		if err != nil {
@@ -591,9 +636,9 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Id:                  expense.Id,
 			Date:                expense.PaymentDate.Format("2006-01-02"),
 			Time:                expense.PaymentDate.Format("15:04:05"),
-			Category:            "Chicken Procurement",
+			Category:            constant.ExpenseCategoryChickenProcurement,
 			PlaceName:           expense.ChickenProcurement.Cage.Location.Name,
-			Name:                "Chicken Procurement",
+			Name:                constant.ExpenseCategoryChickenProcurement,
 			ReceiverName:        expense.ChickenProcurement.Supplier.Name,
 			ReceiverPhoneNumber: expense.ChickenProcurement.Supplier.PhoneNumber,
 			Nominal:             expense.Nominal.String(),
@@ -613,7 +658,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Id:                  expense.Id,
 			Date:                expense.PaymentDate.Format("2006-01-02"),
 			Time:                expense.PaymentDate.Format("15:04:05"),
-			Category:            "Warehouse Procurement",
+			Category:            constant.ExpenseCategoryWarehouseItemProcurement,
 			PlaceName:           expense.WarehouseItemProcurement.Warehouse.Location.Name,
 			Name:                expense.WarehouseItemProcurement.Item.Name,
 			ReceiverName:        expense.WarehouseItemProcurement.Supplier.Name,
@@ -635,7 +680,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Id:                  expense.Id,
 			Date:                expense.PaymentDate.Format("2006-01-02"),
 			Time:                expense.PaymentDate.Format("15:04:05"),
-			Category:            "Warehouse Procurement",
+			Category:            constant.ExpenseCategoryWarehouseItemCornProcurement,
 			PlaceName:           expense.WarehouseItemCornProcurement.Warehouse.Location.Name,
 			Name:                constant.Corn,
 			ReceiverName:        expense.WarehouseItemCornProcurement.Supplier.Name,
@@ -657,8 +702,8 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Id:                  expense.Id,
 			Date:                expense.CreatedAt.Format("2006-01-02"),
 			Time:                expense.CreatedAt.Format("15:04:05"),
-			Category:            "Staff",
-			PlaceName:           "Salary Payment",
+			Category:            constant.ExpenseCategoryStaff,
+			PlaceName:           "-",
 			Name:                expense.User.Name,
 			ReceiverName:        expense.User.Name,
 			ReceiverPhoneNumber: expense.User.PhoneNumber,
@@ -675,11 +720,11 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			return dto.ExpenseResponse{}, err
 		}
 
-		return dto.ExpenseResponse{
+		response := dto.ExpenseResponse{
 			Id:                  expense.Id,
 			Date:                expense.CreatedAt.Format("2006-01-02"),
 			Time:                expense.CreatedAt.Format("15:04:05"),
-			Category:            "Other",
+			Category:            constant.ExpenseCategoryOther,
 			PlaceName:           expense.Location.Name,
 			Name:                expense.Name,
 			ReceiverName:        expense.ReceiverName,
@@ -688,7 +733,18 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			PaymentMethod:       expense.PaymentMethod.String(),
 			PaymentProof:        expense.PaymentProof,
 			InputBy:             expense.CreatedByUser.Name,
-		}, nil
+		}
+
+		switch expense.LocationType {
+		case enum.LocationTypeCage:
+			response.PlaceName = expense.Cage.Name + " - " + expense.Location.Name
+		case enum.LocationTypeStore:
+			response.PlaceName = expense.Store.Name + " - " + expense.Location.Name
+		case enum.LocationTypeWarehouse:
+			response.PlaceName = expense.Warehouse.Name + " - " + expense.Location.Name
+		}
+
+		return response, nil
 
 	default:
 		return dto.ExpenseResponse{}, fmt.Errorf("invalid expense category")
@@ -777,6 +833,7 @@ func (s *CashflowService) CreateUserCashAdvance(request dto.CreateUserCashAdvanc
 		User:                    mapper.UserToListResponse(&data.User),
 		Nominal:                 data.Nominal.String(),
 		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		PaymentStatus:           data.PaymentStatus.String(),
 		UserCashAdvancePayments: userCashAdvancePayments,
 		RemainingPayment:        remainingPayment.String(),
 	}
@@ -867,6 +924,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 		User:                    mapper.UserToListResponse(&data.User),
 		Nominal:                 data.Nominal.String(),
 		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		PaymentStatus:           data.PaymentStatus.String(),
 		UserCashAdvancePayments: userCashAdvancePayments,
 		RemainingPayment:        remainingPayment.String(),
 	}
@@ -874,19 +932,20 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 	return response, nil
 }
 
-func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceievablesOverviewResponse, error) {
+func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceivablesOverviewResponse, error) {
 	s.repository.UseTx(false)
 
-	receieveables := make([]dto.ReceiveablesListResponse, 0)
+	receieveables := make([]dto.ReceivablesListResponse, 0)
 
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
 	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
 		DeadlinePaymentEndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get store sale cashflows", zap.Error(err))
-		return dto.ReceievablesOverviewResponse{}, err
+		return dto.ReceivablesOverviewResponse{}, err
 	}
 
 	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
@@ -895,7 +954,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
-		return dto.ReceievablesOverviewResponse{}, err
+		return dto.ReceivablesOverviewResponse{}, err
 	}
 
 	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
@@ -904,7 +963,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 	})
 	if err != nil {
 		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
-		return dto.ReceievablesOverviewResponse{}, err
+		return dto.ReceivablesOverviewResponse{}, err
 	}
 
 	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
@@ -913,7 +972,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advances", zap.Error(err))
-		return dto.ReceievablesOverviewResponse{}, err
+		return dto.ReceivablesOverviewResponse{}, err
 	}
 
 	totalPayment := decimal.Zero
@@ -960,9 +1019,9 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.Nominal.Sub(totalCurrentReceieveablesPayment))
 	}
 
-	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
 		for _, e := range warehouseSales {
-			receieveable := dto.ReceiveablesListResponse{
+			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
 				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
@@ -984,12 +1043,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryStoreEggSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryStoreEggSale {
 		for _, e := range storeSales {
-			receieveable := dto.ReceiveablesListResponse{
+			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
 				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
-				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				Category:            constant.ReceieveablesCategoryStoreEggSale,
 				PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
 				Name:                e.Customer.Name,
 				PhoneNumber:         e.Customer.PhoneNumber,
@@ -1008,12 +1067,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
 		for _, e := range afkirChickenSales {
-			receieveable := dto.ReceiveablesListResponse{
+			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
 				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
-				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				Category:            constant.ReceieveablesCategoryAfkirChickenSale,
 				PlaceName:           e.ChickenCage.Cage.Location.Name + " - " + e.ChickenCage.Cage.Name,
 				Name:                e.AfkirChickenCustomer.Name,
 				PhoneNumber:         e.AfkirChickenCustomer.PhoneNumber,
@@ -1032,12 +1091,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceieveablesCategory == constant.ReceieveablesCategoryAll || filter.ReceieveablesCategory == constant.ReceieveablesCategoryCashAdvance {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryCashAdvance {
 		for _, e := range userCashAdvances {
-			receieveable := dto.ReceiveablesListResponse{
+			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
 				DeadlinePaymentDate: e.DeadlinePaymentDate.Format("02 Jan 2006"),
-				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+				Category:            constant.ReceieveablesCategoryCashAdvance,
 				PlaceName:           e.User.Location.Name,
 				Name:                e.User.Name,
 				PhoneNumber:         e.User.PhoneNumber,
@@ -1056,16 +1115,23 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	return dto.ReceievablesOverviewResponse{
-		ReceivablesPie: dto.ReceiveablesPieResponse{
-			PaidPercentage:   totalReceivablesPayment.Sub(totalPayment).InexactFloat64() * 100.0,
-			UnpaidPercentage: totalRemainingReceieveablesPayment.Sub(totalPayment).InexactFloat64() * 100.0,
+	paidPercentage := 0.0
+	unpaidPercentage := 0.0
+	if !totalPayment.IsZero() {
+		paidPercentage = totalReceivablesPayment.Div(totalPayment).InexactFloat64() * 100.0
+		unpaidPercentage = totalRemainingReceieveablesPayment.Div(totalPayment).InexactFloat64() * 100.0
+	}
+
+	return dto.ReceivablesOverviewResponse{
+		ReceivablesPie: dto.ReceivablesPieResponse{
+			PaidPercentage:   paidPercentage,
+			UnpaidPercentage: unpaidPercentage,
 		},
 		Receivables: receieveables,
 	}, nil
 }
 
-func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceiveablesResponse, error) {
+func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceivablesResponse, error) {
 	s.repository.UseTx(false)
 
 	switch receieveablesCategory {
@@ -1073,13 +1139,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		data, err := s.repository.GetWarehouseSaleCashflow(id)
 		if err != nil {
 			s.log.Error("failed get warehouse cashflow", zap.Error(err))
-			return dto.ReceiveablesResponse{}, err
+			return dto.ReceivablesResponse{}, err
 		}
 
-		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		paymentResponses := make([]dto.ReceievablesPaymentResponse, 0)
 		totalRemainingPayment := data.TotalPrice
 		for _, e := range data.Payments {
-			paymentResponse := dto.ReceieveablesPaymentResponse{
+			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
 				Date:          e.PaymentDate.Format("02 Jan 2006"),
 				Nominal:       e.Nominal.String(),
@@ -1091,7 +1157,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceiveablesResponse{
+		return dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1110,13 +1176,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		data, err := s.repository.GetStoreSaleCashflow(id)
 		if err != nil {
 			s.log.Error("failed get warehouse cashflow", zap.Error(err))
-			return dto.ReceiveablesResponse{}, err
+			return dto.ReceivablesResponse{}, err
 		}
 
-		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		paymentResponses := make([]dto.ReceievablesPaymentResponse, 0)
 		totalRemainingPayment := data.TotalPrice
 		for _, e := range data.Payments {
-			paymentResponse := dto.ReceieveablesPaymentResponse{
+			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
 				Date:          e.PaymentDate.Format("02 Jan 2006"),
 				Nominal:       e.Nominal.String(),
@@ -1128,7 +1194,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceiveablesResponse{
+		return dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1147,13 +1213,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		data, err := s.repository.GetAfkirChickenSaleCashflow(id)
 		if err != nil {
 			s.log.Error("failed get warehouse cashflow", zap.Error(err))
-			return dto.ReceiveablesResponse{}, err
+			return dto.ReceivablesResponse{}, err
 		}
 
-		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		paymentResponses := make([]dto.ReceievablesPaymentResponse, 0)
 		totalRemainingPayment := data.TotalPrice
 		for _, e := range data.Payments {
-			paymentResponse := dto.ReceieveablesPaymentResponse{
+			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
 				Date:          e.PaymentDate.Format("02 Jan 2006"),
 				Nominal:       e.Nominal.String(),
@@ -1165,7 +1231,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceiveablesResponse{
+		return dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1185,13 +1251,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		data, err := s.repository.GetUserCashAdvance(id)
 		if err != nil {
 			s.log.Error("failed get warehouse cashflow", zap.Error(err))
-			return dto.ReceiveablesResponse{}, err
+			return dto.ReceivablesResponse{}, err
 		}
 
-		paymentResponses := make([]dto.ReceieveablesPaymentResponse, 0)
+		paymentResponses := make([]dto.ReceievablesPaymentResponse, 0)
 		totalRemainingPayment := data.Nominal
 		for _, e := range data.Payments {
-			paymentResponse := dto.ReceieveablesPaymentResponse{
+			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
 				Date:          e.PaymentDate.Format("02 Jan 2006"),
 				Nominal:       e.Nominal.String(),
@@ -1203,7 +1269,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceiveablesResponse{
+		return dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1219,7 +1285,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			ReceieveablesPayments: paymentResponses,
 		}, nil
 	default:
-		return dto.ReceiveablesResponse{}, errx.BadRequest("invalid receieveabels category")
+		return dto.ReceivablesResponse{}, errx.BadRequest("invalid receieveabels category")
 	}
 }
 
@@ -1382,7 +1448,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 	}
 
 	totalPayment := decimal.Zero
-	totalDebtPayment := decimal.Zero
+	totalPaidDebtPayment := decimal.Zero
 	totalRemainingDebtPayment := decimal.Zero
 
 	for _, e := range warehouseItemProcurements {
@@ -1391,7 +1457,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalDebtPayment = totalDebtPayment.Add(totalCurrentDebtPayment)
+		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
 		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
@@ -1401,7 +1467,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalDebtPayment = totalDebtPayment.Add(totalCurrentDebtPayment)
+		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
 		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
@@ -1411,7 +1477,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalDebtPayment = totalDebtPayment.Add(totalCurrentDebtPayment)
+		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
 		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
@@ -1491,10 +1557,17 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		}
 	}
 
+	paidPercentage := 0.0
+	unpaidPercentage := 0.0
+	if !totalPayment.IsZero() {
+		paidPercentage = totalPaidDebtPayment.Div(totalPayment).InexactFloat64() * 100.0
+		unpaidPercentage = totalRemainingDebtPayment.Div(totalPayment).InexactFloat64() * 100.0
+	}
+
 	return dto.DebtOverviewResponse{
 		DebtPie: dto.DebtPieResponse{
-			PaidPercentage:   totalDebtPayment.Sub(totalPayment).InexactFloat64() * 100.0,
-			UnpaidPercentage: totalRemainingDebtPayment.Sub(totalPayment).InexactFloat64() * 100.0,
+			PaidPercentage:   paidPercentage,
+			UnpaidPercentage: unpaidPercentage,
 		},
 		Debts: debtResponses,
 	}, nil
@@ -1520,7 +1593,8 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1528,8 +1602,9 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			Id:                  data.Id,
 			Date:                data.CreatedAt.Format("02 Jan 2006"),
 			Time:                data.CreatedAt.Format("15:04"),
-			Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:            constant.DebtCategoryChickenProcurement,
 			PlaceName:           data.Cage.Location.Name + " - " + data.Cage.Name,
+			TransactionName:     constant.DebtTransactionNameChickenProcurement,
 			Name:                data.Supplier.Name,
 			PhoneNumber:         data.Supplier.PhoneNumber,
 			RemainingPayment:    totalRemainingPayment.String(),
@@ -1557,7 +1632,8 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1565,10 +1641,11 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			Id:                  data.Id,
 			Date:                data.CreatedAt.Format("02 Jan 2006"),
 			Time:                data.CreatedAt.Format("15:04"),
-			Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:            constant.DebtCategoryAll,
 			PlaceName:           data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
 			Name:                data.Supplier.Name,
 			PhoneNumber:         data.Supplier.PhoneNumber,
+			TransactionName:     constant.DebtTransactionNameWarehouseItemProcurement,
 			RemainingPayment:    totalRemainingPayment.String(),
 			PaymentType:         data.PaymentType.String(),
 			PaymentStatus:       data.PaymentStatus.String(),
@@ -1595,7 +1672,8 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1603,24 +1681,25 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			Id:                  data.Id,
 			Date:                data.CreatedAt.Format("02 Jan 2006"),
 			Time:                data.CreatedAt.Format("15:04"),
-			Category:            constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:            constant.DebtCategoryWarehouseItemCornProcurement,
 			PlaceName:           data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
 			Name:                data.Supplier.Name,
 			PhoneNumber:         data.Supplier.PhoneNumber,
 			RemainingPayment:    totalRemainingPayment.String(),
 			PaymentType:         data.PaymentType.String(),
 			PaymentStatus:       data.PaymentStatus.String(),
+			TransactionName:     constant.DebtTransactionNameWarehouseItemCornProcurement,
 			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 			InputBy:             data.CreatedByUser.Name,
 			DebtPayments:        paymentResponses,
 		}, nil
 
 	default:
-		return dto.DebtResponse{}, errx.BadRequest("invalid debt transaction name")
+		return dto.DebtResponse{}, errx.BadRequest("invalid debt category name")
 	}
 }
 
-func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowFilter) (*excelize.File, error) {
+func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 
 	f := excelize.NewFile()
@@ -1664,6 +1743,11 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowF
 		}
 	}
 
+	for i := 0; i < len(headers); i++ {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(storeSheet, col, col, 20) // 20 is a good default, you can adjust
+	}
+
 	warehouseResp, err := s.warehouseService.GetWarehouseSales(dto.GetWarehouseSaleFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
@@ -1703,6 +1787,11 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetSaleCashflowF
 		}
 	}
 
+	for i := 0; i < len(headers); i++ {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(warehouseSheet, col, col, 20)
+	}
+
 	f.DeleteSheet("Sheet1")
 
 	return f, nil
@@ -1728,7 +1817,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 	totalBonusSalary := decimal.Zero
 
 	for _, e := range userSalaryPayments {
-		totalBaseSalary = totalBaseSalary.Add(totalBaseSalary)
+		totalBaseSalary = totalBaseSalary.Add(e.User.Salary)
 
 		if e.IsPaid {
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(e.AdditionalWorkSalary)
@@ -1758,17 +1847,17 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-			kpiScore, err := s.userService.CalculateKPIScoreUserInMonth(e.UserId, filter.Year, filter.Month.Value())
+			presenceScore, workScore, err := s.userService.CalculateKPIScoreUserInMonth(e.UserId, filter.Year, filter.Month.Value())
 			if err != nil {
 				return dto.UserSalarySummaryResponse{}, err
 			}
 
 			bonusSalary := decimal.Zero
-			if kpiScore*0.6 == 60 {
+			if presenceScore == 60 {
 				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
 			}
 
-			diff := kpiScore - 90.0
+			diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
 			if diff > 0 {
 				percentage := float64(diff) / 2
 				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(e.BaseSalary))
@@ -1836,7 +1925,7 @@ func (s *CashflowService) GetUserSalaries(filter dto.GetUserSalaryListFilter) (d
 
 	if filter.Page > 0 {
 		response.TotalData = uint64(totalData)
-		response.TotalPage = uint64(totalData) / constant.PaginationDefaultLimit
+		response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
 	return response, nil
@@ -1891,17 +1980,17 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-		kpiScore, err := s.userService.CalculateKPIScoreUserInMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
+		presenceScore, workScore, err := s.userService.CalculateKPIScoreUserInMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
 		if err != nil {
 			return dto.UserSalaryDetailResponse{}, err
 		}
 
 		bonusSalary := decimal.Zero
-		if kpiScore*0.6 == 60 {
+		if presenceScore == 60 {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
 		}
 
-		diff := kpiScore - 90.0
+		diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
 		if diff > 0 {
 			percentage := float64(diff) / 2
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(userSalaryPayment.BaseSalary))
@@ -1922,4 +2011,12 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		BonusSalary:              totalBonusSalary.String(),
 		AdditionalWorkSalary:     totalAdditonalWorkSalary.String(),
 	}, nil
+}
+
+func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error) {
+	return dto.CashflowSaleOverviewResponse{}, nil
+}
+
+func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.GetCashflowOverviewResponse, error) {
+	return dto.GetCashflowOverviewResponse{}, nil
 }

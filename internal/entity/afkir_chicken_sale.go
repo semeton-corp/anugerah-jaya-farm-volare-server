@@ -22,7 +22,7 @@ type AfkirChickenSale struct {
 	Payments               []AfkirChickenSalePayment `gorm:"foreignKey:AfkirChickenSaleId;references:Id"`
 	PaymentType            enum.PaymentType          `gorm:"type:int;not null"`
 	PaymentStatus          enum.PaymentStatus        `gorm:"type:int;not null"`
-	DeadlinePaymentDate    sql.NullTime              `gorm:"timestamp"`
+	DeadlinePaymentDate    sql.NullTime              `gorm:"date"`
 	CreatedAt              time.Time                 `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy              uuid.NullUUID             `gorm:"type:varchar(255)"`
 	UpdatedAt              time.Time                 `gorm:"type:timestamp;autoUpdateTime"`

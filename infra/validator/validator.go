@@ -23,7 +23,10 @@ func New() *validator.Validate {
 	validate.RegisterValidation("supplierType", ValidationSupplierType)
 	validate.RegisterValidation("incomeCategory", ValidationIncomeCategory)
 	validate.RegisterValidation("expenseCategory", ValidationExpenseCategory)
+	validate.RegisterValidation("receivablesCategory", ValidationReceivablesCategory)
+	validate.RegisterValidation("debtCategory", ValidationDebtCategory)
 	validate.RegisterValidation("approvalStatus", ValidationApprovalStatus)
+	validate.RegisterValidation("locationType", ValidationLocationType)
 
 	return validate
 }
@@ -181,7 +184,7 @@ func ValidationSupplierType(fl validator.FieldLevel) bool {
 func ValidationIncomeCategory(fl validator.FieldLevel) bool {
 	incomeCategory := fl.Field().String()
 	switch incomeCategory {
-	case "Afkir Chicken Sale", "Store Egg Sale", "Warehouse Egg Sale", "All":
+	case "Penjualan Ayam Afkir", "Penjualan Telur Toko", "Penjualan Telur Gudang", "Semua":
 		return true
 	default:
 		return false
@@ -191,7 +194,27 @@ func ValidationIncomeCategory(fl validator.FieldLevel) bool {
 func ValidationExpenseCategory(fl validator.FieldLevel) bool {
 	expenseCategory := fl.Field().String()
 	switch expenseCategory {
-	case "Operasional", "Lain-lain":
+	case "Operasional", "Lain-lain", "Semua", "Pegawai", "Pengadaan Ayam DOC", "Pengadaan Barang", "Pengadaan Jagung":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationReceivablesCategory(fl validator.FieldLevel) bool {
+	expenseCategory := fl.Field().String()
+	switch expenseCategory {
+	case "Penjualan Ayam Afkir", "Penjualan Telur Toko", "Penjualan Telur Gudang", "Semua", "Kasbon":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationDebtCategory(fl validator.FieldLevel) bool {
+	expenseCategory := fl.Field().String()
+	switch expenseCategory {
+	case "Pengadaan Ayam DOC", "Pengadaan Gudang", "Pengadaan Jagung", "Semua":
 		return true
 	default:
 		return false
@@ -202,6 +225,16 @@ func ValidationApprovalStatus(fl validator.FieldLevel) bool {
 	approvalStatus := fl.Field().String()
 	switch approvalStatus {
 	case "Ditolak", "Disetujui":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationLocationType(fl validator.FieldLevel) bool {
+	locationType := fl.Field().String()
+	switch locationType {
+	case "Kandang", "Gudang", "Toko", "Site":
 		return true
 	default:
 		return false

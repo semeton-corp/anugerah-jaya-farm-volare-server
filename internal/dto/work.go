@@ -38,7 +38,7 @@ type DailyWorkDetailResponse struct {
 type CreateAdditionalWorkRequest struct {
 	Name         string   `json:"name" validate:"required"`
 	LocationId   uint64   `json:"locationId" validate:"required"`
-	LocationType string   `json:"locationType" validate:"required"`
+	LocationType string   `json:"locationType" validate:"required,locationType"`
 	PlaceId      uint64   `json:"placeId" validate:"required"`
 	Description  string   `json:"description" validate:"required"`
 	Slot         uint64   `json:"slot" validate:"required"`
@@ -50,7 +50,7 @@ type CreateAdditionalWorkRequest struct {
 type UpdateAdditionalWorkRequest struct {
 	Name         string   `json:"name" validate:"required"`
 	LocationId   uint64   `json:"locationId" validate:"required"`
-	LocationType string   `json:"locationType" validate:"required"`
+	LocationType string   `json:"locationType" validate:"required,locationType"`
 	PlaceId      uint64   `json:"placeId" validate:"required"`
 	Description  string   `json:"description" validate:"required"`
 	Slot         uint64   `json:"slot" validate:"required"`

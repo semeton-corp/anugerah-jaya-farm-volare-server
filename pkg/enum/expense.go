@@ -10,7 +10,7 @@ const (
 
 var (
 	ExpenseCategoryMap = map[ExpenseCategory]string{
-		ExpenseCategoryOperational: "Operational",
+		ExpenseCategoryOperational: "Operasional",
 		ExpenseCategoryOther:       "Lain-lain",
 	}
 )

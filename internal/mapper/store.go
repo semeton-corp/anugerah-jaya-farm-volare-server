@@ -31,10 +31,10 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 		WarehouseFulFillment: storeRequestItem.WarehouseFulfillment,
 	}
 
-	if storeRequestItem.RecieveDate.Valid {
-		response.RecieveDate = storeRequestItem.RecieveDate.Time.Format("15:04, 02 Jan 2006")
+	if storeRequestItem.ReceiveDate.Valid {
+		response.ReceiveDate = storeRequestItem.ReceiveDate.Time.Format("15:04, 02 Jan 2006")
 	} else {
-		response.RecieveDate = "-"
+		response.ReceiveDate = "-"
 	}
 
 	return response
@@ -92,6 +92,9 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response
@@ -129,6 +132,9 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		} else {
 			response.IsMoreThanDeadlinePaymentDate = false
 		}
+	} else {
+		response.DeadlinePaymentDate = "-"
+		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
 	return response

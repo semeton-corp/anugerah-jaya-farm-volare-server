@@ -135,7 +135,14 @@ func (r *CageRepository) GetCageById(id uint64) (entity.Cage, error) {
 }
 
 func (r *CageRepository) UpdateCage(cage *entity.Cage) error {
-	return r.GetDB().Model(&entity.Cage{}).Where("id = ?", cage.Id).Updates(&cage).Error
+	return r.GetDB().Model(&entity.Cage{}).Where("id = ?", cage.Id).Updates(map[string]interface{}{
+		"location_id":      cage.LocationId,
+		"name":             cage.Name,
+		"chicken_category": cage.ChickenCategory,
+		"is_used":          cage.IsUsed,
+		"cage_feed_id":     cage.CageFeedId,
+		"updated_by":       cage.UpdatedBy,
+	}).Error
 }
 
 func (r *CageRepository) DeleteCage(id uint64) error {

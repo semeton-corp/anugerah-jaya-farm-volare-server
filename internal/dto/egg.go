@@ -95,3 +95,11 @@ type EggOverviewResponse struct {
 	EggOverviewDetail []EggOverviewDetailResponse `json:"eggOverviewDetail"`
 	EggGraphs         []EggGraphResponse          `json:"eggGraphs"`
 }
+
+type EggSaleSummaryResponse struct {
+	TotalGoodEggInKg        float64 `json:"totalGoodEggInKg"`
+	TotalGoodEggInIkat      float64 `json:"totalGoodEggInIkat"`
+	TotalCrackedEggInKg     float64 `json:"totalCrackedEggInKg"`
+	TotalCrackedEggInIkat   float64 `json:"totalCrackedEggInIkat"`
+	TotalBrokenEggInPlastik float64 `json:"totalBrokenEggInPlastik"`
+}

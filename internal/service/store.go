@@ -333,7 +333,7 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 	}
 
 	if filter.Page > 0 {
-		resp.TotalData = totalData
+		resp.TotalData = uint64(totalData)
 		resp.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
 	}
 
@@ -417,12 +417,12 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item not sent off")
 	}
 
-	storeRequestItem.RecieveQuantity = request.Quantity
+	storeRequestItem.ReceiveQuantity = request.Quantity
 	storeRequestItem.StoreNote = request.StoreNote
 	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
-	storeRequestItem.RecieveDate = sql.NullTime{Time: time.Now(), Valid: true}
+	storeRequestItem.ReceiveDate = sql.NullTime{Time: time.Now(), Valid: true}
 
-	if storeRequestItem.RecieveQuantity != storeRequestItem.Quantity {
+	if storeRequestItem.ReceiveQuantity != storeRequestItem.Quantity {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedNotOk
 	} else {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedOk
@@ -826,19 +826,18 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	storeSale := entity.StoreSale{
-		StoreId:             request.StoreId,
-		ItemId:              request.ItemId,
-		Quantity:            request.Quantity,
-		Price:               price,
-		TotalPrice:          totalPrice,
-		SendDate:            sendDate,
-		Discount:            request.Discount,
-		IsSend:              false,
-		SaleUnit:            saleUnit,
-		PaymentType:         paymentType,
-		PaymentStatus:       enum.PaymentStatusNotPaid,
-		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true},
-		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+		StoreId:       request.StoreId,
+		ItemId:        request.ItemId,
+		Quantity:      request.Quantity,
+		Price:         price,
+		TotalPrice:    totalPrice,
+		SendDate:      sendDate,
+		Discount:      request.Discount,
+		IsSend:        false,
+		SaleUnit:      saleUnit,
+		PaymentType:   paymentType,
+		PaymentStatus: enum.PaymentStatusNotPaid,
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {
@@ -910,6 +909,10 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		} else {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
+	}
+
+	if storeSale.PaymentStatus != enum.PaymentStatusPaid {
+		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
@@ -1818,19 +1821,19 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	storeSale := entity.StoreSale{
-		StoreId:             request.StoreId,
-		ItemId:              request.ItemId,
-		Quantity:            request.Quantity,
-		Price:               price,
-		TotalPrice:          totalPrice,
-		SendDate:            sendDate,
-		Discount:            request.Discount,
-		IsSend:              false,
-		SaleUnit:            saleUnit,
-		PaymentType:         paymentType,
-		PaymentStatus:       enum.PaymentStatusNotPaid,
-		DeadlinePaymentDate: sql.NullTime{Time: dateNow.AddDate(0, 0, 7)},
-		CreatedBy:           uuid.NullUUID{UUID: userId, Valid: true},
+		StoreId:       request.StoreId,
+		ItemId:        request.ItemId,
+		Quantity:      request.Quantity,
+		Price:         price,
+		TotalPrice:    totalPrice,
+		SendDate:      sendDate,
+		Discount:      request.Discount,
+		IsSend:        false,
+		SaleUnit:      saleUnit,
+		PaymentType:   paymentType,
+		PaymentStatus: enum.PaymentStatusNotPaid,
+
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.CustomerType == constant.OldCustomerType {
@@ -1902,6 +1905,10 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		} else {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
+	}
+
+	if storeSale.PaymentStatus != enum.PaymentStatusPaid {
+		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
