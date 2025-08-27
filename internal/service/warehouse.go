@@ -2370,15 +2370,18 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 	}
 
 	data := entity.WarehouseItemCornProcurementDraft{
-		WarehouseId:               request.WarehouseId,
-		SupplierId:                sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
-		CornWaterLevel:            sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true},
-		OvenCondition:             ovenCondition,
-		IsOvenCanOperateInNearDay: sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true},
-		Quantity:                  request.Quantity,
-		Price:                     price,
-		Discount:                  sql.NullFloat64{Float64: request.Discount, Valid: true},
-		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
+		WarehouseId:    request.WarehouseId,
+		SupplierId:     sql.NullInt64{Int64: int64(request.SupplierId), Valid: true},
+		CornWaterLevel: sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true},
+		OvenCondition:  ovenCondition,
+		Quantity:       request.Quantity,
+		Price:          price,
+		Discount:       sql.NullFloat64{Float64: request.Discount, Valid: true},
+		CreatedBy:      uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	if request.IsOvenCanOperateInNearDay != nil {
+		data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
 	}
 
 	err = s.repository.CreateWarehouseItemCornProcurementDraft(&data)
@@ -2461,11 +2464,14 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementDraft(id uint64, re
 	data.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
 	data.CornWaterLevel = sql.NullFloat64{Float64: request.CornWaterLevel, Valid: true}
 	data.OvenCondition = ovenCondition
-	data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
 	data.Price = price
 	data.Quantity = request.Quantity
 	data.Discount = sql.NullFloat64{Float64: request.Discount, Valid: true}
 	data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if request.IsOvenCanOperateInNearDay != nil {
+		data.IsOvenCanOperateInNearDay = sql.NullBool{Bool: *request.IsOvenCanOperateInNearDay, Valid: true}
+	}
 
 	err = s.repository.UpdateWarehouseItemCornProcurementDraft(&data)
 	if err != nil {
