@@ -166,6 +166,8 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 
 // Todo : create cashflow history every month
 
+// Todo : notification when h-3 deadline payment date
+
 func (s *Scheduler) Start() {
 	s.cron.Start()
 }

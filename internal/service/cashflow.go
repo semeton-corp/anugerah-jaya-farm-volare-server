@@ -2016,5 +2016,9 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 }
 
 func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.GetCashflowOverviewResponse, error) {
+	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang)
+	// Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional)  -> yang dibayarkan
+	// Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan
+	// Keuntutngan -> 
 	return dto.GetCashflowOverviewResponse{}, nil
 }
