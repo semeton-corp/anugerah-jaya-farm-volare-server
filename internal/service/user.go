@@ -360,6 +360,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	}
 
 	overviewResponse := dto.UserOverviewResponse{
+		User:                    mapper.UserToResponse(&user),
 		UserInformation:         userInformation,
 		Placements:              placements,
 		KPIPerformances:         kpiPerformances,

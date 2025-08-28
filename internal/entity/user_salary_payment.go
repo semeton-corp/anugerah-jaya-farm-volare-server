@@ -19,7 +19,7 @@ type UserSalaryPayment struct {
 	BonusSalary          decimal.Decimal    `gorm:"type:decimal;not null"`
 	CompentationSalary   decimal.Decimal    `gorm:"type:decimal;not null"`
 	AdditionalWorkSalary decimal.Decimal    `gorm:"type:decimal;not null"`
-	Cashbond             decimal.Decimal    `gorm:"type:decimal;not null"`
+	Cashbond             decimal.Decimal    `gorm:"type:decimal;not null;default:0"`
 	PaymentProof         string             `gorm:"type:text;not null"`
 	PaymentMethod        enum.PaymentMethod `gorm:"type:int;not null;default:0"`
 	IsPaid               bool               `gorm:"type:bool;not null;default:false"`

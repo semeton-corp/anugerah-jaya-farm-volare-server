@@ -428,3 +428,8 @@ type GetCashflowOverviewFilter struct {
 
 type GetCashflowOverviewResponse struct {
 }
+
+type GetCashflowHistoryFilter struct {
+	Month param.MonthParam `query:"month"`
+	Year  uint64           `query:"year"`
+}

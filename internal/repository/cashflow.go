@@ -697,3 +697,7 @@ func (r *CashflowRepository) CreateUserCashAdvancePaymentBatch(payments *[]entit
 	}
 	return nil
 }
+
+func (r *CashflowRepository) GetCashflowHistory(filter dto.GetCashflowHistoryFilter) ([]entity.CashflowHistory, error) {
+	return nil, nil
+}
