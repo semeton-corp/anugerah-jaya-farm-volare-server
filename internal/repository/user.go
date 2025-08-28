@@ -2,7 +2,6 @@ package repository
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,8 +168,13 @@ func (r *UserRepository) GetRoleByName(name string) (entity.Role, error) {
 
 func (r *UserRepository) GetUserSalaryPaymentSpesificMonth(userId uuid.UUID, month time.Month, year uint64) (entity.UserSalaryPayment, error) {
 	var userSalaryPayment entity.UserSalaryPayment
-	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Where("user_id = ? AND (EXTRACT(month FROM created_at), (year FROM created_at)) = ?", userId, fmt.Sprintf("(%d,%d)", month, year)).First(&userSalaryPayment).Error
+	err := r.GetDB().Model(&entity.UserSalaryPayment{}).
+		Where("user_id = ? AND EXTRACT(month FROM created_at) = ? AND EXTRACT(year FROM created_at) = ?", userId, int(month), int(year)).
+		First(&userSalaryPayment).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.UserSalaryPayment{}, errx.NotFound("user salary payment not found")
+		}
 		return entity.UserSalaryPayment{}, err
 	}
 

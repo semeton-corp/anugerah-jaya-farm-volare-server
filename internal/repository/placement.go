@@ -123,7 +123,7 @@ func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) ([
 	}
 
 	if len(data) == 0 {
-		return nil, errx.NotFound("user not have have placement in store")
+		return nil, errx.NotFound("user not have have placement in warehouse")
 	}
 
 	return data, nil

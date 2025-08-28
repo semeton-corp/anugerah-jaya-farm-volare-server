@@ -1303,17 +1303,14 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 	if err != nil {
 		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid base salary format")
 	}
-
 	bonusSalary, err := decimal.NewFromString(request.BonusSalary)
 	if err != nil {
 		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid bonus salary format")
 	}
-
-	compentationSalary, err := decimal.NewFromString(request.CompentationSalary)
+	compensationSalary, err := decimal.NewFromString(request.CompentationSalary)
 	if err != nil {
-		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid compentation salary format")
+		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid compensation salary format")
 	}
-
 	additionalWorkSalary, err := decimal.NewFromString(request.AdditionalWorkSalary)
 	if err != nil {
 		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid additional work salary format")
@@ -1324,19 +1321,8 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 		return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid payment method")
 	}
 
-	userSalaryPayment.BaseSalary = baseSalary
-	userSalaryPayment.CompentationSalary = compentationSalary
-	userSalaryPayment.BonusSalary = bonusSalary
-	userSalaryPayment.AdditionalWorkSalary = additionalWorkSalary
-	userSalaryPayment.PaymentMethod = paymentMethod
-	userSalaryPayment.PaymentProof = request.PaymentProof
-	userSalaryPayment.IsPaid = true
-	userSalaryPayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-
-	err = s.repository.UpdateUserSalaryPayment(&userSalaryPayment)
-	if err != nil {
-		return dto.UserSalaryPaymentResponse{}, err
-	}
+	totalCashbond := decimal.Zero
+	var newPayments []entity.UserCashAdvancePayment
 
 	if request.UserCashAdvancePayments != nil {
 		for _, capReq := range request.UserCashAdvancePayments {
@@ -1350,54 +1336,66 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 			if err != nil {
 				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid payment date format")
 			}
-
 			paymentMethod := enum.ValueOfPaymentMethod(capReq.PaymentMethod)
 			if !paymentMethod.IsValid() {
 				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid payment method")
 			}
-
 			nominal, err := decimal.NewFromString(capReq.Nominal)
 			if err != nil {
 				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("invalid nominal format")
 			}
 
+			totalCashbond = totalCashbond.Add(nominal)
+
 			currentPayment := nominal
 			for _, payment := range data.Payments {
 				currentPayment = currentPayment.Add(payment.Nominal)
 			}
-
-			if currentPayment.GreaterThan(data.Nominal) {
+			switch {
+			case currentPayment.GreaterThan(data.Nominal):
 				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("nominal more than needed")
-			} else if currentPayment.Equal(data.Nominal) {
+			case currentPayment.Equal(data.Nominal):
 				data.PaymentStatus = enum.PaymentStatusPaid
-			} else if currentPayment.LessThan(data.Nominal) {
+			default:
 				data.PaymentStatus = enum.PaymentStatusUnpaid
 			}
 
-			payment := entity.UserCashAdvancePayment{
+			newPayments = append(newPayments, entity.UserCashAdvancePayment{
 				UserCashAdvanceId: capReq.UserCashAdvanceId,
 				Nominal:           nominal,
 				PaymentDate:       paymentDate,
 				PaymentMethod:     paymentMethod,
 				PaymentProof:      capReq.PaymentProof,
-			}
+			})
 
-			err = s.repository.CreateUserCashAdvancePayment(&payment)
-			if err != nil {
-				s.log.Error("failed create user cash advance payment", zap.Error(err))
+			if err := s.repository.UpdateUserCashAdvance(&data); err != nil {
+				s.log.Error("failed batch update user cash advances", zap.Error(err))
 				return dto.UserSalaryPaymentResponse{}, err
 			}
 
-			err = s.repository.UpdateUserCashAdvance(&data)
-			if err != nil {
-				s.log.Error("failed update user cash advance", zap.Error(err))
-				return dto.UserSalaryPaymentResponse{}, err
-			}
+		}
+
+		if err := s.repository.CreateUserCashAdvancePaymentBatch(&newPayments); err != nil {
+			s.log.Error("failed batch create user cash advance payments", zap.Error(err))
+			return dto.UserSalaryPaymentResponse{}, err
 		}
 	}
 
-	err = s.repository.Commit()
-	if err != nil {
+	userSalaryPayment.BaseSalary = baseSalary
+	userSalaryPayment.CompentationSalary = compensationSalary
+	userSalaryPayment.BonusSalary = bonusSalary
+	userSalaryPayment.AdditionalWorkSalary = additionalWorkSalary
+	userSalaryPayment.PaymentMethod = paymentMethod
+	userSalaryPayment.PaymentProof = request.PaymentProof
+	userSalaryPayment.Cashbond = totalCashbond
+	userSalaryPayment.IsPaid = true
+	userSalaryPayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if err := s.repository.UpdateUserSalaryPayment(&userSalaryPayment); err != nil {
+		return dto.UserSalaryPaymentResponse{}, err
+	}
+
+	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed commit transaction", zap.Error(err))
 		return dto.UserSalaryPaymentResponse{}, err
 	}

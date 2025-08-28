@@ -81,6 +81,8 @@ type UserSalaryInformationResponse struct {
 	AdditionalWorkSalary string `json:"additionalWorkSalary"`
 	BonusSalary          string `json:"bonusSalary"`
 	CompentationSalary   string `json:"compentationSalary"`
+	Cashbond             string `json:"cashbond"`
+	IsPaid               bool   `json:"isPaid"`
 	TotalSalary          string `json:"totalSalary"`
 }
 
@@ -90,11 +92,14 @@ type GetUserOverviewFilter struct {
 }
 
 type UserOverviewResponse struct {
-	UserInformation         UserInformationResponse         `json:"userInformation"`
-	KPIPerformances         []KPIPerformanceResponse        `json:"kpiPerformances"`
-	UserPresenceInformation UserPresenceInformationResponse `json:"userPresenceInformation"`
-	UserWorkInformation     UserWorkInformationResponse     `json:"userWorkInformation"`
-	UserSalaryInformation   UserSalaryInformationResponse   `json:"userSalaryInformation"`
+	User                    UserResponse                     `json:"user"`
+	Placements              []string                         `json:"placements"`
+	UseCashAdvances         []UserCashAdvanceSummaryResponse `json:"userCashAdvances"`
+	UserInformation         UserInformationResponse          `json:"userInformation"`
+	KPIPerformances         []KPIPerformanceResponse         `json:"kpiPerformances"`
+	UserPresenceInformation UserPresenceInformationResponse  `json:"userPresenceInformation"`
+	UserWorkInformation     UserWorkInformationResponse      `json:"userWorkInformation"`
+	UserSalaryInformation   UserSalaryInformationResponse    `json:"userSalaryInformation"`
 }
 
 type UserListOverviewResponse struct {

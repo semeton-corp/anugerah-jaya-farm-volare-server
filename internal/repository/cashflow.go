@@ -48,6 +48,7 @@ type ICashflowRepository interface {
 	GetUserCashAdvances(filter dto.GetUserCashAdvanceFilter) ([]entity.UserCashAdvance, error)
 	GetUserCashAdvance(id uint64) (entity.UserCashAdvance, error)
 	UpdateUserCashAdvance(data *entity.UserCashAdvance) error
+	CreateUserCashAdvancePaymentBatch(payments *[]entity.UserCashAdvancePayment) error
 
 	GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
 	GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
@@ -687,4 +688,12 @@ func (r *CashflowRepository) GetWarehouseItemProcurementCashflow(id uint64) (ent
 
 	return data, nil
 
+}
+
+func (r *CashflowRepository) CreateUserCashAdvancePaymentBatch(payments *[]entity.UserCashAdvancePayment) error {
+	err := r.GetDB().Model(&entity.UserCashAdvancePayment{}).CreateInBatches(payments, len(*payments)).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }

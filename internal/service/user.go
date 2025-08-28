@@ -3,10 +3,12 @@ package service
 import (
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
@@ -18,11 +20,12 @@ import (
 )
 
 type UserService struct {
-	log             *zap.Logger
-	repository      repository.IUserRepository
-	workService     IWorkService
-	presenceService IPresenceService
-	chickenService  IChickenService
+	log              *zap.Logger
+	repository       repository.IUserRepository
+	workService      IWorkService
+	presenceService  IPresenceService
+	chickenService   IChickenService
+	placementService IPlacementService
 }
 
 type IUserService interface {
@@ -38,13 +41,14 @@ type IUserService interface {
 	GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error)
 }
 
-func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService) IUserService {
+func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService, placementService IPlacementService) IUserService {
 	return &UserService{
-		log:             log,
-		repository:      repository,
-		workService:     workService,
-		presenceService: presenceService,
-		chickenService:  chickenService,
+		log:              log,
+		repository:       repository,
+		workService:      workService,
+		presenceService:  presenceService,
+		chickenService:   chickenService,
+		placementService: placementService,
 	}
 }
 
@@ -269,7 +273,10 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		userSalaryInformation = dto.UserSalaryInformationResponse{
 			BaseSalary:           user.Salary.String(),
 			AdditionalWorkSalary: additionalWorkSalary.String(),
+			BonusSalary:          decimal.Zero.String(),
 			CompentationSalary:   decimal.Zero.String(),
+			Cashbond:             decimal.Zero.String(),
+			IsPaid:               false,
 			TotalSalary:          totalSalary.String(),
 		}
 	} else {
@@ -284,7 +291,9 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			AdditionalWorkSalary: userSalary.AdditionalWorkSalary.String(),
 			BonusSalary:          userSalary.BonusSalary.String(),
 			CompentationSalary:   userSalary.CompentationSalary.String(),
-			TotalSalary:          userSalary.BaseSalary.Add(userSalary.BonusSalary).Add(userSalary.CompentationSalary).String(),
+			Cashbond:             userSalary.Cashbond.String(),
+			IsPaid:               true,
+			TotalSalary:          userSalary.BaseSalary.Add(userSalary.BonusSalary).Add(userSalary.CompentationSalary).Sub(userSalary.Cashbond).String(),
 		}
 	}
 
@@ -320,8 +329,39 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		}
 	}
 
+	placements := make([]string, 0)
+	if slices.Contains(entity.CageLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetCagePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserOverviewResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, fmt.Sprintf("%s - %s", enum.LocationTypeCage.String(), e.Cage.Name))
+		}
+	} else if slices.Contains(entity.WarehouseLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetWarehousePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserOverviewResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, fmt.Sprintf("%s - %s", enum.LocationTypeWarehouse.String(), e.Warehouse.Name))
+		}
+	} else if slices.Contains(entity.StoreLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetStorePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserOverviewResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, fmt.Sprintf("%s - %s", enum.LocationTypeStore.String(), e.Store.Name))
+		}
+	}
+
 	overviewResponse := dto.UserOverviewResponse{
 		UserInformation:         userInformation,
+		Placements:              placements,
 		KPIPerformances:         kpiPerformances,
 		UserPresenceInformation: userPresenceInformation,
 		UserSalaryInformation:   userSalaryInformation,

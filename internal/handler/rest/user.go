@@ -170,7 +170,6 @@ func (h *UserHandler) GetOverviewUser(c *fiber.Ctx) error {
 
 	resp, err := h.service.GetUserOverview(uuid.MustParse(idParam), filter)
 	if err != nil {
-		h.log.Error("failed to get overview user", zap.Error(err))
 		return err
 	}
 

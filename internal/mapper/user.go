@@ -6,7 +6,7 @@ import (
 )
 
 func UserToResponse(user *entity.User) dto.UserResponse {
-	return dto.UserResponse{
+	response := dto.UserResponse{
 		Id:           user.Id.String(),
 		Name:         user.Name,
 		Username:     user.Username,
@@ -19,6 +19,8 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 		Role:         RoleToResponse(&user.Role),
 		Location:     LocationToResponse(&user.Location),
 	}
+
+	return response
 }
 
 func UserToListResponse(user *entity.User) dto.UserListResponse {
