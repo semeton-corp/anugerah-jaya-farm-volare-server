@@ -495,8 +495,8 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 	var data []entity.UserCashAdvancePayment
 
 	query := r.GetDB().Model(&entity.UserCashAdvancePayment{}).
-		Joins("LEFT JOIN user_cash_advances ON user_cash_advances.id = user_cash_advance_payments.user_cash_advance_payment_id").
-		Joins("LEFT JOIN uses ON  users.id = user_cash_advances.user_id")
+		Joins("LEFT JOIN user_cash_advances ON user_cash_advances.id = user_cash_advance_payments.user_cash_advance_id").
+		Joins("LEFT JOIN users ON  users.id = user_cash_advances.user_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(user_cash_advance_payments.created_at) >= ? AND DATE(user_cash_advance_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
