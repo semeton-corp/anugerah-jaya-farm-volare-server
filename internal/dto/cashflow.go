@@ -194,6 +194,7 @@ type ReceivablesResponse struct {
 	PlaceName             string                        `json:"placeName"`
 	Name                  string                        `json:"name"`
 	PhoneNumber           string                        `json:"phoneNumber"`
+	Nominal               string                        `json:"nominal"`
 	RemainingPayment      string                        `json:"remainingPayment"`
 	PaymentType           string                        `json:"paymentType"`
 	PaymentStatus         string                        `json:"paymentStatus"`

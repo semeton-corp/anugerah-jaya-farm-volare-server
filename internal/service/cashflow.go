@@ -1250,7 +1250,8 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1262,6 +1263,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			PlaceName:             data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
 			Name:                  data.Customer.Name,
 			PhoneNumber:           data.Customer.PhoneNumber,
+			Nominal:               data.TotalPrice.String(),
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
@@ -1287,7 +1289,8 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1299,6 +1302,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			PlaceName:             data.Store.Location.Name + " - " + data.Store.Name,
 			Name:                  data.Customer.Name,
 			PhoneNumber:           data.Customer.PhoneNumber,
+			Nominal:               data.TotalPrice.String(),
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
@@ -1324,7 +1328,8 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1335,6 +1340,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			Category:              constant.ReceieveablesCategoryAfkirChickenSale,
 			PlaceName:             data.ChickenCage.Cage.Location.Name + " - " + data.ChickenCage.Cage.Name,
 			Name:                  data.AfkirChickenCustomer.Name,
+			Nominal:               data.TotalPrice.String(),
 			PhoneNumber:           data.AfkirChickenCustomer.PhoneNumber,
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
@@ -1362,7 +1368,8 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 				PaymentProof:  e.PaymentProof,
 			}
 
-			paymentResponse.Remaining = totalRemainingPayment.Sub(e.Nominal).String()
+			totalRemainingPayment = totalRemainingPayment.Sub(e.Nominal)
+			paymentResponse.Remaining = totalRemainingPayment.String()
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
@@ -1374,6 +1381,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			PlaceName:             data.User.Location.Name,
 			Name:                  data.User.Name,
 			PhoneNumber:           data.User.PhoneNumber,
+			Nominal:               data.Nominal.String(),
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           enum.PaymentTypeinstallment.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
@@ -1382,7 +1390,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			ReceieveablesPayments: paymentResponses,
 		}, nil
 	default:
-		return dto.ReceivablesResponse{}, errx.BadRequest("invalid receieveabels category")
+		return dto.ReceivablesResponse{}, errx.BadRequest("invalid receivables category")
 	}
 }
 
