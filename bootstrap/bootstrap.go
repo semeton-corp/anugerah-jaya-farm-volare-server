@@ -134,7 +134,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
 	cashflowRepository := repository.NewCashflowRepository(b.db)
-	cashflowService := service.NewCashflowService(b.log, cashflowRepository, storeService, warehouseService, chickenService, userService, workService)
+	cashflowService := service.NewCashflowService(b.log, cashflowRepository, storeService, warehouseService, chickenService, userService, workService, itemService)
 	cashflowHandler := rest.NewCashflowHandler(b.log, cashflowService, b.validator)
 
 	b.handlers = []Handler{

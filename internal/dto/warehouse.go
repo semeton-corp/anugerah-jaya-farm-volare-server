@@ -158,6 +158,7 @@ type GetWarehouseItemProcurementFilter struct {
 	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
 	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 	Page                     uint64                     `query:"page"`
+	LocationId               uint64
 }
 
 type WarehouseOverview struct {
@@ -229,6 +230,8 @@ type GetWarehouseSaleFilter struct {
 	Page                     uint64                   `query:"page"`
 	StartDate                param.DateParam
 	EndDate                  param.DateParam
+	LocationId               uint64
+	ItemId                   uint64
 }
 
 type WarehouseSaleResponse struct {
@@ -493,6 +496,7 @@ type GetWarehouseItemCornProcurementFilter struct {
 	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
 	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 	Page                     uint64                     `query:"page"`
+	LocationId               uint64
 }
 
 type CreateWarehouseItemCornProcurementPaymentRequest struct {
@@ -560,26 +564,31 @@ type ReduceFeedRequest struct {
 }
 
 type GetWarehouseSalePaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }
 
 type GetStoreSalePaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }
 
 type GetAfkirChickenSalePaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }
 
 type GetWarehouseItemProcurementPaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }
 
 type GetWarehouseItemCornProcurementPaymentFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }

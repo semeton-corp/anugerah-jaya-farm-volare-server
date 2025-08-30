@@ -99,8 +99,17 @@ func (r *StoreRepository) CreateStore(store *entity.Store) error {
 	return r.GetDB().Model(&entity.Store{}).Create(&store).Error
 }
 
-func (r *StoreRepository) UpdateStore(store *entity.Store) error {
-	return r.GetDB().Model(&entity.Store{}).Where("id = ?", store.Id).Updates(&store).Error
+func (r *StoreRepository) UpdateStore(data *entity.Store) error {
+	updates := map[string]interface{}{
+		"name":        data.Name,
+		"location_id": data.LocationId,
+		"updated_by":  data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.Store{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *StoreRepository) DeleteStore(id uint64) error {
@@ -362,8 +371,28 @@ func (r *StoreRepository) CreateStoreSalePayment(storeSalePayment *entity.StoreS
 	return r.GetDB().Model(&entity.StoreSalePayment{}).Create(&storeSalePayment).Error
 }
 
-func (r *StoreRepository) UpdateStoreSale(storeSale *entity.StoreSale) error {
-	return r.GetDB().Model(entity.StoreSale{}).Where("id = ?", storeSale.Id).Updates(&storeSale).Error
+func (r *StoreRepository) UpdateStoreSale(data *entity.StoreSale) error {
+	updates := map[string]interface{}{
+		"customer_id":           data.CustomerId,
+		"item_id":               data.ItemId,
+		"store_id":              data.StoreId,
+		"quantity":              data.Quantity,
+		"sale_unit":             data.SaleUnit,
+		"price":                 data.Price,
+		"total_price":           data.TotalPrice,
+		"discount":              data.Discount,
+		"send_date":             data.SendDate,
+		"payment_type":          data.PaymentType,
+		"payment_status":        data.PaymentStatus,
+		"is_send":               data.IsSend,
+		"deadline_payment_date": data.DeadlinePaymentDate,
+		"updated_by":            data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.StoreSale{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *StoreRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePayment, error) {
@@ -378,8 +407,20 @@ func (r *StoreRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSalePa
 	return storeSalePayment, nil
 }
 
-func (r *StoreRepository) UpdateStoreSalePayment(storeSalePayment *entity.StoreSalePayment) error {
-	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", storeSalePayment.Id).Updates(storeSalePayment).Error
+func (r *StoreRepository) UpdateStoreSalePayment(data *entity.StoreSalePayment) error {
+	updates := map[string]interface{}{
+		"store_sale_id":  data.StoreSaleId,
+		"payment_date":   data.PaymentDate,
+		"nominal":        data.Nominal,
+		"payment_proof":  data.PaymentProof,
+		"payment_method": data.PaymentMethod,
+		"updated_by":     data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.StoreSalePayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *StoreRepository) CountTotalStoreRequestItem(filter dto.GetStoreRequestItemFilter) (uint64, error) {

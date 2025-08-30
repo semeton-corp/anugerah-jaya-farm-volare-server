@@ -233,7 +233,13 @@ func (r *ChickenRepository) GetChickenHealthItemById(id uint64) (entity.ChickenH
 }
 
 func (r *ChickenRepository) UpdateChickenHealthItem(chickenHealthItem *entity.ChickenHealthItem) error {
-	return r.GetDB().Model(&entity.ChickenHealthItem{}).Where("id = ?", chickenHealthItem.Id).Updates(&chickenHealthItem).Error
+	return r.GetDB().Model(&entity.ChickenHealthItem{}).Where("id = ?", chickenHealthItem.Id).Updates(map[string]interface{}{
+		"name":        chickenHealthItem.Name,
+		"type":        chickenHealthItem.Type,
+		"chicken_age": chickenHealthItem.ChickenAge,
+		"note":        chickenHealthItem.Note,
+		"updated_by":  chickenHealthItem.UpdatedBy,
+	}).Error
 }
 
 func (r *ChickenRepository) DeleteChickenHealthItem(id uint64) error {
@@ -245,7 +251,16 @@ func (r *ChickenRepository) CreateChickenHealthMonitoring(chickenHealthMonitorin
 }
 
 func (r *ChickenRepository) UpdateChickenHealthMonitoring(chickenHealthMonitoring *entity.ChickenHealthMonitoring) error {
-	return r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", chickenHealthMonitoring.Id).Updates(&chickenHealthMonitoring).Error
+	return r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("id = ?", chickenHealthMonitoring.Id).Updates(map[string]interface{}{
+		"chicken_cage_id":  chickenHealthMonitoring.ChickenCageId,
+		"health_item_name": chickenHealthMonitoring.HealthItemName,
+		"type":             chickenHealthMonitoring.Type,
+		"dose":             chickenHealthMonitoring.Dose,
+		"unit":             chickenHealthMonitoring.Unit,
+		"chicken_age":      chickenHealthMonitoring.ChickenAge,
+		"disease":          chickenHealthMonitoring.Disease,
+		"updated_by":       chickenHealthMonitoring.UpdatedBy,
+	}).Error
 }
 
 func (r *ChickenRepository) GetChickenHealthMonitoringById(id uint64) (entity.ChickenHealthMonitoring, error) {
@@ -304,7 +319,13 @@ func (r *ChickenRepository) GetChickenProcurementDraft(id uint64) (entity.Chicke
 }
 
 func (r *ChickenRepository) UpdateChickenProcurementDraft(data *entity.ChickenProcurementDraft) error {
-	return r.GetDB().Model(&entity.ChickenProcurementDraft{}).Where("id = ?", data.Id).Updates(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurementDraft{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"cage_id":     data.CageId,
+		"supplier_id": data.SupplierId,
+		"quantity":    data.Quantity,
+		"total_price": data.TotalPrice,
+		"updated_by":  data.UpdatedBy,
+	}).Error
 }
 
 func (r *ChickenRepository) DeleteChickenProcurementDraft(id uint64) error {
@@ -320,7 +341,23 @@ func (r *ChickenRepository) CreateChickenProcurementPaymentInBatch(data *[]entit
 }
 
 func (r *ChickenRepository) UpdateChickenProcurement(data *entity.ChickenProcurement) error {
-	return r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", data.Id).Updates(data).Error
+	return r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"cage_id":                 data.CageId,
+		"supplier_id":             data.SupplierId,
+		"quantity":                data.Quantity,
+		"receive_quantity":        data.ReceiveQuantity,
+		"note":                    data.Note,
+		"total_price":             data.TotalPrice,
+		"payment_status":          data.PaymentStatus,
+		"status":                  data.Status,
+		"taken_by":                data.TakenBy,
+		"taken_at":                data.TakenAt,
+		"payment_type":            data.PaymentType,
+		"is_arrived":              data.IsArrived,
+		"estimation_arrival_date": data.EstimationArrivalDate,
+		"deadline_payment_date":   data.DeadlinePaymentDate,
+		"updated_by":              data.UpdatedBy,
+	}).Error
 }
 
 func (r *ChickenRepository) GetChickenProcurement(id uint64) (entity.ChickenProcurement, error) {
@@ -341,11 +378,23 @@ func (r *ChickenRepository) CreateAfkirChickenSalePaymentInBatch(data *[]entity.
 }
 
 func (r *ChickenRepository) CreateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error {
-	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Create(&data).Error
+	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Create(data).Error
 }
 
 func (r *ChickenRepository) UpdateChickenProcurementPayment(data *entity.ChickenProcurementPayment) error {
-	return r.GetDB().Model(&entity.ChickenProcurementPayment{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"chicken_procurement_id": data.ChickenProcurementId,
+		"payment_date":           data.PaymentDate,
+		"nominal":                data.Nominal,
+		"payment_proof":          data.PaymentProof,
+		"payment_method":         data.PaymentMethod,
+		"updated_by":             data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.ChickenProcurementPayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ChickenRepository) GetChickenProcurementPayment(id uint64) (entity.ChickenProcurementPayment, error) {
@@ -395,7 +444,18 @@ func (r *ChickenRepository) GetAfkirChickenCustomer(id uint64) (entity.AfkirChic
 }
 
 func (r *ChickenRepository) UpdateAfkirChickenCustomer(data *entity.AfkirChickenCustomer) error {
-	return r.GetDB().Model(&entity.AfkirChickenCustomer{}).Where("id = ?", data.Id).Updates(&data).Error
+	updates := map[string]interface{}{
+		"name":         data.Name,
+		"phone_number": data.PhoneNumber,
+		"address":      data.Address,
+		"latest_price": data.LatestPrice,
+		"updated_by":   data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.AfkirChickenCustomer{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ChickenRepository) DeleteAfkirChickenCustomer(id uint64) error {
@@ -427,7 +487,19 @@ func (r *ChickenRepository) GetAfkirChickenSaleDraft(id uint64) (entity.AfkirChi
 }
 
 func (r *ChickenRepository) UpdateAfkirChickenSaleDraft(data *entity.AfkirChickenSaleDraft) error {
-	return r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"afkir_chicken_customer_id": data.AfkirChickenCustomerId,
+		"chicken_cage_id":           data.ChickenCageId,
+		"total_sell_chicken":        data.TotalSellChicken,
+		"price_per_chicken":         data.PricePerChicken,
+		"total_price":               data.TotalPrice,
+		"updated_by":                data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.AfkirChickenSaleDraft{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ChickenRepository) DeleteAfkirChickenSaleDraft(id uint64) error {
@@ -501,12 +573,40 @@ func (r *ChickenRepository) GetAfkirChickenSalePaymentById(id uint64) (entity.Af
 	return afkirChickenSalePayment, nil
 }
 
-func (r *ChickenRepository) UpdateAfkirChickenSalePayment(afkirChickenSalePayment *entity.AfkirChickenSalePayment) error {
-	return r.GetDB().Model(entity.AfkirChickenSalePayment{}).Where("id = ?", afkirChickenSalePayment.Id).Updates(afkirChickenSalePayment).Error
+func (r *ChickenRepository) UpdateAfkirChickenSalePayment(data *entity.AfkirChickenSalePayment) error {
+	updates := map[string]interface{}{
+		"afkir_chicken_sale_id": data.AfkirChickenSaleId,
+		"payment_date":          data.PaymentDate,
+		"nominal":               data.Nominal,
+		"payment_proof":         data.PaymentProof,
+		"payment_method":        data.PaymentMethod,
+		"updated_by":            data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.AfkirChickenSalePayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale) error {
-	return r.GetDB().Model(&entity.AfkirChickenSale{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"afkir_chicken_customer_id": data.AfkirChickenCustomerId,
+		"chicken_cage_id":           data.ChickenCageId,
+		"total_sell_chicken":        data.TotalSellChicken,
+		"price_per_chicken":         data.PricePerChicken,
+		"total_price":               data.TotalPrice,
+		"chicken_age":               data.ChickenAge,
+		"payment_type":              data.PaymentType,
+		"payment_status":            data.PaymentStatus,
+		"deadline_payment_date":     data.DeadlinePaymentDate,
+		"updated_by":                data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.AfkirChickenSale{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error) {

@@ -174,8 +174,18 @@ func (r *WarehouseRepository) GetWarehouseById(id uint64) (entity.Warehouse, err
 	return warehouse, nil
 }
 
-func (r *WarehouseRepository) UpdateWarehouse(warehouse *entity.Warehouse) error {
-	return r.GetDB().Model(&entity.Warehouse{}).Where("id = ?", warehouse.Id).Updates(&warehouse).Error
+func (r *WarehouseRepository) UpdateWarehouse(data *entity.Warehouse) error {
+	updates := map[string]interface{}{
+		"location_id":   data.LocationId,
+		"name":          data.Name,
+		"corn_capacity": data.CornCapacity,
+		"updated_by":    data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.Warehouse{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouse(id uint64) error {
@@ -243,8 +253,18 @@ func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemId(warehouseId
 	return warehouseItem, nil
 }
 
-func (r *WarehouseRepository) UpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
-	return r.GetDB().Model(entity.WarehouseItem{}).Where("item_id = ? AND warehouse_id = ?", warehouseItem.ItemId, warehouseItem.WarehouseId).Updates(warehouseItem).Error
+func (r *WarehouseRepository) UpdateWarehouseItem(data *entity.WarehouseItem) error {
+	updates := map[string]interface{}{
+		"quantity":           data.Quantity,
+		"estimation_run_out": data.EstimationRunOut,
+		"expired_at":         data.ExpiredAt,
+		"updated_by":         data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItem{}).
+		Where("item_id = ? AND warehouse_id = ?", data.ItemId, data.WarehouseId).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error {
@@ -418,12 +438,44 @@ func (r *WarehouseRepository) CreateWarehouseSalePayment(warehouseSalePayment *e
 	return r.GetDB().Model(&entity.WarehouseSalePayment{}).Create(warehouseSalePayment).Error
 }
 
-func (r *WarehouseRepository) UpdateWarehouseSale(warehouseSale *entity.WarehouseSale) error {
-	return r.GetDB().Model(entity.WarehouseSale{}).Where("id = ?", warehouseSale.Id).Updates(warehouseSale).Error
+func (r *WarehouseRepository) UpdateWarehouseSale(data *entity.WarehouseSale) error {
+	updates := map[string]interface{}{
+		"customer_id":           data.CustomerId,
+		"item_id":               data.ItemId,
+		"warehouse_id":          data.WarehouseId,
+		"quantity":              data.Quantity,
+		"sale_unit":             data.SaleUnit,
+		"price":                 data.Price,
+		"total_price":           data.TotalPrice,
+		"discount":              data.Discount,
+		"send_date":             data.SendDate,
+		"payment_type":          data.PaymentType,
+		"payment_status":        data.PaymentStatus,
+		"is_send":               data.IsSend,
+		"deadline_payment_date": data.DeadlinePaymentDate,
+		"updated_by":            data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseSale{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
-func (r *WarehouseRepository) UpdateWarehouseSalePayment(warehouseSalePayment *entity.WarehouseSalePayment) error {
-	return r.GetDB().Model(entity.StoreSalePayment{}).Where("id = ?", warehouseSalePayment.Id).Updates(warehouseSalePayment).Error
+func (r *WarehouseRepository) UpdateWarehouseSalePayment(data *entity.WarehouseSalePayment) error {
+	updates := map[string]interface{}{
+		"warehouse_sale_id": data.WarehouseSaleId,
+		"payment_date":      data.PaymentDate,
+		"nominal":           data.Nominal,
+		"payment_proof":     data.PaymentProof,
+		"payment_method":    data.PaymentMethod,
+		"updated_by":        data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseSalePayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseSale(id uint64) error {
@@ -512,7 +564,20 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementDraft(id uint64) (entit
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error {
-	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"warehouse_id":   data.WarehouseId,
+		"item_id":        data.ItemId,
+		"supplier_id":    data.SupplierId,
+		"daily_spending": data.DailySpending,
+		"days_need":      data.DaysNeed,
+		"price":          data.Price,
+		"updated_by":     data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemProcurementDraft{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemProcurementDraft(id uint64) error {
@@ -559,7 +624,33 @@ func (r *WarehouseRepository) GetWarehouseItemProcurement(id uint64) (entity.War
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemProcurement(data *entity.WarehouseItemProcurement) error {
-	return r.GetDB().Model(&entity.WarehouseItemProcurement{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"warehouse_id":            data.WarehouseId,
+		"item_id":                 data.ItemId,
+		"supplier_id":             data.SupplierId,
+		"daily_spending":          data.DailySpending,
+		"days_need":               data.DaysNeed,
+		"quantity":                data.Quantity,
+		"receive_quantity":        data.ReceiveQuantity,
+		"note":                    data.Note,
+		"price":                   data.Price,
+		"total_price":             data.TotalPrice,
+		"estimation_arrival_date": data.EstimationArrivalDate,
+		"is_arrived":              data.IsArrived,
+		"taken_at":                data.TakenAt,
+		"taken_by":                data.TakenBy,
+		"status":                  data.Status,
+		"payment_status":          data.PaymentStatus,
+		"expired_at":              data.ExpiredAt,
+		"deadline_payment_date":   data.DeadlinePaymentDate,
+		"payment_type":            data.PaymentType,
+		"updated_by":              data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemProcurement{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemProcurement(id uint64) error {
@@ -585,7 +676,19 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementPayment(id uint64) (ent
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemProcurementPayment(data *entity.WarehouseItemProcurementPayment) error {
-	return r.GetDB().Model(&entity.WarehouseItemProcurementPayment{}).Where("id = ?", data.Id).Updates(&data).Error
+	updates := map[string]interface{}{
+		"warehouse_item_procurement_id": data.WarehouseItemProcurementId,
+		"payment_date":                  data.PaymentDate,
+		"nominal":                       data.Nominal,
+		"payment_proof":                 data.PaymentProof,
+		"payment_method":                data.PaymentMethod,
+		"updated_by":                    data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemProcurementPayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemProcurementPayment(id uint64) error {
@@ -617,7 +720,22 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurementDraft(id uint64) (e
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementDraft(data *entity.WarehouseItemCornProcurementDraft) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Where("id = ?", data.Id).Updates(&data).Error
+	updates := map[string]interface{}{
+		"warehouse_id":                    data.WarehouseId,
+		"supplier_id":                     data.SupplierId,
+		"oven_condition":                  data.OvenCondition,
+		"corn_water_level":                data.CornWaterLevel,
+		"is_oven_can_operate_in_near_day": data.IsOvenCanOperateInNearDay,
+		"quantity":                        data.Quantity,
+		"price":                           data.Price,
+		"discount":                        data.Discount,
+		"updated_by":                      data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemCornProcurementDraft{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementDraft(id uint64) error {
@@ -629,7 +747,33 @@ func (r *WarehouseRepository) CreateWarehouseItemCornProcurement(data *entity.Wa
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemCornProcurement(data *entity.WarehouseItemCornProcurement) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurement{}).Where("id = ?", data.Id).Updates(&data).Error
+	updates := map[string]interface{}{
+		"warehouse_id":                    data.WarehouseId,
+		"supplier_id":                     data.SupplierId,
+		"quantity":                        data.Quantity,
+		"receive_quantity":                data.ReceiveQuantity,
+		"note":                            data.Note,
+		"price":                           data.Price,
+		"total_price":                     data.TotalPrice,
+		"is_arrived":                      data.IsArrived,
+		"taken_at":                        data.TakenAt,
+		"taken_by":                        data.TakenBy,
+		"status":                          data.Status,
+		"payment_status":                  data.PaymentStatus,
+		"oven_condition":                  data.OvenCondition,
+		"corn_water_level":                data.CornWaterLevel,
+		"is_oven_can_operate_in_near_day": data.IsOvenCanOperateInNearDay,
+		"expired_at":                      data.ExpiredAt,
+		"deadline_payment_date":           data.DeadlinePaymentDate,
+		"payment_type":                    data.PaymentType,
+		"discount":                        data.Discount,
+		"updated_by":                      data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemCornProcurement{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurement(id uint64) (entity.WarehouseItemCornProcurement, error) {
@@ -694,7 +838,19 @@ func (r *WarehouseRepository) CreateWarehouseItemCornProcurementPayment(data *en
 }
 
 func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error {
-	return r.GetDB().Model(&entity.WarehouseItemCornProcurementPayment{}).Where("id = ?", data.Id).Updates(data).Error
+	updates := map[string]interface{}{
+		"warehouse_item_corn_procurement_id": data.WarehouseItemCornProcurementId,
+		"payment_date":                       data.PaymentDate,
+		"nominal":                            data.Nominal,
+		"payment_proof":                      data.PaymentProof,
+		"payment_method":                     data.PaymentMethod,
+		"updated_by":                         data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.WarehouseItemCornProcurementPayment{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *WarehouseRepository) GetWarehouseItemCornProcurementPayment(id uint64) (entity.WarehouseItemCornProcurementPayment, error) {

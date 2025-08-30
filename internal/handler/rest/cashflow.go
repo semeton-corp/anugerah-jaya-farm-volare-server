@@ -26,6 +26,9 @@ type CashflowHandler struct {
 func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("/api/v1/cashflows")
 
+	v1.Get("/sales/overview", middleware.Authentication(), h.GetCashflowSaleOverview)
+	v1.Get("/overview", middleware.Authentication(), h.GetCashflowOverview)
+
 	v1.Get("/incomes/:category/:id", middleware.Authentication(), h.GetIncome)
 	v1.Get("/incomes/overview", middleware.Authentication(), h.GetIncomeOverview)
 
@@ -443,4 +446,44 @@ func (h *CashflowHandler) GetUserSalaryDetail(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, resp, "success get user salary detail")
+}
+
+func (h *CashflowHandler) GetCashflowSaleOverview(c *fiber.Ctx) error {
+	var filter dto.GetCashflowSaleOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query param", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetCashflowSaleOverview(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cashflow sale overview")
+}
+
+func (h *CashflowHandler) GetCashflowOverview(c *fiber.Ctx) error {
+	var filter dto.GetCashflowOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query param", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetCashflowOverview(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get cashflow overview")
 }

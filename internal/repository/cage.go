@@ -300,7 +300,12 @@ func (r *CageRepository) GetCageFeeds() ([]entity.CageFeed, error) {
 }
 
 func (r *CageRepository) UpdateCageFeed(data *entity.CageFeed) error {
-	return r.GetDB().Model(&entity.CageFeed{}).Where("id = ?", data.Id).Save(&data).Error
+	return r.GetDB().Model(&entity.CageFeed{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"chicken_category": data.ChickenCategory,
+		"feed_type":        data.FeedType,
+		"total_feed":       data.TotalFeed,
+		"updated_by":       data.UpdatedBy,
+	}).Error
 }
 
 func (r *CageRepository) GetCageFeed(id uint64) (entity.CageFeed, error) {
@@ -321,7 +326,13 @@ func (r *CageRepository) CreateCageFeedDetail(data *entity.CageFeedDetail) error
 }
 
 func (r *CageRepository) UpdateCageFeedDetail(data *entity.CageFeedDetail) error {
-	return r.GetDB().Model(&entity.CageFeedDetail{}).Updates(&data).Error
+	return r.GetDB().Model(&entity.CageFeedDetail{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"cage_feed_id": data.CageFeedId,
+		"item_id":      data.ItemId,
+		"percentage":   data.Percentage,
+		"updated_by":   data.UpdatedBy,
+		"updated_at":   time.Now(),
+	}).Error
 }
 
 func (r *CageRepository) CreateCageFeedDetails(details *[]entity.CageFeedDetail) error {
@@ -414,7 +425,12 @@ func (r *CageRepository) CreateCageFeedStock(data *entity.CageFeedStock) error {
 }
 
 func (r *CageRepository) UpdateCageFeedStock(data *entity.CageFeedStock) error {
-	return r.GetDB().Model(&entity.CageFeedStock{}).Updates(data).Error
+	return r.GetDB().Model(&entity.CageFeedStock{}).Where("id = ?", data.Id).Updates(map[string]interface{}{
+		"cage_id":    data.CageId,
+		"total_feed": data.TotalFeed,
+		"used_feed":  data.UsedFeed,
+		"updated_by": data.UpdatedBy,
+	}).Error
 }
 
 func (r *CageRepository) GetCageFeedStock(id uint64) (entity.CageFeedStock, error) {

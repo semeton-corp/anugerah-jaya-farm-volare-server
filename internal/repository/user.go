@@ -79,11 +79,26 @@ func (r *UserRepository) GetUserById(id uuid.UUID) (entity.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) UpdateUser(user *entity.User) error {
-	if err := r.GetDB().Model(&entity.User{}).Where("id = ?", user.Id).Updates(user).Error; err != nil {
-		return err
+func (r *UserRepository) UpdateUser(data *entity.User) error {
+	updates := map[string]interface{}{
+		"username":        data.Username,
+		"email":           data.Email,
+		"password":        data.Password,
+		"location_id":     data.LocationId,
+		"role_id":         data.RoleId,
+		"photo_profile":   data.PhotoProfile,
+		"name":            data.Name,
+		"phone_number":    data.PhoneNumber,
+		"address":         data.Address,
+		"salary_interval": data.SalaryInterval,
+		"salary":          data.Salary,
+		"updated_by":      data.UpdatedBy,
 	}
-	return nil
+
+	return r.GetDB().
+		Model(&entity.User{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User, error) {

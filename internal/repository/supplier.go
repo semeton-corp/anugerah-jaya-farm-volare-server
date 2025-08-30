@@ -108,8 +108,19 @@ func (r *SupplierRepository) GetSuppliers(filter dto.GetSupplierFilter) ([]entit
 	return suppliers, nil
 }
 
-func (r *SupplierRepository) UpdateSupplier(supplier *entity.Supplier) error {
-	return r.GetDB().Model(&entity.Supplier{}).Where("id = ?", supplier.Id).Updates(supplier).Error
+func (r *SupplierRepository) UpdateSupplier(data *entity.Supplier) error {
+	updates := map[string]interface{}{
+		"name":          data.Name,
+		"phone_number":  data.PhoneNumber,
+		"address":       data.Address,
+		"supplier_type": data.SupplierType,
+		"updated_by":    data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.Supplier{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *SupplierRepository) DeleteSupplier(id uint64) error {

@@ -155,6 +155,7 @@ type GetStoreSaleFilter struct {
 	Date                     param.DateParam          `query:"date"`
 	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
 	Page                     uint64                   `query:"page"`
+	LocationId               uint64                   `query:"locationId"`
 	StoreId                  uint64
 	StartDate                param.DateParam
 	EndDate                  param.DateParam

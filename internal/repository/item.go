@@ -110,12 +110,32 @@ func (r *ItemRepository) GetItemPriceDiscountById(id uint64) (entity.ItemPriceDi
 	return eggPriceDiscount, err
 }
 
-func (r *ItemRepository) UpdateItemPrice(itemPrice *entity.ItemPrice) error {
-	return r.GetDB().Model(&entity.ItemPrice{}).Where("id = ?", itemPrice.Id).Save(itemPrice).Error
+func (r *ItemRepository) UpdateItemPrice(data *entity.ItemPrice) error {
+	updates := map[string]interface{}{
+		"category":   data.Category,
+		"item_id":    data.ItemId,
+		"price":      data.Price,
+		"updated_by": data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.ItemPrice{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
-func (r *ItemRepository) UpdateItemPriceDiscount(itemPriceDiscount *entity.ItemPriceDiscount) error {
-	return r.GetDB().Model(&entity.ItemPriceDiscount{}).Where("id = ?", itemPriceDiscount.Id).Save(itemPriceDiscount).Error
+func (r *ItemRepository) UpdateItemPriceDiscount(data *entity.ItemPriceDiscount) error {
+	updates := map[string]interface{}{
+		"name":                     data.Name,
+		"minimum_transaction_user": data.MinimumTransactionUser,
+		"total_discount":           data.TotalDiscount,
+		"updated_by":               data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.ItemPriceDiscount{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ItemRepository) DeleteItemPrice(id uint64) error {
@@ -167,8 +187,19 @@ func (r *ItemRepository) GetItemById(id uint64) (entity.Item, error) {
 	return warehouseItem, nil
 }
 
-func (r *ItemRepository) UpdateItem(warehouseItem *entity.Item) error {
-	return r.GetDB().Model(entity.Item{}).Where("id = ?", warehouseItem.Id).Updates(warehouseItem).Error
+func (r *ItemRepository) UpdateItem(data *entity.Item) error {
+	updates := map[string]interface{}{
+		"name":           data.Name,
+		"category":       data.Category,
+		"unit":           data.Unit,
+		"daily_spending": data.DailySpending,
+		"updated_by":     data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.Item{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *ItemRepository) DeleteItem(id uint64) error {

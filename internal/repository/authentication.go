@@ -105,7 +105,21 @@ func (r *AuthenticationRepository) GetUserById(id uuid.UUID) (entity.User, error
 }
 
 func (r *AuthenticationRepository) UpdateUser(user *entity.User) error {
-	return r.GetDB().Model(entity.User{}).Where("id = ?", user.Id).Updates(&user).Error
+	updates := map[string]interface{}{
+		"username":        user.Username,
+		"email":           user.Email,
+		"password":        user.Password,
+		"location_id":     user.LocationId,
+		"role_id":         user.RoleId,
+		"photo_profile":   user.PhotoProfile,
+		"name":            user.Name,
+		"phone_number":    user.PhoneNumber,
+		"address":         user.Address,
+		"salary_interval": user.SalaryInterval,
+		"salary":          user.Salary,
+		"updated_by":      user.UpdatedBy,
+	}
+	return r.GetDB().Model(&entity.User{}).Where("id = ?", user.Id).Updates(updates).Error
 }
 
 func (r *AuthenticationRepository) DeleteUser(id uuid.UUID) error {

@@ -108,10 +108,6 @@ func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) ([]ent
 		return data, err
 	}
 
-	if len(data) == 0 {
-		return nil, errx.NotFound("user not have have placement in store")
-	}
-
 	return data, nil
 }
 
@@ -120,10 +116,6 @@ func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) ([
 	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Role").Preload("Warehouse.Location").Where("user_id = ?", userId).Find(&data).Error
 	if err != nil {
 		return nil, err
-	}
-
-	if len(data) == 0 {
-		return nil, errx.NotFound("user not have have placement in warehouse")
 	}
 
 	return data, nil

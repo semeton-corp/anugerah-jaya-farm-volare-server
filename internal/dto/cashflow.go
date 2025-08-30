@@ -9,6 +9,7 @@ type IncomePieResponse struct {
 	WarehouseEggSalePercentage float64 `json:"warehouseEggSalePercentage"`
 	StoreEggSalePercentage     float64 `json:"storeEggSalePercentage"`
 	AfkirChickenSalePercentage float64 `json:"afkirChickenSalePercentage"`
+	UserCashAdvancePercentage  float64 `json:"userCashAdvancePercentage"`
 }
 
 type IncomeListResponse struct {
@@ -26,23 +27,23 @@ type IncomeListResponse struct {
 }
 
 type IncomeResponse struct {
-	ParentId            uint64 `json:"parentId"`
-	Id                  uint64 `json:"id"`
-	Date                string `json:"date"`
-	Time                string `json:"time"`
-	Category            string `json:"category"`
-	PlaceName           string `json:"placeName"`
-	CustomerName        string `json:"customerName" `
-	CustomerPhoneNumber string `json:"customerPhoneNumber"`
-	ItemName            string `json:"itemName"`
-	ItemUnit            string `json:"itemUnit"`
-	Quantity            string `json:"quantity"`
-	Nominal             string `json:"nominal"`
-	PaymentType         string `json:"paymentType"`
-	TotalPrice          string `json:"totalPrice"`
-	PaymentMethod       string `json:"paymentMethod"`
-	InputBy             string `json:"inputBy"`
-	PaymentProof        string `json:"paymentProof"`
+	ParentId            uint64  `json:"parentId"`
+	Id                  uint64  `json:"id"`
+	Date                string  `json:"date"`
+	Time                string  `json:"time"`
+	Category            string  `json:"category"`
+	PlaceName           string  `json:"placeName"`
+	CustomerName        string  `json:"customerName" `
+	CustomerPhoneNumber string  `json:"customerPhoneNumber"`
+	ItemName            string  `json:"itemName"`
+	ItemUnit            string  `json:"itemUnit"`
+	Quantity            float64 `json:"quantity"`
+	Nominal             string  `json:"nominal"`
+	PaymentType         string  `json:"paymentType"`
+	TotalPrice          string  `json:"totalPrice"`
+	PaymentMethod       string  `json:"paymentMethod"`
+	InputBy             string  `json:"inputBy"`
+	PaymentProof        string  `json:"paymentProof"`
 }
 
 type IncomeOverviewResponse struct {
@@ -63,6 +64,7 @@ type ExpensePieResponse struct {
 	WarehouseItemProcurementPercentage     float64 `json:"warehouseItemProcurementPercentage"`
 	WarehouseItemCornProcurementPercentage float64 `json:"warehouseItemCornProcurementPercentage"`
 	OtherPercentage                        float64 `json:"otherPercentage"`
+	UserCashAdvancePercentage              float64 `json:"userCashAdvancePercentage"`
 }
 
 type ExpenseListResponse struct {
@@ -71,7 +73,7 @@ type ExpenseListResponse struct {
 	Category     string `json:"category"`
 	Name         string `json:"name"`
 	PlaceName    string `json:"location"`
-	Nominal      string `json:"string"`
+	Nominal      string `json:"nominal"`
 	ReceiverName string `json:"receiverName"`
 	PaymentProof string `json:"paymentProof"`
 }
@@ -88,7 +90,7 @@ type ExpenseResponse struct {
 	Nominal             string `json:"nominal"`
 	PaymentMethod       string `json:"paymentMethod"`
 	PaymentProof        string `json:"paymentProof"`
-	InputBy             string `json:"inputBy "`
+	InputBy             string `json:"inputBy"`
 }
 
 type ExpenseOverviewResponse struct {
@@ -128,8 +130,9 @@ type CreateExpenseRequest struct {
 }
 
 type GetExpenseFilter struct {
-	StartDate param.DateParam `query:"startDate"`
-	EndDate   param.DateParam `query:"endDate"`
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }
 
 type CreateUserCashAdvanceRequest struct {
@@ -178,6 +181,9 @@ type GetUserCashAdvanceFilter struct {
 	UserId                   uuid.UUID                  `query:"userId"`
 	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
 	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
+	LocationId               uint64
+	StartDate                param.DateParam `query:"startDate"`
+	EndDate                  param.DateParam `query:"endDate"`
 }
 
 type ReceivablesResponse struct {
@@ -360,12 +366,15 @@ type GetUserSalaryPaymentFilter struct {
 }
 
 type CashflowSaleSummaryResponse struct {
-	Income      string `json:"income"`
-	NoteIncome  string `json:"noteIncome"`
-	Profit      string `json:"profit"`
-	NoteProfit  string `json:"noteProfit"`
-	Expense     string `json:"expense"`
-	NoteExpense string `json:"noteExpense"`
+	Income                string  `json:"income"`
+	IsIncomeIncrease      bool    `json:"isIncomeIncrease"`
+	IncomeDiffPercentage  float64 `json:"incomeDiffPercentage"`
+	Profit                string  `json:"profit"`
+	IsProfitIncrease      bool    `json:"isProfitIncrease"`
+	ProfitDiffPercentage  float64 `json:"profitDiffPercentage"`
+	Expense               string  `json:"expense"`
+	IsExpenseIncrease     bool    `json:"isExpenseIncrease"`
+	ExpenseDiffPercentage float64 `json:"expenseDiffPercentage"`
 }
 
 type CashflowSaleGraphResponse struct {
@@ -376,25 +385,23 @@ type CashflowSaleGraphResponse struct {
 }
 
 type LocationSaleSummaryResponse struct {
-	PlaceId       uint64 `json:"placeId"`
 	PlaceName     string `json:"placeName"`
-	LocationType  string `json:"locationType"`
 	Income        string `json:"income"`
 	Receieveables string `json:"receieveables"`
 }
 
 type LocationPieChartResponse struct {
-	Place      string  `json:"place"`
-	Percentage float64 `json:"percentage"` // Dari pendapatan
+	StorePercentage     float64 `json:"storePercentage"`
+	WarehousePercentage float64 `json:"warehosuePercentage"`
 }
 
 type CashflowSaleOverviewResponse struct {
-	CashflowSaleSummary CashflowSaleSummaryResponse `json:"cashflowSaleSummary"`
-	EggSaleSummary      EggSaleSummaryResponse      `json:"eggSaleSummary"`
-	CashflowSaleGraphs  []CashflowSaleGraphResponse `json:"cashflowSaleGraphs"`
-	EggSaleGraphs       []EggSaleGraphResponse      `json:"eggSaleGraphs"`
-	LocationSaleSummary LocationSaleSummaryResponse `json:"locationSaleSummary"`
-	LocationPieChart    []LocationPieChartResponse  `json:"LocationPieChart"`
+	CashflowSaleSummary CashflowSaleSummaryResponse   `json:"cashflowSaleSummary"`
+	EggSaleSummary      EggSaleSummaryResponse        `json:"eggSaleSummary"`
+	CashflowSaleGraphs  []CashflowSaleGraphResponse   `json:"cashflowSaleGraphs"`
+	EggSaleGraphs       []EggSaleGraphResponse        `json:"eggSaleGraphs"`
+	LocationSaleSummary []LocationSaleSummaryResponse `json:"locationSaleSummaries"`
+	LocationPieChart    LocationPieChartResponse      `json:"LocationPieChart"`
 }
 
 type GetCashflowSaleOverviewFilter struct {
@@ -405,31 +412,62 @@ type GetCashflowSaleOverviewFilter struct {
 }
 
 type CashflowSummaryResponse struct {
-	Income      string `json:"income"`
-	NoteIncome  string `json:"noteIncome"`
-	Profit      string `json:"profit"`
-	NoteProfit  string `json:"noteProfit"`
-	Expense     string `json:"expense"`
-	NoteExpense string `json:"noteExpense"`
-	Debt        string `json:"debt"`
-	NoteDebt    string `json:"noteDebt"`
-	Cash        string `json:"cash"`
-	NoteCash    string `json:"noteCash"`
+	Income                    string  `json:"income"`
+	IsIncomeIncrease          bool    `json:"isIncomeIncrease"`
+	IncomeDiffPercentage      float64 `json:"incomeDiffPercentage"`
+	Profit                    string  `json:"profit"`
+	IsProfitIncrease          bool    `json:"isProfitIncrease"`
+	ProfitDiffPercentage      float64 `json:"profitDiffPercentage"`
+	Expense                   string  `json:"expense"`
+	IsExpenseIncrease         bool    `json:"isExpenseIncrease"`
+	ExpenseDiffPercentage     float64 `json:"expenseDiffPercentage"`
+	Debt                      string  `json:"debt"`
+	IsDebtIncrease            bool    `json:"isDebtIncrease"`
+	DebtDiffPercentage        float64 `json:"debtDiffPercentage"`
+	Cash                      string  `json:"cash"`
+	IsCashIncrease            bool    `json:"isCashIncrease"`
+	CashDiffPercentage        float64 `json:"cashDiffPercentage"`
+	Receivables               string  `json:"receivables"`
+	IsReceivablesIncrease     bool    `json:"isReceivablesIncrease"`
+	ReceivablesDiffPercentage float64 `json:"receivablesDiffPercentage"`
 }
 
 type CashflowGraphResponse struct {
+	Key     string `json:""`
+	Income  string `json:"income"`
+	Profit  string `json:"profit"`
+	Expense string `json:"expense"`
+	Cash    string `json:"cash"`
 }
 
 type EggSaleGraphResponse struct {
+	Key   string  `json:"key"`
+	Value float64 `json:"value"`
+}
+
+type EggSaleCashflowGraphResponse struct {
+	Key              string `json:"key"`
+	WarehouseEggSale string `json:"warehouseEggSale"`
+	StoreEggSale     string `json:"storeEggSale"`
 }
 
 type GetCashflowOverviewFilter struct {
+	Year       uint64 `query:"year"`
+	LocationId uint64 `query:"locationId"`
 }
 
-type GetCashflowOverviewResponse struct {
+type CashflowOverviewResponse struct {
+	CashflowSummary       CashflowSummaryResponse        `json:"cashflowSummary"`
+	CashflowGraphs        []CashflowGraphResponse        `json:"cashflowGraphs"`
+	EggSaleCashflowGraphs []EggSaleCashflowGraphResponse `json:"eggSaleCashflowGraphs"`
 }
 
 type GetCashflowHistoryFilter struct {
-	Month param.MonthParam `query:"month"`
-	Year  uint64           `query:"year"`
+	Year uint64 `query:"year"`
+}
+
+type GetUserCashAdvancePaymentFilter struct {
+	StartDate  param.DateParam `query:"startDate"`
+	EndDate    param.DateParam `query:"endDate"`
+	LocationId uint64          `query:"locationId"`
 }

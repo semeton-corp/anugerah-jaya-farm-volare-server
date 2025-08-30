@@ -77,8 +77,22 @@ func (r *PresenceRepository) GetDB() *gorm.DB {
 	return r.db
 }
 
-func (r *PresenceRepository) UpdateUserPresence(userPresence *entity.UserPresence) error {
-	return r.GetDB().Model(&entity.UserPresence{}).Where("id = ?", userPresence.Id).Updates(userPresence).Error
+func (r *PresenceRepository) UpdateUserPresence(data *entity.UserPresence) error {
+	updates := map[string]interface{}{
+		"user_id":                    data.UserId,
+		"start_time":                 data.StartTime,
+		"end_time":                   data.EndTime,
+		"status":                     data.Status,
+		"note":                       data.Note,
+		"evidence":                   data.Evidence,
+		"submission_presence_status": data.SubmissionPresenceStatus,
+		"updated_by":                 data.UpdatedBy,
+	}
+
+	return r.GetDB().
+		Model(&entity.UserPresence{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
 func (r *PresenceRepository) GetUserPresenceById(id uint64) (entity.UserPresence, error) {
@@ -183,6 +197,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 			Select("roles.id AS role_id, roles.name AS role_name, stores.id AS place_id, stores.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
 			Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
 			Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
+			Joins("LEFT JOIN users ON user_presences.user_id = users.id").
 			Joins("LEFT JOIN roles ON users.role_id = roles.id").
 			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements)")
 
@@ -191,6 +206,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 			Select("roles.id AS role_id, roles.name AS role_name, warehouses.id AS place_id, warehouses.name AS place_name, user_presences.user_id AS user_id, user_presences.status AS presence_status, user_presences.submission_presence_status as submission_presence_status").
 			Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
 			Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
+			Joins("LEFT JOIN users ON user_presences.user_id = users.id").
 			Joins("LEFT JOIN roles ON users.role_id = roles.id").
 			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements)")
 

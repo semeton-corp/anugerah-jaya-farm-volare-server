@@ -1,10 +1,11 @@
 package constant
 
 const (
-	IncomeCategoryAll              string = "Semua"
-	IncomeCategoryStoreEggSale     string = "Penjualan Telur Toko"
-	IncomeCategoryWarehouseEggSale string = "Penjualan Telur Gudang"
-	IncomeCategoryAfkirChickenSale string = "Penjualan Ayam Afkir"
+	IncomeCategoryAll                    string = "Semua"
+	IncomeCategoryStoreEggSale           string = "Penjualan Telur Toko"
+	IncomeCategoryWarehouseEggSale       string = "Penjualan Telur Gudang"
+	IncomeCategoryAfkirChickenSale       string = "Penjualan Ayam Afkir"
+	IncomeCategoryUserCashAdvancePayment string = "Pembayaran Pinjaman Pegawai"
 
 	ExpenseCategoryAll                          string = "Semua"
 	ExpenseCategoryOperational                  string = "Operasional"
@@ -13,6 +14,7 @@ const (
 	ExpenseCategoryWarehouseItemCornProcurement string = "Pengadaan Jagung"
 	ExpenseCategoryOther                        string = "Lain lain"
 	ExpenseCategoryStaff                        string = "Pegawai"
+	ExpenseCategoryUserCashAdvance              string = "Pinjaman Pegawai"
 
 	ExpenseTransactionNameSalary                       string = "Gaji"
 	ExpenseTransactionNameWarehouseItemCornProcurement string = "Pengadaan Jagung"

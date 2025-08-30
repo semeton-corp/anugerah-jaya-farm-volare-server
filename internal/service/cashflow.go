@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -29,6 +30,7 @@ type CashflowService struct {
 	chickenService   IChickenService
 	userService      IUserService
 	workService      IWorkService
+	itemService      IItemService
 }
 
 type ICashflowService interface {
@@ -58,10 +60,10 @@ type ICashflowService interface {
 	ExportSalesCashflowToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error)
 
 	GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error)
-	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.GetCashflowOverviewResponse, error)
+	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error)
 }
 
-func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService, workService IWorkService) ICashflowService {
+func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService, workService IWorkService, itemService IItemService) ICashflowService {
 	return &CashflowService{
 		log:              log,
 		repository:       repository,
@@ -105,10 +107,20 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		return dto.IncomeOverviewResponse{}, err
 	}
 
+	userCashAdvancePayments, err := s.repository.GetUserCashAdvancePayments(dto.GetUserCashAdvancePaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advance payments", zap.Error(err))
+		return dto.IncomeOverviewResponse{}, err
+	}
+
 	totalPayment := decimal.Zero
 	totalWarehouseSalePayment := decimal.Zero
 	totalStoreSalePayment := decimal.Zero
 	totalAfkirChickenSalePayment := decimal.Zero
+	totalUserCashAdvance := decimal.Zero
 
 	for _, payment := range storeSalePayments {
 		totalPayment = totalPayment.Add(payment.Nominal)
@@ -123,6 +135,11 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 	for _, payment := range afkirChickenSalePayments {
 		totalPayment = totalPayment.Add(payment.Nominal)
 		totalAfkirChickenSalePayment = totalAfkirChickenSalePayment.Add(payment.Nominal)
+	}
+
+	for _, payment := range userCashAdvancePayments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+		totalUserCashAdvance = totalUserCashAdvance.Add(payment.Nominal)
 	}
 
 	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryStoreEggSale {
@@ -179,13 +196,33 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
+	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment {
+		for _, payment := range afkirChickenSalePayments {
+			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
+				ParentId:     payment.AfkirChickenSaleId,
+				Id:           payment.Id,
+				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Location.Name + " - " + payment.AfkirChickenSale.ChickenCage.Cage.Name,
+				Category:     constant.IncomeCategoryAfkirChickenSale,
+				ItemName:     constant.AfkirChicken,
+				ItemUnit:     constant.AfkirChickenUnitEkor,
+				Quantity:     float64(payment.AfkirChickenSale.TotalSellChicken),
+				CustomerName: payment.AfkirChickenSale.AfkirChickenCustomer.Name,
+				Nominal:      payment.Nominal.String(),
+				PaymentProof: payment.PaymentProof,
+			})
+		}
+	}
+
 	warehouseEggSalePercentage := 0.0
 	storeEggSalePercentage := 0.0
 	afkirChickenSalePercentage := 0.0
+	userCashAdvanceSalePercentage := 0.0
 	if !totalPayment.IsZero() {
 		warehouseEggSalePercentage = totalWarehouseSalePayment.Div(totalPayment).InexactFloat64() * 100.0
 		storeEggSalePercentage = totalStoreSalePayment.Div(totalPayment).InexactFloat64() * 100.0
 		afkirChickenSalePercentage = totalAfkirChickenSalePayment.Div(totalPayment).InexactFloat64() * 100.0
+		userCashAdvanceSalePercentage = totalUserCashAdvance.Div(totalPayment).InexactFloat64() * 100.0
 	}
 
 	return dto.IncomeOverviewResponse{
@@ -193,6 +230,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			WarehouseEggSalePercentage: warehouseEggSalePercentage,
 			StoreEggSalePercentage:     storeEggSalePercentage,
 			AfkirChickenSalePercentage: afkirChickenSalePercentage,
+			UserCashAdvancePercentage:  userCashAdvanceSalePercentage,
 		},
 		Incomes: incomeResponses,
 	}, nil
@@ -212,13 +250,13 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
-			Category:            "Warehouse Egg Sale",
+			Category:            constant.IncomeCategoryWarehouseEggSale,
 			PlaceName:           payment.WarehouseSale.Warehouse.Name,
 			CustomerName:        payment.WarehouseSale.Customer.Name,
 			CustomerPhoneNumber: payment.WarehouseSale.Customer.PhoneNumber,
 			ItemName:            payment.WarehouseSale.Item.Name,
 			ItemUnit:            payment.WarehouseSale.SaleUnit.String(),
-			Quantity:            fmt.Sprintf("%v", payment.WarehouseSale.Quantity),
+			Quantity:            payment.WarehouseSale.Quantity,
 			Nominal:             payment.Nominal.String(),
 			PaymentType:         payment.WarehouseSale.PaymentType.String(),
 			TotalPrice:          payment.WarehouseSale.TotalPrice.String(),
@@ -239,13 +277,13 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
-			Category:            "Store Egg Sale",
+			Category:            constant.IncomeCategoryStoreEggSale,
 			PlaceName:           payment.StoreSale.Store.Name,
 			CustomerName:        payment.StoreSale.Customer.Name,
 			CustomerPhoneNumber: payment.StoreSale.Customer.PhoneNumber,
 			ItemName:            payment.StoreSale.Item.Name,
 			ItemUnit:            payment.StoreSale.SaleUnit.String(),
-			Quantity:            fmt.Sprintf("%v", payment.StoreSale.Quantity),
+			Quantity:            payment.StoreSale.Quantity,
 			Nominal:             payment.Nominal.String(),
 			PaymentType:         payment.StoreSale.PaymentType.String(),
 			TotalPrice:          payment.StoreSale.TotalPrice.String(),
@@ -266,13 +304,13 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02 Jan 2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
-			Category:            "Afkir Chicken Sale",
+			Category:            constant.IncomeCategoryAfkirChickenSale,
 			PlaceName:           payment.AfkirChickenSale.ChickenCage.Cage.Name,
 			CustomerName:        payment.AfkirChickenSale.AfkirChickenCustomer.Name,
 			CustomerPhoneNumber: payment.AfkirChickenSale.AfkirChickenCustomer.PhoneNumber,
-			ItemName:            "Afkir Chicken",
-			ItemUnit:            "Ekor",
-			Quantity:            fmt.Sprintf("%v", payment.AfkirChickenSale.TotalSellChicken),
+			ItemName:            constant.AfkirChicken,
+			ItemUnit:            constant.AfkirChickenUnitEkor,
+			Quantity:            float64(payment.AfkirChickenSale.TotalSellChicken),
 			Nominal:             payment.Nominal.String(),
 			PaymentType:         payment.AfkirChickenSale.PaymentType.String(),
 			TotalPrice:          payment.AfkirChickenSale.TotalPrice.String(),
@@ -281,6 +319,32 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 			PaymentProof:        payment.PaymentProof,
 		}, nil
 
+	case constant.IncomeCategoryUserCashAdvancePayment:
+		payment, err := s.repository.GetUserCashAdvancePayment(id)
+		if err != nil {
+			s.log.Error("failed get afkir chicken sale payment", zap.Error(err))
+			return dto.IncomeResponse{}, err
+		}
+
+		return dto.IncomeResponse{
+			ParentId:            payment.UserCashAdvance.Id,
+			Id:                  payment.Id,
+			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Time:                payment.PaymentDate.Format("15:04"),
+			Category:            constant.IncomeCategoryAfkirChickenSale,
+			PlaceName:           payment.UserCashAdvance.User.Location.Name,
+			CustomerName:        payment.UserCashAdvance.User.Name,
+			CustomerPhoneNumber: payment.UserCashAdvance.User.PhoneNumber,
+			ItemName:            constant.AfkirChicken,
+			ItemUnit:            constant.AfkirChickenUnitEkor,
+			Quantity:            1,
+			Nominal:             payment.Nominal.String(),
+			PaymentType:         enum.PaymentTypeinstallment.String(),
+			TotalPrice:          payment.UserCashAdvance.Nominal.String(),
+			PaymentMethod:       payment.PaymentMethod.String(),
+			InputBy:             payment.CreatedByUser.Name,
+			PaymentProof:        payment.PaymentProof,
+		}, nil
 	default:
 		return dto.IncomeResponse{}, errx.BadRequest("invalid income category")
 	}
@@ -434,6 +498,15 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		return dto.ExpenseOverviewResponse{}, err
 	}
 
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		PaymentStatus: param.PaymentStatusParam(enum.PaymentStatusNotPaid),
+		StartDate:     param.DateParam(startDate),
+		EndDate:       param.DateParam(endDate),
+	})
+	if err != nil {
+		return dto.ExpenseOverviewResponse{}, err
+	}
+
 	totalPayment := decimal.Zero
 	totalChickenProcurement := decimal.Zero
 	totalWarehouseItemProcurement := decimal.Zero
@@ -441,6 +514,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	totalOperational := decimal.Zero
 	totalOther := decimal.Zero
 	totalUserSalary := decimal.Zero
+	totalUserCashAdvance := decimal.Zero
 
 	for _, p := range chickenProcurementPayments {
 		totalPayment = totalPayment.Add(p.Nominal)
@@ -471,6 +545,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		totalSalary := p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary)
 		totalPayment = totalPayment.Add(totalSalary)
 		totalWarehouseItemProcurement = totalWarehouseItemProcurement.Add(totalSalary)
+	}
+
+	for _, p := range userCashAdvances {
+		totalPayment = totalPayment.Add(p.Nominal)
+		totalUserCashAdvance = totalUserCashAdvance.Add(p.Nominal)
 	}
 
 	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement {
@@ -561,12 +640,28 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
+	if filter.ExpenseCategory == constant.IncomeCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryUserCashAdvance {
+		for _, p := range userCashAdvances {
+			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Category:     constant.ExpenseCategoryUserCashAdvance,
+				Name:         constant.ExpenseTransactionNameSalary,
+				PlaceName:    p.User.Location.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.User.Name,
+				PaymentProof: "-",
+			})
+		}
+	}
+
 	staffPercentage := 0.0
 	chickenProcurementPercentage := 0.0
 	warehouseItemProcurementPercentage := 0.0
 	warehouseItemCornProcurementPercentage := 0.0
 	operationalPercentage := 0.0
 	otherPercentage := 0.0
+	userCashAdvancePercentage := 0.0
 
 	if !totalPayment.IsZero() {
 		staffPercentage = totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0
@@ -575,6 +670,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		warehouseItemCornProcurementPercentage = totalWarehouseItemCornProcurement.Div(totalPayment).InexactFloat64() * 100.0
 		operationalPercentage = totalOperational.Div(totalPayment).InexactFloat64() * 100.0
 		otherPercentage = totalOther.Div(totalPayment).InexactFloat64() * 100.0
+		userCashAdvancePercentage = totalUserCashAdvance.Div(totalPayment).InexactFloat64() * 100.0
 	}
 
 	return dto.ExpenseOverviewResponse{
@@ -585,6 +681,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			WarehouseItemCornProcurementPercentage: warehouseItemCornProcurementPercentage,
 			OperationalPercentage:                  operationalPercentage,
 			OtherPercentage:                        otherPercentage,
+			UserCashAdvancePercentage:              userCashAdvancePercentage,
 		},
 		Expenses: expenseResponses,
 	}, nil
@@ -747,7 +844,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 		return response, nil
 
 	default:
-		return dto.ExpenseResponse{}, fmt.Errorf("invalid expense category")
+		return dto.ExpenseResponse{}, errx.BadRequest("invalid expense category")
 	}
 }
 
@@ -1372,7 +1469,6 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 				s.log.Error("failed batch update user cash advances", zap.Error(err))
 				return dto.UserSalaryPaymentResponse{}, err
 			}
-
 		}
 
 		if err := s.repository.CreateUserCashAdvancePaymentBatch(&newPayments); err != nil {
@@ -2012,13 +2108,1017 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 }
 
 func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error) {
-	return dto.CashflowSaleOverviewResponse{}, nil
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month.Value()))
+
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get store sale", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed to get store sale", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	brokenEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.BrokenEgg, constant.UnitPlastik, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	locationSaleSummaries := make([]dto.LocationSaleSummaryResponse, 0)
+	eggSaleLocationRevenueSummary, eggSaleLocationReceivablesSummary := s.getEggSaleLocationSummary(&storeSales, &warehouseSales)
+
+	for key := range eggSaleLocationRevenueSummary {
+		locationSaleSummaries = append(locationSaleSummaries, dto.LocationSaleSummaryResponse{
+			PlaceName:     key,
+			Income:        eggSaleLocationRevenueSummary[key].String(),
+			Receieveables: eggSaleLocationReceivablesSummary[key].String(),
+		})
+	}
+
+	eggSaleGraphs, err := s.buildStoreOverviewMonthlyGraph(filter.LocationId, filter.ItemId, filter.Year, filter.Month.Value())
+	if err != nil {
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	goodEggStoreInKg := float64(0)
+	crackedEggStoreInKg := float64(0)
+	brokenEggStoreInPlastik := float64(0)
+
+	for _, storeSale := range storeSales {
+		if storeSale.SaleUnit.String() == constant.UnitKg && goodEggItem.Id == storeSale.ItemId {
+			goodEggStoreInKg += storeSale.Quantity
+		} else if storeSale.SaleUnit.String() == constant.UnitIkat && goodEggItem.Id == storeSale.ItemId {
+			goodEggStoreInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if storeSale.SaleUnit.String() == constant.UnitKg && crackedEggItem.Id == storeSale.ItemId {
+			crackedEggStoreInKg += storeSale.Quantity
+		} else if storeSale.SaleUnit.String() == constant.UnitIkat && crackedEggItem.Id == storeSale.ItemId {
+			crackedEggStoreInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if storeSale.SaleUnit.String() == constant.UnitPlastik && brokenEggItem.Id == storeSale.ItemId {
+			brokenEggStoreInPlastik += storeSale.Quantity
+		}
+	}
+
+	goodEggWarehouseInKg := float64(0)
+	crackedEggWarehouseInKg := float64(0)
+	brokenEggWarehouseInPlastik := float64(0)
+
+	for _, warehouseSale := range warehouseSales {
+		if warehouseSale.SaleUnit.String() == constant.UnitKg && goodEggItem.Id == warehouseSale.ItemId {
+			goodEggWarehouseInKg += warehouseSale.Quantity
+		} else if warehouseSale.SaleUnit.String() == constant.UnitIkat && goodEggItem.Id == warehouseSale.ItemId {
+			goodEggWarehouseInKg += warehouseSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if warehouseSale.SaleUnit.String() == constant.UnitKg && crackedEggItem.Id == warehouseSale.ItemId {
+			crackedEggWarehouseInKg += warehouseSale.Quantity
+		} else if warehouseSale.SaleUnit.String() == constant.UnitIkat && crackedEggItem.Id == warehouseSale.ItemId {
+			crackedEggWarehouseInKg += warehouseSale.Quantity * float64(constant.TotalEggPerIkat)
+		} else if warehouseSale.SaleUnit.String() == constant.UnitPlastik && brokenEggItem.Id == warehouseSale.ItemId {
+			brokenEggWarehouseInPlastik += warehouseSale.Quantity
+		}
+	}
+
+	income, receivables, err := s.getIncomeAndReceivablesPerWeek(filter.LocationId, weeks, startDate, endDate)
+	if err != nil {
+		s.log.Error("failed get income and receive per week", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	expense, debt, err := s.getExpenseAndDebtPerWeek(filter.LocationId, weeks, startDate, endDate)
+	if err != nil {
+		s.log.Error("failed get expense and debt per week", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	prevMonth := filter.Month.Value() - 1
+	prevYear := filter.Year
+
+	if prevMonth == 0 {
+		prevMonth = 12
+		prevYear = filter.Year - 1
+	}
+
+	prevMonthWeek := util.GetFourWeekRanges(int(prevYear), time.Month(prevYear))
+
+	incomePreviousMonth, receivablesPreviousMonth, err := s.getIncomeAndReceivablesPerWeek(filter.LocationId, prevMonthWeek, startDate, endDate)
+	if err != nil {
+		s.log.Error("failed get income and receivable per week", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	expensePreviousMonth, debtPreviousMonth, err := s.getExpenseAndDebtPerWeek(filter.LocationId, prevMonthWeek, startDate, endDate)
+	if err != nil {
+		s.log.Error("failed get expense and debt per week", zap.Error(err))
+		return dto.CashflowSaleOverviewResponse{}, err
+	}
+
+	totalIncome := decimal.Zero
+	totalExpense := decimal.Zero
+	totalProfit := decimal.Zero
+	cashflowSaleGraphs := make([]dto.CashflowSaleGraphResponse, 0)
+	for key := range weeks {
+		cashflowSaleGraphs = append(cashflowSaleGraphs, dto.CashflowSaleGraphResponse{
+			Key:     fmt.Sprintf("Minggu %d", key),
+			Income:  income[key].String(),
+			Expense: expense[key].String(),
+			Profit:  income[key].Add(receivables[key]).Sub(expense[key].Add(debt[key])).String(),
+		})
+
+		totalIncome = totalIncome.Add(income[key])
+		totalExpense = totalExpense.Add(expense[key])
+		totalProfit = totalProfit.Add(income[key].Add(receivables[key]).Sub(expense[key].Add(debt[key])))
+	}
+
+	totalPreviousMonthIncome := decimal.Zero
+	totalPreviousMonthExpense := decimal.Zero
+	totalPreviousMonthProfit := decimal.Zero
+	for key := range weeks {
+		totalPreviousMonthIncome = totalPreviousMonthIncome.Add(incomePreviousMonth[key])
+		totalPreviousMonthExpense = totalPreviousMonthExpense.Add(expensePreviousMonth[key])
+		totalPreviousMonthProfit = totalPreviousMonthProfit.Add(incomePreviousMonth[key].Add(receivablesPreviousMonth[key]).Sub(expensePreviousMonth[key].Add(debtPreviousMonth[key])))
+	}
+
+	incomeIncrease, incomeDiff := calculateDiff(totalIncome, totalPreviousMonthIncome)
+	profitIncrease, profitDiff := calculateDiff(totalProfit, totalPreviousMonthProfit)
+	expenseIncrease, expenseDiff := calculateDiff(totalExpense, totalPreviousMonthExpense)
+
+	return dto.CashflowSaleOverviewResponse{
+		CashflowSaleSummary: dto.CashflowSaleSummaryResponse{
+			Income:                totalIncome.String(),
+			IsIncomeIncrease:      incomeIncrease,
+			IncomeDiffPercentage:  incomeDiff,
+			Profit:                totalProfit.String(),
+			IsProfitIncrease:      profitIncrease,
+			ProfitDiffPercentage:  profitDiff,
+			Expense:               totalExpense.String(),
+			IsExpenseIncrease:     expenseIncrease,
+			ExpenseDiffPercentage: expenseDiff,
+		},
+		EggSaleSummary: dto.EggSaleSummaryResponse{
+			TotalGoodEggInKg:        goodEggStoreInKg + goodEggWarehouseInKg,
+			TotalGoodEggInIkat:      math.Ceil((goodEggStoreInKg + goodEggWarehouseInKg) / float64(constant.TotalEggPerIkat)),
+			TotalCrackedEggInKg:     crackedEggStoreInKg + crackedEggWarehouseInKg,
+			TotalCrackedEggInIkat:   math.Ceil((crackedEggStoreInKg + crackedEggWarehouseInKg) / float64(constant.TotalEggPerIkat)),
+			TotalBrokenEggInPlastik: brokenEggStoreInPlastik + brokenEggWarehouseInPlastik,
+		},
+		CashflowSaleGraphs:  cashflowSaleGraphs,
+		EggSaleGraphs:       eggSaleGraphs,
+		LocationSaleSummary: locationSaleSummaries,
+		LocationPieChart: dto.LocationPieChartResponse{
+			StorePercentage:     (goodEggStoreInKg + crackedEggStoreInKg) / (goodEggStoreInKg + crackedEggStoreInKg + crackedEggStoreInKg + crackedEggWarehouseInKg),
+			WarehousePercentage: (goodEggWarehouseInKg + crackedEggWarehouseInKg) / (goodEggStoreInKg + crackedEggStoreInKg + crackedEggStoreInKg + crackedEggWarehouseInKg),
+		},
+	}, nil
 }
 
-func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.GetCashflowOverviewResponse, error) {
+func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error) {
 	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang)
 	// Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional)  -> yang dibayarkan
 	// Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan
-	// Keuntutngan -> 
-	return dto.GetCashflowOverviewResponse{}, nil
+	// Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang
+
+	// Todo : filter location id
+
+	cashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
+		Year: filter.Year,
+	})
+	if err != nil {
+		s.log.Error("failed get cashflow histories", zap.Error(err))
+		return dto.CashflowOverviewResponse{}, err
+	}
+
+	cashflowGraphs := make([]dto.CashflowGraphResponse, 0)
+	eggSaleCashflowGraphs := make([]dto.EggSaleCashflowGraphResponse, 0)
+
+	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+	if err != nil {
+		return dto.CashflowOverviewResponse{}, err
+	}
+
+	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
+
+	totalIncome := decimal.Zero
+	totalProfit := decimal.Zero
+	totalExpense := decimal.Zero
+	totalCash := decimal.Zero
+	totalReceivables := decimal.Zero
+	totalDebt := decimal.Zero
+
+	for _, cashflowHistory := range cashflowHistories {
+		cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
+			Key:     cashflowHistory.CreatedAt.Format("Januari"),
+			Income:  cashflowHistory.Income.String(),
+			Profit:  cashflowHistory.Profit.String(),
+			Expense: cashflowHistory.Expense.String(),
+			Cash:    cashflowHistory.Cash.String(),
+		})
+
+		totalIncome = totalIncome.Add(cashflowHistory.Income)
+		totalProfit = totalProfit.Add(cashflowHistory.Profit)
+		totalExpense = totalExpense.Add(cashflowHistory.Expense)
+		totalCash = totalCash.Add(cashflowHistory.Cash)
+
+		eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
+			Key:              cashflowHistory.CreatedAt.Format("Januari"),
+			WarehouseEggSale: cashflowHistory.WarehouseEggSale.String(),
+			StoreEggSale:     cashflowHistory.StoreEggSale.String(),
+		})
+
+		totalReceivables = totalReceivables.Add(cashflowHistory.Receieveables)
+		totalDebt = totalDebt.Add(cashflowHistory.Debt)
+	}
+
+	previousCashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
+		Year: filter.Year - 1,
+	})
+	if err != nil {
+		s.log.Error("failed get cashflow histories", zap.Error(err))
+		return dto.CashflowOverviewResponse{}, err
+	}
+
+	totalPreviousIncome := decimal.Zero
+	totalPreviousProfit := decimal.Zero
+	totalPreviousExpense := decimal.Zero
+	totalPreviousCash := decimal.Zero
+	totalPreviousReceivables := decimal.Zero
+	totalPreviousDebt := decimal.Zero
+
+	for _, previousCashflowHitory := range previousCashflowHistories {
+		totalPreviousIncome = totalPreviousIncome.Add(previousCashflowHitory.Income)
+		totalPreviousProfit = totalPreviousProfit.Add(previousCashflowHitory.Profit)
+		totalPreviousExpense = totalPreviousExpense.Add(previousCashflowHitory.Expense)
+		totalPreviousCash = totalPreviousCash.Add(previousCashflowHitory.Cash)
+		totalPreviousReceivables = totalPreviousReceivables.Add(previousCashflowHitory.WarehouseEggSale)
+		totalPreviousDebt = totalPreviousDebt.Add(previousCashflowHitory.StoreEggSale)
+	}
+
+	incomeIncrease, incomeDiff := calculateDiff(totalIncome, totalPreviousIncome)
+	profitIncrease, profitDiff := calculateDiff(totalProfit, totalPreviousProfit)
+	expenseIncrease, expenseDiff := calculateDiff(totalExpense, totalPreviousExpense)
+	cashIncrease, cashDiff := calculateDiff(totalCash, totalPreviousCash)
+	receivablesIncrease, receivablesDiff := calculateDiff(totalReceivables, totalPreviousReceivables)
+	debtIncrease, debtDiff := calculateDiff(totalDebt, totalPreviousDebt)
+
+	cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
+		Key:     currentCashflowHistory.CreatedAt.Format("Januari"),
+		Income:  currentCashflowHistory.Income.String(),
+		Profit:  currentCashflowHistory.Profit.String(),
+		Expense: currentCashflowHistory.Expense.String(),
+		Cash:    currentCashflowHistory.Cash.String(),
+	})
+
+	eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
+		Key:              currentCashflowHistory.CreatedAt.Format("Januari"),
+		WarehouseEggSale: currentCashflowHistory.WarehouseEggSale.String(),
+		StoreEggSale:     currentCashflowHistory.StoreEggSale.String(),
+	})
+
+	return dto.CashflowOverviewResponse{
+		CashflowSummary: dto.CashflowSummaryResponse{
+			Income:                    totalIncome.String(),
+			IsIncomeIncrease:          incomeIncrease,
+			IncomeDiffPercentage:      incomeDiff,
+			Profit:                    totalProfit.String(),
+			IsProfitIncrease:          profitIncrease,
+			ProfitDiffPercentage:      profitDiff,
+			Expense:                   totalExpense.String(),
+			IsExpenseIncrease:         expenseIncrease,
+			ExpenseDiffPercentage:     expenseDiff,
+			Debt:                      totalDebt.String(),
+			IsDebtIncrease:            debtIncrease,
+			DebtDiffPercentage:        debtDiff,
+			Cash:                      totalCash.String(),
+			IsCashIncrease:            cashIncrease,
+			CashDiffPercentage:        cashDiff,
+			Receivables:               totalReceivables.String(),
+			IsReceivablesIncrease:     receivablesIncrease,
+			ReceivablesDiffPercentage: receivablesDiff,
+		},
+		CashflowGraphs:        cashflowGraphs,
+		EggSaleCashflowGraphs: eggSaleCashflowGraphs,
+	}, nil
+}
+
+func (s *CashflowService) getIncomeAndReceivablesPerWeek(locationId uint64, weeks map[int]util.DateRange, startDate, endDate time.Time) (map[int]decimal.Decimal, map[int]decimal.Decimal, error) {
+	income := make(map[int]decimal.Decimal)
+	receivables := make(map[int]decimal.Decimal)
+	for w := range weeks {
+		income[w] = decimal.Zero
+		receivables[w] = decimal.Zero
+	}
+
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		LocationId:               locationId,
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, sale := range storeSales {
+		var paid decimal.Decimal
+		for _, p := range sale.Payments {
+			week := util.FindWeek(p.PaymentDate, weeks)
+			income[week] = income[week].Add(p.Nominal)
+			paid = paid.Add(p.Nominal)
+		}
+		if sale.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(sale.DeadlinePaymentDate.Time, weeks)
+			receivables[week] = receivables[week].Add(sale.TotalPrice.Sub(paid))
+		}
+	}
+
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		LocationId:               locationId,
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, sale := range warehouseSales {
+		var paid decimal.Decimal
+		for _, p := range sale.Payments {
+			week := util.FindWeek(p.PaymentDate, weeks)
+			income[week] = income[week].Add(p.Nominal)
+			paid = paid.Add(p.Nominal)
+		}
+		if sale.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(sale.DeadlinePaymentDate.Time, weeks)
+			receivables[week] = receivables[week].Add(sale.TotalPrice.Sub(paid))
+		}
+	}
+
+	afkirSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
+		LocationId:               locationId,
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, sale := range afkirSales {
+		var paid decimal.Decimal
+		for _, p := range sale.Payments {
+			week := util.FindWeek(p.PaymentDate, weeks)
+			income[week] = income[week].Add(p.Nominal)
+			paid = paid.Add(p.Nominal)
+		}
+		if sale.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(sale.DeadlinePaymentDate.Time, weeks)
+			receivables[week] = receivables[week].Add(sale.TotalPrice.Sub(paid))
+		}
+	}
+
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		LocationId:               locationId,
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, adv := range userCashAdvances {
+		var paid decimal.Decimal
+		for _, p := range adv.Payments {
+			week := util.FindWeek(p.PaymentDate, weeks)
+			income[week] = income[week].Add(p.Nominal)
+			paid = paid.Add(p.Nominal)
+		}
+		week := util.FindWeek(adv.DeadlinePaymentDate, weeks)
+		receivables[week] = receivables[week].Add(adv.Nominal.Sub(paid))
+	}
+
+	return income, receivables, nil
+}
+
+func (s *CashflowService) getExpenseAndDebtPerWeek(locationId uint64, weeks map[int]util.DateRange, startDate, endDate time.Time) (map[int]decimal.Decimal, map[int]decimal.Decimal, error) {
+	expense := make(map[int]decimal.Decimal)
+	debt := make(map[int]decimal.Decimal)
+	for w := range weeks {
+		expense[w] = decimal.Zero
+		debt[w] = decimal.Zero
+	}
+
+	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, p := range warehouseItemProcurements {
+		var paid decimal.Decimal
+		for _, pay := range p.Payments {
+			week := util.FindWeek(pay.PaymentDate, weeks)
+			expense[week] = expense[week].Add(pay.Nominal)
+			paid = paid.Add(pay.Nominal)
+		}
+		if p.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(p.DeadlinePaymentDate.Time, weeks)
+			debt[week] = debt[week].Add(p.TotalPrice.Sub(paid))
+		}
+	}
+
+	warehouseCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, p := range warehouseCornProcurements {
+		var paid decimal.Decimal
+		for _, pay := range p.Payments {
+			week := util.FindWeek(pay.PaymentDate, weeks)
+			expense[week] = expense[week].Add(pay.Nominal)
+			paid = paid.Add(pay.Nominal)
+		}
+		if p.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(p.DeadlinePaymentDate.Time, weeks)
+			debt[week] = debt[week].Add(p.TotalPrice.Sub(paid))
+		}
+	}
+
+	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, p := range chickenProcurements {
+		var paid decimal.Decimal
+		for _, pay := range p.Payments {
+			week := util.FindWeek(pay.PaymentDate, weeks)
+			expense[week] = expense[week].Add(pay.Nominal)
+			paid = paid.Add(pay.Nominal)
+		}
+		if p.DeadlinePaymentDate.Valid {
+			week := util.FindWeek(p.DeadlinePaymentDate.Time, weeks)
+			debt[week] = debt[week].Add(p.TotalPrice.Sub(paid))
+		}
+	}
+
+	isPaid := true
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+		IsPaid:     &isPaid,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, salary := range userSalaryPayments {
+		total := salary.BaseSalary.
+			Add(salary.BonusSalary).
+			Add(salary.CompentationSalary).
+			Add(salary.AdditionalWorkSalary).
+			Add(salary.Cashbond)
+		week := util.FindWeek(salary.CreatedAt, weeks)
+		expense[week] = expense[week].Add(total)
+	}
+
+	return expense, debt, nil
+}
+
+func (s *CashflowService) buildStoreOverviewMonthlyGraph(locationId uint64, itemId uint64, year uint64, month enum.Month) ([]dto.EggSaleGraphResponse, error) {
+	weekMaps := util.GetFourWeekRanges(int(year), time.Month(month))
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
+
+	monthStoreSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		ItemId:     itemId,
+	})
+	if err != nil {
+		s.log.Error("failed to get store sale monthly", zap.Error(err))
+		return nil, err
+	}
+
+	monthWarehosueSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		ItemId:     itemId,
+	})
+	if err != nil {
+		s.log.Error("failed to get store sale monthly", zap.Error(err))
+		return nil, err
+	}
+
+	itemSales := make(map[int]float64)
+	for _, storeSale := range monthStoreSales {
+		week := util.FindWeek(storeSale.CreatedAt, weekMaps)
+		if week > 0 {
+			if storeSale.SaleUnit.String() == constant.UnitKg {
+				itemSales[week] += storeSale.Quantity
+			} else if storeSale.SaleUnit.String() == constant.UnitIkat {
+				itemSales[week] += storeSale.Quantity * float64(constant.TotalEggPerIkat)
+			} else if storeSale.SaleUnit.String() == constant.UnitPlastik {
+				itemSales[week] += storeSale.Quantity
+			}
+		}
+	}
+
+	for _, warehosueSale := range monthWarehosueSales {
+		week := util.FindWeek(warehosueSale.CreatedAt, weekMaps)
+		if week > 0 {
+			if warehosueSale.SaleUnit.String() == constant.UnitKg {
+				itemSales[week] += warehosueSale.Quantity
+			} else if warehosueSale.SaleUnit.String() == constant.UnitIkat {
+				itemSales[week] += warehosueSale.Quantity * float64(constant.TotalEggPerIkat)
+			} else if warehosueSale.SaleUnit.String() == constant.UnitPlastik {
+				itemSales[week] += warehosueSale.Quantity
+			}
+		}
+	}
+
+	keys := util.GetSortedKeys(weekMaps)
+	graphs := make([]dto.EggSaleGraphResponse, 0)
+	for _, k := range keys {
+		graphs = append(graphs, dto.EggSaleGraphResponse{
+			Key:   fmt.Sprintf("Minggu %d", k),
+			Value: itemSales[k],
+		})
+	}
+
+	return graphs, nil
+}
+
+func (s *CashflowService) getEggSaleLocationSummary(storeSales *[]entity.StoreSale, warehouseSales *[]entity.WarehouseSale) (map[string]decimal.Decimal, map[string]decimal.Decimal) {
+	revenueMap := make(map[string]decimal.Decimal)
+	receivableMap := make(map[string]decimal.Decimal)
+
+	update := func(loc string, revenue, receivable decimal.Decimal) {
+		revenueMap[loc] = revenueMap[loc].Add(revenue)
+		receivableMap[loc] = receivableMap[loc].Add(receivable)
+	}
+
+	if storeSales != nil {
+		for _, sale := range *storeSales {
+			loc := "Unknown"
+			if sale.Store.Id != 0 && sale.Store.Name != "" {
+				loc = sale.Store.Name
+			}
+
+			paid := decimal.NewFromInt(0)
+			for _, p := range sale.Payments {
+				paid = paid.Add(p.Nominal)
+			}
+
+			receivable := sale.TotalPrice.Sub(paid)
+			update(loc, paid, receivable)
+		}
+	}
+
+	if warehouseSales != nil {
+		for _, sale := range *warehouseSales {
+			loc := "Unknown"
+			if sale.Warehouse.Id != 0 && sale.Warehouse.Name != "" {
+				loc = sale.Warehouse.Name
+			}
+
+			paid := decimal.NewFromInt(0)
+			for _, p := range sale.Payments {
+				paid = paid.Add(p.Nominal)
+			}
+
+			receivable := sale.TotalPrice.Sub(paid)
+			update(loc, paid, receivable)
+		}
+	}
+
+	return revenueMap, receivableMap
+}
+
+func calculateDiff(current, previous decimal.Decimal) (isIncrease bool, percentage float64) {
+	if previous.IsZero() {
+		if current.IsZero() {
+			return false, 0
+		}
+		return true, 100
+	}
+
+	diff := current.Sub(previous)
+	isIncrease = diff.GreaterThan(decimal.Zero)
+	percent := diff.Div(previous).Mul(decimal.NewFromInt(100))
+
+	return isIncrease, percent.InexactFloat64()
+}
+
+func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint64, month enum.Month) (entity.CashflowHistory, error) {
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
+
+	var mx sync.Mutex
+	var wg sync.WaitGroup
+
+	processAddSalary := func(total decimal.Decimal, adder decimal.Decimal) {
+		defer wg.Done()
+		mx.Lock()
+		total.Add(adder)
+		mx.Unlock()
+	}
+
+	// Income
+	totalIncome := decimal.Zero
+	warehouseSalePayments, err := s.repository.GetWarehouseSalePayments(dto.GetWarehouseSalePaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse sale payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range warehouseSalePayments {
+		wg.Add(1)
+		go processAddSalary(totalIncome, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	storeSalePayments, err := s.repository.GetStoreSalePayments(dto.GetStoreSalePaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get store sale payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range storeSalePayments {
+		wg.Add(1)
+		go processAddSalary(totalIncome, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	afkirChickenSalePayments, err := s.repository.GetAfkirChickenSalePayments(dto.GetAfkirChickenSalePaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range afkirChickenSalePayments {
+		wg.Add(1)
+		go processAddSalary(totalIncome, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	userCashAdvancePayments, err := s.repository.GetUserCashAdvancePayments(dto.GetUserCashAdvancePaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advance payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range userCashAdvancePayments {
+		wg.Add(1)
+		go processAddSalary(totalIncome, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	// Expense
+	totalExpense := decimal.Zero
+	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurement payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range chickenProcurementPayments {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	isPaid := true
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		IsPaid:     &isPaid,
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get user salary payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range userSalaryPayments {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.BaseSalary.Add(e.AdditionalWorkSalary).Add(e.BonusSalary).Add(e.CompentationSalary).Sub(e.Cashbond))
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procurement payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range warehouseItemProcurementPayments {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range warehouseItemCornProcurementPayments {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	expensePayments, err := s.repository.GetExpenses(dto.GetExpenseFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get expenses", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, e := range expensePayments {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+
+	for _, e := range userCashAdvances {
+		wg.Add(1)
+		go processAddSalary(totalExpense, e.Nominal)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	// Receivables
+	totalReceivables := decimal.Zero
+	totalEggStoreSale := decimal.Zero
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get store sale cashflows", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, storeSale := range storeSales {
+		wg.Add(1)
+		go func() {
+			totalNominal := storeSale.TotalPrice
+			for _, payment := range storeSale.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			processAddSalary(totalReceivables, totalNominal)
+			processAddSalary(totalEggStoreSale, storeSale.TotalPrice)
+
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	totalWarehouseStoreSale := decimal.Zero
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, warehouseSale := range warehouseSales {
+		wg.Add(1)
+		go func() {
+			totalNominal := warehouseSale.TotalPrice
+			for _, payment := range warehouseSale.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			processAddSalary(totalReceivables, totalNominal)
+			processAddSalary(totalWarehouseStoreSale, warehouseSale.TotalPrice)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, storeSale := range afkirChickenSales {
+		wg.Add(1)
+		go func() {
+			totalNominal := storeSale.TotalPrice
+			for _, payment := range storeSale.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			totalReceivables = totalReceivables.Add(totalNominal)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	userCashAdvanceReceivabless, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advances", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, storeSale := range userCashAdvanceReceivabless {
+		wg.Add(1)
+		go func() {
+			totalNominal := storeSale.Nominal
+			for _, payment := range storeSale.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			totalReceivables = totalReceivables.Add(totalNominal)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	// Debt
+	totalDebt := decimal.Zero
+	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procurements", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, warehouseItemProcurement := range warehouseItemProcurements {
+		wg.Add(1)
+		go func() {
+			totalNominal := warehouseItemProcurement.TotalPrice
+			for _, payment := range warehouseItemProcurement.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			totalDebt = totalDebt.Add(totalNominal)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	warehouseItemCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurements", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, warehouseItemCornProcurement := range warehouseItemCornProcurements {
+		wg.Add(1)
+		go func() {
+			totalNominal := warehouseItemCornProcurement.TotalPrice
+			for _, payment := range warehouseItemCornProcurement.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			totalDebt = totalDebt.Add(totalNominal)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+		LocationId:               locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurements", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+
+	for _, chickenProcurement := range chickenProcurements {
+		wg.Add(1)
+		go func() {
+			totalNominal := chickenProcurement.TotalPrice
+			for _, payment := range chickenProcurement.Payments {
+				totalNominal = totalNominal.Sub(payment.Nominal)
+			}
+
+			totalDebt = totalDebt.Add(totalNominal)
+		}()
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	return entity.CashflowHistory{
+		LocationId:       locationId,
+		Income:           totalIncome,
+		Expense:          totalExpense,
+		Receieveables:    totalReceivables,
+		Debt:             totalDebt,
+		Cash:             totalIncome.Add(totalReceivables),
+		Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),
+		WarehouseEggSale: totalWarehouseStoreSale,
+		StoreEggSale:     totalEggStoreSale,
+	}, nil
 }

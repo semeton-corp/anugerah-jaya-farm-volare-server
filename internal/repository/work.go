@@ -343,20 +343,34 @@ func (r *WorkRepository) GetAdditionalWorkUserById(id uint64) (entity.Additional
 	return additionalWorkUser, nil
 }
 
-func (r *WorkRepository) UpdateAdditionalWorkUser(additionalWorkUser *entity.AdditionalWorkUser) error {
-	err := r.GetDB().Model(&entity.AdditionalWorkUser{}).Where("id = ?", additionalWorkUser.Id).Updates(additionalWorkUser).Error
-	if err != nil {
-		return err
+func (r *WorkRepository) UpdateAdditionalWorkUser(data *entity.AdditionalWorkUser) error {
+	updates := map[string]interface{}{
+		"is_done":                 data.IsDone,
+		"is_additional_work_full": data.IsAdditionalWorkFull,
+		"note":                    data.Note,
+		"finished_at":             data.FinishedAt,
+		"taken_at":                data.TakenAt,
+		"updated_by":              data.UpdatedBy,
 	}
-	return nil
+
+	return r.GetDB().
+		Model(&entity.AdditionalWorkUser{}).
+		Where("id = ?", data.Id).
+		Updates(updates).Error
 }
 
-func (r *WorkRepository) UpdateDailyWorkUser(dailyWorkUser *entity.DailyWorkUser) error {
-	err := r.GetDB().Model(&entity.DailyWorkUser{}).Where("id = ?", dailyWorkUser.Id).Updates(dailyWorkUser).Error
-	if err != nil {
-		return err
+func (r *WorkRepository) UpdateDailyWorkUser(dwu *entity.DailyWorkUser) error {
+	updates := map[string]interface{}{
+		"is_done":     dwu.IsDone,
+		"note":        dwu.Note,
+		"finished_at": dwu.FinishedAt,
+		"updated_by":  dwu.UpdatedBy,
 	}
-	return nil
+
+	return r.GetDB().
+		Model(&entity.DailyWorkUser{}).
+		Where("id = ?", dwu.Id).
+		Updates(updates).Error
 }
 
 func (r *WorkRepository) GetDailyWorkUserById(id uint64) (entity.DailyWorkUser, error) {

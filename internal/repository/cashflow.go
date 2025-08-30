@@ -44,11 +44,14 @@ type ICashflowRepository interface {
 	GetUserSalaryPaymentById(id uint64) (entity.UserSalaryPayment, error)
 
 	CreateUserCashAdvance(data *entity.UserCashAdvance) error
-	CreateUserCashAdvancePayment(data *entity.UserCashAdvancePayment) error
 	GetUserCashAdvances(filter dto.GetUserCashAdvanceFilter) ([]entity.UserCashAdvance, error)
 	GetUserCashAdvance(id uint64) (entity.UserCashAdvance, error)
 	UpdateUserCashAdvance(data *entity.UserCashAdvance) error
+
+	CreateUserCashAdvancePayment(data *entity.UserCashAdvancePayment) error
 	CreateUserCashAdvancePaymentBatch(payments *[]entity.UserCashAdvancePayment) error
+	GetUserCashAdvancePayments(filter dto.GetUserCashAdvancePaymentFilter) ([]entity.UserCashAdvancePayment, error)
+	GetUserCashAdvancePayment(id uint64) (entity.UserCashAdvancePayment, error)
 
 	GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
 	GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
@@ -70,6 +73,8 @@ type ICashflowRepository interface {
 	GetChickenProcurementCashflow(id uint64) (entity.ChickenProcurement, error)
 	GetWarehouseItemProcurementCashflow(id uint64) (entity.WarehouseItemProcurement, error)
 	GetWarehouseItemCornProcurementCashflow(id uint64) (entity.WarehouseItemCornProcurement, error)
+
+	GetCashflowHistories(filter dto.GetCashflowHistoryFilter) ([]entity.CashflowHistory, error)
 }
 
 func NewCashflowRepository(db *gorm.DB) ICashflowRepository {
@@ -486,6 +491,39 @@ func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter
 	return storeSales, nil
 }
 
+func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAdvancePaymentFilter) ([]entity.UserCashAdvancePayment, error) {
+	var data []entity.UserCashAdvancePayment
+
+	query := r.GetDB().Model(&entity.UserCashAdvancePayment{}).
+		Joins("LEFT JOIN user_cash_advances ON user_cash_advances.id = user_cash_advance_payments.user_cash_advance_payment_id").
+		Joins("LEFT JOIN uses ON  users.id = user_cash_advances.user_id")
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(user_cash_advance_payments.created_at) >= ? AND DATE(user_cash_advance_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("users.location_id = ?", filter.LocationId)
+	}
+
+	err := query.Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (r *CashflowRepository) GetUserCashAdvancePayment(id uint64) (entity.UserCashAdvancePayment, error) {
+	var data entity.UserCashAdvancePayment
+	err := r.GetDB().Model(&entity.UserCashAdvancePayment{}).Where("id = ?").Preload("UserCashAdvance.User.Location").Preload("CreatedByUser").First(&data).Error
+	if err != nil {
+		return entity.UserCashAdvancePayment{}, err
+	}
+
+	return data, nil
+}
+
 func (r *CashflowRepository) GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error) {
 	var warehouseSales []entity.WarehouseSale
 	query := r.GetDB().Model(&entity.WarehouseSale{})
@@ -698,6 +736,19 @@ func (r *CashflowRepository) CreateUserCashAdvancePaymentBatch(payments *[]entit
 	return nil
 }
 
-func (r *CashflowRepository) GetCashflowHistory(filter dto.GetCashflowHistoryFilter) ([]entity.CashflowHistory, error) {
-	return nil, nil
+func (r *CashflowRepository) GetCashflowHistories(filter dto.GetCashflowHistoryFilter) ([]entity.CashflowHistory, error) {
+	var data []entity.CashflowHistory
+
+	query := r.GetDB().Model(&entity.CashflowHistory{})
+
+	if filter.Year > 0 {
+		query = query.Where("EXTRACT(year FROM created_at) = ?", filter.Year)
+	}
+
+	err := query.Order("EXTRACT(month FROM created_at) ASC").Find(&data).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return data, err
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -209,10 +208,6 @@ func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.Cag
 	if err != nil {
 		s.log.Error("failed to get cage placement by user id", zap.Error(err))
 		return nil, err
-	}
-
-	if len(data) <= 0 {
-		return nil, errx.NotFound("user cage placement not found")
 	}
 
 	for _, d := range data {
