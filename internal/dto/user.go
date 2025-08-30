@@ -44,6 +44,7 @@ type UserListResponse struct {
 	Id           string       `json:"id"`
 	Name         string       `json:"name"`
 	Email        string       `json:"email"`
+	PhoneNumber  string       `json:"phoneNumber"`
 	PhotoProfile string       `json:"photoProfile"`
 	Role         RoleResponse `json:"role"`
 }
