@@ -1295,7 +1295,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
-			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:              constant.ReceieveablesCategoryStoreEggSale,
 			PlaceName:             data.Store.Location.Name + " - " + data.Store.Name,
 			Name:                  data.Customer.Name,
 			PhoneNumber:           data.Customer.PhoneNumber,
@@ -1332,7 +1332,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
-			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:              constant.ReceieveablesCategoryAfkirChickenSale,
 			PlaceName:             data.ChickenCage.Cage.Location.Name + " - " + data.ChickenCage.Cage.Name,
 			Name:                  data.AfkirChickenCustomer.Name,
 			PhoneNumber:           data.AfkirChickenCustomer.PhoneNumber,
@@ -1370,7 +1370,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
-			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
+			Category:              constant.ReceieveablesCategoryCashAdvance,
 			PlaceName:             data.User.Location.Name,
 			Name:                  data.User.Name,
 			PhoneNumber:           data.User.PhoneNumber,
@@ -2917,6 +2917,10 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		EndDate:    param.DateParam(endDate),
 		LocationId: locationId,
 	})
+	if err != nil {
+		s.log.Error("failed get user cash advance", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
 
 	for _, e := range userCashAdvances {
 		wg.Add(1)

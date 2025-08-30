@@ -65,6 +65,7 @@ func Migrate(db *gorm.DB) {
 		&entity.UserSalaryPayment{},
 		&entity.UserCashAdvance{},
 		&entity.UserCashAdvancePayment{},
+		&entity.Notification{},
 	)
 }
 
@@ -130,5 +131,6 @@ func Rollback(db *gorm.DB) {
 		&entity.UserSalaryPayment{},
 		&entity.UserCashAdvance{},
 		&entity.UserCashAdvancePayment{},
+		&entity.Notification{},
 	)
 }

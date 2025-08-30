@@ -427,7 +427,7 @@ func (r *CashflowRepository) GetUserCashAdvance(id uint64) (entity.UserCashAdvan
 	var data entity.UserCashAdvance
 	err := r.GetDB().Model(&entity.UserCashAdvance{}).Where("id = ?", id).Preload("User.Role").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
-		return entity.UserCashAdvance{}, err
+		return entity.UserCashAdvance{}, errx.BadRequest("user cash advance not found")
 	}
 
 	return data, nil

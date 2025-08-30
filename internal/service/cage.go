@@ -518,7 +518,7 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error) {
 	s.repository.UseTx(false)
 
-	chickenCage, err := s.repository.GetChickenCageFeedById(chickenCageId)
+	chickenCage, err := s.repository.GetChickenCageById(chickenCageId)
 	if err != nil {
 		s.log.Error("failed get chicken cage by id", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err
@@ -569,7 +569,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest, userId uuid.UUID) (dto.ChickenCageFeedResponse, error) {
 	s.repository.UseTx(false)
 
-	chickenCage, err := s.repository.GetChickenCageFeedById(chickenCageId)
+	chickenCage, err := s.repository.GetChickenCageById(chickenCageId)
 	if err != nil {
 		s.log.Error("failed get chicken cage by id", zap.Error(err))
 		return dto.ChickenCageFeedResponse{}, err

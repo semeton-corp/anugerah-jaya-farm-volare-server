@@ -49,7 +49,6 @@ type ICageRepository interface {
 	UpsertCageFeedDetails(details *[]entity.CageFeedDetail) error
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]entity.ChickenCage, error)
-	GetChickenCageFeedById(id uint64) (entity.ChickenCage, error)
 
 	GetChickenMonitoringYesterday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error)
 	GetChickenMonitoringYesterdayByChickenCageIds(chickenCageIds []uint64, date time.Time) ([]entity.ChickenMonitoring, error)
@@ -211,18 +210,7 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 	return chickenCage, nil
 }
 
-func (r *CageRepository) GetChickenCageFeedById(id uint64) (entity.ChickenCage, error) {
-	var chickenCage entity.ChickenCage
-	err := r.GetDB().Preload("Cage.Location").Preload("ChickenProcurement").Preload("Cage.CagePlacement.User.Role").Where("id = ?", id).First(&chickenCage).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.ChickenCage{}, errx.NotFound("chicken cage not found")
-		}
-		return entity.ChickenCage{}, err
-	}
 
-	return chickenCage, nil
-}
 
 func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	var cages []entity.Cage
