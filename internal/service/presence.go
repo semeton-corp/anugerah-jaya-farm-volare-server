@@ -385,7 +385,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 	s.repository.UseTx(false)
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	cageSiteRoleType := []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
+	cageRoleType := []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
 	siteRoleType := []string{constant.RoleKepalaKandang}
 	storeRoleType := []string{constant.RolePekerjaToko}
 	warehouseRoleType := []string{constant.RolePekerjaGudang}
@@ -396,7 +396,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 	}
 
 	responses := make([]dto.UserPresencePendingResponse, 0)
-	if slices.Contains(cageSiteRoleType, role.Name) {
+	if slices.Contains(cageRoleType, role.Name) {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -437,6 +437,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
+				Id:       e.Id,
 				Date:     e.CreatedAt.Format("02 Jan 2006"),
 				Name:     e.User.Name,
 				Status:   e.Status.String(),
@@ -461,6 +462,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
+				Id:       e.Id,
 				Date:     e.CreatedAt.Format("02 Jan 2006"),
 				Name:     e.User.Name,
 				Status:   e.Status.String(),
@@ -485,6 +487,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
+				Id:       e.Id,
 				Date:     e.CreatedAt.Format("02 Jan 2006"),
 				Name:     e.User.Name,
 				Status:   e.Status.String(),
