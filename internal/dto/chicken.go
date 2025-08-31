@@ -271,7 +271,7 @@ type WarehouseItemSummaryResponse struct {
 	TotalNotSafeItem uint64 `json:"totalNotSafeItem"`
 }
 
-type CompanyPerformanceBarChartResponse struct {
+type ProfitabilityPerformanceBarChartResponse struct {
 	Key   string  `json:"key"`
 	Value float64 `json:"value"`
 }
@@ -285,9 +285,12 @@ type ChickenAndWarehouseOverviewResponse struct {
 }
 
 type ChickenAndCompanyOverviewResponse struct {
-	ChickenPerformanceSummary   ChickenPerformanceSummaryResponse  `json:"chickenPerformanceSummary"`
-	CompanyPerformanceBarCharts CompanyPerformanceBarChartResponse `json:"companyPerformanceBarCharts"`
-	ChickenBarCharts            ChickenBarChartResponse            `json:"chickenBarCharts"`
+	ChickenPerformanceSummary         ChickenPerformanceSummaryResponse          `json:"chickenPerformanceSummary"`
+	ProfitabilityPerformanceBarCharts []ProfitabilityPerformanceBarChartResponse `json:"profitabilityPerformanceBarCharts"`
+	ChickenBarCharts                  ChickenBarChartResponse                    `json:"chickenBarCharts"`
+	BEPGoodEgg                        float64                                    `json:"bepGoodEgg"`
+	MarginOfSafety                    float64                                    `json:"marginOfSafety"`
+	RCRatio                           float64                                    `json:"rcRatio"`
 }
 
 type GetChickenAndCompanyOverviewRespoonse struct {

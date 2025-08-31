@@ -288,9 +288,6 @@ func (s *WarehouseService) DeleteWarehouse(id uint64) error {
 func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error) {
 	s.repository.UseTx(false)
 
-	// Todo : create estimation run out date, based on average used per day from request item from request warhouse item.
-	// Todo : fix run out item
-
 	stockWarehouseItem := entity.WarehouseItem{
 		WarehouseId: request.WarehouseId,
 		ItemId:      request.ItemId,

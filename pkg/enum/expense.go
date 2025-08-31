@@ -6,12 +6,14 @@ const (
 	ExpenseCategoryUnknown     ExpenseCategory = 0
 	ExpenseCategoryOperational ExpenseCategory = 1
 	ExpenseCategoryOther       ExpenseCategory = 2
+	ExpenseCategoryTax         ExpenseCategory = 3
 )
 
 var (
 	ExpenseCategoryMap = map[ExpenseCategory]string{
 		ExpenseCategoryOperational: "Operasional",
 		ExpenseCategoryOther:       "Lain-lain",
+		ExpenseCategoryTax:         "Pajak",
 	}
 )
 

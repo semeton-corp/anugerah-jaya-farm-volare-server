@@ -513,6 +513,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	totalWarehouseItemCornProcurement := decimal.Zero
 	totalOperational := decimal.Zero
 	totalOther := decimal.Zero
+	totalTax := decimal.Zero
 	totalUserSalary := decimal.Zero
 	totalUserCashAdvance := decimal.Zero
 
@@ -528,6 +529,8 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			totalOperational = totalOperational.Add(p.Nominal)
 		case enum.ExpenseCategoryOther:
 			totalOther = totalOther.Add(p.Nominal)
+		case enum.ExpenseCategoryTax:
+			totalTax = totalTax.Add(p.Nominal)
 		}
 	}
 
@@ -616,27 +619,85 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 
 	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryOperational {
 		for _, p := range expensePayments {
-			response := dto.ExpenseListResponse{
-				Id:           p.Id,
-				Date:         p.CreatedAt.Format("02 Jan 2006"),
-				Category:     p.ExpenseCategory.String(),
-				Name:         p.Name,
-				PlaceName:    p.Location.Name,
-				Nominal:      p.Nominal.String(),
-				ReceiverName: p.ReceiverName,
-				PaymentProof: p.PaymentProof,
-			}
+			if p.ExpenseCategory == enum.ExpenseCategoryOperational {
+				response := dto.ExpenseListResponse{
+					Id:           p.Id,
+					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Category:     p.ExpenseCategory.String(),
+					Name:         p.Name,
+					PlaceName:    p.Location.Name,
+					Nominal:      p.Nominal.String(),
+					ReceiverName: p.ReceiverName,
+					PaymentProof: p.PaymentProof,
+				}
 
-			switch p.LocationType {
-			case enum.LocationTypeCage:
-				response.PlaceName = p.Cage.Name + " - " + p.Location.Name
-			case enum.LocationTypeStore:
-				response.PlaceName = p.Store.Name + " - " + p.Location.Name
-			case enum.LocationTypeWarehouse:
-				response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
-			}
+				switch p.LocationType {
+				case enum.LocationTypeCage:
+					response.PlaceName = p.Cage.Name + " - " + p.Location.Name
+				case enum.LocationTypeStore:
+					response.PlaceName = p.Store.Name + " - " + p.Location.Name
+				case enum.LocationTypeWarehouse:
+					response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
+				}
 
-			expenseResponses = append(expenseResponses, response)
+				expenseResponses = append(expenseResponses, response)
+			}
+		}
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryOther {
+		for _, p := range expensePayments {
+			if p.ExpenseCategory == enum.ExpenseCategoryOther {
+				response := dto.ExpenseListResponse{
+					Id:           p.Id,
+					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Category:     p.ExpenseCategory.String(),
+					Name:         p.Name,
+					PlaceName:    p.Location.Name,
+					Nominal:      p.Nominal.String(),
+					ReceiverName: p.ReceiverName,
+					PaymentProof: p.PaymentProof,
+				}
+
+				switch p.LocationType {
+				case enum.LocationTypeCage:
+					response.PlaceName = p.Cage.Name + " - " + p.Location.Name
+				case enum.LocationTypeStore:
+					response.PlaceName = p.Store.Name + " - " + p.Location.Name
+				case enum.LocationTypeWarehouse:
+					response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
+				}
+
+				expenseResponses = append(expenseResponses, response)
+			}
+		}
+	}
+
+	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryTax {
+		for _, p := range expensePayments {
+			if p.ExpenseCategory == enum.ExpenseCategoryTax {
+				response := dto.ExpenseListResponse{
+					Id:           p.Id,
+					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Category:     p.ExpenseCategory.String(),
+					Name:         p.Name,
+					PlaceName:    p.Location.Name,
+					Nominal:      p.Nominal.String(),
+					ReceiverName: p.ReceiverName,
+					PaymentProof: p.PaymentProof,
+				}
+
+				switch p.LocationType {
+				case enum.LocationTypeCage:
+					response.PlaceName = p.Cage.Name + " - " + p.Location.Name
+				case enum.LocationTypeStore:
+					response.PlaceName = p.Store.Name + " - " + p.Location.Name
+				case enum.LocationTypeWarehouse:
+					response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
+				}
+
+				expenseResponses = append(expenseResponses, response)
+			}
 		}
 	}
 
@@ -662,6 +723,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	operationalPercentage := 0.0
 	otherPercentage := 0.0
 	userCashAdvancePercentage := 0.0
+	taxPercentage := 0.0
 
 	if !totalPayment.IsZero() {
 		staffPercentage = totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0
@@ -671,6 +733,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		operationalPercentage = totalOperational.Div(totalPayment).InexactFloat64() * 100.0
 		otherPercentage = totalOther.Div(totalPayment).InexactFloat64() * 100.0
 		userCashAdvancePercentage = totalUserCashAdvance.Div(totalPayment).InexactFloat64() * 100.0
+		taxPercentage = totalTax.Div(totalPayment).InexactFloat64() * 100.0
 	}
 
 	return dto.ExpenseOverviewResponse{
@@ -682,6 +745,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			OperationalPercentage:                  operationalPercentage,
 			OtherPercentage:                        otherPercentage,
 			UserCashAdvancePercentage:              userCashAdvancePercentage,
+			TaxPercentage:                          taxPercentage,
 		},
 		Expenses: expenseResponses,
 	}, nil
@@ -722,6 +786,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 		}
 
 		return response, nil
+
 	case constant.ExpenseCategoryChickenProcurement:
 		expense, err := s.repository.GetChickenProcurementPaymentById(id)
 		if err != nil {
@@ -809,6 +874,39 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			PaymentProof:        expense.PaymentProof,
 			InputBy:             expense.CreatedByUser.Name,
 		}, nil
+
+	case constant.ExpenseCategoryTax:
+		expense, err := s.repository.GetExpense(id)
+		if err != nil {
+			s.log.Error("failed get other expense", zap.Error(err))
+			return dto.ExpenseResponse{}, err
+		}
+
+		response := dto.ExpenseResponse{
+			Id:                  expense.Id,
+			Date:                expense.CreatedAt.Format("2006-01-02"),
+			Time:                expense.CreatedAt.Format("15:04:05"),
+			Category:            constant.ExpenseCategoryOther,
+			PlaceName:           expense.Location.Name,
+			Name:                expense.Name,
+			ReceiverName:        expense.ReceiverName,
+			ReceiverPhoneNumber: expense.ReceiverPhoneNumber,
+			Nominal:             expense.Nominal.String(),
+			PaymentMethod:       expense.PaymentMethod.String(),
+			PaymentProof:        expense.PaymentProof,
+			InputBy:             expense.CreatedByUser.Name,
+		}
+
+		switch expense.LocationType {
+		case enum.LocationTypeCage:
+			response.PlaceName = expense.Cage.Name + " - " + expense.Location.Name
+		case enum.LocationTypeStore:
+			response.PlaceName = expense.Store.Name + " - " + expense.Location.Name
+		case enum.LocationTypeWarehouse:
+			response.PlaceName = expense.Warehouse.Name + " - " + expense.Location.Name
+		}
+
+		return response, nil
 
 	case constant.ExpenseCategoryOther:
 		expense, err := s.repository.GetExpense(id)

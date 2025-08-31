@@ -153,7 +153,6 @@ func (r *StoreRepository) CreateStoreRequestItem(storeRequestItem *entity.StoreR
 	return nil
 }
 
-// Todo : join table with user using createdBy
 func (r *StoreRepository) GetStoreRequestItemById(id uint64) (entity.StoreRequestItem, error) {
 	var storeRequestItem entity.StoreRequestItem
 	err := r.GetDB().Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").Preload("CreatedByUser").First(&storeRequestItem, id).Error

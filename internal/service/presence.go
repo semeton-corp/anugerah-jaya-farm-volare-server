@@ -211,8 +211,6 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 		return result
 	}
 
-	//  Todo : check the head of warehouse in the presence exist or no
-
 	cageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
 		LocationType: param.LocationTypeParam(enum.LocationTypeCage),

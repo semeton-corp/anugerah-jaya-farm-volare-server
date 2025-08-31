@@ -252,7 +252,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 
 	workPresence := totalWorkHour / float64(8*util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month)))
 
-	totalSalary := user.Salary.Add(additionalWorkSalary) // Todo : need cashbon
+	totalSalary := user.Salary.Add(additionalWorkSalary)
 	userInformation := dto.UserInformationResponse{
 		TotalWorkHour: totalWorkHour,
 		WorkKpiScore:  (presenceScore + workPresence) / 2,

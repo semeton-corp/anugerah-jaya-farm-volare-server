@@ -87,7 +87,6 @@ func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, ca
 	}
 }
 
-// Todo : When created store auto create 3 egg object
 func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()

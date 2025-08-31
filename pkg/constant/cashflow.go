@@ -12,9 +12,10 @@ const (
 	ExpenseCategoryChickenProcurement           string = "Pengadaan Ayam DOC"
 	ExpenseCategoryWarehouseItemProcurement     string = "Pengadaan Barang"
 	ExpenseCategoryWarehouseItemCornProcurement string = "Pengadaan Jagung"
-	ExpenseCategoryOther                        string = "Lain lain"
+	ExpenseCategoryOther                        string = "Lain-lain"
 	ExpenseCategoryStaff                        string = "Pegawai"
 	ExpenseCategoryUserCashAdvance              string = "Pinjaman Pegawai"
+	ExpenseCategoryTax                          string = "Pajak"
 
 	ExpenseTransactionNameSalary                       string = "Gaji"
 	ExpenseTransactionNameWarehouseItemCornProcurement string = "Pengadaan Jagung"

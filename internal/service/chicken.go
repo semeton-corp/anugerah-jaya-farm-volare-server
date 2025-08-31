@@ -90,6 +90,9 @@ type IChickenService interface {
 
 	GetKPIScoreChickenInMonth(locationId uint64, month enum.Month, year uint64) (float64, error)
 	GetKPIScoreChickenPerWeek(locationId uint64, month enum.Month, year uint64) (map[int]float64, error)
+
+	GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error)
+	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error)
 }
 
 func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService) IChickenService {
@@ -425,7 +428,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 
 	kpiChickenInWeek := make(map[int]float64)
 
-	for key, _ := range weekRanges {
+	for key := range weekRanges {
 		if totalChickenInWeek[key] == 0 {
 			continue
 		}
@@ -2336,7 +2339,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 	return responses, nil
 }
 
-func (s *ChickenService) GetChickenAndWarehosueOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error) {
+func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error) {
 	s.repository.UseTx(false)
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
@@ -2521,7 +2524,16 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		}
 	}
 
-	// Todo : company performance where i can get the data?
+	// Get Warehouse Item
+	// Get Warehouse Item Corn
+	// Get Chicken Procurement
+	// Get User Salary Payment
+
+	// Get Good Egg
+
+	// Get Good Egg Price
+
+	profitabilityGraphs := make([]dto.ProfitabilityPerformanceBarChartResponse, 0)
 
 	return dto.ChickenAndCompanyOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
@@ -2538,6 +2550,6 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 			ChickenLayer:     float64(totalLayerChicken),
 			ChickenAfkir:     float64(totalAfkirChicken),
 		},
-		CompanyPerformanceBarCharts: dto.CompanyPerformanceBarChartResponse{},
+		ProfitabilityPerformanceBarCharts: profitabilityGraphs,
 	}, nil
 }
