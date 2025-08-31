@@ -33,5 +33,5 @@ type GeneralOverview struct {
 	StoreItemSummary           StoreItemSummaryResponse            `json:"storeItemSummary"`
 	SaleSummary                SaleSummaryResponse                 `json:"saleSummary"`
 	ChickenSummary             ChickenSummaryResponse              `json:"chickenSummary"`
-	ProductionAndSaleEggGraphs []ProductionAndSaleEggGraphResponse `json:"ProductionAndSaleEggGraphs"`
+	ProductionAndSaleEggGraphs []ProductionAndSaleEggGraphResponse `json:"productionAndSaleEggGraphs"`
 }

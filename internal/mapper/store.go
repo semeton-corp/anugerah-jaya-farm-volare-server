@@ -47,10 +47,12 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 		Quantity: storeItem.Quantity,
 	}
 
-	if storeItem.Quantity/float64(constant.TotalEggPerIkat) >= 20.0 {
-		response.Description = constant.StoreItemDescriptionSafe
-	} else {
-		response.Description = constant.StoreItemDescriptionDanger
+	if storeItem.Item.Name == constant.GoodEgg {
+		if storeItem.Quantity/float64(constant.TotalEggPerIkat) >= 20.0 {
+			response.Description = constant.StoreItemDescriptionSafe
+		} else {
+			response.Description = constant.StoreItemDescriptionDanger
+		}
 	}
 
 	return response

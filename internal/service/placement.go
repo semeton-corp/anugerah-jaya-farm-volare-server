@@ -6,6 +6,8 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -45,7 +47,27 @@ func NewPlacementService(log *zap.Logger, repository repository.IPlacementReposi
 func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.CreateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	// Todo : need to check the data in db if pic exist return err
+	for _, r := range requests {
+		var totalCageStaff, totalEggStaff uint64
+		cagePlacements, err := s.repository.GetCagePlacementByCageId(r.CageId)
+		if err != nil {
+			s.log.Error("failed get cage placement by cage id")
+			return nil, err
+		}
+
+		for _, cagePlacement := range cagePlacements {
+			switch cagePlacement.User.Role.Name {
+			case constant.RolePekerjaKandang:
+				totalCageStaff += 1
+			case constant.RolePekerjaTelur:
+				totalEggStaff += 1
+			}
+		}
+
+		if totalCageStaff != 1 && totalEggStaff != 1 {
+			return nil, errx.BadRequest("cage in request already have 1 cage staff and 1 egg staff")
+		}
+	}
 
 	data := make([]entity.CagePlacement, 0)
 	for _, request := range requests {

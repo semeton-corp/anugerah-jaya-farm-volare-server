@@ -247,7 +247,7 @@ func (r *CashflowRepository) GetExpenses(filter dto.GetExpenseFilter) ([]entity.
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Find(&data).Error
+	err := query.Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -266,6 +266,7 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 	err := query.
 		Preload("ChickenProcurement.Cage.Location").
 		Preload("ChickenProcurement.Supplier").
+		Preload("CreatedByUser").
 		Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -304,6 +305,7 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 
 	err := query.
 		Preload("User.Role").
+		Preload("CreatedByUser").
 		Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -355,6 +357,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 	err := query.
 		Preload("WarehouseItemProcurement.Warehouse.Location").
 		Preload("WarehouseItemProcurement.Supplier").
+		Preload("CreatedByUser").
 		Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -373,6 +376,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 	err := query.
 		Preload("WarehouseItemCornProcurement.Warehouse.Location").
 		Preload("WarehouseItemCornProcurement.Supplier").
+		Preload("CreatedByUser").
 		Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -459,7 +463,7 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("User.Location").Preload("Payments").Find(&data).Error
+	err := query.Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

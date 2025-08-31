@@ -168,11 +168,10 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	var totalPresent uint64 = 0
 	var totalWorkHour float64 = 0
 	for _, userPresence := range userPresences.Presences {
-		week := util.FindWeek(user.CreatedAt, weeks)
+		week := util.FindWeek(userPresence.CreatedAt, weeks)
 		if week == 0 {
 			continue
 		}
-
 		if userPresence.Status == enum.PresenceStatusPresent.String() {
 			totalPresent++
 			totalPresentWeek[week]++
@@ -180,22 +179,27 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			if userPresence.EndTime != "" {
 				startTime, err := time.Parse("15:04", userPresence.StartTime)
 				if err != nil {
-					continue
+					s.log.Error("invalid start time", zap.Error(err))
+					return dto.UserOverviewResponse{}, err
 				}
 
 				endTime, err := time.Parse("15:04", userPresence.EndTime)
 				if err != nil {
-					continue
+					s.log.Error("invalid end time", zap.Error(err))
+					return dto.UserOverviewResponse{}, err
 				}
 
 				diffHours := endTime.Sub(startTime).Hours()
-				if diffHours > 8 {
+				if diffHours > 8.0 {
 					totalWorkHour += 8.0
 				} else {
 					totalWorkHour += diffHours
 				}
 
 				totalWorkHourWeek[week] += uint64(diffHours)
+			} else {
+				totalWorkHour += 8.0
+				totalWorkHourWeek[week] += 8.0
 			}
 		}
 	}
@@ -234,7 +238,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		}
 	}
 
-	cageStaffRole, err := s.repository.GetRoleByName("Pekerja Kandang")
+	cageStaffRole, err := s.repository.GetRoleByName(constant.RolePekerjaKandang)
 	if err != nil {
 		s.log.Error("failed get role by name", zap.Error(err))
 		return dto.UserOverviewResponse{}, err
@@ -406,7 +410,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
 
-	ownerRole, err := s.repository.GetRoleByName("Owner")
+	ownerRole, err := s.repository.GetRoleByName(constant.RoleOwner)
 	if err != nil {
 		s.log.Error("failed get role by name", zap.Error(err))
 		return dto.UserPerformanceOverviewResponse{}, err
@@ -414,6 +418,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 
 	users, err := s.repository.GetUsers(&dto.GetUserListFilter{
 		ExcluseRoleIds: []uint64{ownerRole.Id},
+		LocationId:     filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed get users", zap.Error(err))
@@ -470,7 +475,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 		var totalPresent uint64 = 0
 		var totalWorkHour float64 = 0
 		for _, userPresence := range userPresences.Presences {
-			week := util.FindWeek(user.CreatedAt, weeks)
+			week := util.FindWeek(userPresence.CreatedAt, weeks)
 			if week == 0 {
 				continue
 			}
@@ -482,22 +487,27 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 				if userPresence.EndTime != "" {
 					startTime, err := time.Parse("15:04", userPresence.StartTime)
 					if err != nil {
-						continue
+						s.log.Error("invalid start time", zap.Error(err))
+						return dto.UserPerformanceOverviewResponse{}, err
 					}
 
 					endTime, err := time.Parse("15:04", userPresence.EndTime)
 					if err != nil {
-						continue
+						s.log.Error("invalid end time", zap.Error(err))
+						return dto.UserPerformanceOverviewResponse{}, err
 					}
 
 					diffHours := endTime.Sub(startTime).Hours()
 					if diffHours > 8 {
 						totalWorkHour += 8.0
+						totalWorkHourWeek[week] += 8.0
 					} else {
 						totalWorkHour += diffHours
+						totalWorkHourWeek[week] += uint64(diffHours)
 					}
 
-					totalWorkHourWeek[week] += uint64(diffHours)
+				} else {
+					totalWorkHourWeek[week] += 8.0
 				}
 			}
 		}

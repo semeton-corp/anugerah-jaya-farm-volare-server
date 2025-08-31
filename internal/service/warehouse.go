@@ -295,13 +295,6 @@ func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRe
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	if request.RunOutCountDown != nil {
-		stockWarehouseItem.EstimationRunOut = sql.NullTime{
-			Time:  time.Now().Add(time.Hour * 24 * time.Duration(*request.RunOutCountDown)),
-			Valid: true,
-		}
-	}
-
 	err := s.repository.CreateWarehouseItem(&stockWarehouseItem)
 	if err != nil {
 		s.log.Error("failed to create warehouse item", zap.Error(err))
@@ -346,17 +339,7 @@ func (s *WarehouseService) GetWarehouseItemByWarehouseIdAndItemId(warehouseId ui
 		return dto.WarehouseItemResponse{}, err
 	}
 
-	var description string
-	if stockWarehouseItem.EstimationRunOut.Valid && time.Now().Add(time.Hour*24*7).After(stockWarehouseItem.EstimationRunOut.Time) {
-		description = constant.WarehouseItemDescriptionDanger
-	} else {
-		description = constant.WarehouseItemDescriptionSafe
-	}
-
-	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&stockWarehouseItem)
-	warehouseStockItemResponse.Description = description
-
-	return warehouseStockItemResponse, nil
+	return mapper.WarehouseItemToResponse(&stockWarehouseItem), nil
 }
 
 func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItemId uint64, request dto.UpdateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error) {
@@ -369,13 +352,6 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 	}
 
 	warehouseItem.Quantity = request.Quantity
-	// Todo : Fix this run out time
-	if request.RunOutCountDown != nil {
-		warehouseItem.EstimationRunOut = sql.NullTime{
-			Time:  time.Now().Add(time.Hour * 24 * time.Duration(*request.RunOutCountDown)),
-			Valid: true,
-		}
-	}
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
@@ -384,15 +360,7 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 		return dto.WarehouseItemResponse{}, err
 	}
 
-	var description string
-	if warehouseItem.EstimationRunOut.Valid && time.Now().Add(time.Hour*24*7).After(warehouseItem.EstimationRunOut.Time) {
-		description = constant.WarehouseItemDescriptionDanger
-	} else {
-		description = constant.WarehouseItemDescriptionSafe
-	}
-
 	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&warehouseItem)
-	warehouseStockItemResponse.Description = description
 
 	return warehouseStockItemResponse, nil
 }
@@ -1682,7 +1650,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	// Todo : make sure warehouse item procurement draft exist, since there is not validation when it deleted
 	err := s.repository.DeleteWarehouseItemProcurementDraft(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item procurement", zap.Error(err))
@@ -2305,10 +2272,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 	}
 
 	warehouseItem.Quantity = warehouseItem.Quantity + request.Quantity
-	warehouseItem.EstimationRunOut = sql.NullTime{
-		Time:  warehouseItem.EstimationRunOut.Time.Add(time.Hour * 24 * time.Duration(warehouseItemProcurement.DaysNeed)),
-		Valid: true,
-	}
+
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	err = s.repository.UpdateWarehouseItemProcurement(&warehouseItemProcurement)
 	if err != nil {
@@ -2498,7 +2462,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	// Todo : make sure warehouse item corn procurement draft exist, since there is not validation when it deleted
 	err := s.repository.DeleteWarehouseItemCornProcurementDraft(id)
 	if err != nil {
 		s.log.Error("failed delete warehouse item corn procurement", zap.Error(err))

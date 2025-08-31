@@ -255,10 +255,9 @@ func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemId(warehouseId
 
 func (r *WarehouseRepository) UpdateWarehouseItem(data *entity.WarehouseItem) error {
 	updates := map[string]interface{}{
-		"quantity":           data.Quantity,
-		"estimation_run_out": data.EstimationRunOut,
-		"expired_at":         data.ExpiredAt,
-		"updated_by":         data.UpdatedBy,
+		"quantity":   data.Quantity,
+		"expired_at": data.ExpiredAt,
+		"updated_by": data.UpdatedBy,
 	}
 
 	return r.GetDB().
@@ -581,7 +580,14 @@ func (r *WarehouseRepository) UpdateWarehouseItemProcurementDraft(data *entity.W
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemProcurementDraft(id uint64) error {
-	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemProcurementDraft{}).Error
+	res := r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemProcurementDraft{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errx.NotFound("warehouse item procurement draft not found")
+	}
+	return nil
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemProcurement(data *entity.WarehouseItemProcurement) error {
@@ -739,7 +745,14 @@ func (r *WarehouseRepository) UpdateWarehouseItemCornProcurementDraft(data *enti
 }
 
 func (r *WarehouseRepository) DeleteWarehouseItemCornProcurementDraft(id uint64) error {
-	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemCornProcurementDraft{}).Error
+	res := r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseItemCornProcurementDraft{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errx.NotFound("warehouse item corn procurement draft not found")
+	}
+	return nil
 }
 
 func (r *WarehouseRepository) CreateWarehouseItemCornProcurement(data *entity.WarehouseItemCornProcurement) error {

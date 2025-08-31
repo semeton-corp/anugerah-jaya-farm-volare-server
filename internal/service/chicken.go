@@ -374,7 +374,7 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 	hdpRate := float64(0)
 	kpiChicken := float64(0)
 
-	if totalChicken != 0 {
+	if totalChicken != 0 || totalChicken-totalDeathChicken > 0 {
 		mortalityRate = float64(totalDeathChicken) / float64(totalChicken)
 		hdpRate = float64(totalEgg) / float64((totalChicken - totalDeathChicken))
 		kpiChicken = ((mortalityRate + hdpRate) / 2) * 100
@@ -418,7 +418,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 			continue
 		}
 
-		totalChickenInWeek[week] += chickenMonitoring.ChickenCage.TotalChicken
+		totalChickenInWeek[week] += chickenMonitoring.TotalChicken
 		totalDeathChickenInWeek[week] += chickenMonitoring.TotalDeathChicken
 	}
 
@@ -431,13 +431,14 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 	}
 
 	kpiChickenInWeek := make(map[int]float64)
+	keys := util.GetSortedKeys(weekRanges)
 
-	for key := range weekRanges {
+	for key := range keys {
 		if totalChickenInWeek[key] == 0 {
 			continue
 		}
 
-		mortalityRate := float64(totalChickenInWeek[key]) / float64(totalDeathChickenInWeek[key])
+		mortalityRate := float64(totalDeathChickenInWeek[key]) / float64(totalChickenInWeek[key])
 		hdpRate := float64(totalEggInWeek[key]) / float64((totalChickenInWeek[key] - totalDeathChickenInWeek[key]))
 		kpiChickenInWeek[key] = ((mortalityRate + hdpRate) / 2) * 100
 	}
@@ -1725,7 +1726,7 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.AfkirChickenSalePayment{
-			AfkirChickenSaleId: 0, // will be set after sale creation
+			AfkirChickenSaleId: 0,
 			Nominal:            nominal,
 			PaymentDate:        paymentDate,
 			PaymentMethod:      paymentMethod,
@@ -1792,6 +1793,31 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
+	if !isUsed {
+		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
+			CageId:               chickenCage.Cage.Id,
+			ChickenProcurementId: nil,
+			TotalChicken:         0,
+		}, userId)
+		if err != nil {
+			return dto.AfkirChickenSaleResponse{}, err
+		}
+	}
+
+	afkirChickenCustomer, err := s.repository.GetAfkirChickenCustomer(request.AfkirChickenCustomerId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	afkirChickenCustomer.LatestPrice = pricePerChicken
+
+	err = s.repository.UpdateAfkirChickenCustomer(&afkirChickenCustomer)
+	if err != nil {
+		s.log.Error("failed update afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
 	if err = s.repository.Commit(); err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
 	}
@@ -1801,7 +1827,6 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	// Map payments with remaining calculation
 	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
 	remainingPayment := afkirSale.TotalPrice
 	for i, pay := range afkirSale.Payments {
@@ -1943,7 +1968,6 @@ func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	// Map payments with remaining calculation
 	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
 	remainingPayment := afkirSale.TotalPrice
 	for i, pay := range afkirSale.Payments {
@@ -2172,7 +2196,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 
 		totalPayment = totalPayment.Add(nominal)
 		payments = append(payments, entity.AfkirChickenSalePayment{
-			AfkirChickenSaleId: 0, // will be set after sale creation
+			AfkirChickenSaleId: 0,
 			Nominal:            nominal,
 			PaymentDate:        paymentDate,
 			PaymentMethod:      paymentMethod,
@@ -2250,6 +2274,20 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		}
 	}
 
+	afkirChickenCustomer, err := s.repository.GetAfkirChickenCustomer(request.AfkirChickenCustomerId)
+	if err != nil {
+		s.log.Error("failed get afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
+	afkirChickenCustomer.LatestPrice = pricePerChicken
+
+	err = s.repository.UpdateAfkirChickenCustomer(&afkirChickenCustomer)
+	if err != nil {
+		s.log.Error("failed update afkir chicken customer", zap.Error(err))
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+
 	if err = s.repository.Commit(); err != nil {
 		s.log.Error("failed commit transcation", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, err
@@ -2260,7 +2298,6 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		return dto.AfkirChickenSaleResponse{}, err
 	}
 
-	// Map payments with remaining calculation
 	resPayments := make([]dto.AfkirChickenSalePaymentResponse, len(afkirSale.Payments))
 	remainingPayment := afkirSale.TotalPrice
 	for i, pay := range afkirSale.Payments {
@@ -2319,7 +2356,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				TotalChicken:                 chickenCage.TotalChicken,
 				TotalEgg:                     (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg,
 				AverageConsumptionPerChicken: chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken),
-				AverageWeightPerEgg:          float64((eggMonitoring.TotalKarpetCrackedEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingCrackedEgg+(eggMonitoring.TotalKarpetGoodEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingGoodEgg) / eggMonitoring.TotalWeightAllEgg,
+				AverageWeightPerEgg:          eggMonitoring.TotalWeightAllEgg / float64((eggMonitoring.TotalKarpetCrackedEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingCrackedEgg+(eggMonitoring.TotalKarpetGoodEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingGoodEgg),
 				MortalityRate:                float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken),
 			}
 

@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -83,6 +84,17 @@ func (s *Scheduler) InitScheduler() {
 			err := s.createUserSalaryPaymentPerMonth(tx)
 			if err != nil {
 				s.log.Error("failed to create user salary payment per month", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("0 0 1 * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.refreshChickenCageNeedFeed(tx)
+			if err != nil {
+				s.log.Error("failed to refresh chicken cage need feed", zap.Error(err))
 				return err
 			}
 			return nil
@@ -173,12 +185,131 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 
 // Todo : check if the chicken is need vaccine or no when the age is reach new category
 
-// Todo : update every day the chicken cage is need feed
+func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
+	var chickenCages []entity.ChickenCage
 
-// Todo : create kpi performance every 6 pm
+	subQuery := tx.Model(&entity.ChickenCage{}).
+		Select("MAX(id)").
+		Group("cage_id")
+
+	query := tx.Where("chicken_cages.id IN (?)", subQuery)
+
+	err := query.
+		Order("chicken_cages.created_at DESC").
+		Find(&chickenCages).Error
+	if err != nil {
+		return err
+	}
+
+	chickenCageIds := make([]uint64, 0)
+	for _, chickenCage := range chickenCages {
+		chickenCageIds = append(chickenCageIds, chickenCage.Id)
+	}
+
+	err = tx.Model(&entity.ChickenCage{}).Where("id IN ?", chickenCageIds).Updates(map[string]any{
+		"is_need_feed": true,
+	}).Error
+	if err != nil {
+		return err
+	}
+
+	s.log.Info(fmt.Sprintf("Success update %d chicken cage to get feed", len(chickenCages)))
+	return nil
+}
+
+func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
+	var chickenCages []entity.ChickenCage
+	query := tx.Model(&entity.ChickenCage{})
+	subQuery := tx.Model(&entity.ChickenCage{}).
+		Select("MAX(id)").
+		Group("cage_id")
+	query = query.Where("chicken_cages.id IN (?)", subQuery)
+	err := query.
+		Preload("Cage.Location").
+		Preload("ChickenProcurement").
+		Preload("Cage.CagePlacement.User.Role").
+		Order("chicken_cages.created_at DESC").
+		Find(&chickenCages).Error
+
+	if err != nil {
+		return err
+	}
+
+	data := make([]entity.ChickenPerformance, 0)
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	for _, chickenCage := range chickenCages {
+		var chickenMonitoring entity.ChickenMonitoring
+		err := tx.
+			Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCage.Id, today).
+			First(&chickenMonitoring).Error
+		if err != nil {
+			return err
+		}
+
+		var eggMonitoring entity.EggMonitoring
+		err = tx.
+			Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCage.Id, today).
+			First(&eggMonitoring).Error
+		if err != nil {
+			return err
+		}
+
+		avgConsumption := 0.0
+		if chickenCage.TotalChicken > 0 {
+			avgConsumption = chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken)
+		}
+
+		totalEggCount := eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg
+		avgWeight := 0.0
+		if totalEggCount > 0 {
+			avgWeight = (eggMonitoring.TotalWeightGoodEgg + eggMonitoring.TotalWeightCrackedEgg) / float64(totalEggCount)
+		}
+
+		mortality := 0.0
+		if chickenCage.TotalChicken > 0 {
+			mortality = float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken)
+		}
+
+		fcr := 0.0
+		if chickenCage.TotalChicken > 0 {
+			fcr = float64(totalEggCount) / float64(chickenCage.TotalChicken) * 100.0
+		}
+
+		hdp := 0.0
+		if totalEggCount > 0 {
+			hdp = float64(chickenMonitoring.TotalFeed) / float64(totalEggCount) * 100.0
+		}
+
+		newData := entity.ChickenPerformance{
+			CageName:                     chickenCage.Cage.Name,
+			ChickenCategory:              util.GetChickenCategory(&chickenCage),
+			ChickenAge:                   util.GetChickenAge(&chickenCage),
+			TotalChicken:                 chickenCage.TotalChicken,
+			TotalEgg:                     totalEggCount,
+			AverageConsumptionPerChicken: avgConsumption,
+			AverageWeightPerEgg:          avgWeight,
+			MortalityRate:                mortality,
+			FCR:                          fcr,
+			HDP:                          hdp,
+		}
+
+		data = append(data, newData)
+	}
+
+	if len(data) > 0 {
+		err = tx.Model(&entity.ChickenPerformance{}).CreateInBatches(&data, len(data)).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	s.log.Info(fmt.Sprintf("success create %d kpi chicken cage", len(data)))
+	return nil
+}
 
 func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
-	s.log.Info("Create user salary payments...")
+	s.log.Info("create user salary payments per month...")
 
 	var users []entity.User
 	if err := tx.Preload("Role").Find(&users).Error; err != nil {
@@ -187,7 +318,7 @@ func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
 
 	data := make([]entity.UserSalaryPayment, 0)
 	for _, user := range users {
-		if user.Role.Name != constant.RoleOwner {
+		if user.Role.Name != constant.RoleOwner && user.SalaryInterval == enum.SalaryIntervalMonthly {
 			data = append(data, entity.UserSalaryPayment{
 				UserId:               user.Id,
 				BaseSalary:           user.Salary,
@@ -203,7 +334,37 @@ func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
 		return err
 	}
 
-	s.log.Info(fmt.Sprintf("Success create %d user salary payment", len(data)))
+	s.log.Info(fmt.Sprintf("success create %d user salary payment", len(data)))
+	return nil
+}
+
+func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
+	s.log.Info("create user salary payments per daily...")
+
+	var users []entity.User
+	if err := tx.Preload("Role").Find(&users).Error; err != nil {
+		return err
+	}
+
+	data := make([]entity.UserSalaryPayment, 0)
+	for _, user := range users {
+		if user.Role.Name != constant.RoleOwner && user.SalaryInterval == enum.SalaryIntervalDaily {
+			data = append(data, entity.UserSalaryPayment{
+				UserId:               user.Id,
+				BaseSalary:           user.Salary,
+				BonusSalary:          decimal.Zero,
+				CompentationSalary:   decimal.Zero,
+				AdditionalWorkSalary: decimal.Zero,
+				Cashbond:             decimal.Zero,
+			})
+		}
+	}
+
+	if err := tx.Model(&entity.UserSalaryPayment{}).CreateInBatches(&data, len(data)).Error; err != nil {
+		return err
+	}
+
+	s.log.Info(fmt.Sprintf("success create %d user salary payment", len(data)))
 	return nil
 }
 

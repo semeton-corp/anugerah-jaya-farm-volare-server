@@ -141,7 +141,7 @@ func (r *EggRepository) GetEggMonitoringToday(chickenCageId uint64, date time.Ti
 	var monitoring entity.EggMonitoring
 
 	err := r.GetDB().
-		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("02 Jan 2006")).
+		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date).
 		First(&monitoring).Error
 
 	if err != nil {

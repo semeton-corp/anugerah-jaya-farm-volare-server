@@ -14,13 +14,14 @@ type ChickenPerformance struct {
 	ChickenCategory              enum.ChickenCategory     `gorm:"type:int;not null"`
 	ChickenAge                   uint64                   `gorm:"type:int;not null"`
 	TotalChicken                 uint64                   `gorm:"type:int;not null"`
-	TotalGoodEgg                 uint64                   `gorm:"type:int;not null"`
+	TotalEgg                     uint64                   `gorm:"type:int;not null"`
 	AverageConsumptionPerChicken float64                  `gorm:"type:decimal;not null"`
-	AverageWeightPerGoodEgg      float64                  `gorm:"type:decimal;not null"`
+	AverageWeightPerEgg          float64                  `gorm:"type:decimal;not null"`
 	FCR                          float64                  `gorm:"type:decimal;not null"`
 	HDP                          float64                  `gorm:"type:decimal;not null"`
 	MortalityRate                float64                  ` gorm:"type:decimal;not null"`
 	Productivity                 enum.ChickenProductivity `gorm:"type:int;not null"`
+	IsGetFeed                    bool                     `gorm:"type:bool;not null"`
 	CreatedAt                    time.Time                `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                    uuid.NullUUID            `gorm:"type:varchar(255)"`
 	UpdatedAt                    time.Time                `gorm:"type:timestamp;autoUpdateTime"`

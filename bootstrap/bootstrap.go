@@ -179,6 +179,9 @@ func (b *Bootstrap) Run() {
 	warehouseListener := _listener.NewWarehouseListener(b.cache, b.db, b.log)
 	go warehouseListener.Start(context.Background())
 
+	storeListener := _listener.NewStoreListener(b.cache, b.db, b.log)
+	go storeListener.Start(context.Background())
+
 	b.router.Use(cors.New(cors.Config{
 		AllowOrigins:  viper.GetString("server.cors.allow_origins"),
 		AllowMethods:  viper.GetString("server.cors.allow_methods"),

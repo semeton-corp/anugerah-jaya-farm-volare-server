@@ -47,15 +47,13 @@ type WarehouseDetailResponse struct {
 }
 
 type CreateWarehouseItemRequest struct {
-	WarehouseId     uint64  `json:"warehouseId" validate:"required"`
-	ItemId          uint64  `json:"itemId" validate:"required"`
-	Quantity        float64 `json:"quantity" validate:"required"`
-	RunOutCountDown *uint64 `json:"runOutCountDown"`
+	WarehouseId uint64  `json:"warehouseId" validate:"required"`
+	ItemId      uint64  `json:"itemId" validate:"required"`
+	Quantity    float64 `json:"quantity" validate:"required"`
 }
 
 type UpdateWarehouseItemRequest struct {
-	Quantity        float64 `json:"quantity" validate:"required"`
-	RunOutCountDown *uint64 `json:"runOutCountDown"`
+	Quantity float64 `json:"quantity" validate:"required"`
 }
 
 type WarehouseItemResponse struct {
@@ -64,6 +62,7 @@ type WarehouseItemResponse struct {
 	Quantity         float64           `json:"quantity"`
 	EstimationRunOut string            `json:"estimationRunOut"`
 	Description      string            `json:"description"`
+	ExpiredAt        string            `json:"expiredAt"`
 }
 
 type CreateWarehouseItemProcurementRequest struct {

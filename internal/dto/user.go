@@ -135,8 +135,8 @@ type UserPerformanceOverviewResponse struct {
 
 type GetUserPerformanceOverviewFilter struct {
 	LocationId uint64           `query:"locationId"`
-	Month      param.MonthParam `query:"month"`
-	Year       uint64           `query:"year"`
+	Month      param.MonthParam `query:"month" validate:"required"`
+	Year       uint64           `query:"year" validate:"required"`
 }
 
 type UserSalaryGraphResponse struct {

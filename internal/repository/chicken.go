@@ -503,7 +503,14 @@ func (r *ChickenRepository) UpdateAfkirChickenSaleDraft(data *entity.AfkirChicke
 }
 
 func (r *ChickenRepository) DeleteAfkirChickenSaleDraft(id uint64) error {
-	return r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenSaleDraft{}).Error
+	res := r.GetDB().Where("id = ?", id).Delete(&entity.AfkirChickenSaleDraft{})
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return errx.NotFound("afkir chicken sale not found")
+	}
+	return nil
 }
 
 func (r *ChickenRepository) CreateAfkirChickenSale(data *entity.AfkirChickenSale) error {
@@ -669,7 +676,7 @@ func (r *ChickenRepository) GetChickenMonitoringToday(chickenCageId uint64, date
 	var monitoring entity.ChickenMonitoring
 
 	err := r.GetDB().
-		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date.Format("02 Jan 2006")).
+		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date).
 		First(&monitoring).Error
 
 	if err != nil {

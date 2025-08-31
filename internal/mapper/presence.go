@@ -74,6 +74,7 @@ func PresenceToResponseList(presence *entity.UserPresence) dto.PresenceListRespo
 		Date:             presence.CreatedAt.Format("02 Januari 2006"),
 		Status:           presence.Status.String(),
 		SubmissionStatus: presence.SubmissionPresenceStatus.String(),
+		CreatedAt:        presence.CreatedAt,
 	}
 
 	if presence.StartTime.Time != nil {
@@ -85,7 +86,14 @@ func PresenceToResponseList(presence *entity.UserPresence) dto.PresenceListRespo
 	}
 
 	if presence.EndTime.Time != nil {
-		extraTime := presence.EndTime.Time.Sub(time.Date(presence.CreatedAt.Year(), presence.CreatedAt.Month(), presence.CreatedAt.Day(), 5, 0, 0, 0, time.Local))
+		endOfWork := time.Date(
+			presence.CreatedAt.Year(),
+			presence.CreatedAt.Month(),
+			presence.CreatedAt.Day(),
+			17, 0, 0, 0, time.Local,
+		)
+
+		extraTime := presence.EndTime.Time.Sub(endOfWork)
 		if extraTime > 0 {
 			presenceDto.Overtime = extraTime.Hours()
 		} else {

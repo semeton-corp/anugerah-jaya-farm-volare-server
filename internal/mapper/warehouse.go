@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -24,36 +25,27 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 	}
 }
 
-// Todo : fix the description
 func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseItemResponse {
-	var description string
-	var estimationRunOutStr string
-
-	if warehouseItem.EstimationRunOut.Valid {
-		now := time.Now()
-		runOutTime := warehouseItem.EstimationRunOut.Time
-		daysLeft := int(runOutTime.Sub(now).Hours() / 24)
-		if daysLeft < 0 {
-			daysLeft = 0
-		}
-		estimationRunOutStr = fmt.Sprintf("%d hari lagi", daysLeft)
-
-		if now.Add(time.Hour * 24 * 7).After(runOutTime) {
-			description = constant.WarehouseItemDescriptionDanger
-		} else {
-			description = constant.WarehouseItemDescriptionSafe
-		}
-	} else {
-		description = constant.WarehouseItemDescriptionSafe
-		estimationRunOutStr = ""
+	response := dto.WarehouseItemResponse{
+		Warehouse: WarehouseToResponse(&warehouseItem.Warehouse),
+		Item:      ItemToResponse(&warehouseItem.Item),
+		Quantity:  warehouseItem.Quantity,
 	}
 
-	response := dto.WarehouseItemResponse{
-		Warehouse:        WarehouseToResponse(&warehouseItem.Warehouse),
-		Item:             ItemToResponse(&warehouseItem.Item),
-		Quantity:         warehouseItem.Quantity,
-		EstimationRunOut: estimationRunOutStr,
-		Description:      description,
+	// Todo : wait for corn description
+	if warehouseItem.Item.Category != enum.ItemCategoryEgg && warehouseItem.Item.Category != enum.ItemCategoryCornMaterial {
+		daysLeft := math.Ceil(warehouseItem.Quantity / warehouseItem.Item.DailySpending.Float64)
+		response.EstimationRunOut = fmt.Sprintf("%f hari lagi", daysLeft)
+
+		if daysLeft >= 3 {
+			response.Description = constant.WarehouseItemDescriptionSafe
+		} else {
+			response.Description = constant.WarehouseItemDescriptionDanger
+		}
+	}
+
+	if warehouseItem.ExpiredAt.Valid {
+		response.ExpiredAt = warehouseItem.ExpiredAt.Time.Format("02 Jan 2006")
 	}
 
 	return response

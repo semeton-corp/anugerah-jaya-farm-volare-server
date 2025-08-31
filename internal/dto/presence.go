@@ -18,6 +18,7 @@ type PresenceListResponse struct {
 	SubmissionStatus string       `json:"submissionStatus"`
 	Evidence         string       `json:"evidence"`
 	Note             string       `json:"note"`
+	CreatedAt        time.Time    `json:"-"`
 }
 
 type PresenceResponse struct {
