@@ -2135,7 +2135,6 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(e.AdditionalWorkSalary)
 			totalBonusSalary = totalBonusSalary.Add(e.BonusSalary)
 		} else {
-
 			withDeleted := true
 			additionalWorkSalary := decimal.Zero
 			additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(e.UserId,
@@ -2268,17 +2267,16 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		return dto.UserSalaryDetailResponse{}, err
 	}
 
-	userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
-	if err != nil {
-		return dto.UserSalaryDetailResponse{}, err
-	}
-
 	additionalWorkUserResponses := make([]dto.AdditionalWorkUserResponse, 0)
+	userCashAdvanceSummaryResponses := make([]dto.UserCashAdvanceSummaryResponse, 0)
+	var date, time string
 	totalAdditonalWorkSalary := decimal.Zero
 	totalBonusSalary := decimal.Zero
 	if userSalaryPayment.IsPaid {
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
 		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
+		date = userSalaryPayment.CreatedAt.Format("02 Jan 2006")
+		time = userSalaryPayment.CreatedAt.Format("15:04")
 	} else {
 		withDeleted := true
 		additionalWorkSalary := decimal.Zero
@@ -2342,14 +2340,22 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage / 100).Mul(userSalaryPayment.BaseSalary))
 		}
 
+		userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
+		if err != nil {
+			return dto.UserSalaryDetailResponse{}, err
+		}
+
+		userCashAdvanceSummaryResponses = userCashAdvanceSummary
 		totalBonusSalary = totalBonusSalary.Add(bonusSalary)
 	}
 
 	return dto.UserSalaryDetailResponse{
 		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
+		Date:                     date,
+		Time:                     time,
 		SalaryMonth:              userSalaryPayment.CreatedAt.Format("Januari"),
 		AdditionalWorkUsers:      additionalWorkUserResponses,
-		UserCashAdvanceSummaries: userCashAdvanceSummary,
+		UserCashAdvanceSummaries: userCashAdvanceSummaryResponses,
 		BaseSalary:               userSalaryPayment.BaseSalary.String(),
 		CompentationSalary:       userSalaryPayment.CompentationSalary.String(),
 		BonusSalary:              totalBonusSalary.String(),

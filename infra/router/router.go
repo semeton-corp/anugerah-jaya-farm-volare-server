@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
@@ -24,11 +25,11 @@ func New() *fiber.App {
 		},
 	)
 
-	// router.Use(logger.New(logger.Config{
-	// 	Format:     "${time} ${status} ${latency} ${method} ${path} ${ip}\n",
-	// 	TimeFormat: "02-01-2006 15:04:05",
-	// 	TimeZone:   "Asia/Jakarta",
-	// }))
+	router.Use(logger.New(logger.Config{
+		Format:     "${time} ${status} ${latency} ${method} ${path} ${ip}\n",
+		TimeFormat: "02-01-2006 15:04:05",
+		TimeZone:   "Asia/Jakarta",
+	}))
 
 	return router
 }
@@ -53,15 +54,6 @@ func GlobalErrorHandler() fiber.ErrorHandler {
 			)
 		}
 
-		if ce, ok := err.(*errx.Errx); ok {
-			return response.ErrorResponse(
-				c,
-				ce.Err.Code,
-				ce.Err.Error(),
-				ce.Error(),
-			)
-		}
-
 		if ve, ok := err.(validator.ValidationErrors); ok {
 			out := make(map[string]string)
 			for _, e := range ve {
@@ -73,6 +65,15 @@ func GlobalErrorHandler() fiber.ErrorHandler {
 				fiber.ErrBadRequest.Code,
 				out,
 				fiber.ErrBadRequest.Message,
+			)
+		}
+
+		if ce, ok := err.(*errx.Errx); ok {
+			return response.ErrorResponse(
+				c,
+				ce.Err.Code,
+				ce.Err.Error(),
+				ce.Error(),
 			)
 		}
 

@@ -197,15 +197,16 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 			case enum.PresenceStatusAlpha:
 				summary.TotalAlphaUser += 1
 			}
-			result[e.PlaceId] = summary
 
-			if e.PresenceStatus == enum.PresenceStatusPermission && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isSickUserPendingExist {
+			if e.PresenceStatus == enum.PresenceStatusSick && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isSickUserPendingExist {
 				isSickUserPendingExist = true
 				summary.IsSickUserPendingExist = true
-			} else if e.PresenceStatus == enum.PresenceStatusSick && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isPermissionUserPendingExist {
+			} else if e.PresenceStatus == enum.PresenceStatusPermission && e.SubmissionPresenceStatus == enum.SubmissionPresenceStatusPending && !isPermissionUserPendingExist {
 				isPermissionUserPendingExist = true
 				summary.IsPermissionUserPendingExist = true
 			}
+
+			result[e.PlaceId] = summary
 		}
 
 		return result

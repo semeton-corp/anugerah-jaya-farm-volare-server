@@ -171,6 +171,8 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 	return nil
 }
 
+// Todo : check if the chicken is need vaccine or no
+
 // Todo : update every day the chicken cage is need feed
 
 // Todo : create kpi performance every 6 pm

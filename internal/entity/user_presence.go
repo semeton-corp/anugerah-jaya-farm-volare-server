@@ -32,7 +32,7 @@ type LocationPresenceSummary struct {
 	PlaceName                string                        `gorm:"column:place_name"`
 	UserId                   uuid.UUID                     `gorm:"column:user_id"`
 	PresenceStatus           enum.PresenceStatus           `gorm:"column:presence_status"`
-	SubmissionPresenceStatus enum.SubmissionPresenceStatus `gorm:"column:submission_presences_status"`
+	SubmissionPresenceStatus enum.SubmissionPresenceStatus `gorm:"column:submission_presence_status"`
 }
 
 type UserPresenceSummary struct {

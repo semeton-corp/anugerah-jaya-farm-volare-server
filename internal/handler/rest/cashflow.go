@@ -253,12 +253,12 @@ func (h *CashflowHandler) CreateUserCashAdvancePayment(c *fiber.Ctx) error {
 	var request dto.CreateUserCashAdvancePaymentRequest
 	if err := c.BodyParser(&request); err != nil {
 		h.log.Error("failed parse body request", zap.Error(err))
-		return errx.BadRequest("failed to parse request body")
+		return err
 	}
 
 	if err := h.validator.Struct(request); err != nil {
 		h.log.Error("error validation", zap.Error(err))
-		return errx.BadRequest(err.Error())
+		return err
 	}
 
 	userId, ok := c.Locals("userId").(string)
