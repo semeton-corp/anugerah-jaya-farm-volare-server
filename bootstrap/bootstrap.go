@@ -123,19 +123,19 @@ func (b *Bootstrap) DepedencyInjection() {
 	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
 
 	chickenRepository := repository.NewChickenRepository(b.db)
-	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService)
+	chickenService := service.NewChickenService(b.log, chickenRepository, eggService, cageService, itemService)
 	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
-
-	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)
-	generalHandler := rest.NewGeneralHandler(b.log, generalService, b.validator)
 
 	userRepository := repository.NewUserRepository(b.db)
 	userService := service.NewUserService(b.log, userRepository, workService, presenceService, chickenService, placementService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
 	cashflowRepository := repository.NewCashflowRepository(b.db)
-	cashflowService := service.NewCashflowService(b.log, cashflowRepository, storeService, warehouseService, chickenService, userService, workService, itemService)
+	cashflowService := service.NewCashflowService(b.log, cashflowRepository, userService, workService, itemService)
 	cashflowHandler := rest.NewCashflowHandler(b.log, cashflowService, b.validator)
+
+	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)
+	generalHandler := rest.NewGeneralHandler(b.log, generalService, b.validator)
 
 	notificationRepository := repository.NewNotificationRepository(b.db)
 	notificationService := service.NewNotificationService(b.log, notificationRepository)

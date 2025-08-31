@@ -30,10 +30,8 @@ func UserToListResponse(user *entity.User) dto.UserListResponse {
 		Email:        user.Email,
 		PhotoProfile: user.PhotoProfile,
 		PhoneNumber:  user.PhoneNumber,
-		Role: dto.RoleResponse{
-			Id:   user.Role.Id,
-			Name: user.Role.Name,
-		},
+		Role:         RoleToResponse(&user.Role),
+		Location:     LocationToResponse(&user.Location),
 	}
 }
 

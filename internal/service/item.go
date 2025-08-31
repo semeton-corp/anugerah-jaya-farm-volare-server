@@ -25,6 +25,7 @@ type IItemService interface {
 	GetItemPriceById(id uint64) (dto.ItemPriceResponse, error)
 	UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, updatedBy uuid.UUID) (dto.ItemPriceResponse, error)
 	DeleteItemPrice(id uint64) error
+	GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit string) (dto.ItemPriceResponse, error)
 
 	CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, createdBy uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	GetItemDiscounts() ([]dto.ItemPriceDiscountResponse, error)
@@ -56,10 +57,16 @@ func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, create
 		return dto.ItemPriceResponse{}, errx.BadRequest("invalid price format")
 	}
 
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.ItemPriceResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
 	eggPrice := entity.ItemPrice{
 		Category:  request.Category,
 		ItemId:    request.ItemId,
 		Price:     price,
+		SaleUnit:  saleUnit,
 		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
 	}
 
@@ -110,29 +117,35 @@ func (s *ItemService) GetItemPriceById(id uint64) (dto.ItemPriceResponse, error)
 func (s *ItemService) UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, userId uuid.UUID) (dto.ItemPriceResponse, error) {
 	s.repository.UseTx(false)
 
-	eggPrice, err := s.repository.GetItemPriceById(id)
+	itemPrice, err := s.repository.GetItemPriceById(id)
 	if err != nil {
 		s.log.Error("failed to get item price by id", zap.Error(err))
 		return dto.ItemPriceResponse{}, err
 	}
 
-	eggPrice.Price, err = decimal.NewFromString(request.Price)
+	itemPrice.Price, err = decimal.NewFromString(request.Price)
 	if err != nil {
 		s.log.Error("failed to parse price", zap.Error(err))
 		return dto.ItemPriceResponse{}, errx.BadRequest("invalid price format")
 	}
 
-	eggPrice.Category = request.Category
-	eggPrice.ItemId = request.ItemId
-	eggPrice.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	saleUnit := enum.ValueOfSaleUnit(request.SaleUnit)
+	if !saleUnit.IsValid() {
+		return dto.ItemPriceResponse{}, errx.BadRequest("invalid sale unit")
+	}
 
-	err = s.repository.UpdateItemPrice(&eggPrice)
+	itemPrice.Category = request.Category
+	itemPrice.ItemId = request.ItemId
+	itemPrice.SaleUnit = saleUnit
+	itemPrice.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	err = s.repository.UpdateItemPrice(&itemPrice)
 	if err != nil {
 		s.log.Error("failed to update item price", zap.Error(err))
 		return dto.ItemPriceResponse{}, err
 	}
 
-	return mapper.ItemPriceToResponse(&eggPrice), nil
+	return mapper.ItemPriceToResponse(&itemPrice), nil
 }
 
 func (s *ItemService) DeleteItemPrice(id uint64) error {
@@ -353,4 +366,21 @@ func (s *ItemService) DeleteItem(id uint64) error {
 	}
 
 	return nil
+}
+
+func (s *ItemService) GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit string) (dto.ItemPriceResponse, error) {
+	s.repository.UseTx(false)
+
+	saleUnitEnum := enum.ValueOfSaleUnit(saleUnit)
+	if !saleUnitEnum.IsValid() {
+		return dto.ItemPriceResponse{}, errx.BadRequest("invalid sale unit")
+	}
+
+	itemPrice, err := s.repository.GetItemPriceByItemIdAndSaleUnit(itemId, saleUnitEnum)
+	if err != nil {
+		s.log.Error("failed get item price by item id and sale unit")
+		return dto.ItemPriceResponse{}, err
+	}
+
+	return mapper.ItemPriceToResponse(&itemPrice), nil
 }

@@ -25,6 +25,7 @@ type IItemRepository interface {
 	GetItemPriceById(id uint64) (entity.ItemPrice, error)
 	UpdateItemPrice(eggPrice *entity.ItemPrice) error
 	DeleteItemPrice(id uint64) error
+	GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit enum.SaleUnit) (entity.ItemPrice, error)
 
 	CreateItemPriceDiscount(eggPriceDiscount *entity.ItemPriceDiscount) error
 	GetItemPriceDiscounts() ([]entity.ItemPriceDiscount, error)
@@ -228,4 +229,14 @@ func (r *ItemRepository) GetItemByNameAndUnitAndType(name string, unit string, c
 		return entity.Item{}, err
 	}
 	return warehouseItem, nil
+}
+
+func (r *ItemRepository) GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit enum.SaleUnit) (entity.ItemPrice, error) {
+	var data entity.ItemPrice
+	err := r.GetDB().Model(&entity.ItemPrice{}).Where("item_id = ? AND sale_unit = ?", itemId, saleUnit).First(&data).Error
+	if err != nil {
+		return entity.ItemPrice{}, err
+	}
+
+	return data, nil
 }

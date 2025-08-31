@@ -7,8 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
@@ -70,6 +72,17 @@ func (s *Scheduler) InitScheduler() {
 			err := s.checkForgottenUserPresence(tx)
 			if err != nil {
 				s.log.Error("failed to check user presence", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("0 0 1 * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createUserSalaryPaymentPerMonth(tx)
+			if err != nil {
+				s.log.Error("failed to create user salary payment per month", zap.Error(err))
 				return err
 			}
 			return nil
@@ -162,7 +175,35 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 
 // Todo : create kpi performance every 6 pm
 
-// Todo : create every new month salary for user
+func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
+	s.log.Info("Create user salary payments...")
+
+	var users []entity.User
+	if err := tx.Preload("Role").Find(&users).Error; err != nil {
+		return err
+	}
+
+	data := make([]entity.UserSalaryPayment, 0)
+	for _, user := range users {
+		if user.Role.Name != constant.RoleOwner {
+			data = append(data, entity.UserSalaryPayment{
+				UserId:               user.Id,
+				BaseSalary:           user.Salary,
+				BonusSalary:          decimal.Zero,
+				CompentationSalary:   decimal.Zero,
+				AdditionalWorkSalary: decimal.Zero,
+				Cashbond:             decimal.Zero,
+			})
+		}
+	}
+
+	if err := tx.CreateInBatches(&users, len(data)).Error; err != nil {
+		return err
+	}
+
+	s.log.Info(fmt.Sprintf("Success create %d user salary payment", len(data)))
+	return nil
+}
 
 // Todo : create cashflow history every month
 

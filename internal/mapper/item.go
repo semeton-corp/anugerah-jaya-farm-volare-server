@@ -30,7 +30,8 @@ func ItemPriceToResponse(itemPrice *entity.ItemPrice) dto.ItemPriceResponse {
 			Unit:     itemPrice.Item.Unit,
 			Category: itemPrice.Item.Category.String(),
 		},
-		Price: itemPrice.Price.String(),
+		Price:    itemPrice.Price.String(),
+		SaleUnit: itemPrice.SaleUnit.String(),
 	}
 }
 

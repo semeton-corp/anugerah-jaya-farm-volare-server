@@ -26,6 +26,7 @@ type ChickenService struct {
 	eggService       IEggService
 	cageService      ICageService
 	warehouseService IWarehouseService
+	itemService      IItemService
 }
 
 type IChickenService interface {
@@ -95,12 +96,13 @@ type IChickenService interface {
 	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error)
 }
 
-func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService) IChickenService {
+func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService) IChickenService {
 	return &ChickenService{
 		log:         log,
 		repository:  repository,
 		eggService:  eggService,
 		cageService: cageService,
+		itemService: itemService,
 	}
 }
 
@@ -2524,14 +2526,28 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		}
 	}
 
-	// Get Warehouse Item
-	// Get Warehouse Item Corn
-	// Get Chicken Procurement
-	// Get User Salary Payment
+	// s.warehouseService.GetWarehouseItemProcurements()
+	// s.warehouseService.GetWarehouseItemCornProcurements()
+	// s.GetChickenProcurements()
+	// User Salary
+	// Expense
 
-	// Get Good Egg
+	// expenseProduction, err := s.cashflowService.GetExpenseProductions(dto.GetExpenseOverviewFilter{
+	// 	Year:  uint64(time.Now().Year()),
+	// 	Month: param.MonthParam(time.Now().Month()),
+	// })
 
-	// Get Good Egg Price
+	// goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
+	// if err != nil {
+	// 	return dto.ChickenAndCompanyOverviewResponse{}, err
+	// }
+
+	// itemPrice, err := s.itemService.GetItemPriceByItemIdAndSaleUnit(goodEgg.Id, enum.SaleUnitKg.String())
+	// if err != nil {
+	// 	return dto.ChickenAndCompanyOverviewResponse{}, err
+	// }
+
+	// warehouseEggSale, err := s.warehouseService.GetWarehouseSales(dto.GetWarehouseSaleFilter{})
 
 	profitabilityGraphs := make([]dto.ProfitabilityPerformanceBarChartResponse, 0)
 
@@ -2550,6 +2566,9 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 			ChickenLayer:     float64(totalLayerChicken),
 			ChickenAfkir:     float64(totalAfkirChicken),
 		},
+		BEPGoodEgg:                        0,
+		MarginOfSafety:                    0,
+		RCRatio:                           0,
 		ProfitabilityPerformanceBarCharts: profitabilityGraphs,
 	}, nil
 }

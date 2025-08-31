@@ -33,12 +33,14 @@ type CreateItemPriceRequest struct {
 	Category string `json:"category" validate:"required"`
 	ItemId   uint64 `json:"itemId" validate:"required,number"`
 	Price    string `json:"price" validate:"required"`
+	SaleUnit string `json:"saleUnit" validate:"required,saleUnit"`
 }
 
 type UpdateItemPriceRequest struct {
 	Category string `json:"category" validate:"required"`
 	ItemId   uint64 `json:"itemId" validate:"required,number"`
 	Price    string `json:"price" validate:"required"`
+	SaleUnit string `json:"saleUnit" validate:"required,saleUnit"`
 }
 
 type CreateItemPriceDiscountRequest struct {
@@ -58,6 +60,7 @@ type ItemPriceResponse struct {
 	Category string       `json:"category"`
 	Item     ItemResponse `json:"item"`
 	Price    string       `json:"price"`
+	SaleUnit string       `json:"saleUnit"`
 }
 
 type ItemPriceDiscountResponse struct {

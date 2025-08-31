@@ -350,6 +350,8 @@ type UserSalaryListPaginationResponse struct {
 }
 
 type UserSalaryDetailResponse struct {
+	User                     UserListResponse                 `json:"user"`
+	SalaryMonth              string                           `json:"salaryMonth"`
 	AdditionalWorkUsers      []AdditionalWorkUserResponse     `json:"additionalWorkUsers"`
 	UserCashAdvanceSummaries []UserCashAdvanceSummaryResponse `json:"userCashAdvanceSummaries"`
 	BaseSalary               string                           `json:"baseSalary"`

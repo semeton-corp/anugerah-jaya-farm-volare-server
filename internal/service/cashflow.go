@@ -23,14 +23,11 @@ import (
 )
 
 type CashflowService struct {
-	log              *zap.Logger
-	repository       repository.ICashflowRepository
-	storeService     IStoreService
-	warehouseService IWarehouseService
-	chickenService   IChickenService
-	userService      IUserService
-	workService      IWorkService
-	itemService      IItemService
+	log         *zap.Logger
+	repository  repository.ICashflowRepository
+	userService IUserService
+	workService IWorkService
+	itemService IItemService
 }
 
 type ICashflowService interface {
@@ -40,6 +37,7 @@ type ICashflowService interface {
 	CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error)
 	GetExpenseOverview(filter dto.GetExpenseOverviewFilter) (dto.ExpenseOverviewResponse, error)
 	GetExpense(expenseCategory string, id uint64) (dto.ExpenseResponse, error)
+	GetExpenseProductions(filter dto.GetExpenseOverviewFilter) ([]dto.ExpenseListResponse, error)
 
 	GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.UserCashAdvanceSummaryResponse, error)
 	CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
@@ -63,15 +61,12 @@ type ICashflowService interface {
 	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error)
 }
 
-func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, userService IUserService, workService IWorkService, itemService IItemService) ICashflowService {
+func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, userService IUserService, workService IWorkService, itemService IItemService) ICashflowService {
 	return &CashflowService{
-		log:              log,
-		repository:       repository,
-		storeService:     storeService,
-		warehouseService: warehouseService,
-		chickenService:   chickenService,
-		userService:      userService,
-		workService:      workService,
+		log:         log,
+		repository:  repository,
+		userService: userService,
+		workService: workService,
 	}
 }
 
@@ -350,6 +345,133 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 	}
 }
 
+func (s *CashflowService) GetExpenseProductions(filter dto.GetExpenseOverviewFilter) ([]dto.ExpenseListResponse, error) {
+	expenseResponses := make([]dto.ExpenseListResponse, 0)
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurement payments", zap.Error(err))
+		return nil, err
+	}
+	for _, p := range chickenProcurementPayments {
+		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+			Id:           p.Id,
+			Date:         p.PaymentDate.Format("02 Jan 2006"),
+			Category:     constant.ExpenseCategoryChickenProcurement,
+			Name:         constant.ExpenseTransactionNameChickenProcurement,
+			PlaceName:    p.ChickenProcurement.Cage.Location.Name + " - " + p.ChickenProcurement.Cage.Name,
+			Nominal:      p.Nominal.String(),
+			ReceiverName: p.ChickenProcurement.Supplier.Name,
+			PaymentProof: p.PaymentProof,
+		})
+	}
+
+	isPaid := true
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+		IsPaid:    &isPaid,
+	})
+	if err != nil {
+		s.log.Error("failed get user salary payments", zap.Error(err))
+		return nil, err
+	}
+	for _, p := range userSalaryPayments {
+		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+			Id:           p.Id,
+			Date:         p.CreatedAt.Format("02 Jan 2006"),
+			Category:     constant.ExpenseCategoryStaff,
+			Name:         constant.ExpenseTransactionNameSalary,
+			PlaceName:    p.User.Location.Name,
+			Nominal:      p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary).String(),
+			ReceiverName: p.User.Name,
+			PaymentProof: p.PaymentProof,
+		})
+	}
+
+	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procurement payments", zap.Error(err))
+		return nil, err
+	}
+	for _, p := range warehouseItemProcurementPayments {
+		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+			Id:           p.Id,
+			Date:         p.PaymentDate.Format("02 Jan 2006"),
+			Category:     constant.ExpenseCategoryWarehouseItemProcurement,
+			Name:         constant.ExpenseTransactionNameWarehouseItemProcurement,
+			PlaceName:    p.WarehouseItemProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemProcurement.Warehouse.Name,
+			Nominal:      p.Nominal.String(),
+			ReceiverName: p.WarehouseItemProcurement.Supplier.Name,
+			PaymentProof: p.PaymentProof,
+		})
+	}
+
+	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
+		return nil, err
+	}
+	for _, p := range warehouseItemCornProcurementPayments {
+		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
+			Id:           p.Id,
+			Date:         p.PaymentDate.Format("02 Jan 2006"),
+			Category:     constant.ExpenseCategoryWarehouseItemCornProcurement,
+			Name:         constant.ExpenseTransactionNameWarehouseItemCornProcurement,
+			PlaceName:    p.WarehouseItemCornProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemCornProcurement.Warehouse.Name,
+			Nominal:      p.Nominal.String(),
+			ReceiverName: p.WarehouseItemCornProcurement.Supplier.Name,
+			PaymentProof: p.PaymentProof,
+		})
+	}
+
+	expensePayments, err := s.repository.GetExpenses(dto.GetExpenseFilter{
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get expenses", zap.Error(err))
+		return nil, err
+	}
+	for _, p := range expensePayments {
+		if p.ExpenseCategory == enum.ExpenseCategoryOperational {
+			response := dto.ExpenseListResponse{
+				Id:           p.Id,
+				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Category:     p.ExpenseCategory.String(),
+				Name:         p.Name,
+				PlaceName:    p.Location.Name,
+				Nominal:      p.Nominal.String(),
+				ReceiverName: p.ReceiverName,
+				PaymentProof: p.PaymentProof,
+			}
+
+			switch p.LocationType {
+			case enum.LocationTypeCage:
+				response.PlaceName = p.Cage.Name + " - " + p.Location.Name
+			case enum.LocationTypeStore:
+				response.PlaceName = p.Store.Name + " - " + p.Location.Name
+			case enum.LocationTypeWarehouse:
+				response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
+			}
+
+			expenseResponses = append(expenseResponses, response)
+		}
+	}
+
+	return expenseResponses, nil
+}
+
 func (s *CashflowService) CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error) {
 	s.repository.UseTx(false)
 
@@ -504,6 +626,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		EndDate:       param.DateParam(endDate),
 	})
 	if err != nil {
+		s.log.Error("failed get user cash advances", zap.Error(err))
 		return dto.ExpenseOverviewResponse{}, err
 	}
 
@@ -587,8 +710,6 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 
 	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemCornProcurement {
 		for _, p := range warehouseItemCornProcurementPayments {
-			totalPayment = totalPayment.Add(p.Nominal)
-			totalWarehouseItemProcurement = totalWarehouseItemProcurement.Add(p.Nominal)
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
 				Date:         p.PaymentDate.Format("02 Jan 2006"),
@@ -1907,7 +2028,7 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleR
 
 	f := excelize.NewFile()
 
-	storeResp, err := s.storeService.GetStoreSales(dto.GetStoreSaleFilter{
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
 	})
@@ -1926,7 +2047,7 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleR
 		f.SetCellValue(storeSheet, cell, h)
 	}
 
-	for row, sale := range storeResp.StoreSales {
+	for row, sale := range storeSales {
 		values := []interface{}{
 			sale.Id,
 			sale.Customer.Name,
@@ -1951,7 +2072,7 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleR
 		f.SetColWidth(storeSheet, col, col, 20) // 20 is a good default, you can adjust
 	}
 
-	warehouseResp, err := s.warehouseService.GetWarehouseSales(dto.GetWarehouseSaleFilter{
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
 	})
@@ -1970,7 +2091,7 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleR
 		f.SetCellValue(warehouseSheet, cell, h)
 	}
 
-	for row, sale := range warehouseResp.WarehouseSales {
+	for row, sale := range warehouseSales {
 		values := []interface{}{
 			sale.Id,
 			sale.Customer.Name,
@@ -2207,6 +2328,8 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 	}
 
 	return dto.UserSalaryDetailResponse{
+		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
+		SalaryMonth:              userSalaryPayment.CreatedAt.Format("Januari"),
 		AdditionalWorkUsers:      additionalWorkUserResponses,
 		UserCashAdvanceSummaries: userCashAdvanceSummary,
 		BaseSalary:               userSalaryPayment.BaseSalary.String(),

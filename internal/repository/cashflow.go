@@ -596,7 +596,7 @@ func (r *CashflowRepository) GetStoreSaleCashflow(id uint64) (entity.StoreSale, 
 
 func (r *CashflowRepository) GetUserSalaryPayment(id uint64) (entity.UserSalaryPayment, error) {
 	var data entity.UserSalaryPayment
-	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Preload("User.Role").Preload("CreatedByUser").Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.UserSalaryPayment{}).Preload("User.Location").Preload("User.Role").Preload("CreatedByUser").Where("id = ?", id).First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.UserSalaryPayment{}, errx.NotFound("user cash advance not found")
