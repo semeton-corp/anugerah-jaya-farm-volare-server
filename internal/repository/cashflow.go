@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -281,12 +282,12 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 	}
 
 	if filter.RoleId > 0 {
-		query = query.Where("users.role_id = ?", filter.LocationId)
+		query = query.Where("users.role_id = ?", filter.RoleId)
 	}
 
 	if filter.Keyword != "" {
-		keyword := "%" + filter.Keyword + "%"
-		query = query.Where("users.name LIKE ?", keyword)
+		keyword := "%" + strings.ToLower(filter.Keyword) + "%"
+		query = query.Where("LOWER(users.name) LIKE ?", keyword)
 	}
 
 	if filter.Page > 0 {

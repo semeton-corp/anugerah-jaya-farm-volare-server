@@ -27,6 +27,7 @@ type ChickenService struct {
 	cageService      ICageService
 	warehouseService IWarehouseService
 	itemService      IItemService
+	cashflowService  ICashflowService
 }
 
 type IChickenService interface {
@@ -96,13 +97,14 @@ type IChickenService interface {
 	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error)
 }
 
-func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService) IChickenService {
+func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService, cashflowService ICashflowService) IChickenService {
 	return &ChickenService{
-		log:         log,
-		repository:  repository,
-		eggService:  eggService,
-		cageService: cageService,
-		itemService: itemService,
+		log:             log,
+		repository:      repository,
+		eggService:      eggService,
+		cageService:     cageService,
+		itemService:     itemService,
+		cashflowService: cashflowService,
 	}
 }
 
@@ -2526,28 +2528,35 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		}
 	}
 
-	// s.warehouseService.GetWarehouseItemProcurements()
-	// s.warehouseService.GetWarehouseItemCornProcurements()
-	// s.GetChickenProcurements()
-	// User Salary
-	// Expense
+	totalIncomeProduction, err := s.cashflowService.GetTotalIncomeProductionInMonth(enum.Month(time.Now().Month()), uint64(time.Now().Year()))
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
 
-	// expenseProduction, err := s.cashflowService.GetExpenseProductions(dto.GetExpenseOverviewFilter{
-	// 	Year:  uint64(time.Now().Year()),
-	// 	Month: param.MonthParam(time.Now().Month()),
-	// })
+	totalExpenseProduction, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(time.Now().Month()), uint64(time.Now().Year()))
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
 
-	// goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
-	// if err != nil {
-	// 	return dto.ChickenAndCompanyOverviewResponse{}, err
-	// }
+	goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
 
-	// itemPrice, err := s.itemService.GetItemPriceByItemIdAndSaleUnit(goodEgg.Id, enum.SaleUnitKg.String())
-	// if err != nil {
-	// 	return dto.ChickenAndCompanyOverviewResponse{}, err
-	// }
+	goodEggItemPrice, err := s.itemService.GetItemPriceByItemIdAndSaleUnit(goodEgg.Id, enum.SaleUnitKg.String())
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
 
-	// warehouseEggSale, err := s.warehouseService.GetWarehouseSales(dto.GetWarehouseSaleFilter{})
+	diff := totalExpenseProduction.Sub(totalIncomeProduction)
+	price, err := decimal.NewFromString(goodEggItemPrice.Price)
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
+
+	bepGoodEgg := diff.Div(price)
+	rcRatio := diff.Div(totalExpenseProduction).InexactFloat64() * 100.0
+	mos := totalIncomeProduction.Sub(diff).Sub(totalIncomeProduction).InexactFloat64()
 
 	profitabilityGraphs := make([]dto.ProfitabilityPerformanceBarChartResponse, 0)
 
@@ -2566,9 +2575,9 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 			ChickenLayer:     float64(totalLayerChicken),
 			ChickenAfkir:     float64(totalAfkirChicken),
 		},
-		BEPGoodEgg:                        0,
-		MarginOfSafety:                    0,
-		RCRatio:                           0,
+		BEPGoodEgg:                        bepGoodEgg.InexactFloat64(),
+		MarginOfSafety:                    mos,
+		RCRatio:                           rcRatio,
 		ProfitabilityPerformanceBarCharts: profitabilityGraphs,
 	}, nil
 }

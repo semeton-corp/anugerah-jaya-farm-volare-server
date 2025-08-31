@@ -197,7 +197,7 @@ func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
 		}
 	}
 
-	if err := tx.CreateInBatches(&users, len(data)).Error; err != nil {
+	if err := tx.Model(&entity.UserSalaryPayment{}).CreateInBatches(&data, len(data)).Error; err != nil {
 		return err
 	}
 

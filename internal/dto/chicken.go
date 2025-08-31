@@ -294,11 +294,10 @@ type ChickenAndCompanyOverviewResponse struct {
 }
 
 type GetChickenAndCompanyOverviewRespoonse struct {
-	LocationId            uint64                       `query:"locationId"`
-	CageId                uint64                       `query:"cageId"`
-	OverviewGraphTime     param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
-	Year                  uint64                       `query:"year"`
-	CompanyPerformanceKey string                       `query:"companyPerformanceKey"`
+	LocationId            uint64 `query:"locationId"`
+	CageId                uint64 `query:"cageId"`
+	Year                  uint64 `query:"year"`
+	CompanyPerformanceKey string `query:"companyPerformanceKey"`
 }
 
 type GetChickenAndWarehouseOverviewRespoonse struct {

@@ -14,12 +14,12 @@ Note : created every month
 type UserSalaryPayment struct {
 	Id                   uint64             `gorm:"primaryKey;autoIncrement"`
 	UserId               uuid.UUID          `gorm:"type:varchar(255);not null"`
-	User                 User               `gorm:"foreignKey:UserId;referennces:Id"`
+	User                 User               `gorm:"foreignKey:UserId;references:Id;constraint:OnDelete:CASCADE"`
 	BaseSalary           decimal.Decimal    `gorm:"type:decimal;not null"`
 	BonusSalary          decimal.Decimal    `gorm:"type:decimal;not null"`
 	CompentationSalary   decimal.Decimal    `gorm:"type:decimal;not null"`
 	AdditionalWorkSalary decimal.Decimal    `gorm:"type:decimal;not null"`
-	Cashbond             decimal.Decimal    `gorm:"type:decimal;not null;default:0"`
+	Cashbond             decimal.Decimal    `gorm:"type:decimal;not null"`
 	PaymentProof         string             `gorm:"type:text;not null"`
 	PaymentMethod        enum.PaymentMethod `gorm:"type:int;not null;default:0"`
 	IsPaid               bool               `gorm:"type:bool;not null;default:false"`

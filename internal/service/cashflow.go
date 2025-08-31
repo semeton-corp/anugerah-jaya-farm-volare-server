@@ -23,11 +23,11 @@ import (
 )
 
 type CashflowService struct {
-	log         *zap.Logger
-	repository  repository.ICashflowRepository
-	userService IUserService
-	workService IWorkService
-	itemService IItemService
+	log             *zap.Logger
+	repository      repository.ICashflowRepository
+	workService     IWorkService
+	itemService     IItemService
+	presenceService IPresenceService
 }
 
 type ICashflowService interface {
@@ -37,7 +37,6 @@ type ICashflowService interface {
 	CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error)
 	GetExpenseOverview(filter dto.GetExpenseOverviewFilter) (dto.ExpenseOverviewResponse, error)
 	GetExpense(expenseCategory string, id uint64) (dto.ExpenseResponse, error)
-	GetExpenseProductions(filter dto.GetExpenseOverviewFilter) ([]dto.ExpenseListResponse, error)
 
 	GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.UserCashAdvanceSummaryResponse, error)
 	CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
@@ -59,14 +58,17 @@ type ICashflowService interface {
 
 	GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error)
 	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error)
+
+	GetTotalIncomeProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
+	GetTotalExpenseProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
 }
 
-func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, userService IUserService, workService IWorkService, itemService IItemService) ICashflowService {
+func NewCashflowService(log *zap.Logger, repository repository.ICashflowRepository, workService IWorkService, itemService IItemService, presenceService IPresenceService) ICashflowService {
 	return &CashflowService{
-		log:         log,
-		repository:  repository,
-		userService: userService,
-		workService: workService,
+		log:             log,
+		repository:      repository,
+		workService:     workService,
+		presenceService: presenceService,
 	}
 }
 
@@ -345,131 +347,117 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 	}
 }
 
-func (s *CashflowService) GetExpenseProductions(filter dto.GetExpenseOverviewFilter) ([]dto.ExpenseListResponse, error) {
-	expenseResponses := make([]dto.ExpenseListResponse, 0)
-	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error) {
+	s.repository.UseTx(false)
 
-	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
+	totalExpenseProduction := decimal.Zero
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
+
+	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procurements", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, e := range warehouseItemProcurements {
+		totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+	}
+
+	warehouseItemCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurements", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, e := range warehouseItemCornProcurements {
+		totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+	}
+
+	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurements", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, e := range chickenProcurements {
+		totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+	}
+
+	expense, err := s.repository.GetExpenses(dto.GetExpenseFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
-		s.log.Error("failed get chicken procurement payments", zap.Error(err))
-		return nil, err
+		s.log.Error("failed get expense", zap.Error(err))
+		return decimal.Zero, err
 	}
-	for _, p := range chickenProcurementPayments {
-		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
-			Id:           p.Id,
-			Date:         p.PaymentDate.Format("02 Jan 2006"),
-			Category:     constant.ExpenseCategoryChickenProcurement,
-			Name:         constant.ExpenseTransactionNameChickenProcurement,
-			PlaceName:    p.ChickenProcurement.Cage.Location.Name + " - " + p.ChickenProcurement.Cage.Name,
-			Nominal:      p.Nominal.String(),
-			ReceiverName: p.ChickenProcurement.Supplier.Name,
-			PaymentProof: p.PaymentProof,
-		})
+	for _, e := range expense {
+		totalExpenseProduction = totalExpenseProduction.Add(e.Nominal)
 	}
 
-	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
-		IsPaid:    &isPaid,
 	})
 	if err != nil {
 		s.log.Error("failed get user salary payments", zap.Error(err))
-		return nil, err
+		return decimal.Zero, err
 	}
-	for _, p := range userSalaryPayments {
-		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
-			Id:           p.Id,
-			Date:         p.CreatedAt.Format("02 Jan 2006"),
-			Category:     constant.ExpenseCategoryStaff,
-			Name:         constant.ExpenseTransactionNameSalary,
-			PlaceName:    p.User.Location.Name,
-			Nominal:      p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary).String(),
-			ReceiverName: p.User.Name,
-			PaymentProof: p.PaymentProof,
-		})
+	for _, e := range userSalaryPayments {
+		totalExpenseProduction = totalExpenseProduction.Add(e.BaseSalary.Add(e.AdditionalWorkSalary).Add(e.BonusSalary).Add(e.CompentationSalary).Sub(e.Cashbond))
 	}
 
-	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+	return totalExpenseProduction, nil
+}
+
+func (s *CashflowService) GetTotalIncomeProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error) {
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
+
+	totalIncomeProduction := decimal.Zero
+
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
-		s.log.Error("failed get warehouse item procurement payments", zap.Error(err))
-		return nil, err
+		s.log.Error("failed get store sale cashflows", zap.Error(err))
+		return decimal.Zero, err
 	}
-	for _, p := range warehouseItemProcurementPayments {
-		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
-			Id:           p.Id,
-			Date:         p.PaymentDate.Format("02 Jan 2006"),
-			Category:     constant.ExpenseCategoryWarehouseItemProcurement,
-			Name:         constant.ExpenseTransactionNameWarehouseItemProcurement,
-			PlaceName:    p.WarehouseItemProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemProcurement.Warehouse.Name,
-			Nominal:      p.Nominal.String(),
-			ReceiverName: p.WarehouseItemProcurement.Supplier.Name,
-			PaymentProof: p.PaymentProof,
-		})
+	for _, e := range storeSales {
+		totalIncomeProduction = totalIncomeProduction.Add(e.TotalPrice)
 	}
 
-	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
-		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
-		return nil, err
+		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
+		return decimal.Zero, err
 	}
-	for _, p := range warehouseItemCornProcurementPayments {
-		expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
-			Id:           p.Id,
-			Date:         p.PaymentDate.Format("02 Jan 2006"),
-			Category:     constant.ExpenseCategoryWarehouseItemCornProcurement,
-			Name:         constant.ExpenseTransactionNameWarehouseItemCornProcurement,
-			PlaceName:    p.WarehouseItemCornProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemCornProcurement.Warehouse.Name,
-			Nominal:      p.Nominal.String(),
-			ReceiverName: p.WarehouseItemCornProcurement.Supplier.Name,
-			PaymentProof: p.PaymentProof,
-		})
+	for _, e := range warehouseSales {
+		totalIncomeProduction = totalIncomeProduction.Add(e.TotalPrice)
 	}
 
-	expensePayments, err := s.repository.GetExpenses(dto.GetExpenseFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
+		DeadlinePaymentStartDate: param.DateParam(startDate),
+		DeadlinePaymentEndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
-		s.log.Error("failed get expenses", zap.Error(err))
-		return nil, err
+		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
+		return decimal.Zero, err
 	}
-	for _, p := range expensePayments {
-		if p.ExpenseCategory == enum.ExpenseCategoryOperational {
-			response := dto.ExpenseListResponse{
-				Id:           p.Id,
-				Date:         p.CreatedAt.Format("02 Jan 2006"),
-				Category:     p.ExpenseCategory.String(),
-				Name:         p.Name,
-				PlaceName:    p.Location.Name,
-				Nominal:      p.Nominal.String(),
-				ReceiverName: p.ReceiverName,
-				PaymentProof: p.PaymentProof,
-			}
-
-			switch p.LocationType {
-			case enum.LocationTypeCage:
-				response.PlaceName = p.Cage.Name + " - " + p.Location.Name
-			case enum.LocationTypeStore:
-				response.PlaceName = p.Store.Name + " - " + p.Location.Name
-			case enum.LocationTypeWarehouse:
-				response.PlaceName = p.Warehouse.Name + " - " + p.Location.Name
-			}
-
-			expenseResponses = append(expenseResponses, response)
-		}
+	for _, e := range afkirChickenSales {
+		totalIncomeProduction = totalIncomeProduction.Add(e.TotalPrice)
 	}
 
-	return expenseResponses, nil
+	return totalIncomeProduction, nil
 }
 
 func (s *CashflowService) CreateExpense(request dto.CreateExpenseRequest, userId uuid.UUID) (dto.ExpenseResponse, error) {
@@ -2157,8 +2145,29 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 					WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 				})
 			if err != nil {
-				return dto.UserSalarySummaryResponse{}, nil
+				return dto.UserSalarySummaryResponse{}, err
 			}
+
+			dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(e.UserId,
+				dto.GetDailyWorkUserFilter{
+					Month:       param.MonthParam(filter.Month.Value()),
+					Year:        filter.Year,
+					WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				})
+			if err != nil {
+				return dto.UserSalarySummaryResponse{}, err
+			}
+
+			userPresences, err := s.presenceService.GetUserPresencesByUserId(e.UserId,
+				dto.GetPresenceFilter{
+					Month: param.MonthParam(filter.Month.Value()),
+					Year:  filter.Year,
+				})
+			if err != nil {
+				return dto.UserSalarySummaryResponse{}, err
+			}
+
+			presenceScore, workScore := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
 
 			for _, e := range additionalWorkUsers.AdditionalWorkUsers {
 				salary, err := decimal.NewFromString(e.AdditionalWork.Salary)
@@ -2171,24 +2180,19 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-			presenceScore, workScore, err := s.userService.CalculateKPIScoreUserInMonth(e.UserId, filter.Year, filter.Month.Value())
-			if err != nil {
-				return dto.UserSalarySummaryResponse{}, err
-			}
-
 			bonusSalary := decimal.Zero
-			if presenceScore == 60 {
+			if presenceScore*0.6 == 60 {
 				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
 			}
 
 			diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
 			if diff > 0 {
 				percentage := float64(diff) / 2
-				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(e.BaseSalary))
+				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage / 100).Mul(e.BaseSalary))
 
 			} else if diff < 0 {
 				percentage := float64(-diff) / 2
-				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage).Mul(e.BaseSalary))
+				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage / 100).Mul(e.BaseSalary))
 			}
 
 			totalBonusSalary = totalBonusSalary.Add(bonusSalary)
@@ -2270,14 +2274,12 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 	}
 
 	additionalWorkUserResponses := make([]dto.AdditionalWorkUserResponse, 0)
-
 	totalAdditonalWorkSalary := decimal.Zero
 	totalBonusSalary := decimal.Zero
 	if userSalaryPayment.IsPaid {
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
 		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
 	} else {
-
 		withDeleted := true
 		additionalWorkSalary := decimal.Zero
 		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userSalaryPayment.UserId,
@@ -2287,7 +2289,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 			})
 		if err != nil {
-			return dto.UserSalaryDetailResponse{}, nil
+			return dto.UserSalaryDetailResponse{}, err
 		}
 
 		for _, e := range additionalWorkUsers.AdditionalWorkUsers {
@@ -2304,24 +2306,40 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-		presenceScore, workScore, err := s.userService.CalculateKPIScoreUserInMonth(userSalaryPayment.UserId, uint64(userSalaryPayment.CreatedAt.Year()), enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari")))
+		userPresences, err := s.presenceService.GetUserPresencesByUserId(userSalaryPayment.UserId,
+			dto.GetPresenceFilter{
+				Month: param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Year:  uint64(userSalaryPayment.CreatedAt.Year()),
+			})
 		if err != nil {
 			return dto.UserSalaryDetailResponse{}, err
 		}
 
+		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userSalaryPayment.UserId,
+			dto.GetDailyWorkUserFilter{
+				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
+				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			})
+		if err != nil {
+			return dto.UserSalaryDetailResponse{}, err
+		}
+
+		presenceScore, workScore := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+
 		bonusSalary := decimal.Zero
-		if presenceScore == 60 {
+		if presenceScore*0.6 == 60 {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
 		}
 
 		diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
 		if diff > 0 {
 			percentage := float64(diff) / 2
-			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage).Mul(userSalaryPayment.BaseSalary))
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage / 100).Mul(userSalaryPayment.BaseSalary))
 
 		} else if diff < 0 {
 			percentage := float64(-diff) / 2
-			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage).Mul(userSalaryPayment.BaseSalary))
+			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage / 100).Mul(userSalaryPayment.BaseSalary))
 		}
 
 		totalBonusSalary = totalBonusSalary.Add(bonusSalary)
@@ -2815,12 +2833,10 @@ func (s *CashflowService) getExpenseAndDebtPerWeek(locationId uint64, weeks map[
 		}
 	}
 
-	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 		LocationId: locationId,
-		IsPaid:     &isPaid,
 	})
 	if err != nil {
 		return nil, nil, err
