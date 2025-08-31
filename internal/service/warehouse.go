@@ -1720,6 +1720,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		Status:                enum.ProcurementStatusSentOff,
 		PaymentStatus:         enum.PaymentStatusNotPaid,
 		PaymentType:           paymentType,
+		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.DeadlinePaymentDate != nil {
@@ -2542,6 +2543,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
+		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.DeadlinePaymentDate != nil {

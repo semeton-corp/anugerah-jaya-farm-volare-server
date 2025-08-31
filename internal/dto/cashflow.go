@@ -281,6 +281,7 @@ type DebtResponse struct {
 	Name                string                `json:"name"`
 	PhoneNumber         string                `json:"phoneNumber"`
 	DeadlinePaymentDate string                `json:"deadlinePaymentDate"`
+	Nominal             string                `json:"nominal"`
 	RemainingPayment    string                `json:"remainingPayment"`
 	PaymentType         string                `json:"paymentType"`
 	PaymentStatus       string                `json:"paymentStatus"`

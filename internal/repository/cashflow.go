@@ -638,7 +638,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.Get
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +663,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflows(filter dto
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -688,7 +688,7 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Cage.Location").Preload("Supplier").Preload("Payments").Find(&data).Error
+	err := query.Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
