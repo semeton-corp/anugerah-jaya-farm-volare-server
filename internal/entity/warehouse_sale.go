@@ -11,8 +11,8 @@ import (
 
 type WarehouseSale struct {
 	Id                  uint64                 `gorm:"primaryKey;autoIncrement;not null"`
-	CustomerId          uint64                 `gorm:"type:varchar(255);not null"`
-	Customer            Customer               `gorm:"foreignKey:CustomerId;references:Id"`
+	CustomerId          uint64                 `gorm:"type:bigint;not null"`
+	Customer            Customer               `gorm:"foreignKey:CustomerId;references:Id;constraint:OnDelete:SET NULL"`
 	ItemId              uint64                 `gorm:"type:bigint;not null"`
 	Item                Item                   `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	WarehouseId         uint64                 `gorm:"type:bigint;not null"`
@@ -32,5 +32,5 @@ type WarehouseSale struct {
 	CreatedBy           uuid.NullUUID          `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time              `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy           uuid.NullUUID          `gorm:"type:varchar(255)"`
-	CreatedByUser       User                   `gorm:"foreignKey:CreatedBy;references:Id"`
+	CreatedByUser       User                   `gorm:"foreignKey:CreatedBy;references:Id;constraint:OnDelete:SET NULL"`
 }

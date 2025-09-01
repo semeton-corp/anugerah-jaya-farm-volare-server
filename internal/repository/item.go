@@ -235,6 +235,9 @@ func (r *ItemRepository) GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit
 	var data entity.ItemPrice
 	err := r.GetDB().Model(&entity.ItemPrice{}).Where("item_id = ? AND sale_unit = ?", itemId, saleUnit).First(&data).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ItemPrice{}, errx.NotFound("item price not found")
+		}
 		return entity.ItemPrice{}, err
 	}
 

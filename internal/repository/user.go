@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -134,8 +135,8 @@ func (r *UserRepository) CountTotalUserOverviewList(filter *dto.GetUserOverviewL
 	}
 
 	if filter.Keyword != "" {
-		keyword := "%" + filter.Keyword + "%"
-		query = query.Where("name ILIKE ? OR email ILIKE ?", keyword, keyword)
+		keyword := "%" + strings.ToLower(filter.Keyword) + "%"
+		query = query.Where("LOWER(name) ILIKE ? OR LOWER(email) ILIKE ?", keyword, keyword)
 	}
 
 	err := query.Model(&entity.User{}).Count(&totalData).Error
