@@ -92,9 +92,9 @@ func GetTwelveMonthRanges(year int) map[int]DateRange {
 	return months
 }
 
-func TotalDaysInMonth(year int, month time.Month) int {
+func TotalDaysInMonth(year int, month time.Month) uint64 {
 	daysInMonth := time.Date(year, month, 0, 0, 0, 0, 0, time.UTC).Day()
-	return daysInMonth
+	return uint64(daysInMonth)
 }
 
 func FindWeek(t time.Time, weeks map[int]DateRange) int {

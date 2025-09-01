@@ -96,10 +96,10 @@ func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring
 		TotalFeed:         chickenMonitoring.TotalFeed,
 	}
 
-	if (chickenMonitoring.ChickenCage.TotalChicken) == 0 {
+	if (chickenMonitoring.TotalChicken) == 0 {
 		response.MortalityRate = 0
 	} else {
-		response.MortalityRate = float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.ChickenCage.TotalChicken)) * 100.0)
+		response.MortalityRate = float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.TotalChicken)) * 100.0)
 	}
 
 	return response

@@ -7,10 +7,18 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse, dailyWorkUsers dto.DailyWorkUserListPaginationResponse, userPresences dto.PresenceListPaginationResponse) (float64, float64) {
-	var totalPresent uint64 = 0
-	var totalOvertime float64 = 0
-	var totalWorkHour float64 = 0
+func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse, dailyWorkUsers dto.DailyWorkUserListPaginationResponse, userPresences dto.PresenceListPaginationResponse) (float64, float64, uint64) {
+	var (
+		totalPresent  uint64  = 0
+		totalOvertime float64 = 0
+		totalWorkHour float64 = 0
+
+		totalWorkDone uint64 = 0
+
+		presenceScore float64 = float64(0)
+		workScore     float64 = float64(0)
+	)
+
 	for _, userPresence := range userPresences.Presences {
 		if userPresence.Status == enum.PresenceStatusPresent.String() {
 			totalPresent++
@@ -38,7 +46,6 @@ func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserList
 		}
 	}
 
-	var totalWorkDone uint64 = 0
 	for _, dailyWorkUser := range dailyWorkUsers.DailyWorkUsers {
 		if dailyWorkUser.IsDone {
 			totalWorkDone++
@@ -51,19 +58,17 @@ func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserList
 		}
 	}
 
-	var presenceScore float64
 	if len(userPresences.Presences) == 0 {
 		presenceScore = 0
 	} else {
 		presenceScore = float64(totalWorkHour) / float64(len(userPresences.Presences)*8) * 100
 	}
 
-	var workScore float64
 	if len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers) == 0 {
 		workScore = 0
 	} else {
 		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers)) * 100
 	}
 
-	return presenceScore, workScore
+	return presenceScore, workScore, uint64(len(userPresences.Presences)) - totalPresent
 }

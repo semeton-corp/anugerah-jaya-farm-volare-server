@@ -329,7 +329,7 @@ func (s *AuthenticationService) DeleteUser(id uuid.UUID) error {
 
 	if err := s.repository.DeleteUser(id); err != nil {
 		s.log.Error("failed to delete user", zap.Error(err))
-		return nil
+		return err
 	}
 
 	return nil

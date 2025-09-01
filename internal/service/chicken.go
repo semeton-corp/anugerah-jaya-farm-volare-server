@@ -93,8 +93,8 @@ type IChickenService interface {
 	GetKPIScoreChickenInMonth(locationId uint64, month enum.Month, year uint64) (float64, error)
 	GetKPIScoreChickenPerWeek(locationId uint64, month enum.Month, year uint64) (map[int]float64, error)
 
-	GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error)
-	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error)
+	GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewFilter) (dto.ChickenAndWarehouseOverviewResponse, error)
+	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewFilter) (dto.ChickenAndCompanyOverviewResponse, error)
 }
 
 func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService, cashflowService ICashflowService) IChickenService {
@@ -2332,6 +2332,13 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			return nil, err
 		}
 
+		totalExpensePerMonth, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(today.Month()), uint64(today.Year()))
+		if err != nil {
+			return nil, err
+		}
+		totalDayInMonth := util.TotalDaysInMonth(today.Year(), today.Month())
+		totalExpensePerDay := totalExpensePerMonth.Div(decimal.NewFromUint64(totalDayInMonth))
+
 		for _, chickenCage := range chickenCages {
 			chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
 			if err != nil {
@@ -2349,19 +2356,56 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				continue
 			}
 
+			totalEgg := (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg
+			averageConsumptionPerChicken := chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken)
+			averageWeightPerEgg := eggMonitoring.TotalWeightAllEgg / float64((eggMonitoring.TotalKarpetCrackedEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingCrackedEgg+(eggMonitoring.TotalKarpetGoodEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingGoodEgg)
+
 			response := dto.ChickenPerformanceResponse{
 				CageName:                     chickenCage.Cage.Name,
 				ChickenCategory:              chickenCage.ChickenCategory,
 				ChickenAge:                   chickenCage.ChickenAge,
 				TotalChicken:                 chickenCage.TotalChicken,
-				TotalEgg:                     (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg,
-				AverageConsumptionPerChicken: chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken),
-				AverageWeightPerEgg:          eggMonitoring.TotalWeightAllEgg / float64((eggMonitoring.TotalKarpetCrackedEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingCrackedEgg+(eggMonitoring.TotalKarpetGoodEgg*constant.TotalEggPerKarpet)+eggMonitoring.TotalRemainingGoodEgg),
+				TotalEgg:                     totalEgg,
+				AverageConsumptionPerChicken: averageConsumptionPerChicken,
+				AverageWeightPerEgg:          averageWeightPerEgg,
 				MortalityRate:                float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken),
 			}
 
 			response.FCR = float64(response.TotalEgg) / float64(chickenCage.TotalChicken) * 100.0
 			response.HDP = float64(chickenMonitoring.TotalFeed) / float64(response.TotalEgg) * 100.0
+
+			if chickenCage.ChickenAge >= 90 {
+				response.Productivity = enum.ChickenProductivityAfkir.String()
+			} else {
+				goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
+				if err != nil {
+					return nil, err
+				}
+
+				itemPriceGoodEgg, err := s.itemService.GetItemPriceByItemIdAndSaleUnit(goodEgg.Id, enum.SaleUnitKg.String())
+				if err != nil {
+					return nil, err
+				}
+
+				price, err := decimal.NewFromString(itemPriceGoodEgg.Price)
+				if err != nil {
+					return nil, errx.BadRequest("invalid item price price")
+				}
+
+				var (
+					totalPrice = decimal.Zero
+				)
+
+				if eggMonitoring.TotalWeightGoodEgg != 0.0 {
+					totalPrice = price.Mul(decimal.NewFromFloat(eggMonitoring.TotalWeightGoodEgg))
+				}
+
+				if totalPrice.Sub(totalExpensePerDay).GreaterThanOrEqual(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
+					response.Productivity = enum.ChickenProductivityProductive.String()
+				} else {
+					response.Productivity = enum.ChickenProductivityAfkir.String()
+				}
+			}
 
 			responses = append(responses, response)
 		}
@@ -2380,7 +2424,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 	return responses, nil
 }
 
-func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewRespoonse) (dto.ChickenAndWarehouseOverviewResponse, error) {
+func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAndWarehouseOverviewFilter) (dto.ChickenAndWarehouseOverviewResponse, error) {
 	s.repository.UseTx(false)
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
@@ -2411,15 +2455,13 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		return dto.ChickenAndWarehouseOverviewResponse{}, err
 	}
 
-	var totalProductiveCage, totalCheckCage, totalNotProductiveCage uint64
+	var totalProductiveCage, totalAfkirCage uint64
 	for _, chickenPerformance := range chickenPerformances {
 		switch chickenPerformance.Productivity {
 		case enum.ChickenProductivityProductive.String():
 			totalProductiveCage += 1
-		case enum.ChickenProductivityCheck.String():
-			totalCheckCage += 1
-		case enum.ChickenProductivityNotProductive.String():
-			totalNotProductiveCage += 1
+		case enum.ChickenProductivityAfkir.String():
+			totalAfkirCage += 1
 		}
 	}
 
@@ -2502,15 +2544,14 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 			TotalNotSafeItem: totalDangerItem,
 		},
 		ChickenCagePerformanceSummary: dto.ChickenCagePerformanceSummaryResponse{
-			TotalProductiveCage:    totalProductiveCage,
-			TotalNotProductiveCage: totalNotProductiveCage,
-			TotalCheckCage:         totalCheckCage,
+			TotalProductiveCage: totalProductiveCage,
+			TotalAfkirCage:      totalAfkirCage,
 		},
 		ChickenGraphs: chickenGraphs,
 	}, nil
 }
 
-func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewRespoonse) (dto.ChickenAndCompanyOverviewResponse, error) {
+func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewFilter) (dto.ChickenAndCompanyOverviewResponse, error) {
 	// R/C Ratio = Keuntungan (Return) / Biaya Produksi (Cost)
 	// Keuntungan (Return) = Penjualan Telur + Penjualan Ayam - Biaya Produksi (Pengaadan Ayam, Pengadaan Barang, Pengadaan Jagung, Gaji, Operational, Pajak)
 

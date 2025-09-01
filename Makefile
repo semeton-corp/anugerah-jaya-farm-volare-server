@@ -15,11 +15,6 @@ compose-down:
 	@echo "Stopping Docker containers..."
 	docker compose --env-file compose.env down
 
-.PHONY: compose-debug
-compose-debug:
-	@echo "Starting Docker containers in debug mode..."
-	docker compose --env-file compose.env up --build
-
 .PHONY: build
 build:
 	@echo "Building the application..."
@@ -29,3 +24,9 @@ build:
 compose-dev:
 	@echo "Starting Docker containers in development mode..."
 	docker compose -f compose.dev.yaml up --detach
+
+.PHONY: compose-dev-down
+compose-dev-down:
+	@echo "Starting Docker containers in development mode..."
+	docker compose -f compose.dev.yaml down
+

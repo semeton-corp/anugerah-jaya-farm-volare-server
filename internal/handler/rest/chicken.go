@@ -24,6 +24,10 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/chickens")
 	v1.Get("/overview", middleware.Authentication(), h.GetChickenOverview)
 
+	v1.Get("/performances/chicken-warehouse", middleware.Authentication(), h.GetChickenAndWarehouseOverview)
+	v1.Get("/performances/chicken-company", middleware.Authentication(), h.GetChickenAndCompanyOverview)
+	v1.Get("/performances", middleware.Authentication(), h.GetChickenPerformances)
+
 	v1.Post("/monitorings", middleware.Authentication(), h.CreateChickenMonitoring)
 	v1.Get("/monitorings", middleware.Authentication(), h.GetChickenMonitorings)
 	v1.Put("/monitorings/:id", middleware.Authentication(), h.UpdateChickenMonitoring)
@@ -1093,4 +1097,67 @@ func (h *ChickenHandler) ConfirmationAfkirChickenSaleDraft(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusCreated, data, "success confirmation afkir chicken sale")
+}
+
+func (h *ChickenHandler) GetChickenAndWarehouseOverview(c *fiber.Ctx) error {
+	var filter dto.GetChickenAndWarehouseOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse chicken and warehouse overview filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenAndWarehouseOverview(filter)
+	if err != nil {
+		h.log.Error("failed get chicken and warehouse overview", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken and warehouse overview")
+}
+
+func (h *ChickenHandler) GetChickenAndCompanyOverview(c *fiber.Ctx) error {
+	var filter dto.GetChickenAndCompanyOverviewFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse chicken and company overview filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenAndCompanyOverview(filter)
+	if err != nil {
+		h.log.Error("failed get chicken and company overview", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken and company overview")
+}
+
+func (h *ChickenHandler) GetChickenPerformances(c *fiber.Ctx) error {
+	var filter dto.GetChickenPerformanceFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse chicken performance filter", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetChickenPerformances(filter)
+	if err != nil {
+		h.log.Error("failed get chicken performances", zap.Error(err))
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get chicken performances")
 }

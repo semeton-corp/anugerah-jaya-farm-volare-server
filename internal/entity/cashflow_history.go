@@ -14,7 +14,7 @@ type CashflowHistory struct {
 	Profit           decimal.Decimal `gorm:"type:decimal"`
 	Expense          decimal.Decimal `gorm:"type:decimal"`
 	Cash             decimal.Decimal `gorm:"type:decimal"`
-	Receieveables    decimal.Decimal `gorm:"type:decimal"`
+	Receivables      decimal.Decimal `gorm:"type:decimal"`
 	Debt             decimal.Decimal `gorm:"type:decimal"`
 	StoreEggSale     decimal.Decimal `gorm:"type:decimal"`
 	WarehouseEggSale decimal.Decimal `gorm:"type:decimal"`

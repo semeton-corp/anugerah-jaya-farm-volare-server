@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -69,6 +68,7 @@ func NewCashflowService(log *zap.Logger, repository repository.ICashflowReposito
 		repository:      repository,
 		workService:     workService,
 		presenceService: presenceService,
+		itemService:     itemService,
 	}
 }
 
@@ -2120,24 +2120,31 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 		EndDate:    param.DateParam(endDate),
 	})
 	if err != nil {
+		s.log.Error("failed get user salary payments", zap.Error(err))
 		return dto.UserSalarySummaryResponse{}, err
 	}
 
-	totalUser := len(userSalaryPayments)
-	totalBaseSalary := decimal.Zero
-	totalAdditonalWorkSalary := decimal.Zero
-	totalBonusSalary := decimal.Zero
+	var (
+		totalUser                = len(userSalaryPayments)
+		totalBaseSalary          = decimal.Zero
+		totalAdditonalWorkSalary = decimal.Zero
+		totalBonusSalary         = decimal.Zero
+	)
 
-	for _, e := range userSalaryPayments {
-		totalBaseSalary = totalBaseSalary.Add(e.User.Salary)
+	for _, userSalaryPayment := range userSalaryPayments {
+		totalBaseSalary = totalBaseSalary.Add(userSalaryPayment.User.Salary)
 
-		if e.IsPaid {
-			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(e.AdditionalWorkSalary)
-			totalBonusSalary = totalBonusSalary.Add(e.BonusSalary)
+		if userSalaryPayment.IsPaid {
+			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
+			totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
 		} else {
-			withDeleted := true
-			additionalWorkSalary := decimal.Zero
-			additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(e.UserId,
+			var (
+				withDeleted          = true
+				additionalWorkSalary = decimal.Zero
+				bonusSalary          = decimal.Zero
+			)
+
+			additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userSalaryPayment.UserId,
 				dto.GetAdditionalWorkUserFilter{
 					Month:       param.MonthParam(filter.Month.Value()),
 					Year:        filter.Year,
@@ -2147,7 +2154,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				return dto.UserSalarySummaryResponse{}, err
 			}
 
-			dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(e.UserId,
+			dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userSalaryPayment.UserId,
 				dto.GetDailyWorkUserFilter{
 					Month:       param.MonthParam(filter.Month.Value()),
 					Year:        filter.Year,
@@ -2157,7 +2164,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				return dto.UserSalarySummaryResponse{}, err
 			}
 
-			userPresences, err := s.presenceService.GetUserPresencesByUserId(e.UserId,
+			userPresences, err := s.presenceService.GetUserPresencesByUserId(userSalaryPayment.UserId,
 				dto.GetPresenceFilter{
 					Month: param.MonthParam(filter.Month.Value()),
 					Year:  filter.Year,
@@ -2166,7 +2173,14 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				return dto.UserSalarySummaryResponse{}, err
 			}
 
-			presenceScore, workScore := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+			presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+
+			if userSalaryPayment.User.Role.Name == constant.RolePekerjaKandang {
+				totalDayInMonth := util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+				salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
+				reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
+				bonusSalary = bonusSalary.Add(reduceSalaryCauseNotPresent)
+			}
 
 			for _, e := range additionalWorkUsers.AdditionalWorkUsers {
 				salary, err := decimal.NewFromString(e.AdditionalWork.Salary)
@@ -2179,19 +2193,15 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 
 			totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
 
-			bonusSalary := decimal.Zero
 			if presenceScore*0.6 == 60 {
-				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
+				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusFullPresent))
 			}
 
-			diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
-			if diff > 0 {
-				percentage := float64(diff) / 2
-				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage / 100).Mul(e.BaseSalary))
-
-			} else if diff < 0 {
-				percentage := float64(-diff) / 2
-				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage / 100).Mul(e.BaseSalary))
+			kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
+			if kpiPerformance >= 90 {
+				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.User.Salary))
+			} else if kpiPerformance < 75 {
+				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.User.Salary))
 			}
 
 			totalBonusSalary = totalBonusSalary.Add(bonusSalary)
@@ -2267,22 +2277,30 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		return dto.UserSalaryDetailResponse{}, err
 	}
 
-	additionalWorkUserResponses := make([]dto.AdditionalWorkUserResponse, 0)
-	userCashAdvanceSummaryResponses := make([]dto.UserCashAdvanceSummaryResponse, 0)
-	var date, time string
-	totalAdditonalWorkSalary := decimal.Zero
-	totalBonusSalary := decimal.Zero
+	var (
+		additionalWorkUserResponses     = make([]dto.AdditionalWorkUserResponse, 0)
+		userCashAdvanceSummaryResponses = make([]dto.UserCashAdvanceSummaryResponse, 0)
+		date                            = "-"
+		time                            = "-"
+		totalAdditonalWorkSalary        = decimal.Zero
+		totalBonusSalary                = decimal.Zero
+	)
+
 	if userSalaryPayment.IsPaid {
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
 		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
 		date = userSalaryPayment.CreatedAt.Format("02 Jan 2006")
 		time = userSalaryPayment.CreatedAt.Format("15:04")
 	} else {
-		withDeleted := true
-		additionalWorkSalary := decimal.Zero
+		var (
+			withDeleted              = true
+			additionalWorkSalaryTemp = decimal.Zero
+			bonusSalary              = decimal.Zero
+		)
+
 		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userSalaryPayment.UserId,
 			dto.GetAdditionalWorkUserFilter{
-				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
 				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 			})
@@ -2298,15 +2316,15 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 					s.log.Error("failed parse additional work salary", zap.Error(err))
 					return dto.UserSalaryDetailResponse{}, err
 				}
-				additionalWorkSalary = additionalWorkSalary.Add(salary)
+				additionalWorkSalaryTemp = additionalWorkSalaryTemp.Add(salary)
 			}
 		}
 
-		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalary)
+		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(additionalWorkSalaryTemp)
 
 		userPresences, err := s.presenceService.GetUserPresencesByUserId(userSalaryPayment.UserId,
 			dto.GetPresenceFilter{
-				Month: param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Month: param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
 				Year:  uint64(userSalaryPayment.CreatedAt.Year()),
 			})
 		if err != nil {
@@ -2315,7 +2333,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userSalaryPayment.UserId,
 			dto.GetDailyWorkUserFilter{
-				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("Januari"))),
+				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
 				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
 			})
@@ -2323,21 +2341,24 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			return dto.UserSalaryDetailResponse{}, err
 		}
 
-		presenceScore, workScore := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+		presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
 
-		bonusSalary := decimal.Zero
-		if presenceScore*0.6 == 60 {
-			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(50000))
+		if userSalaryPayment.User.Role.Name == constant.RolePekerjaKandang {
+			totalDayInMonth := util.TotalDaysInMonth(userSalaryPayment.CreatedAt.Year(), userSalaryPayment.CreatedAt.Month())
+			salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
+			reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
+			bonusSalary = bonusSalary.Add(reduceSalaryCauseNotPresent)
 		}
 
-		diff := (presenceScore * 0.6) + (workScore * 0.4) - 90.0
-		if diff > 0 {
-			percentage := float64(diff) / 2
-			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(percentage / 100).Mul(userSalaryPayment.BaseSalary))
+		if presenceScore*0.6 == 60 {
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusFullPresent))
+		}
 
-		} else if diff < 0 {
-			percentage := float64(-diff) / 2
-			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(percentage / 100).Mul(userSalaryPayment.BaseSalary))
+		kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
+		if kpiPerformance >= 90 {
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
+		} else if kpiPerformance < 75 {
+			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		}
 
 		userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
@@ -2353,7 +2374,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
 		Date:                     date,
 		Time:                     time,
-		SalaryMonth:              userSalaryPayment.CreatedAt.Format("Januari"),
+		SalaryMonth:              userSalaryPayment.CreatedAt.Format("January"),
 		AdditionalWorkUsers:      additionalWorkUserResponses,
 		UserCashAdvanceSummaries: userCashAdvanceSummaryResponses,
 		BaseSalary:               userSalaryPayment.BaseSalary.String(),
@@ -2582,7 +2603,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 
 	for _, cashflowHistory := range cashflowHistories {
 		cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
-			Key:     cashflowHistory.CreatedAt.Format("Januari"),
+			Key:     cashflowHistory.CreatedAt.Format("January"),
 			Income:  cashflowHistory.Income.String(),
 			Profit:  cashflowHistory.Profit.String(),
 			Expense: cashflowHistory.Expense.String(),
@@ -2595,12 +2616,12 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 		totalCash = totalCash.Add(cashflowHistory.Cash)
 
 		eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
-			Key:              cashflowHistory.CreatedAt.Format("Januari"),
+			Key:              cashflowHistory.CreatedAt.Format("January"),
 			WarehouseEggSale: cashflowHistory.WarehouseEggSale.String(),
 			StoreEggSale:     cashflowHistory.StoreEggSale.String(),
 		})
 
-		totalReceivables = totalReceivables.Add(cashflowHistory.Receieveables)
+		totalReceivables = totalReceivables.Add(cashflowHistory.Receivables)
 		totalDebt = totalDebt.Add(cashflowHistory.Debt)
 	}
 
@@ -2636,7 +2657,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	debtIncrease, debtDiff := calculateDiff(totalDebt, totalPreviousDebt)
 
 	cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
-		Key:     currentCashflowHistory.CreatedAt.Format("Januari"),
+		Key:     currentCashflowHistory.CreatedAt.Format("January"),
 		Income:  currentCashflowHistory.Income.String(),
 		Profit:  currentCashflowHistory.Profit.String(),
 		Expense: currentCashflowHistory.Expense.String(),
@@ -2644,7 +2665,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	})
 
 	eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
-		Key:              currentCashflowHistory.CreatedAt.Format("Januari"),
+		Key:              currentCashflowHistory.CreatedAt.Format("January"),
 		WarehouseEggSale: currentCashflowHistory.WarehouseEggSale.String(),
 		StoreEggSale:     currentCashflowHistory.StoreEggSale.String(),
 	})
@@ -2989,17 +3010,6 @@ func calculateDiff(current, previous decimal.Decimal) (isIncrease bool, percenta
 func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint64, month enum.Month) (entity.CashflowHistory, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
 
-	var mx sync.Mutex
-	var wg sync.WaitGroup
-
-	processAddSalary := func(total decimal.Decimal, adder decimal.Decimal) {
-		defer wg.Done()
-		mx.Lock()
-		total.Add(adder)
-		mx.Unlock()
-	}
-
-	// Income
 	totalIncome := decimal.Zero
 	warehouseSalePayments, err := s.repository.GetWarehouseSalePayments(dto.GetWarehouseSalePaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3010,14 +3020,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse sale payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range warehouseSalePayments {
-		wg.Add(1)
-		go processAddSalary(totalIncome, e.Nominal)
-		wg.Done()
+		totalIncome = totalIncome.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	storeSalePayments, err := s.repository.GetStoreSalePayments(dto.GetStoreSalePaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3028,14 +3033,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get store sale payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range storeSalePayments {
-		wg.Add(1)
-		go processAddSalary(totalIncome, e.Nominal)
-		wg.Done()
+		totalIncome = totalIncome.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	afkirChickenSalePayments, err := s.repository.GetAfkirChickenSalePayments(dto.GetAfkirChickenSalePaymentFilter{
 		StartDate: param.DateParam(startDate),
@@ -3045,14 +3045,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get afkir chicken sale payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range afkirChickenSalePayments {
-		wg.Add(1)
-		go processAddSalary(totalIncome, e.Nominal)
-		wg.Done()
+		totalIncome = totalIncome.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	userCashAdvancePayments, err := s.repository.GetUserCashAdvancePayments(dto.GetUserCashAdvancePaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3063,16 +3058,10 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get user cash advance payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range userCashAdvancePayments {
-		wg.Add(1)
-		go processAddSalary(totalIncome, e.Nominal)
-		wg.Done()
+		totalIncome = totalIncome.Add(e.Nominal)
 	}
 
-	wg.Wait()
-
-	// Expense
 	totalExpense := decimal.Zero
 	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3083,14 +3072,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get chicken procurement payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range chickenProcurementPayments {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.Nominal)
-		wg.Done()
+		totalExpense = totalExpense.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
@@ -3103,14 +3087,13 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get user salary payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range userSalaryPayments {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.BaseSalary.Add(e.AdditionalWorkSalary).Add(e.BonusSalary).Add(e.CompentationSalary).Sub(e.Cashbond))
-		wg.Done()
+		totalExpense = totalExpense.Add(e.BaseSalary).
+			Add(e.AdditionalWorkSalary).
+			Add(e.BonusSalary).
+			Add(e.CompentationSalary).
+			Sub(e.Cashbond)
 	}
-
-	wg.Wait()
 
 	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3121,14 +3104,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse item procurement payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range warehouseItemProcurementPayments {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.Nominal)
-		wg.Done()
+		totalExpense = totalExpense.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3139,14 +3117,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range warehouseItemCornProcurementPayments {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.Nominal)
-		wg.Done()
+		totalExpense = totalExpense.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	expensePayments, err := s.repository.GetExpenses(dto.GetExpenseFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3157,14 +3130,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get expenses", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range expensePayments {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.Nominal)
-		wg.Done()
+		totalExpense = totalExpense.Add(e.Nominal)
 	}
-
-	wg.Wait()
 
 	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
 		StartDate:  param.DateParam(startDate),
@@ -3175,18 +3143,14 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get user cash advance", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, e := range userCashAdvances {
-		wg.Add(1)
-		go processAddSalary(totalExpense, e.Nominal)
-		wg.Done()
+		totalExpense = totalExpense.Add(e.Nominal)
 	}
 
-	wg.Wait()
-
-	// Receivables
 	totalReceivables := decimal.Zero
 	totalEggStoreSale := decimal.Zero
+	totalWarehouseStoreSale := decimal.Zero
+
 	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
 		DeadlinePaymentEndDate:   param.DateParam(endDate),
@@ -3196,25 +3160,15 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get store sale cashflows", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, storeSale := range storeSales {
-		wg.Add(1)
-		go func() {
-			totalNominal := storeSale.TotalPrice
-			for _, payment := range storeSale.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			processAddSalary(totalReceivables, totalNominal)
-			processAddSalary(totalEggStoreSale, storeSale.TotalPrice)
-
-		}()
-		wg.Done()
+		totalNominal := storeSale.TotalPrice
+		for _, payment := range storeSale.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalReceivables = totalReceivables.Add(totalNominal)
+		totalEggStoreSale = totalEggStoreSale.Add(storeSale.TotalPrice)
 	}
 
-	wg.Wait()
-
-	totalWarehouseStoreSale := decimal.Zero
 	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
 		DeadlinePaymentEndDate:   param.DateParam(endDate),
@@ -3224,22 +3178,14 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
 	for _, warehouseSale := range warehouseSales {
-		wg.Add(1)
-		go func() {
-			totalNominal := warehouseSale.TotalPrice
-			for _, payment := range warehouseSale.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			processAddSalary(totalReceivables, totalNominal)
-			processAddSalary(totalWarehouseStoreSale, warehouseSale.TotalPrice)
-		}()
-		wg.Done()
+		totalNominal := warehouseSale.TotalPrice
+		for _, payment := range warehouseSale.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalReceivables = totalReceivables.Add(totalNominal)
+		totalWarehouseStoreSale = totalWarehouseStoreSale.Add(warehouseSale.TotalPrice)
 	}
-
-	wg.Wait()
 
 	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
@@ -3250,23 +3196,15 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
-	for _, storeSale := range afkirChickenSales {
-		wg.Add(1)
-		go func() {
-			totalNominal := storeSale.TotalPrice
-			for _, payment := range storeSale.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			totalReceivables = totalReceivables.Add(totalNominal)
-		}()
-		wg.Done()
+	for _, sale := range afkirChickenSales {
+		totalNominal := sale.TotalPrice
+		for _, payment := range sale.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalReceivables = totalReceivables.Add(totalNominal)
 	}
 
-	wg.Wait()
-
-	userCashAdvanceReceivabless, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+	userCashAdvanceReceivables, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
 		DeadlinePaymentEndDate:   param.DateParam(endDate),
 		LocationId:               locationId,
@@ -3275,24 +3213,16 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get user cash advances", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
-	for _, storeSale := range userCashAdvanceReceivabless {
-		wg.Add(1)
-		go func() {
-			totalNominal := storeSale.Nominal
-			for _, payment := range storeSale.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			totalReceivables = totalReceivables.Add(totalNominal)
-		}()
-		wg.Done()
+	for _, adv := range userCashAdvanceReceivables {
+		totalNominal := adv.Nominal
+		for _, payment := range adv.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalReceivables = totalReceivables.Add(totalNominal)
 	}
 
-	wg.Wait()
-
-	// Debt
 	totalDebt := decimal.Zero
+
 	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
 		DeadlinePaymentEndDate:   param.DateParam(endDate),
@@ -3302,21 +3232,13 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse item procurements", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
-	for _, warehouseItemProcurement := range warehouseItemProcurements {
-		wg.Add(1)
-		go func() {
-			totalNominal := warehouseItemProcurement.TotalPrice
-			for _, payment := range warehouseItemProcurement.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			totalDebt = totalDebt.Add(totalNominal)
-		}()
-		wg.Done()
+	for _, procurement := range warehouseItemProcurements {
+		totalNominal := procurement.TotalPrice
+		for _, payment := range procurement.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalDebt = totalDebt.Add(totalNominal)
 	}
-
-	wg.Wait()
 
 	warehouseItemCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
@@ -3327,21 +3249,13 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get warehouse item corn procurements", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
-	for _, warehouseItemCornProcurement := range warehouseItemCornProcurements {
-		wg.Add(1)
-		go func() {
-			totalNominal := warehouseItemCornProcurement.TotalPrice
-			for _, payment := range warehouseItemCornProcurement.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			totalDebt = totalDebt.Add(totalNominal)
-		}()
-		wg.Done()
+	for _, procurement := range warehouseItemCornProcurements {
+		totalNominal := procurement.TotalPrice
+		for _, payment := range procurement.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalDebt = totalDebt.Add(totalNominal)
 	}
-
-	wg.Wait()
 
 	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
 		DeadlinePaymentStartDate: param.DateParam(startDate),
@@ -3352,27 +3266,19 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		s.log.Error("failed get chicken procurements", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-
-	for _, chickenProcurement := range chickenProcurements {
-		wg.Add(1)
-		go func() {
-			totalNominal := chickenProcurement.TotalPrice
-			for _, payment := range chickenProcurement.Payments {
-				totalNominal = totalNominal.Sub(payment.Nominal)
-			}
-
-			totalDebt = totalDebt.Add(totalNominal)
-		}()
-		wg.Done()
+	for _, procurement := range chickenProcurements {
+		totalNominal := procurement.TotalPrice
+		for _, payment := range procurement.Payments {
+			totalNominal = totalNominal.Sub(payment.Nominal)
+		}
+		totalDebt = totalDebt.Add(totalNominal)
 	}
-
-	wg.Wait()
 
 	return entity.CashflowHistory{
 		LocationId:       locationId,
 		Income:           totalIncome,
 		Expense:          totalExpense,
-		Receieveables:    totalReceivables,
+		Receivables:      totalReceivables,
 		Debt:             totalDebt,
 		Cash:             totalIncome.Add(totalReceivables),
 		Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),

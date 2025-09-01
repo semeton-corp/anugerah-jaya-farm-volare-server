@@ -42,17 +42,15 @@ func (c ChickenCategory) IsValid() bool {
 type ChickenProductivity uint8
 
 const (
-	ChickenProductivityUnknown       ChickenProductivity = 0
-	ChickenProductivityProductive    ChickenProductivity = 1
-	ChickenProductivityCheck         ChickenProductivity = 2
-	ChickenProductivityNotProductive ChickenProductivity = 3
+	ChickenProductivityUnknown    ChickenProductivity = 0
+	ChickenProductivityProductive ChickenProductivity = 1
+	ChickenProductivityAfkir      ChickenProductivity = 2
 )
 
 var (
 	ChickenProductivityMap = map[ChickenProductivity]string{
-		ChickenProductivityProductive:    "Produktif",
-		ChickenProductivityCheck:         "Periksa",
-		ChickenProductivityNotProductive: "Tidak Produktif",
+		ChickenProductivityProductive: "Produktif",
+		ChickenProductivityAfkir:      "Afkir",
 	}
 )
 

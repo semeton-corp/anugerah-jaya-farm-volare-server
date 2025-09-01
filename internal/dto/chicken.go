@@ -261,9 +261,8 @@ type ChickenPerformanceSummaryResponse struct {
 }
 
 type ChickenCagePerformanceSummaryResponse struct {
-	TotalProductiveCage    uint64 `json:"totalProductiveCage"`
-	TotalCheckCage         uint64 `json:"totalCheckCage"`
-	TotalNotProductiveCage uint64 `json:"totalNotSafeCage"`
+	TotalProductiveCage uint64 `json:"totalProductiveCage"`
+	TotalAfkirCage      uint64 `json:"totalAfkirCage"`
 }
 
 type WarehouseItemSummaryResponse struct {
@@ -293,14 +292,14 @@ type ChickenAndCompanyOverviewResponse struct {
 	RCRatio                           float64                                    `json:"rcRatio"`
 }
 
-type GetChickenAndCompanyOverviewRespoonse struct {
+type GetChickenAndCompanyOverviewFilter struct {
 	LocationId            uint64 `query:"locationId"`
 	CageId                uint64 `query:"cageId"`
 	Year                  uint64 `query:"year"`
 	CompanyPerformanceKey string `query:"companyPerformanceKey"`
 }
 
-type GetChickenAndWarehouseOverviewRespoonse struct {
+type GetChickenAndWarehouseOverviewFilter struct {
 	LocationId        uint64                       `query:"locationId"`
 	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
