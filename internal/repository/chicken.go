@@ -166,6 +166,7 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	var chickenMonitorings []entity.ChickenMonitoring
 	query := r.GetDB().
 		Preload("ChickenCage.Cage.Location").
+		Preload("ChickenCage.ChickenProcurement").
 		Preload("ChickenCage.Cage.CagePlacement.User.Role").
 		Model(&entity.ChickenMonitoring{}).Joins("JOIN chicken_cages ON chicken_cages.id = chicken_monitorings.chicken_cage_id").Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
 
