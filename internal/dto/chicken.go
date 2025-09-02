@@ -255,7 +255,7 @@ type ArrivalConfirmationChickenProcurementRequest struct {
 type ChickenPerformanceSummaryResponse struct {
 	FeedConsumption      float64 `json:"foodConsumption"`
 	AverageEggWeight     float64 `json:"averageEggWeight"`
-	AverageFCR           float64 `json:"averageFCS"`
+	AverageFCR           float64 `json:"averageFCR"`
 	AverageHDP           float64 `json:"averageHDP"`
 	AverageMortalityRate float64 `json:"averageMortalityRate"`
 }
