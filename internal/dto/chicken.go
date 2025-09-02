@@ -133,7 +133,7 @@ type ChickenGraphResponse struct {
 type ChickenBarChartResponse struct {
 	ChickenDOC       float64 `json:"chickenDOC"`
 	ChickenGrower    float64 `json:"chickenGrower"`
-	ChickentPreLayer float64 `json:"chickentPreLayer"`
+	ChickentPreLayer float64 `json:"chickenPreLayer"`
 	ChickenLayer     float64 `json:"chickenLayer"`
 	ChickenAfkir     float64 `json:"chickenAfkir"`
 }
