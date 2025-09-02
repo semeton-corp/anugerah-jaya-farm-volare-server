@@ -39,7 +39,7 @@ type CreateStoreRequestItemRequest struct {
 	StoreId     uint64  `json:"storeId" validate:"required,number"`
 	ItemId      uint64  `json:"itemId" validate:"required,number"`
 	WarehouseId uint64  `json:"warehouseId" validate:"required,number"`
-	Quantity    float64 `json:"quantity" validate:"required,number"` // ikat
+	Quantity    float64 `json:"quantity" validate:"required,number"` // Note : ikat
 }
 
 type UpdateStoreRequestItemRequest struct {

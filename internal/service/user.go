@@ -505,7 +505,6 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 						totalWorkHour += diffHours
 						totalWorkHourWeek[week] += uint64(diffHours)
 					}
-
 				} else {
 					totalWorkHourWeek[week] += 8.0
 				}
