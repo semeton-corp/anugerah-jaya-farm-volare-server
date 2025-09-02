@@ -408,7 +408,7 @@ type CashflowSaleOverviewResponse struct {
 	CashflowSaleGraphs  []CashflowSaleGraphResponse   `json:"cashflowSaleGraphs"`
 	EggSaleGraphs       []EggSaleGraphResponse        `json:"eggSaleGraphs"`
 	LocationSaleSummary []LocationSaleSummaryResponse `json:"locationSaleSummaries"`
-	LocationPieChart    LocationPieChartResponse      `json:"LocationPieChart"`
+	LocationPieChart    LocationPieChartResponse      `json:"locationPieChart"`
 }
 
 type GetCashflowSaleOverviewFilter struct {
