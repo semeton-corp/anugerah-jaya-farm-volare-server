@@ -414,7 +414,7 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 
 		if e.Item.Category == enum.ItemCategoryEgg {
 			warehouseItemEggResponses = append(warehouseItemEggResponses, res)
-		} else {
+		} else if e.Item.Category != enum.ItemCategoryCornMaterial && e.Item.Category != enum.ItemCategoryEgg {
 			warehouseItemEquipmentResponses = append(warehouseItemEquipmentResponses, res)
 		}
 	}
