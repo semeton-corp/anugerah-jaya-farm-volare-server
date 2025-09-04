@@ -313,7 +313,7 @@ func (r *WarehouseRepository) GetWarehouseItemHistories(filter dto.GetWarehouseI
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Item").Preload("User").Find(&warehouseItemHistory).Error
+	err := query.Preload("User").Find(&warehouseItemHistory).Error
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +323,7 @@ func (r *WarehouseRepository) GetWarehouseItemHistories(filter dto.GetWarehouseI
 
 func (r *WarehouseRepository) GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error) {
 	var warehouseItemHistory entity.WarehouseItemHistory
-	err := r.GetDB().Model(&entity.WarehouseItemHistory{}).Where("id = ?", id).Preload("Item").Preload("User").First(&warehouseItemHistory).Error
+	err := r.GetDB().Model(&entity.WarehouseItemHistory{}).Where("id = ?", id).Preload("User").First(&warehouseItemHistory).Error
 	if err != nil {
 		return entity.WarehouseItemHistory{}, err
 	}

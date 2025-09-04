@@ -19,10 +19,10 @@ type SupplierService struct {
 }
 
 type ISupplierService interface {
-	CreateSupplier(requesst *dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error)
+	CreateSupplier(request dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error)
 	GetSupplierById(id uint64) (dto.SupplierResponse, error)
 	GetSuppliers(filter dto.GetSupplierFilter) ([]dto.SupplierListResponse, error)
-	UpdateSupplier(id uint64, request *dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error)
+	UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error)
 	DeleteSupplier(id uint64) error
 }
 
@@ -33,7 +33,7 @@ func NewSupplierService(log *zap.Logger, repository repository.ISupplierReposito
 	}
 }
 
-func (s *SupplierService) CreateSupplier(request *dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error) {
+func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -56,19 +56,21 @@ func (s *SupplierService) CreateSupplier(request *dto.CreateSupplierRequest, cre
 		return dto.SupplierResponse{}, err
 	}
 
-	supplierItems := make([]entity.SupplierItem, 0)
-	for _, e := range request.ItemIds {
-		supplierItems = append(supplierItems, entity.SupplierItem{
-			SupplierId: supplier.Id,
-			ItemId:     e,
-			CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
-		})
-	}
+	if supplierType == enum.SupplierTypeItem && request.ItemIds != nil {
+		supplierItems := make([]entity.SupplierItem, 0)
+		for _, e := range request.ItemIds {
+			supplierItems = append(supplierItems, entity.SupplierItem{
+				SupplierId: supplier.Id,
+				ItemId:     e,
+				CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
+			})
+		}
 
-	err = s.repository.CreateSupplierItemInBatch(&supplierItems)
-	if err != nil {
-		s.log.Error("failed to create supplier items in batch", zap.Error(err))
-		return dto.SupplierResponse{}, err
+		err = s.repository.CreateSupplierItemInBatch(&supplierItems)
+		if err != nil {
+			s.log.Error("failed to create supplier items in batch", zap.Error(err))
+			return dto.SupplierResponse{}, err
+		}
 	}
 
 	err = s.repository.Commit()
@@ -115,7 +117,7 @@ func (s *SupplierService) GetSuppliers(filter dto.GetSupplierFilter) ([]dto.Supp
 	return supplierResponses, nil
 }
 
-func (s *SupplierService) UpdateSupplier(id uint64, request *dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error) {
+func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 

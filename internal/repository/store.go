@@ -274,7 +274,7 @@ func (r *StoreRepository) GetStoreItemHistories(filter dto.GetStoreItemHistoryFi
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Item").Preload("User").Find(&storeItemHistory).Error
+	err := query.Preload("User").Find(&storeItemHistory).Error
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +284,7 @@ func (r *StoreRepository) GetStoreItemHistories(filter dto.GetStoreItemHistoryFi
 
 func (r *StoreRepository) GetStoreItemHistoryById(id uint64) (entity.StoreItemHistory, error) {
 	var storeItemHistory entity.StoreItemHistory
-	err := r.GetDB().Model(&entity.StoreItemHistory{}).Where("id = ?", id).Preload("Item").Preload("User").First(&storeItemHistory).Error
+	err := r.GetDB().Model(&entity.StoreItemHistory{}).Where("id = ?", id).Preload("User").First(&storeItemHistory).Error
 	if err != nil {
 		return entity.StoreItemHistory{}, err
 	}

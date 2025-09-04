@@ -3,7 +3,7 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type CreateSupplierRequest struct {
-	ItemIds      []uint64 `json:"itemIds" validate:"required"`
+	ItemIds      []uint64 `json:"itemIds"`
 	Name         string   `json:"name" validate:"required"`
 	PhoneNumber  string   `json:"phoneNumber" validate:"required,phoneNumber"`
 	Address      string   `json:"address" validate:"required"`

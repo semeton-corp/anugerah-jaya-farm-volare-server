@@ -56,7 +56,7 @@ func (h *SupplierHandler) CreateSupplier(c *fiber.Ctx) error {
 		return errx.NotFound("user id not found in context")
 	}
 
-	resp, err := h.service.CreateSupplier(&request, uuid.MustParse(userId))
+	resp, err := h.service.CreateSupplier(request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (h *SupplierHandler) UpdateSupplier(c *fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := h.service.UpdateSupplier(id, &request, uuid.MustParse(userId))
+	resp, err := h.service.UpdateSupplier(id, request, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
