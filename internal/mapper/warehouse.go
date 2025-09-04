@@ -66,7 +66,7 @@ func WarehouseItemCornToResponse(warehouseItemCorn *entity.WarehouseItemCorn, co
 func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryResponse {
 	return dto.WarehouseItemHistoryResponse{
 		Id:             warehouseItemHistory.Id,
-		Item:           ItemToResponse(&warehouseItemHistory.Item),
+		ItemName:       warehouseItemHistory.ItemName,
 		Source:         warehouseItemHistory.Source,
 		Destination:    warehouseItemHistory.Destination,
 		QuantityBefore: warehouseItemHistory.QuantityBefore,
@@ -81,7 +81,7 @@ func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHi
 func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseItemHistory) dto.WarehouseItemHistoryListResponse {
 	return dto.WarehouseItemHistoryListResponse{
 		Id:          warehouseItemHistory.Id,
-		Item:        ItemToResponse(&warehouseItemHistory.Item),
+		ItemName:    warehouseItemHistory.ItemName,
 		Source:      warehouseItemHistory.Source,
 		Destination: warehouseItemHistory.Destination,
 		Status:      warehouseItemHistory.Status.String(),

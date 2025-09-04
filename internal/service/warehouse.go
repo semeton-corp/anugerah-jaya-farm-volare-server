@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
@@ -351,6 +353,21 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 		return dto.WarehouseItemResponse{}, err
 	}
 
+	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       warehouseItem.Item.Name,
+		Source:         warehouseItem.Warehouse.Name,
+		Destination:    "-",
+		QuantityBefore: warehouseItem.Quantity,
+		QuantityAfter:  request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStockUpdated,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseItemResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
 	warehouseItem.Quantity = request.Quantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -359,6 +376,8 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 		s.log.Error("failed to update warehouse item", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonParsed)
 
 	warehouseStockItemResponse := mapper.WarehouseItemToResponse(&warehouseItem)
 
@@ -750,6 +769,23 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
+
+	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       warehouseSale.Item.Name,
+		Source:         warehouseSale.Warehouse.Name,
+		Destination:    warehouseSale.Customer.Name,
+		QuantityBefore: warehouseSale.Quantity,
+		QuantityAfter:  warehouseSale.Quantity - request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonWarehouseHistoryParsed)
 
 	err = s.repository.Commit()
 	if err != nil {
@@ -1524,6 +1560,23 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
+
+	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       warehouseSale.Item.Name,
+		Source:         warehouseSale.Warehouse.Name,
+		Destination:    warehouseSale.Customer.Name,
+		QuantityBefore: warehouseSale.Quantity,
+		QuantityAfter:  warehouseSale.Quantity - request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonWarehouseHistoryParsed)
 
 	err = s.repository.Commit()
 	if err != nil {

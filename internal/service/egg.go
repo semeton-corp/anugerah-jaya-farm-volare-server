@@ -104,7 +104,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 	}
 
 	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         goodEggItem.Id,
+		ItemName:       goodEggItem.Name,
 		Source:         chickenCage.Cage.Name,
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
@@ -137,7 +137,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 	}
 
 	crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         crackedEggItem.Id,
+		ItemName:       crackedEggItem.Name,
 		Source:         chickenCage.Cage.Name,
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
@@ -217,8 +217,6 @@ func (s *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
-	// Todo : Check Store Request Item
-
 	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
 	if err != nil {
 		s.log.Error("failed to get egg monitoring by id", zap.Error(err))
@@ -236,7 +234,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	}
 
 	goodEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         goodEggItem.Id,
+		ItemName:       goodEggItem.Name,
 		Source:         eggMonitoring.ChickenCage.Cage.Name,
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
@@ -268,7 +266,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	}
 
 	crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         crackedEggItem.Id,
+		ItemName:       crackedEggItem.Name,
 		Source:         eggMonitoring.ChickenCage.Cage.Name,
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
@@ -332,7 +330,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 	}
 
 	goodEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         goodEggItem.Id,
+		ItemName:       goodEggItem.Name,
 		Source:         eggMonitoring.ChickenCage.Cage.Name,
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
@@ -364,7 +362,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 	}
 
 	crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemId:         crackedEggItem.Id,
+		ItemName:       crackedEggItem.Name,
 		Source:         eggMonitoring.ChickenCage.Cage.Name,
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,

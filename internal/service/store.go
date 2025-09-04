@@ -1,7 +1,9 @@
 package service
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
@@ -339,13 +341,18 @@ func (s *StoreService) GetStoreRequestItems(filter dto.GetStoreRequestItemFilter
 	return resp, nil
 }
 
-func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	storeRequestItem, err := s.repository.GetStoreRequestItemById(id)
 	if err != nil {
 		s.log.Error("failed to get store request item by id", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	warehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(storeRequestItem.WarehouseId, storeRequestItem.ItemId)
+	if err != nil {
 		return dto.StoreRequestItemResponse{}, err
 	}
 
@@ -362,7 +369,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		storeRequestItem.WarehouseNote = request.WarehouseNote
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
 		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
-		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 		newStoreRequestItem := entity.StoreRequestItem{
 			WarehouseId: storeRequestItem.WarehouseId,
@@ -370,7 +377,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 			StoreId:     storeRequestItem.StoreId,
 			Quantity:    remainingQuantity,
 			Status:      enum.RequestItemStatusPending,
-			CreatedBy:   uuid.NullUUID{UUID: updatedBy, Valid: true},
+			CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 		}
 
 		err = s.repository.CreateStoreRequestItem(&newStoreRequestItem)
@@ -382,12 +389,36 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		storeRequestItem.WarehouseFulfillment = request.Quantity
 		storeRequestItem.Status = enum.RequestItemStatusSentOff
 		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
-		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	}
+
+	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       storeRequestItem.Item.Name,
+		Source:         storeRequestItem.Warehouse.Name,
+		Destination:    storeRequestItem.Store.Name,
+		QuantityBefore: warehouseItem.Quantity,
+		QuantityAfter:  request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonWarehouseHistoryParsed)
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
 		s.log.Error("failed to update store request item", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, err
+	}
+
+	_, err = s.warehouseService.UpdateWarehouseItem(storeRequestItem.WarehouseId, storeRequestItem.Id, dto.UpdateWarehouseItemRequest{
+		Quantity: warehouseItem.Quantity - request.Quantity,
+	}, userId)
+	if err != nil {
 		return dto.StoreRequestItemResponse{}, err
 	}
 
@@ -400,7 +431,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 	return s.GetStoreRequestItemById(id)
 }
 
-func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -418,7 +449,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 
 	storeRequestItem.ReceiveQuantity = request.Quantity
 	storeRequestItem.StoreNote = request.StoreNote
-	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	storeRequestItem.ReceiveDate = sql.NullTime{Time: time.Now(), Valid: true}
 
 	if storeRequestItem.ReceiveQuantity != storeRequestItem.Quantity {
@@ -446,6 +477,23 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		s.log.Error("failed to update store item", zap.Error(err))
 		return dto.StoreRequestItemResponse{}, err
 	}
+
+	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
+		ItemName:       storeRequestItem.Item.Name,
+		Source:         storeRequestItem.Warehouse.Name,
+		Destination:    storeRequestItem.Store.Name,
+		QuantityBefore: storeItem.Quantity,
+		QuantityAfter:  storeItem.Quantity + request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.StoreItemHistoryTopic, jsonStoreHistoryParsed)
 
 	err = s.repository.Commit()
 	if err != nil {
@@ -645,7 +693,7 @@ func (s *StoreService) GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uin
 	return mapper.StoreItemToResponse(&storeItem), nil
 }
 
-func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error) {
+func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, userId uuid.UUID) (dto.StoreItemResponse, error) {
 	s.repository.UseTx(false)
 
 	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(storeId, itemId)
@@ -655,7 +703,7 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 	}
 
 	storeItem.Quantity = request.Quantity
-	storeItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
 	if err != nil {
@@ -668,6 +716,23 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
 		return dto.StoreItemResponse{}, err
 	}
+
+	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       storeItem.Item.Name,
+		Source:         storeItem.Store.Name,
+		Destination:    "-",
+		QuantityBefore: storeItem.Quantity,
+		QuantityAfter:  request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStockUpdated,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.StoreItemResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.StoreItemHistoryTopic, jsonParsed)
 
 	return mapper.StoreItemToResponse(&storeItem), nil
 }
@@ -936,6 +1001,23 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		s.log.Error("failed to get store sale by id", zap.Error(err))
 		return dto.StoreSaleResponse{}, err
 	}
+
+	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
+		ItemName:       storeSale.Item.Name,
+		Source:         storeSale.Store.Name,
+		Destination:    storeSale.Customer.Name,
+		QuantityBefore: storeItem.Quantity,
+		QuantityAfter:  storeItem.Quantity - request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.StoreItemHistoryTopic, jsonStoreHistoryParsed)
 
 	err = s.repository.Commit()
 	if err != nil {
@@ -1932,6 +2014,23 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		s.log.Error("failed to get store sale by id", zap.Error(err))
 		return dto.StoreSaleResponse{}, err
 	}
+
+	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
+		ItemName:       storeSale.Item.Name,
+		Source:         storeSale.Store.Name,
+		Destination:    storeSale.Customer.Name,
+		QuantityBefore: storeItem.Quantity,
+		QuantityAfter:  storeItem.Quantity - request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusOut,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.StoreSaleResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.StoreItemHistoryTopic, jsonStoreHistoryParsed)
 
 	err = s.repository.Commit()
 	if err != nil {

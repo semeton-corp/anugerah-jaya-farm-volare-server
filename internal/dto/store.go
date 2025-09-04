@@ -116,26 +116,26 @@ type EggStoreItemSummary struct {
 }
 
 type StoreItemHistoryListResponse struct {
-	Id          uint64       `json:"id"`
-	Item        ItemResponse `json:"item"`
-	Source      string       `json:"source"`
-	Destination string       `json:"destination"`
-	Quantity    float64      `json:"quantity"`
-	Status      string       `json:"status"`
-	Time        string       `json:"time"`
+	Id          uint64  `json:"id"`
+	ItemName    string  `json:"itemName"`
+	Source      string  `json:"source"`
+	Destination string  `json:"destination"`
+	Quantity    float64 `json:"quantity"`
+	Status      string  `json:"status"`
+	Time        string  `json:"time"`
 }
 
 type StoreItemHistoryResponse struct {
-	Id             uint64       `json:"id"`
-	Item           ItemResponse `json:"item"`
-	Source         string       `json:"source"`
-	Destination    string       `json:"destination"`
-	QuantityBefore float64      `json:"quantityBefore"`
-	QuantityAfter  float64      `json:"quantityAfter"`
-	Status         string       `json:"status"`
-	UpdatedBy      string       `json:"updatedBy"`
-	Time           string       `json:"time"`
-	Date           string       `json:"date"`
+	Id             uint64  `json:"id"`
+	ItemName       string  `json:"itemName"`
+	Source         string  `json:"source"`
+	Destination    string  `json:"destination"`
+	QuantityBefore float64 `json:"quantityBefore"`
+	QuantityAfter  float64 `json:"quantityAfter"`
+	Status         string  `json:"status"`
+	UpdatedBy      string  `json:"updatedBy"`
+	Time           string  `json:"time"`
+	Date           string  `json:"date"`
 }
 
 type GetStoreItemHistoryFilter struct {
