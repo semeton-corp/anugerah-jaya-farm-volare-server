@@ -64,7 +64,7 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 		response.AbnormalityRate = 0
 		response.Status = constant.EggMonitoringStatusSafety
 	} else {
-		response.AbnormalityRate = float64(uint64(float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalRejectEgg)/float64(response.TotalAllEgg)*10000.0)) / 100.0
+		response.AbnormalityRate = float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalRejectEgg) / float64(response.TotalAllEgg) * 100.0
 
 		if response.AbnormalityRate < 0.8 {
 			response.Status = constant.EggMonitoringStatusSafety

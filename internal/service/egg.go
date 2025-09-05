@@ -62,7 +62,6 @@ func NewEggService(
 	}
 }
 
-// Todo : add created at in response to avoid delete after one day and saga pattern
 func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
@@ -207,14 +206,13 @@ func (s *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 
 	eggMonitoringResponses := make([]dto.EggMonitoringListResponse, 0, len(eggMonitorings))
 	for _, eggMonitoring := range eggMonitorings {
-		// Todo : create notification (?)
 		eggMonitoringResponses = append(eggMonitoringResponses, mapper.EggMonitoringToListResponse(&eggMonitoring))
 	}
 
 	return eggMonitoringResponses, nil
 }
 
-func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error) {
+func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, userId uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
 	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
@@ -239,18 +237,19 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg + request.TotalWeightGoodEgg,
-		UserId:         updatedBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
 		s.log.Error("failed to parse struct into json", zap.Error(err))
 		return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
 	}
+
 	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(goodEggJsonParsed))
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg + request.TotalWeightGoodEgg,
-	}, updatedBy)
+	}, userId)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -271,7 +270,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg + request.TotalWeightCrackedEgg,
-		UserId:         updatedBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
@@ -282,7 +281,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg + request.TotalWeightCrackedEgg,
-	}, updatedBy)
+	}, userId)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -294,7 +293,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	eggMonitoring.TotalRejectEgg = (request.TotalKarpetRejectEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingRejectEgg
 	eggMonitoring.TotalWeightCrackedEgg = request.TotalWeightCrackedEgg
 	eggMonitoring.TotalWeightGoodEgg = request.TotalWeightGoodEgg
-	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if err := s.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
 		s.log.Error("failed to update egg monitoring", zap.Error(err))

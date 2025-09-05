@@ -246,6 +246,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 	response := dto.ChickenProcurementListResponse{
 		Id:                    data.Id,
 		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		Cage:                  CageToResponse(&data.Cage),
 		Quantity:              data.Quantity,
 		Supplier:              SupplierToListResponse(&data.Supplier),
 		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
