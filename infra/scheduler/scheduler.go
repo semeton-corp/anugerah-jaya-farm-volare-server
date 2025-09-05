@@ -655,7 +655,7 @@ func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) e
 				notifications = append(notifications, entity.Notification{
 					WarehouseId:  sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
 					LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeWarehouse, Valid: true},
-					Description:  fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name),
+					Description:  fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name, warehouseItem.Warehouse.Name),
 				})
 			}
 		}
@@ -691,6 +691,7 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 			notifications = append(notifications, entity.Notification{
 				StoreId:      sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
 				LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeStore, Valid: true},
+				Description:  fmt.Sprintf(constant.StoreItemInDangerNotification, storeItem.Item.Name, storeItem.Store.Name),
 			})
 		}
 	}

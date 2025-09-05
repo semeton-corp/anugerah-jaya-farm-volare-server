@@ -8,5 +8,6 @@ const (
 	ItemShipTodayStoreSaleNotification     = "Ada %d yang belum terkirim hari ini di toko"
 
 	VaccineRoutineNotification        = "Lakukan vaksin %s pada kandang %s, umur ayam sudah mencapai ketentuan vaksin"
-	WarehouseItemInDangerNotification = "Stok %s berada dalam status Kritis"
+	WarehouseItemInDangerNotification = "Stok %s di gudang %s berada dalam status Kritis"
+	StoreItemInDangerNotification     = "Stok %s di toko %s  berada dalam status Kritis"
 )
