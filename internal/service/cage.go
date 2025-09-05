@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -207,6 +208,10 @@ func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCage
 	}
 
 	chickenCage.TotalChicken = request.TotalChicken
+
+	if request.LatestChickenAgeVaccineRoutine != nil {
+		chickenCage.LatestChickenAgeVaccineRoutine = sql.NullInt64{Int64: int64(*request.LatestChickenAgeVaccineRoutine), Valid: true}
+	}
 
 	err = s.repository.UpdateChickenCage(&chickenCage)
 	if err != nil {
@@ -524,7 +529,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	chickenCategory := util.GetChickenCategory(&chickenCage)
+	chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 	cageFeed, err := s.repository.GetCageFeedByChickenCategory(chickenCategory)
 	if err != nil {
 		return dto.ChickenCageFeedResponse{}, err
@@ -579,7 +584,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		return dto.ChickenCageFeedResponse{}, errx.BadRequest("chicken cage is already feed")
 	}
 
-	chickenCategory := util.GetChickenCategory(&chickenCage)
+	chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 	cageFeed, err := s.repository.GetCageFeedByChickenCategory(chickenCategory)
 	if err != nil {
 		return dto.ChickenCageFeedResponse{}, err

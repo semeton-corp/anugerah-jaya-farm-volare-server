@@ -729,6 +729,14 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 		data.Disease = sql.NullString{String: *request.Disease, Valid: true}
 	}
 
+	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
+		TotalChicken:                   chickenCage.TotalChicken,
+		LatestChickenAgeVaccineRoutine: &chickenCage.ChickenAge,
+	}, createdBy)
+	if err != nil {
+		return dto.ChickenHealthMonitoringResponse{}, err
+	}
+
 	err = s.repository.CreateChickenHealthMonitoring(&data)
 	if err != nil {
 		s.log.Error("failed to create chicken health monitoring", zap.Error(err))

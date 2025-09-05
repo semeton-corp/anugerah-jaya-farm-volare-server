@@ -1,21 +1,22 @@
 package util
 
 import (
+	"math"
 	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func GetChickenCategory(chickenCage *entity.ChickenCage) enum.ChickenCategory {
+func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.ChickenCategory {
 	var (
 		chickenAgeInWeek uint64
-		chickenCategory  enum.ChickenCategory
+		chickenCategory  enum.ChickenCategory = enum.ChickenCategoryUnknown
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
 		chickenAge := time.Since(chickenCage.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
+		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
 
 		if chickenAgeInWeek <= 9 {
 			chickenCategory = enum.ChickenCategoryDOC
@@ -31,14 +32,14 @@ func GetChickenCategory(chickenCage *entity.ChickenCage) enum.ChickenCategory {
 	return chickenCategory
 }
 
-func GetChickenAge(chickenCage *entity.ChickenCage) uint64 {
+func GetChickenAgeByChickenCage(chickenCage *entity.ChickenCage) uint64 {
 	var (
 		chickenAgeInWeek uint64
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
 		chickenAge := time.Since(chickenCage.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
+		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
 	}
 
 	return chickenAgeInWeek

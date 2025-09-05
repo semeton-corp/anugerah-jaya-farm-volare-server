@@ -210,8 +210,6 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 	return chickenCage, nil
 }
 
-
-
 func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	var cages []entity.Cage
 	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Find(&cages).Error
@@ -259,13 +257,14 @@ func (r *CageRepository) UpdateChickenCage(chickenCage *entity.ChickenCage) erro
 		Model(&entity.ChickenCage{}).
 		Where("id = ?", chickenCage.Id).
 		Updates(map[string]interface{}{
-			"cage_id":                 chickenCage.CageId,
-			"chicken_procurement_id":  chickenCage.ChickenProcurementId,
-			"total_chicken":           chickenCage.TotalChicken,
-			"is_need_routine_vaccine": chickenCage.IsNeedRoutineVaccine,
-			"is_need_feed":            chickenCage.IsNeedFeed,
-			"updated_at":              time.Now(),
-			"updated_by":              chickenCage.UpdatedBy,
+			"cage_id":                            chickenCage.CageId,
+			"chicken_procurement_id":             chickenCage.ChickenProcurementId,
+			"total_chicken":                      chickenCage.TotalChicken,
+			"is_need_routine_vaccine":            chickenCage.IsNeedRoutineVaccine,
+			"latest_chicken_age_vaccine_routine": chickenCage.LatestChickenAgeVaccineRoutine,
+			"is_need_feed":                       chickenCage.IsNeedFeed,
+			"updated_at":                         time.Now(),
+			"updated_by":                         chickenCage.UpdatedBy,
 		}).Error
 }
 

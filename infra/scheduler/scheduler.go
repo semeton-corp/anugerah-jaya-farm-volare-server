@@ -1,7 +1,9 @@
 package scheduler
 
 import (
+	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -128,6 +130,17 @@ func (s *Scheduler) InitScheduler() {
 			err := s.createNotificationTotalItemSaleShipToday(tx)
 			if err != nil {
 				s.log.Error("failed to create notification total item sale item need ship today", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.checkChickenCageIfNeedVaccineRoutine(tx)
+			if err != nil {
+				s.log.Error("failed to check chicken cage if need vaccine routine", zap.Error(err))
 				return err
 			}
 			return nil
@@ -391,8 +404,8 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		totalDayInMonth := util.TotalDaysInMonth(today.Year(), today.Month())
 		totalExpensePerDay := totalExpenseProduction.Div(decimal.NewFromUint64(totalDayInMonth))
 
-		chickenAge := util.GetChickenAge(&chickenCage)
-		chickenCategory := util.GetChickenCategory(&chickenCage)
+		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
+		chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 
 		newData := entity.ChickenPerformance{
 			CageName:                     chickenCage.Cage.Name,
@@ -503,7 +516,59 @@ func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
 
 // Todo : notification when h-3 deadline payment date
 
-// Todo : check if the chicken is need vaccine or no when the age is reach new category
+func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
+	s.log.Info("check chicken cage if need routine vaccine")
+
+	var chickenCages []entity.ChickenCage
+	query := tx.Model(&entity.ChickenCage{})
+	subQuery := tx.Model(&entity.ChickenCage{}).
+		Select("MAX(id)").
+		Group("cage_id")
+	query = query.Where("chicken_cages.id IN (?)", subQuery)
+	err := query.
+		Preload("Cage.Location").
+		Preload("ChickenProcurement").
+		Preload("Cage.CagePlacement.User.Role").
+		Order("chicken_cages.created_at DESC").
+		Find(&chickenCages).Error
+
+	if err != nil {
+		return err
+	}
+
+	for _, chickenCage := range chickenCages {
+		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
+
+		var chickenHealthItems []entity.ChickenHealthItem
+		err := tx.Model(&entity.ChickenHealthItem{}).Where("chicken_age = ? AND type = ?", chickenAge, enum.ChickenHealthItemTypeVaccineRoutine).Find(&chickenHealthItems).Error
+		if err != nil {
+			return err
+		}
+
+		if len(chickenHealthItems) == 0 {
+			continue
+		} else if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && chickenCage.IsNeedRoutineVaccine {
+			var vaccineRoutineNames []string
+			for _, chickenHealthItem := range chickenHealthItems {
+				vaccineRoutineNames = append(vaccineRoutineNames, chickenHealthItem.Name)
+			}
+
+			err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
+				CageId:       sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
+				LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeCage, Valid: true},
+				Description:  fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
+			}).Error
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	s.log.Info("success check chicken cage if need routine vaccine")
+
+	return nil
+}
 
 func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error {
 	s.log.Info("create notification for total shipped today")
