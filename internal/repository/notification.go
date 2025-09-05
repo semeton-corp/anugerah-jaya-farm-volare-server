@@ -84,6 +84,10 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 		query = query.Where("is_marked = ?", filter.IsMarked)
 	}
 
+	if filter.LocationType.Value().IsValid() {
+		query = query.Where("location_type = ?", filter.LocationType.Value())
+	}
+
 	err := query.Find(&data).Error
 	if err != nil {
 		return nil, err
