@@ -750,6 +750,10 @@ func (r *CashflowRepository) GetCashflowHistories(filter dto.GetCashflowHistoryF
 		query = query.Where("EXTRACT(year FROM created_at) = ?", filter.Year)
 	}
 
+	if filter.LocationId > 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
 	err := query.Order("EXTRACT(month FROM created_at) ASC").Find(&data).Error
 	if err != nil {
 		return nil, err

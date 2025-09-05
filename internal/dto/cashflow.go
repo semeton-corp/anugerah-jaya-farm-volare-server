@@ -459,7 +459,7 @@ type EggSaleCashflowGraphResponse struct {
 }
 
 type GetCashflowOverviewFilter struct {
-	Year       uint64 `query:"year"`
+	Year       uint64 `query:"year" validate:"required"`
 	LocationId uint64 `query:"locationId"`
 }
 
@@ -470,7 +470,8 @@ type CashflowOverviewResponse struct {
 }
 
 type GetCashflowHistoryFilter struct {
-	Year uint64 `query:"year"`
+	Year       uint64 `query:"year"`
+	LocationId uint64 `query:"locationId"`
 }
 
 type GetUserCashAdvancePaymentFilter struct {

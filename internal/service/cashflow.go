@@ -2569,30 +2569,52 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 }
 
 func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error) {
-	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang)
-	// Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional)  -> yang dibayarkan
-	// Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan
-	// Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang
+	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang) // Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional) -> yang dibayarkan // Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan // Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang // Todo : filter location id
 
-	// Todo : filter location id
+	year := filter.Year
 
+	// fetch persisted histories
 	cashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
-		Year: filter.Year,
+		Year:       year,
+		LocationId: filter.LocationId, // make sure your repo supports filtering by location
 	})
 	if err != nil {
 		s.log.Error("failed get cashflow histories", zap.Error(err))
 		return dto.CashflowOverviewResponse{}, err
 	}
 
-	cashflowGraphs := make([]dto.CashflowGraphResponse, 0)
-	eggSaleCashflowGraphs := make([]dto.EggSaleCashflowGraphResponse, 0)
-
-	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+	// add current month history (live calculated)
+	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, year, enum.Month(time.Now().Month()))
 	if err != nil {
 		return dto.CashflowOverviewResponse{}, err
 	}
-
 	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
+
+	// aggregate by month (can be multiple per month if multiple locations)
+	cashflowByMonth := make(map[int]entity.CashflowHistory)
+	for _, cf := range cashflowHistories {
+		month := int(cf.CreatedAt.Month())
+
+		if existing, ok := cashflowByMonth[month]; ok {
+			// aggregate
+			cashflowByMonth[month] = entity.CashflowHistory{
+				Income:           existing.Income.Add(cf.Income),
+				Profit:           existing.Profit.Add(cf.Profit),
+				Expense:          existing.Expense.Add(cf.Expense),
+				Cash:             existing.Cash.Add(cf.Cash),
+				Receivables:      existing.Receivables.Add(cf.Receivables),
+				Debt:             existing.Debt.Add(cf.Debt),
+				WarehouseEggSale: existing.WarehouseEggSale.Add(cf.WarehouseEggSale),
+				StoreEggSale:     existing.StoreEggSale.Add(cf.StoreEggSale),
+				CreatedAt:        existing.CreatedAt, // keep the existing CreatedAt
+			}
+		} else {
+			cashflowByMonth[month] = cf
+		}
+	}
+
+	cashflowGraphs := make([]dto.CashflowGraphResponse, 0, 12)
+	eggSaleCashflowGraphs := make([]dto.EggSaleCashflowGraphResponse, 0, 12)
 
 	totalIncome := decimal.Zero
 	totalProfit := decimal.Zero
@@ -2601,35 +2623,52 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	totalReceivables := decimal.Zero
 	totalDebt := decimal.Zero
 
-	for _, cashflowHistory := range cashflowHistories {
-		cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
-			Key:     cashflowHistory.CreatedAt.Format("January"),
-			Income:  cashflowHistory.Income.String(),
-			Profit:  cashflowHistory.Profit.String(),
-			Expense: cashflowHistory.Expense.String(),
-			Cash:    cashflowHistory.Cash.String(),
-		})
+	// build graphs for January–December
+	for month := 1; month <= 12; month++ {
+		cf, ok := cashflowByMonth[month]
+		if !ok {
+			cf = entity.CashflowHistory{
+				Income:           decimal.Zero,
+				Profit:           decimal.Zero,
+				Expense:          decimal.Zero,
+				Cash:             decimal.Zero,
+				Receivables:      decimal.Zero,
+				Debt:             decimal.Zero,
+				WarehouseEggSale: decimal.Zero,
+				StoreEggSale:     decimal.Zero,
+				CreatedAt:        time.Date(int(year), time.Month(month), 1, 0, 0, 0, 0, time.UTC),
+			}
+		}
 
-		totalIncome = totalIncome.Add(cashflowHistory.Income)
-		totalProfit = totalProfit.Add(cashflowHistory.Profit)
-		totalExpense = totalExpense.Add(cashflowHistory.Expense)
-		totalCash = totalCash.Add(cashflowHistory.Cash)
+		cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
+			Key:     cf.CreatedAt.Format("January"),
+			Income:  cf.Income.String(),
+			Profit:  cf.Profit.String(),
+			Expense: cf.Expense.String(),
+			Cash:    cf.Cash.String(),
+		})
 
 		eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
-			Key:              cashflowHistory.CreatedAt.Format("January"),
-			WarehouseEggSale: cashflowHistory.WarehouseEggSale.String(),
-			StoreEggSale:     cashflowHistory.StoreEggSale.String(),
+			Key:              cf.CreatedAt.Format("January"),
+			WarehouseEggSale: cf.WarehouseEggSale.String(),
+			StoreEggSale:     cf.StoreEggSale.String(),
 		})
 
-		totalReceivables = totalReceivables.Add(cashflowHistory.Receivables)
-		totalDebt = totalDebt.Add(cashflowHistory.Debt)
+		totalIncome = totalIncome.Add(cf.Income)
+		totalProfit = totalProfit.Add(cf.Profit)
+		totalExpense = totalExpense.Add(cf.Expense)
+		totalCash = totalCash.Add(cf.Cash)
+		totalReceivables = totalReceivables.Add(cf.Receivables)
+		totalDebt = totalDebt.Add(cf.Debt)
 	}
 
+	// compare with previous year
 	previousCashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
-		Year: filter.Year - 1,
+		Year:       year - 1,
+		LocationId: filter.LocationId,
 	})
 	if err != nil {
-		s.log.Error("failed get cashflow histories", zap.Error(err))
+		s.log.Error("failed get cashflow histories previous year", zap.Error(err))
 		return dto.CashflowOverviewResponse{}, err
 	}
 
@@ -2640,13 +2679,13 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	totalPreviousReceivables := decimal.Zero
 	totalPreviousDebt := decimal.Zero
 
-	for _, previousCashflowHitory := range previousCashflowHistories {
-		totalPreviousIncome = totalPreviousIncome.Add(previousCashflowHitory.Income)
-		totalPreviousProfit = totalPreviousProfit.Add(previousCashflowHitory.Profit)
-		totalPreviousExpense = totalPreviousExpense.Add(previousCashflowHitory.Expense)
-		totalPreviousCash = totalPreviousCash.Add(previousCashflowHitory.Cash)
-		totalPreviousReceivables = totalPreviousReceivables.Add(previousCashflowHitory.WarehouseEggSale)
-		totalPreviousDebt = totalPreviousDebt.Add(previousCashflowHitory.StoreEggSale)
+	for _, prev := range previousCashflowHistories {
+		totalPreviousIncome = totalPreviousIncome.Add(prev.Income)
+		totalPreviousProfit = totalPreviousProfit.Add(prev.Profit)
+		totalPreviousExpense = totalPreviousExpense.Add(prev.Expense)
+		totalPreviousCash = totalPreviousCash.Add(prev.Cash)
+		totalPreviousReceivables = totalPreviousReceivables.Add(prev.Receivables)
+		totalPreviousDebt = totalPreviousDebt.Add(prev.Debt)
 	}
 
 	incomeIncrease, incomeDiff := calculateDiff(totalIncome, totalPreviousIncome)
@@ -2655,20 +2694,6 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	cashIncrease, cashDiff := calculateDiff(totalCash, totalPreviousCash)
 	receivablesIncrease, receivablesDiff := calculateDiff(totalReceivables, totalPreviousReceivables)
 	debtIncrease, debtDiff := calculateDiff(totalDebt, totalPreviousDebt)
-
-	cashflowGraphs = append(cashflowGraphs, dto.CashflowGraphResponse{
-		Key:     currentCashflowHistory.CreatedAt.Format("January"),
-		Income:  currentCashflowHistory.Income.String(),
-		Profit:  currentCashflowHistory.Profit.String(),
-		Expense: currentCashflowHistory.Expense.String(),
-		Cash:    currentCashflowHistory.Cash.String(),
-	})
-
-	eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
-		Key:              currentCashflowHistory.CreatedAt.Format("January"),
-		WarehouseEggSale: currentCashflowHistory.WarehouseEggSale.String(),
-		StoreEggSale:     currentCashflowHistory.StoreEggSale.String(),
-	})
 
 	return dto.CashflowOverviewResponse{
 		CashflowSummary: dto.CashflowSummaryResponse{
@@ -3284,5 +3309,6 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),
 		WarehouseEggSale: totalWarehouseStoreSale,
 		StoreEggSale:     totalEggStoreSale,
+		CreatedAt:        time.Now(),
 	}, nil
 }
