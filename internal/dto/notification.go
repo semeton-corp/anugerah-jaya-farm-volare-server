@@ -1,7 +1,5 @@
 package dto
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
-
 type CreateNotificationRequest struct {
 	UserId      *string `json:"userId"`
 	StoreId     *uint64 `json:"storeId"`
@@ -21,10 +19,10 @@ type MarkNotificationRequest struct {
 }
 
 type GetNotificationFilter struct {
-	UserId       string                  `query:"userId"`
-	StoreId      uint64                  `query:"storeId"`
-	CageId       uint64                  `query:"cageId"`
-	WarehouseId  uint64                  `query:"warehouseId"`
-	LocationType param.LocationTypeParam `query:"locationType"`
-	IsMarked     *bool                   `query:"isMarked"`
+	UserId               string   `query:"userId"`
+	StoreId              uint64   `query:"storeId"`
+	CageId               uint64   `query:"cageId"`
+	WarehouseId          uint64   `query:"warehouseId"`
+	NotificationContexts []string `query:"notificationContexts"`
+	IsMarked             *bool    `query:"isMarked"`
 }

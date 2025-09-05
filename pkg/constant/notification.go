@@ -10,4 +10,7 @@ const (
 	VaccineRoutineNotification        = "Lakukan vaksin %s pada kandang %s, umur ayam sudah mencapai ketentuan vaksin"
 	WarehouseItemInDangerNotification = "Stok %s di gudang %s berada dalam status Kritis"
 	StoreItemInDangerNotification     = "Stok %s di toko %s  berada dalam status Kritis"
+
+	PaymentReceivablesDeadlineNotification = "Tagihan %s berstatus mendekati jatuh tempo"
+	PaymentDebtDeadlineNotification        = "Tagihan %s berstatus mendekati jatuh tempo"
 )

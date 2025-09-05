@@ -9,13 +9,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/cache"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
-	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
@@ -178,9 +178,9 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 
 	if mortalityRate < 0.5 {
 		notificationJsonParsed, err := json.Marshal(entity.Notification{
-			CageId:       sql.NullInt64{Int64: int64(chickenMonitoring.ChickenCage.CageId), Valid: true},
-			LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeCage, Valid: true},
-			Description:  fmt.Sprintf(constant.ChickenStatusNotification, chickenMonitoring.ChickenCage.Cage.Name, mortalityRate),
+			CageId:              sql.NullInt64{Int64: int64(chickenMonitoring.ChickenCage.CageId), Valid: true},
+			NotificationContext: pq.StringArray{constant.ChickenMonitoringNotificationContext},
+			Description:         fmt.Sprintf(constant.ChickenStatusNotification, chickenMonitoring.ChickenCage.Cage.Name, mortalityRate),
 		})
 		if err != nil {
 			s.log.Error("failed to parse struct into json", zap.Error(err))

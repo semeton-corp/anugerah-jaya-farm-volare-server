@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/robfig/cron/v3"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
@@ -164,6 +165,17 @@ func (s *Scheduler) InitScheduler() {
 			err := s.createNotificationStoreItemGoodEggInDanger(tx)
 			if err != nil {
 				s.log.Error("failed to create notification store item good egg in danger", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx)
+			if err != nil {
+				s.log.Error("failed to create notification when 3 days before deadline payment date", zap.Error(err))
 				return err
 			}
 			return nil
@@ -538,7 +550,96 @@ func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
 
 // Todo : create cashflow history every month
 
-// Todo : notification when h-3 deadline payment date
+func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gorm.DB) error {
+	now := time.Now()
+	targetDate := now.AddDate(0, 0, 3).Format("2006-01-02")
+
+	notifications := make([]entity.Notification, 0)
+	var warehouseSales []entity.WarehouseSale
+	if err := tx.Preload("Warehouse").Preload("Customer").Where("DATE(deadline_payment_date) = ?", targetDate).
+		Find(&warehouseSales).Error; err != nil {
+		return err
+	}
+	for _, ws := range warehouseSales {
+		notifications = append(notifications, entity.Notification{
+			WarehouseId:         sql.NullInt64{Int64: int64(ws.WarehouseId), Valid: true},
+			NotificationContext: pq.StringArray{constant.WarehouseSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ws.Customer.Name),
+		})
+	}
+
+	var storeSales []entity.StoreSale
+	if err := tx.Preload("Store").Preload("Customer").Where("DATE(deadline_payment_date) = ?", targetDate).
+		Find(&storeSales).Error; err != nil {
+		return err
+	}
+	for _, ss := range storeSales {
+		notifications = append(notifications, entity.Notification{
+			StoreId:             sql.NullInt64{Int64: int64(ss.StoreId), Valid: true},
+			NotificationContext: pq.StringArray{constant.StoreSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ss.Customer.Name),
+		})
+	}
+
+	var afkirSales []entity.AfkirChickenSale
+	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).Preload("AfkirChickenCustomer").Preload("ChickenCage.Cage").
+		Find(&afkirSales).Error; err != nil {
+		return err
+	}
+	for _, as := range afkirSales {
+		notifications = append(notifications, entity.Notification{
+			CageId:              sql.NullInt64{Int64: int64(as.ChickenCage.CageId), Valid: true},
+			NotificationContext: pq.StringArray{constant.AfkirChickenSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, as.AfkirChickenCustomer.Name),
+		})
+	}
+
+	var chickenProcurements []entity.ChickenProcurement
+	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).Preload("Supplier").Preload("Cage").
+		Find(&chickenProcurements).Error; err != nil {
+		return err
+	}
+	for _, cp := range chickenProcurements {
+		notifications = append(notifications, entity.Notification{
+			CageId:              sql.NullInt64{Int64: int64(cp.CageId), Valid: true},
+			NotificationContext: pq.StringArray{constant.ChickenProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
+		})
+	}
+
+	var itemProcurements []entity.WarehouseItemProcurement
+	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).Preload("Warehouse").Preload("Supplier").
+		Find(&itemProcurements).Error; err != nil {
+		return err
+	}
+	for _, wp := range itemProcurements {
+		notifications = append(notifications, entity.Notification{
+			WarehouseId:         sql.NullInt64{Int64: int64(wp.WarehouseId), Valid: true},
+			NotificationContext: pq.StringArray{constant.WarehouseItemProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, wp.Supplier.Name),
+		})
+	}
+
+	var cornProcurements []entity.WarehouseItemCornProcurement
+	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).
+		Find(&cornProcurements).Error; err != nil {
+		return err
+	}
+	for _, cp := range cornProcurements {
+		notifications = append(notifications, entity.Notification{
+			WarehouseId:         sql.NullInt64{Int64: int64(cp.WarehouseId), Valid: true},
+			NotificationContext: pq.StringArray{constant.WarehouseItemCornProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
+		})
+	}
+
+	err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 	s.log.Info("check chicken cage if need routine vaccine")
@@ -578,9 +679,9 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 			}
 
 			err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-				CageId:       sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
-				LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeCage, Valid: true},
-				Description:  fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
+				CageId:              sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
+				NotificationContext: pq.StringArray{constant.ChickenMonitoringNotificationContext},
+				Description:         fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
 			}).Error
 
 			if err != nil {
@@ -612,7 +713,10 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 	}
 
 	if totalStoreSaleNeedShip > 0 {
-		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{}).Error
+		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
+			NotificationContext: pq.StringArray{constant.StoreSaleNotificationContext},
+			Description:         fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalStoreSaleNeedShip),
+		}).Error
 
 		if err != nil {
 			return err
@@ -623,8 +727,8 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 
 	if totalWarehouseSaleNeedShip > 0 {
 		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-			LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeWarehouse, Valid: true},
-			Description:  fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
+			NotificationContext: pq.StringArray{constant.WarehouseSaleNotificationContext},
+			Description:         fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
 		}).Error
 
 		if err != nil {
@@ -653,9 +757,9 @@ func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) e
 
 			if daysLeft < 3 {
 				notifications = append(notifications, entity.Notification{
-					WarehouseId:  sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
-					LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeWarehouse, Valid: true},
-					Description:  fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name, warehouseItem.Warehouse.Name),
+					WarehouseId:         sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
+					NotificationContext: pq.StringArray{constant.WarehouseItemNotificationContext},
+					Description:         fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name, warehouseItem.Warehouse.Name),
 				})
 			}
 		}
@@ -689,9 +793,9 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 	for _, storeItem := range storeItems {
 		if storeItem.Quantity/float64(constant.TotalEggPerIkat) < 20.0 {
 			notifications = append(notifications, entity.Notification{
-				StoreId:      sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
-				LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeStore, Valid: true},
-				Description:  fmt.Sprintf(constant.StoreItemInDangerNotification, storeItem.Item.Name, storeItem.Store.Name),
+				StoreId:             sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
+				NotificationContext: pq.StringArray{constant.StoreItemNotificationContext},
+				Description:         fmt.Sprintf(constant.StoreItemInDangerNotification, storeItem.Item.Name, storeItem.Store.Name),
 			})
 		}
 	}

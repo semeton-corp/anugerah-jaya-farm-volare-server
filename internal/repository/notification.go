@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"gorm.io/gorm"
@@ -84,8 +85,8 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 		query = query.Where("is_marked = ?", filter.IsMarked)
 	}
 
-	if filter.LocationType.Value().IsValid() {
-		query = query.Where("location_type = ?", filter.LocationType.Value())
+	if len(filter.NotificationContexts) > 0 {
+		query = query.Where("notification_context && ?", pq.StringArray(filter.NotificationContexts))
 	}
 
 	err := query.Find(&data).Error
