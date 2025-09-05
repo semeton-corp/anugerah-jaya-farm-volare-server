@@ -182,6 +182,17 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
+	s.cron.AddFunc("01 00 1 * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createCashflowHistoryMonthly(tx)
+			if err != nil {
+				s.log.Error("failed to create cashflow history monthly", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
@@ -548,7 +559,156 @@ func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
 	return nil
 }
 
-// Todo : create cashflow history every month
+func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
+	s.log.Info("create cashflow history monthly...")
+
+	now := time.Now()
+	year, month, _ := now.Date()
+
+	lastMonth := month - 1
+	lastYear := year
+	if lastMonth == 0 {
+		lastMonth = 12
+		lastYear = year - 1
+	}
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(lastYear, lastMonth)
+
+	var locations []entity.Location
+	if err := tx.Find(&locations).Error; err != nil {
+		return err
+	}
+
+	data := make([]entity.CashflowHistory, 0)
+
+	for _, loc := range locations {
+		totalIncome := decimal.Zero
+		totalExpense := decimal.Zero
+		totalReceivables := decimal.Zero
+		totalDebt := decimal.Zero
+		totalStoreEggSale := decimal.Zero
+		totalWarehouseEggSale := decimal.Zero
+
+		var warehouseSalePayments []entity.WarehouseSalePayment
+		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&warehouseSalePayments).Error; err != nil {
+			return err
+		}
+		for _, e := range warehouseSalePayments {
+			totalIncome = totalIncome.Add(e.Nominal)
+		}
+
+		var storeSalePayments []entity.StoreSalePayment
+		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&storeSalePayments).Error; err != nil {
+			return err
+		}
+		for _, e := range storeSalePayments {
+			totalIncome = totalIncome.Add(e.Nominal)
+		}
+
+		var afkirPayments []entity.AfkirChickenSalePayment
+		if err := tx.Where("created_at BETWEEN ? AND ?", startDate, endDate).
+			Find(&afkirPayments).Error; err != nil {
+			return err
+		}
+		for _, e := range afkirPayments {
+			totalIncome = totalIncome.Add(e.Nominal)
+		}
+
+		var chickenProcurements []entity.ChickenProcurementPayment
+		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&chickenProcurements).Error; err != nil {
+			return err
+		}
+		for _, e := range chickenProcurements {
+			totalExpense = totalExpense.Add(e.Nominal)
+		}
+
+		var salaries []entity.UserSalaryPayment
+		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ? AND is_paid = ?", loc.Id, startDate, endDate, true).
+			Find(&salaries).Error; err != nil {
+			return err
+		}
+		for _, e := range salaries {
+			totalExpense = totalExpense.
+				Add(e.BaseSalary).
+				Add(e.AdditionalWorkSalary).
+				Add(e.BonusSalary).
+				Add(e.CompentationSalary).
+				Sub(e.Cashbond)
+		}
+
+		var storeSales []entity.StoreSale
+		if err := tx.Preload("Payments").
+			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&storeSales).Error; err != nil {
+			return err
+		}
+		for _, sale := range storeSales {
+			total := sale.TotalPrice
+			for _, p := range sale.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalReceivables = totalReceivables.Add(total)
+			totalStoreEggSale = totalStoreEggSale.Add(sale.TotalPrice)
+		}
+
+		var warehouseSales []entity.WarehouseSale
+		if err := tx.Preload("Payments").
+			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&warehouseSales).Error; err != nil {
+			return err
+		}
+		for _, sale := range warehouseSales {
+			total := sale.TotalPrice
+			for _, p := range sale.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalReceivables = totalReceivables.Add(total)
+			totalWarehouseEggSale = totalWarehouseEggSale.Add(sale.TotalPrice)
+		}
+
+		var warehouseItemProcurements []entity.WarehouseItemProcurement
+		if err := tx.Preload("Payments").
+			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&warehouseItemProcurements).Error; err != nil {
+			return err
+		}
+		for _, procurement := range warehouseItemProcurements {
+			total := procurement.TotalPrice
+			for _, p := range procurement.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalDebt = totalDebt.Add(total)
+		}
+
+		history := entity.CashflowHistory{
+			LocationId:       loc.Id,
+			Income:           totalIncome,
+			Expense:          totalExpense,
+			Receivables:      totalReceivables,
+			Debt:             totalDebt,
+			Cash:             totalIncome.Add(totalReceivables),
+			Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),
+			WarehouseEggSale: totalWarehouseEggSale,
+			StoreEggSale:     totalStoreEggSale,
+			CreatedAt:        time.Now(),
+		}
+
+		data = append(data, history)
+	}
+
+	// Bulk insert
+	if len(data) > 0 {
+		if err := tx.CreateInBatches(&data, len(data)).Error; err != nil {
+			return err
+		}
+	}
+
+	s.log.Info(fmt.Sprintf("success create %d cashflow histories", len(data)))
+	return nil
+}
 
 func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gorm.DB) error {
 	now := time.Now()
@@ -634,6 +794,24 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 
 	err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+	if err != nil {
+		return err
+	}
+
+	var userCashAdvances []entity.UserCashAdvance
+	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).Preload("User").
+		Find(&userCashAdvances).Error; err != nil {
+		return err
+	}
+	for _, cp := range userCashAdvances {
+		notifications = append(notifications, entity.Notification{
+			UserId:              uuid.NullUUID{UUID: cp.UserId, Valid: true},
+			NotificationContext: pq.StringArray{constant.UserCashAdvanceNotificationContext, constant.ReceivablesNotificationContext},
+			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.User.Name),
+		})
+	}
+
+	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
 	if err != nil {
 		return err
 	}

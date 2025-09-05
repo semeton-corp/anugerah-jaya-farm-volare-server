@@ -13,4 +13,5 @@ const (
 	ChickenProcurementNotificationContext           string = "Pengadaan Ayam"
 	WarehouseItemProcurementNotificationContext     string = "Pengadaan Barang"
 	WarehouseItemCornProcurementNotificationContext string = "Pengadaan Barang Jagung"
+	UserCashAdvanceNotificationContext              string = "Pinjaman Pegawai"
 )
