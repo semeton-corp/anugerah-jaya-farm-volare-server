@@ -1,17 +1,21 @@
 package service
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"math"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/infra/cache"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
@@ -25,6 +29,7 @@ type ChickenService struct {
 	repository       repository.IChickenRepository
 	eggService       IEggService
 	cageService      ICageService
+	cacheService     cache.ICache
 	warehouseService IWarehouseService
 	itemService      IItemService
 	cashflowService  ICashflowService
@@ -97,7 +102,7 @@ type IChickenService interface {
 	GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewFilter) (dto.ChickenAndCompanyOverviewResponse, error)
 }
 
-func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService, cashflowService ICashflowService, warehouseService IWarehouseService) IChickenService {
+func NewChickenService(log *zap.Logger, repository repository.IChickenRepository, eggService IEggService, cageService ICageService, itemService IItemService, cashflowService ICashflowService, warehouseService IWarehouseService, cacheService cache.ICache) IChickenService {
 	return &ChickenService{
 		log:              log,
 		repository:       repository,
@@ -106,6 +111,7 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 		itemService:      itemService,
 		warehouseService: warehouseService,
 		cashflowService:  cashflowService,
+		cacheService:     cacheService,
 	}
 }
 
@@ -157,10 +163,31 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	mortalityRate := 0.0
+	if (chickenMonitoring.TotalChicken) == 0 {
+		mortalityRate = 0
+	} else {
+		mortalityRate = float64((chickenMonitoring.TotalDeathChicken / (chickenMonitoring.TotalChicken)) * 100.0)
+	}
+
 	chickenMonitoring, err = s.repository.GetChickenMonitoringById(chickenMonitoring.Id)
 	if err != nil {
 		s.log.Error("failed to get chicken monitoring by id", zap.Error(err))
 		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	if mortalityRate < 0.5 {
+		notificationJsonParsed, err := json.Marshal(entity.Notification{
+			CageId:       sql.NullInt64{Int64: int64(chickenMonitoring.ChickenCage.CageId), Valid: true},
+			LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeCage, Valid: true},
+			Description:  fmt.Sprintf(constant.ChickenStatusNotification, chickenMonitoring.ChickenCage.Cage.Name, mortalityRate),
+		})
+		if err != nil {
+			s.log.Error("failed to parse struct into json", zap.Error(err))
+			return dto.ChickenMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
+		}
+
+		s.cacheService.Publish(context.Background(), constant.NotificationTopic, string(notificationJsonParsed))
 	}
 
 	return mapper.ChickenMonitoringToResponse(&chickenMonitoring), nil

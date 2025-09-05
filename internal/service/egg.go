@@ -15,6 +15,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	datatype "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/custom/data_type"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
@@ -187,8 +188,8 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 	if abnormalityStatus == constant.EggMonitoringStatusCheck || abnormalityStatus == constant.EggMonitoringStatusUrgent {
 		notificationJsonParsed, err := json.Marshal(entity.Notification{
 			CageId:       sql.NullInt64{Int64: int64(eggMonitoring.ChickenCage.CageId), Valid: true},
-			LocationType: enum.LocationTypeCage,
-			Description:  fmt.Sprintf(constant.ChickenStatusNotification, eggMonitoring.ChickenCage.Cage.Name, abnormalityStatus),
+			LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeCage, Valid: true},
+			Description:  fmt.Sprintf(constant.EggStatusNotification, eggMonitoring.ChickenCage.Cage.Name, abnormalityStatus),
 		})
 		if err != nil {
 			s.log.Error("failed to parse struct into json", zap.Error(err))

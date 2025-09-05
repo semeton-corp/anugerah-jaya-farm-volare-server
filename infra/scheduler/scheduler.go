@@ -122,6 +122,17 @@ func (s *Scheduler) InitScheduler() {
 			return nil
 		})
 	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationTotalItemSaleShipToday(tx)
+			if err != nil {
+				s.log.Error("failed to create notification total item sale item need ship today", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
@@ -204,8 +215,6 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 	s.log.Info(fmt.Sprintf("User presence checked: %d", len(userPresences)))
 	return nil
 }
-
-// Todo : check if the chicken is need vaccine or no when the age is reach new category
 
 func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
 	var chickenCages []entity.ChickenCage
@@ -493,6 +502,54 @@ func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
 // Todo : create cashflow history every month
 
 // Todo : notification when h-3 deadline payment date
+
+// Todo : check if the chicken is need vaccine or no when the age is reach new category
+
+func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error {
+	s.log.Info("create notification for total shipped today")
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+
+	var totalWarehouseSaleNeedShip int64
+	err := tx.Model(&entity.WarehouseSale{}).Where("DATE(send_date) = ?", today).Count(&totalWarehouseSaleNeedShip).Error
+	if err != nil {
+		return err
+	}
+
+	var totalStoreSaleNeedShip int64
+	err = tx.Model(&entity.StoreSale{}).Where("DATE(send_date) = ?", today).Count(&totalStoreSaleNeedShip).Error
+	if err != nil {
+		return err
+	}
+
+	if totalStoreSaleNeedShip > 0 {
+		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{}).Error
+
+		if err != nil {
+			return err
+		}
+
+		s.log.Info(fmt.Sprintf("total %d from store sale need ship today", totalStoreSaleNeedShip))
+	}
+
+	if totalWarehouseSaleNeedShip > 0 {
+		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
+			LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeWarehouse, Valid: true},
+			Description:  fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
+		}).Error
+
+		if err != nil {
+			return err
+		}
+
+		s.log.Info(fmt.Sprintf("total %d from warehouse sale need ship today", totalWarehouseSaleNeedShip))
+	}
+
+	return nil
+}
+
+// Today : Showing notification if item stock is in "Kritis" status
+// Notification = Stok (Name of the item) berada dalam status Kritis
 
 func (s *Scheduler) Start() {
 	s.cron.Start()
