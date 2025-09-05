@@ -3,6 +3,7 @@ package scheduler
 import (
 	"database/sql"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -146,6 +147,29 @@ func (s *Scheduler) InitScheduler() {
 			return nil
 		})
 	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationWarehouseItemInDangerStatus(tx)
+			if err != nil {
+				s.log.Error("failed to create notification warehouse item in danger status", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationStoreItemGoodEggInDanger(tx)
+			if err != nil {
+				s.log.Error("failed to create notification store item good egg in danger", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
@@ -613,8 +637,71 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 	return nil
 }
 
-// Today : Showing notification if item stock is in "Kritis" status
-// Notification = Stok (Name of the item) berada dalam status Kritis
+func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) error {
+	s.log.Error("create notification if warehouse item in danger status")
+
+	var warehouseItems []entity.WarehouseItem
+	err := tx.Model(&entity.WarehouseItem{}).Preload("Item").Preload("Warehouse.Location").Find(&warehouseItems).Error
+	if err != nil {
+		return err
+	}
+
+	notifications := make([]entity.Notification, 0)
+	for _, warehouseItem := range warehouseItems {
+		if warehouseItem.Item.Category != enum.ItemCategoryEgg && warehouseItem.Item.Category != enum.ItemCategoryCornMaterial {
+			daysLeft := math.Ceil(warehouseItem.Quantity / warehouseItem.Item.DailySpending.Float64)
+
+			if daysLeft < 3 {
+				notifications = append(notifications, entity.Notification{
+					WarehouseId:  sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
+					LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeWarehouse, Valid: true},
+					Description:  fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name),
+				})
+			}
+		}
+	}
+
+	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+	if err != nil {
+		return err
+	}
+
+	s.log.Error(fmt.Sprintf("success create %d notification if warehouse item in danger status", len(notifications)))
+	return nil
+}
+
+func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) error {
+	s.log.Info("create notification store item good egg in danger")
+
+	var goodEggItem entity.Item
+	err := tx.Model(&entity.Item{}).Where("name = ? AND unit = ? AND type = ?", constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg).First(&goodEggItem).Error
+	if err != nil {
+		return err
+	}
+
+	var storeItems []entity.StoreItem
+	err = tx.Model(&entity.StoreItem{}).Preload("Item").Preload("Store.Location").Where("item_id = ?", goodEggItem.Id).Find(&storeItems).Error
+	if err != nil {
+		return err
+	}
+
+	notifications := make([]entity.Notification, 0)
+	for _, storeItem := range storeItems {
+		if storeItem.Quantity/float64(constant.TotalEggPerIkat) < 20.0 {
+			notifications = append(notifications, entity.Notification{
+				StoreId:      sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
+				LocationType: datatype.NullLocationType{LocationType: enum.LocationTypeStore, Valid: true},
+			})
+		}
+	}
+
+	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func (s *Scheduler) Start() {
 	s.cron.Start()

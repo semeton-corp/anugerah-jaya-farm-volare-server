@@ -32,7 +32,6 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 		Quantity:  warehouseItem.Quantity,
 	}
 
-	// Todo : wait for corn description
 	if warehouseItem.Item.Category != enum.ItemCategoryEgg && warehouseItem.Item.Category != enum.ItemCategoryCornMaterial {
 		daysLeft := math.Ceil(warehouseItem.Quantity / warehouseItem.Item.DailySpending.Float64)
 		response.EstimationRunOut = fmt.Sprintf("%f hari lagi", daysLeft)

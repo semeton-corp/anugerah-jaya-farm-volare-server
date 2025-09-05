@@ -53,6 +53,8 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 		} else {
 			response.Description = constant.StoreItemDescriptionDanger
 		}
+	} else {
+		response.Description = "-"
 	}
 
 	return response
