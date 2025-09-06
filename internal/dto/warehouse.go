@@ -107,6 +107,7 @@ type WarehouseItemProcurementListResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
 	ExpiredAt                     string               `json:"expiredAt"`
 	PaymentStatus                 string               `json:"paymentStatus"`
+	PaidDate                      string               `json:"paidDate"`
 }
 
 type WarehouseItemProcurementResponse struct {
@@ -122,6 +123,7 @@ type WarehouseItemProcurementResponse struct {
 	ProcurementStatus             string                                    `json:"procurementStatus"`
 	DeadlinePaymentDate           string                                    `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                                      `json:"isMoreThanDeadlinePaymentDate"`
+	PaidDate                      string                                    `json:"paidDate"`
 	Price                         string                                    `json:"price"`
 	DaysNeed                      uint64                                    `json:"daysNeed"`
 	TotalPrice                    string                                    `json:"totalPrice"`
@@ -445,7 +447,8 @@ type WarehouseItemCornProcurementListResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
 	Quantity                      float64              `json:"quantity"`
 	Discount                      float64              `json:"discount"`
-	Price                         string               `json:"price" validate:"required"`
+	Price                         string               `json:"price"`
+	PaidDate                      string               `json:"paidDate"`
 }
 
 type WarehouseItemCornProcurementListPaginationResponse struct {
@@ -470,6 +473,7 @@ type WarehouseItemCornProcurementResponse struct {
 	RemainingPayment              string                                        `json:"remainingPayment"`
 	DeadlinePaymentDate           string                                        `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                                          `json:"isMoreThanDeadlinePaymentDate"`
+	PaidDate                      string                                        `json:"paidDate"`
 	Discount                      float64                                       `json:"discount"`
 	PaymentStatus                 string                                        `json:"paymentStatus"`
 	PaymentType                   string                                        `json:"paymentType"`

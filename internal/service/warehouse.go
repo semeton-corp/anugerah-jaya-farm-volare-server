@@ -1771,7 +1771,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
 	}
 
-	// Validate payments
 	if len(request.Payments) == 0 {
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("payments are required")
 	}
@@ -1804,8 +1803,13 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		})
 	}
 
+	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("need more payment for paid off")
+	}
+
 	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
+		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -1959,8 +1963,13 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		})
 	}
 
+	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("need more payment for paid off")
+	}
+
 	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
+		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -2112,6 +2121,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurementPayment(warehouseItemPr
 	warehouseItemProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	if totalPrice.Equal(warehouseItemProcurement.TotalPrice) {
 		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusPaid
+		warehouseItemProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPrice.LessThan(warehouseItemProcurement.TotalPrice) {
 		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -2207,8 +2217,10 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementPayment(id uint64, ware
 	warehouseItemProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	if totalPrice.Equal(warehouseItemProcurement.TotalPrice) {
 		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusPaid
+		warehouseItemProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPrice.LessThan(warehouseItemProcurement.TotalPrice) {
 		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		warehouseItemProcurement.PaidDate = sql.NullTime{Valid: false}
 	} else {
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("nominal is to high")
 	}
@@ -2271,10 +2283,11 @@ func (s *WarehouseService) DeleteWarehouseItemProcurementPayment(id uint64, ware
 	}
 
 	warehouseItemProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	if totalPrice.Equal(warehouseItemProcurement.TotalPrice) {
-		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusPaid
+	if totalPrice.LessThan(decimal.Zero) {
+		return errx.BadRequest("delete this payment make minus")
 	} else if totalPrice.LessThan(warehouseItemProcurement.TotalPrice) {
 		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		warehouseItemProcurement.PaidDate = sql.NullTime{Valid: false}
 	}
 
 	err = s.repository.DeleteWarehouseItemProcurementPayment(id)
@@ -2614,8 +2627,13 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		})
 	}
 
+	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("need payment to paid off")
+	}
+
 	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
+		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -2773,8 +2791,13 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		})
 	}
 
+	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("need payment to paid off")
+	}
+
 	if totalPayment.Equal(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusPaid
+		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(data.TotalPrice) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -2941,6 +2964,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementPayment(warehouseIt
 	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	if totalPrice.Equal(warehouseItemCornProcurement.TotalPrice) {
 		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusPaid
+		warehouseItemCornProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPrice.LessThan(warehouseItemCornProcurement.TotalPrice) {
 		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -3041,8 +3065,10 @@ func (s *WarehouseService) UpdateWarehouseItemCornProcurementPayment(id uint64, 
 	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	if totalPrice.Equal(warehouseItemCornProcurement.TotalPrice) {
 		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusPaid
+		warehouseItemCornProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPrice.LessThan(warehouseItemCornProcurement.TotalPrice) {
 		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		warehouseItemCornProcurement.PaidDate = sql.NullTime{Valid: false}
 	} else {
 		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("nominal is to high")
 	}
@@ -3110,10 +3136,11 @@ func (s *WarehouseService) DeleteWarehouseItemCornProcurementPayment(id uint64, 
 	}
 
 	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	if totalPrice.Equal(warehouseItemCornProcurement.TotalPrice) {
-		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusPaid
+	if totalPrice.LessThan(decimal.Zero) {
+		return errx.BadRequest("delete this payment make minus")
 	} else if totalPrice.LessThan(warehouseItemCornProcurement.TotalPrice) {
 		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		warehouseItemCornProcurement.PaidDate = sql.NullTime{Valid: false}
 	}
 
 	err = s.repository.DeleteWarehouseItemCornProcurementPayment(id)

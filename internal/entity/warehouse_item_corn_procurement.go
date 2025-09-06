@@ -33,6 +33,7 @@ type WarehouseItemCornProcurement struct {
 	DeadlinePaymentDate       sql.NullTime                          `gorm:"type:date"`
 	PaymentType               enum.PaymentType                      `gorm:"paymentType;not null;default:0"`
 	Discount                  float64                               `gorm:"decimal;not null"`
+	PaidDate                  sql.NullTime                          `gorm:"type:date"`
 	CreatedAt                 time.Time                             `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy                 uuid.NullUUID                         `gorm:"type:varchar(255)"`
 	UpdatedAt                 time.Time                             `gorm:"type:timestamp;autoUpdateTime"`

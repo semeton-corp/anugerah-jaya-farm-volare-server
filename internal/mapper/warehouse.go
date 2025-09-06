@@ -243,6 +243,12 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		response.ExpiredAt = "-"
 	}
 
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
+	}
+
 	return response
 }
 
@@ -276,6 +282,12 @@ func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcuremen
 		response.ExpiredAt = data.ExpiredAt.Time.Format("02 Jan 2006")
 	} else {
 		response.ExpiredAt = "-"
+	}
+
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
 	}
 
 	return response
@@ -365,6 +377,12 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
+	}
+
 	return response
 }
 
@@ -396,6 +414,12 @@ func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornPr
 	} else {
 		response.DeadlinePaymentDate = "-"
 		response.IsMoreThanDeadlinePaymentDate = false
+	}
+
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
 	}
 
 	return response
