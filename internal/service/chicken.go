@@ -2701,7 +2701,23 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 	rcRatio := diff.Div(totalExpenseProduction).InexactFloat64() * 100.0
 	mos := totalIncomeProduction.Sub(diff).Sub(totalIncomeProduction).InexactFloat64()
 
-	profitabilityGraphs := make([]dto.ProfitabilityPerformanceBarChartResponse, 0)
+	incomeAndExpenseGraphs := make([]dto.IncomeAndExpenseBarChartResponse, 0)
+	cashflowHistories, err := s.cashflowService.GetCashflowHistories(dto.GetCashflowHistoryFilter{
+		Year:       uint64(time.Now().Year()),
+		LocationId: filter.LocationId,
+	})
+
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
+
+	for _, cashflowHistory := range cashflowHistories {
+		incomeAndExpenseGraphs = append(incomeAndExpenseGraphs, dto.IncomeAndExpenseBarChartResponse{
+			Key:     cashflowHistory.CreatedAt.Format("January"),
+			Income:  cashflowHistory.Income,
+			Expense: cashflowHistory.Cash,
+		})
+	}
 
 	return dto.ChickenAndCompanyOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
@@ -2718,9 +2734,9 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 			ChickenLayer:     float64(totalLayerChicken),
 			ChickenAfkir:     float64(totalAfkirChicken),
 		},
-		BEPGoodEgg:                        bepGoodEgg.InexactFloat64(),
-		MarginOfSafety:                    mos,
-		RCRatio:                           rcRatio,
-		ProfitabilityPerformanceBarCharts: profitabilityGraphs,
+		BEPGoodEgg:                           bepGoodEgg.InexactFloat64(),
+		MarginOfSafety:                       mos,
+		RCRatio:                              rcRatio,
+		IncomeAndExpensePerformanceBarCharts: incomeAndExpenseGraphs,
 	}, nil
 }

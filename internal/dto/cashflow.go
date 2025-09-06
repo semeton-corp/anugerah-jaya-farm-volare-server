@@ -1,6 +1,8 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 )
@@ -478,4 +480,17 @@ type GetUserCashAdvancePaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+}
+
+type CashflowHistoryResponse struct {
+	LocationId       uint64    `gorm:"type:bigint;not null"`
+	Income           string    `json:"income"`
+	Profit           string    `json:"profit"`
+	Expense          string    `json:"expense"`
+	Cash             string    `json:"cash"`
+	Receivables      string    `json:"receivables"`
+	Debt             string    `json:"debt"`
+	StoreEggSale     string    `json:"storageEggSale"`
+	WarehouseEggSale string    `json:"warehouseEggSale"`
+	CreatedAt        time.Time `json:"-"`
 }
