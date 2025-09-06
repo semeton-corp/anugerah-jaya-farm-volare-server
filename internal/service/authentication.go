@@ -121,7 +121,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				})
 			}
 
-			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId)
+			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId, request.RoleId)
 			if err != nil {
 				// Saga Pattern
 				s.repository.DeleteUser(Id)

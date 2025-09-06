@@ -1,12 +1,13 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
@@ -17,7 +18,7 @@ type PlacementService struct {
 }
 
 type IPlacementService interface {
-	CreateCagePlacementForAuthentication(request []dto.CreateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error)
+	CreateCagePlacementForAuthentication(request []dto.CreateCagePlacementRequest, createdBy uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error)
 	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
@@ -44,11 +45,10 @@ func NewPlacementService(log *zap.Logger, repository repository.IPlacementReposi
 	}
 }
 
-func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.CreateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error) {
+func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.CreateCagePlacementRequest, createdBy uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	for _, r := range requests {
-		var totalCageStaff, totalEggStaff uint64
 		cagePlacements, err := s.repository.GetCagePlacementByCageId(r.CageId)
 		if err != nil {
 			s.log.Error("failed get cage placement by cage id")
@@ -56,16 +56,9 @@ func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.C
 		}
 
 		for _, cagePlacement := range cagePlacements {
-			switch cagePlacement.User.Role.Name {
-			case constant.RolePekerjaKandang:
-				totalCageStaff += 1
-			case constant.RolePekerjaTelur:
-				totalEggStaff += 1
+			if cagePlacement.User.RoleId == roleId {
+				return nil, errx.BadRequest(fmt.Sprintf("user with this role already exist in cage %s", cagePlacement.Cage.Name))
 			}
-		}
-
-		if totalCageStaff != 1 && totalEggStaff != 1 {
-			return nil, errx.BadRequest("cage in request already have 1 cage staff and 1 egg staff")
 		}
 	}
 
