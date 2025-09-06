@@ -27,7 +27,8 @@ type ChickenProcurement struct {
 	IsArrived             bool                        `gorm:"type:boolean;not null;default:false"`
 	EstimationArrivalDate time.Time                   `gorm:"type:date;not null"`
 	Payments              []ChickenProcurementPayment `gorm:"foreignKey:ChickenProcurementId;references:Id"`
-	DeadlinePaymentDate   sql.NullTime                `gorm:"timestamp"`
+	DeadlinePaymentDate   sql.NullTime                `gorm:"type:date"`
+	PaidDate              sql.NullTime                `gorm:"type:date"`
 	CreatedAt             time.Time                   `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy             uuid.NullUUID               `gorm:"type:varchar(255)"`
 	UpdatedAt             time.Time                   `gorm:"type:timestamp;autoUpdateTime"`

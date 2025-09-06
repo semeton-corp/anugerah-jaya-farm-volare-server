@@ -1120,8 +1120,13 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		totalPayment = totalPayment.Add(nominal)
 	}
 
+	if paymentType == enum.PaymentTypePaidOff && totalPayment.LessThan(chickenProcurement.TotalPrice) {
+		return dto.ChickenProcurementResponse{}, errx.BadRequest("need payment to make it paid off")
+	}
+
 	if totalPayment.Equal(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
+		chickenProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
@@ -1297,6 +1302,7 @@ func (s *ChickenService) CreateChickenProcurementPayment(chickenProcurementId ui
 
 	if totalPayment.Equal(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
+		chickenProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.GreaterThan(chickenProcurement.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("total payment is greater than total price")
@@ -1388,11 +1394,13 @@ func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId ui
 
 	if totalPayment.Equal(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
+		chickenProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.GreaterThan(chickenProcurement.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("total payment is greater than total price")
 	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		chickenProcurement.PaidDate = sql.NullTime{Valid: false}
 	}
 
 	chickenProcurementPayment.PaymentMethod = paymentMethod
@@ -1462,12 +1470,13 @@ func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId ui
 		}
 	}
 
-	if totalPayment.LessThan(chickenProcurement.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
-		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
-		chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	} else if totalPayment.LessThan(decimal.Zero) {
+	if totalPayment.LessThan(decimal.Zero) {
 		s.log.Error("delete this payment make minus", zap.Error(err))
 		return errx.BadRequest("delete this payment make minus")
+	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
+		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
+		chickenProcurement.PaidDate = sql.NullTime{Valid: false}
+		chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	}
 
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
@@ -1777,10 +1786,12 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
 		afkirSale.PaymentStatus = enum.PaymentStatusPaid
+		afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
 		if totalPayment.Equal(totalPrice) {
 			afkirSale.PaymentStatus = enum.PaymentStatusPaid
-		} else if totalPayment.GreaterThan(decimal.Zero) {
+			afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
+		} else if totalPayment.LessThan(afkirSale.TotalPrice) {
 			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
 		} else {
 			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid
@@ -1977,6 +1988,7 @@ func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64
 
 	if totalCurrentPayment.Add(nominal).Equal(afkirChickenSale.TotalPrice) {
 		afkirChickenSale.PaymentStatus = enum.PaymentStatusPaid
+		afkirChickenSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalCurrentPayment.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("total payment is greater than total price")
@@ -2067,8 +2079,10 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 
 	if totalCurrentPrice.Add(nominal).Equal(afkirChickenSale.TotalPrice) {
 		afkirChickenSale.PaymentStatus = enum.PaymentStatusPaid
+		afkirChickenSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalCurrentPrice.Add(nominal).LessThan(afkirChickenSale.TotalPrice) {
 		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
+		afkirChickenSale.PaidDate = sql.NullTime{Valid: false}
 	} else if totalCurrentPrice.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is greater than total price")
 	}
@@ -2135,10 +2149,11 @@ func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64
 		}
 	}
 
-	if totalCurrentPrice.LessThan(afkirChickenSale.TotalPrice) {
-		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
-	} else if totalCurrentPrice.LessThan(decimal.Zero) {
+	if totalCurrentPrice.LessThan(decimal.Zero) {
 		return errx.BadRequest("nominal is less than 0")
+	} else if totalCurrentPrice.LessThan(afkirChickenSale.TotalPrice) {
+		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
+		afkirChickenSale.PaidDate = sql.NullTime{Valid: false}
 	}
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
@@ -2247,10 +2262,12 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
 		afkirSale.PaymentStatus = enum.PaymentStatusPaid
+		afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
 		if totalPayment.Equal(totalPrice) {
 			afkirSale.PaymentStatus = enum.PaymentStatusPaid
-		} else if totalPayment.GreaterThan(decimal.Zero) {
+			afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
+		} else if totalPayment.LessThan(afkirSale.TotalPrice) {
 			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
 		} else {
 			afkirSale.PaymentStatus = enum.PaymentStatusNotPaid

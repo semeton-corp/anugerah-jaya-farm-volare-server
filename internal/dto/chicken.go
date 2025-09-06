@@ -192,6 +192,7 @@ type ChickenProcurementResponse struct {
 	DeadlinePaymentDate           string                              `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                                `json:"isMoreThanDeadlinePaymentDate"`
 	ProcurementStatus             string                              `json:"procurementStatus"`
+		PaidDate                      string               `json:"paidDate"`
 }
 
 type ChickenProcurementListResponse struct {
@@ -208,6 +209,7 @@ type ChickenProcurementListResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                 `json:"isMoreThanDeadlinePaymentDate"`
 	ProcurementStatus             string               `json:"procurementStatus"`
 	TotalPrice                    string               `json:"totalPrice"`
+	PaidDate                      string               `json:"paidDate"`
 }
 
 type ChickenProcurementListPaginationResponse struct {
@@ -354,6 +356,7 @@ type AfkirChickenSaleListResponse struct {
 	PaymentStatus                 string                           `json:"paymentStatus"`
 	DeadlinePaymentDate           string                           `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                             `json:"isMoreThanDeadlinePaymentDate"`
+		PaidDate                      string               `json:"paidDate"`
 }
 
 type AfkirChickenSaleListPaginationResponse struct {
@@ -410,6 +413,7 @@ type AfkirChickenSaleResponse struct {
 	RemainingPayment              string                            `json:"remainingPayment"`
 	DeadlinePaymentDate           string                            `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                              `json:"isMoreThanDeadlinePaymentDate"`
+		PaidDate                      string               `json:"paidDate"`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {

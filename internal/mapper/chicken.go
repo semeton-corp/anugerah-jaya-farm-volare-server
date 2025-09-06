@@ -167,6 +167,12 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
+	}
+
 	return response
 }
 
@@ -194,6 +200,12 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 	} else {
 		response.DeadlinePaymentDate = "-"
 		response.IsMoreThanDeadlinePaymentDate = false
+	}
+
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
 	}
 
 	return response
@@ -239,6 +251,12 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
+	}
+
 	return response
 }
 
@@ -267,6 +285,12 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 	} else {
 		response.DeadlinePaymentDate = "-"
 		response.IsMoreThanDeadlinePaymentDate = false
+	}
+
+	if data.PaidDate.Valid {
+		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
 	}
 
 	return response
