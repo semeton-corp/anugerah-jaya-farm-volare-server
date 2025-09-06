@@ -1180,6 +1180,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 	if currentPayment.GreaterThan(data.Nominal) {
 		return dto.UserCashAdvanceResponse{}, errx.BadRequest("nominal more than needed")
 	} else if currentPayment.Equal(data.Nominal) {
+		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 		data.PaymentStatus = enum.PaymentStatusPaid
 	} else if currentPayment.LessThan(data.Nominal) {
 		data.PaymentStatus = enum.PaymentStatusUnpaid
@@ -1338,6 +1339,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 				PaymentStatus:       e.PaymentStatus.String(),
 			}
 
+			if e.PaidDate.Valid {
+				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			} else {
+				receieveable.PaidDate = "-"
+			}
+
 			totalCurrentPayment := decimal.Zero
 			for _, p := range e.Payments {
 				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
@@ -1360,6 +1367,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 				PhoneNumber:         e.Customer.PhoneNumber,
 				TotalNominal:        e.TotalPrice.String(),
 				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			if e.PaidDate.Valid {
+				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			} else {
+				receieveable.PaidDate = "-"
 			}
 
 			totalCurrentPayment := decimal.Zero
@@ -1386,6 +1399,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 				PaymentStatus:       e.PaymentStatus.String(),
 			}
 
+			if e.PaidDate.Valid {
+				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			} else {
+				receieveable.PaidDate = "-"
+			}
+
 			totalCurrentPayment := decimal.Zero
 			for _, p := range e.Payments {
 				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
@@ -1408,6 +1427,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 				PhoneNumber:         e.User.PhoneNumber,
 				TotalNominal:        e.Nominal.String(),
 				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			if e.PaidDate.Valid {
+				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			} else {
+				receieveable.PaidDate = "-"
 			}
 
 			totalCurrentPayment := decimal.Zero
@@ -1464,7 +1489,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceivablesResponse{
+		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1479,7 +1504,15 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
-		}, nil
+		}
+
+		if data.PaidDate.Valid {
+			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		} else {
+			response.PaidDate = "-"
+		}
+
+		return response, nil
 	case constant.ReceieveablesCategoryStoreEggSale:
 		data, err := s.repository.GetStoreSaleCashflow(id)
 		if err != nil {
@@ -1503,7 +1536,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceivablesResponse{
+		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1518,7 +1551,15 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
-		}, nil
+		}
+
+		if data.PaidDate.Valid {
+			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		} else {
+			response.PaidDate = "-"
+		}
+
+		return response, nil
 	case constant.ReceieveablesCategoryAfkirChickenSale:
 		data, err := s.repository.GetAfkirChickenSaleCashflow(id)
 		if err != nil {
@@ -1542,7 +1583,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceivablesResponse{
+		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1557,7 +1598,15 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
-		}, nil
+		}
+
+		if data.PaidDate.Valid {
+			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		} else {
+			response.PaidDate = "-"
+		}
+
+		return response, nil
 
 	case constant.ReceieveablesCategoryCashAdvance:
 		data, err := s.repository.GetUserCashAdvance(id)
@@ -1582,7 +1631,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			paymentResponses = append(paymentResponses, paymentResponse)
 		}
 
-		return dto.ReceivablesResponse{
+		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
 			Date:                  data.CreatedAt.Format("02 Jan 2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
@@ -1597,7 +1646,15 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			DeadlinePaymentDate:   data.DeadlinePaymentDate.Format("02 Jan 2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
-		}, nil
+		}
+
+		if data.PaidDate.Valid {
+			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		} else {
+			response.PaidDate = "-"
+		}
+
+		return response, nil
 	default:
 		return dto.ReceivablesResponse{}, errx.BadRequest("invalid receivables category")
 	}
@@ -1670,6 +1727,7 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 				return dto.UserSalaryPaymentResponse{}, errx.BadRequest("nominal more than needed")
 			case currentPayment.Equal(data.Nominal):
 				data.PaymentStatus = enum.PaymentStatusPaid
+				data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 			default:
 				data.PaymentStatus = enum.PaymentStatusUnpaid
 			}

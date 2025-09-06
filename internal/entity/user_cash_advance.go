@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,6 +17,7 @@ type UserCashAdvance struct {
 	DeadlinePaymentDate time.Time                `gorm:"type:date;not null"`
 	PaymentStatus       enum.PaymentStatus       `gorm:"type:int;not null"`
 	Payments            []UserCashAdvancePayment `gorm:"foreignKey:UserCashAdvanceId;references:Id"`
+	PaidDate            sql.NullTime             `gorm:"type:date"`
 	CreatedAt           time.Time                `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy           uuid.NullUUID            `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time                `gorm:"type:timestamp;autoUpdateTime"`

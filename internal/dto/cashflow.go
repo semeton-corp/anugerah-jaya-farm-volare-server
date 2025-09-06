@@ -203,6 +203,7 @@ type ReceivablesResponse struct {
 	PaymentStatus         string                        `json:"paymentStatus"`
 	DeadlinePaymentDate   string                        `json:"deadlinePaymentDate"`
 	InputBy               string                        `json:"inputBy"`
+	PaidDate              string                        `json:"paidDate"`
 	ReceieveablesPayments []ReceievablesPaymentResponse `json:"payments"`
 }
 
@@ -225,6 +226,7 @@ type ReceivablesListResponse struct {
 	TotalNominal        string `json:"totalNominal"`
 	RemainingPayment    string `json:"remainingPayment"`
 	PaymentStatus       string `json:"paymentStatus"`
+	PaidDate            string `json:"paidDate"`
 }
 
 type ReceivablesPieResponse struct {
