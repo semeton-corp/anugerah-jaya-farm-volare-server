@@ -125,6 +125,10 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 	switch status {
 	case enum.PresenceStatusPresent:
+		if time.Now().After(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.Local)) && request.StartTime != "" && userPresence.StartTime.Time == nil {
+			return dto.PresenceResponse{}, errx.BadRequest("can't presence start more than 17.00 PM")
+		}
+
 		if !util.IsWithinRadius(userPresence.User.Location.Longitude, userPresence.User.Location.Latitude, request.Longitude, request.Latitude, constant.RadiusPresence) {
 			return dto.PresenceResponse{}, errx.BadRequest("location is not within the allowed radius")
 		}

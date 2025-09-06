@@ -300,12 +300,11 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		}
 	}
 
+	keys := util.GetSortedKeys(weeks)
 	kpiPerformances := make([]dto.KPIPerformanceResponse, 0)
-	for key, value := range weeks {
-
-		presenceScore := float64(totalPresentWeek[key]) / float64(value.TotalDays) * 100
-		workScore := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
-
+	for _, key := range keys {
+		presenceScore := float64(totalPresentWeek[key]) / float64(weeks[key].TotalDays) * 100
+		workScore := float64(totalWorkHourWeek[key]) / float64(8*weeks[key].TotalDays) * 100
 		kpiPerformance := dto.KPIPerformanceResponse{
 			Key:          fmt.Sprintf("Minggu %d", key),
 			WorkKpiScore: (presenceScore * 0.6) + (workScore * 0.4),

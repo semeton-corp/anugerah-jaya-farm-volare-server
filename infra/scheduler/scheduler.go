@@ -192,7 +192,6 @@ func (s *Scheduler) InitScheduler() {
 			return nil
 		})
 	})
-
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
