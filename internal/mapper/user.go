@@ -7,17 +7,18 @@ import (
 
 func UserToResponse(user *entity.User) dto.UserResponse {
 	response := dto.UserResponse{
-		Id:           user.Id.String(),
-		Name:         user.Name,
-		Username:     user.Username,
-		Email:        user.Email,
-		Address:      user.Address,
-		PhotoProfile: user.PhotoProfile,
-		PhoneNumber:  user.PhoneNumber,
-		Salary:       user.Salary.String(),
-		CreatedAt:    user.CreatedAt.Format("02 Jan 2006"),
-		Role:         RoleToResponse(&user.Role),
-		Location:     LocationToResponse(&user.Location),
+		Id:             user.Id.String(),
+		Name:           user.Name,
+		Username:       user.Username,
+		Email:          user.Email,
+		Address:        user.Address,
+		PhotoProfile:   user.PhotoProfile,
+		PhoneNumber:    user.PhoneNumber,
+		Salary:         user.Salary.String(),
+		CreatedAt:      user.CreatedAt.Format("02 Jan 2006"),
+		Role:           RoleToResponse(&user.Role),
+		Location:       LocationToResponse(&user.Location),
+		SalaryInterval: user.SalaryInterval.String(),
 	}
 
 	return response

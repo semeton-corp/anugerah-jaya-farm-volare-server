@@ -3,17 +3,24 @@ package dto
 import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 
 type UserResponse struct {
-	Id           string           `json:"id,omitempty"`
-	Username     string           `json:"username,omitempty"`
-	Email        string           `json:"email,omitempty"`
-	Name         string           `json:"name,omitempty"`
-	PhotoProfile string           `json:"photoProfile,omitempty"`
-	PhoneNumber  string           `json:"phoneNumber,omitempty"`
-	Address      string           `json:"address,omitempty"`
-	Salary       string           `json:"salary,omitempty"`
-	Role         RoleResponse     `json:"role,omitempty"`
-	Location     LocationResponse `json:"location,omitzero"`
-	CreatedAt    string           `json:"createdAt,omitempty"`
+	Id             string              `json:"id,omitempty"`
+	Username       string              `json:"username,omitempty"`
+	Email          string              `json:"email,omitempty"`
+	Name           string              `json:"name,omitempty"`
+	PhotoProfile   string              `json:"photoProfile,omitempty"`
+	PhoneNumber    string              `json:"phoneNumber,omitempty"`
+	Address        string              `json:"address,omitempty"`
+	Salary         string              `json:"salary,omitempty"`
+	Role           RoleResponse        `json:"role,omitempty"`
+	Location       LocationResponse    `json:"location,omitzero"`
+	CreatedAt      string              `json:"createdAt,omitempty"`
+	SalaryInterval string              `json:"salaryInterval"`
+	Placement      []PlacementResponse `json:"placements"`
+}
+
+type PlacementResponse struct {
+	PlaceId   uint64 `json:"placeId"`
+	PlaceName string `json:"placeName"`
 }
 
 type UpdateUserRequest struct {
@@ -35,9 +42,9 @@ type GetUserListFilter struct {
 }
 
 type GetUserOverviewListFilter struct {
-	Page           uint64 `query:"page"`
-	Keyword        string `query:"keyword"`
-	RoleId         uint64 `query:"roleId"`
+	Page           uint64   `query:"page"`
+	Keyword        string   `query:"keyword"`
+	RoleId         uint64   `query:"roleId"`
 	ExcludeRoleIds []uint64 `query:"excludeRoleIds"`
 }
 

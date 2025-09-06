@@ -63,7 +63,49 @@ func (s *UserService) GetUserById(id uuid.UUID) (dto.UserResponse, error) {
 		return dto.UserResponse{}, err
 	}
 
-	return mapper.UserToResponse(&user), nil
+	placements := make([]dto.PlacementResponse, 0)
+	if slices.Contains(entity.CageLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetCagePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, dto.PlacementResponse{
+				PlaceId:   e.Cage.Id,
+				PlaceName: e.Cage.Name,
+			})
+		}
+	} else if slices.Contains(entity.WarehouseLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetWarehousePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, dto.PlacementResponse{
+				PlaceId:   e.Warehouse.Id,
+				PlaceName: e.Warehouse.Name,
+			})
+		}
+	} else if slices.Contains(entity.StoreLocationTypeList, user.Role.Name) {
+		data, err := s.placementService.GetStorePlacementByUserId(user.Id)
+		if err != nil {
+			return dto.UserResponse{}, err
+		}
+
+		for _, e := range data {
+			placements = append(placements, dto.PlacementResponse{
+				PlaceId:   e.Store.Id,
+				PlaceName: e.Store.Name,
+			})
+		}
+	}
+
+	response := mapper.UserToResponse(&user)
+	response.Placement = placements
+
+	return response, nil
 }
 
 func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, userId uuid.UUID) (dto.UserResponse, error) {
