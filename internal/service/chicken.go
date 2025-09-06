@@ -1154,10 +1154,10 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 
 	isUsed := true
 	_, err = s.cageService.UpdateCage(chickenProcurement.CageId, dto.UpdateCageRequest{
-		Name:            chickenProcurement.Cage.Name,
-		Capacity:        chickenProcurement.Cage.Capacity,
-		LocationId:      chickenProcurement.Cage.LocationId,
-		ChickenCategory: chickenProcurement.Cage.ChickenCategory.String(),
+		Name:            cage.Name,
+		Capacity:        cage.Capacity,
+		LocationId:      cage.Location.Id,
+		ChickenCategory: cage.ChickenCategory,
 		IsUsed:          &isUsed,
 	}, userId)
 	if err != nil {

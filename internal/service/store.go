@@ -964,11 +964,13 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
+		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
 		if totalPayment.GreaterThan(decimal.Zero) && totalPayment.LessThan(storeSale.TotalPrice) {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		} else if totalPayment.Equal(storeSale.TotalPrice) {
 			storeSale.PaymentStatus = enum.PaymentStatusPaid
+			storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 		} else {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
@@ -1146,6 +1148,7 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 
 	if totalPayment.Equal(storeSale.TotalPrice) {
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
+		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
@@ -1249,8 +1252,10 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 
 	if totalPayment.Equal(storeSale.TotalPrice) {
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
+		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.LessThan(storeSale.TotalPrice) {
 		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		storeSale.PaidDate = sql.NullTime{Valid: false}
 	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
 		return dto.StoreSaleResponse{}, errx.BadRequest("quantity can't be lower")
 	}
@@ -1350,11 +1355,13 @@ func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, req
 
 	if totalPayment.Equal(storeSale.TotalPrice) {
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
+		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else if totalPayment.GreaterThan(storeSale.TotalPrice) {
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 	} else if totalPayment.LessThan(storeSale.TotalPrice) {
 		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		storeSale.PaidDate = sql.NullTime{Valid: false}
 	}
 
 	storeSalePayment.PaymentMethod = paymentMethod
@@ -1431,6 +1438,7 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 
 	if totalPayment.LessThan(storeSale.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
 		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		storeSale.PaidDate = sql.NullTime{Valid: false}
 		storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	} else if totalPayment.LessThan(decimal.Zero) {
 		s.log.Error("delete this payment make minus", zap.Error(err))

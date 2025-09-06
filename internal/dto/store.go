@@ -182,6 +182,7 @@ type StoreSaleResponse struct {
 	Payments                      []StoreSalePaymentResponse `json:"payments"`
 	RemainingPayment              string                     `json:"remainingPayment"`
 	DeadlinePaymentDate           string                     `json:"deadlinePaymentDate"`
+	PaidDate                      string                     `json:"paidDate"`
 	IsMoreThanDeadlinePaymentDate bool                       `json:"isMoreThanDeadlinePaymentDate"`
 }
 
