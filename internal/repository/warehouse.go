@@ -892,7 +892,7 @@ func (r *WarehouseRepository) GetWarehouseItemCorns(filter dto.GetWarehouseItemC
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCorns).Error
+	err := query.Where("quantity <> 0").Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCorns).Error
 	if err != nil {
 		return nil, err
 	}
@@ -938,7 +938,7 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurementDraftInBatch(data *[
 func (r *WarehouseRepository) GetCornItemsByWarehouseIdSortedDesc(warehouseId uint64) ([]entity.WarehouseItemCorn, error) {
 	var items []entity.WarehouseItemCorn
 	err := r.db.
-		Where("warehouse_id = ?", warehouseId).
+		Where("warehouse_id = ? AND quantity <> 0", warehouseId).
 		Order("order_date DESC").
 		Find(&items).Error
 	if err != nil {
