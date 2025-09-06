@@ -131,7 +131,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	chickenHandler := rest.NewChickenHandler(b.log, chickenService, b.validator)
 
 	userRepository := repository.NewUserRepository(b.db)
-	userService := service.NewUserService(b.log, userRepository, workService, presenceService, chickenService, placementService)
+	userService := service.NewUserService(b.log, userRepository, workService, presenceService, chickenService, placementService, cashflowService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
 	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)

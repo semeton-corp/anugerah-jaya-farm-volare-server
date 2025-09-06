@@ -145,9 +145,9 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
-		query = query.Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
 	} else {
-		query = query.Where("daily_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("daily_works.deleted_at IS NULL")
 	}
 
 	if filter.Page > 0 {
@@ -184,9 +184,9 @@ func (r *WorkRepository) CountDailyWorkUserByUserId(userId uuid.UUID, filter dto
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
-		query = query.Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("daily_works.deleted_at IS NOT NULL OR daily_works.deleted_at IS NULL")
 	} else {
-		query = query.Where("daily_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("daily_works.deleted_at IS NULL")
 	}
 
 	err := query.
@@ -212,9 +212,9 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
-		query = query.Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
+		query = query.Unscoped().Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
 	} else {
-		query = query.Where("additional_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("additional_works.deleted_at IS NULL")
 	}
 
 	if filter.IsAdditionalWorkFull {
@@ -249,9 +249,9 @@ func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filte
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
-		query = query.Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
+		query = query.Unscoped().Where("additional_works.deleted_at IS NULL OR additional_works.deleted_at IS NOT NULL")
 	} else {
-		query = query.Where("additional_works.deleted_at IS NULL")
+		query = query.Unscoped().Where("additional_works.deleted_at IS NULL")
 	}
 
 	if filter.IsAdditionalWorkFull {

@@ -9,7 +9,7 @@ import (
 
 type DailyWorkUser struct {
 	Id          uint64        `gorm:"primaryKey;autoIncrement"`
-	DailyWorkId uint64        `gorm:"type:biginteger;not null"`
+	DailyWorkId uint64        `gorm:"type:bigint;not null"`
 	DailyWork   DailyWork     `gorm:"foreignKey:DailyWorkId;references:Id;constraint:OnDelete:CASCADE"`
 	UserId      uuid.UUID     `gorm:"type:varchar(255);not null"`
 	User        User          `gorm:"foreignKey:UserId;references:Id;constraint:OnDelete:CASCADE"`

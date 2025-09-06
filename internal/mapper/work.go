@@ -82,17 +82,26 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 
 func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkUserResponse {
 	response := dto.DailyWorkUserResponse{
-		Id:     dailyWorkUser.Id,
-		IsDone: dailyWorkUser.IsDone,
-		Note:   dailyWorkUser.Note,
-		DailyWork: dto.DailyWorkDetailResponse{
-			Id:          dailyWorkUser.DailyWork.Id,
-			Description: dailyWorkUser.DailyWork.Description,
-			StartTime:   dailyWorkUser.DailyWork.StartTime.Time.Format("15:04"),
-			EndTime:     dailyWorkUser.DailyWork.EndTime.Time.Format("15:04"),
-		},
+		Id:        dailyWorkUser.Id,
+		IsDone:    dailyWorkUser.IsDone,
+		Note:      dailyWorkUser.Note,
 		CreatedAt: dailyWorkUser.CreatedAt,
 	}
+
+	dailyWork := dto.DailyWorkDetailResponse{
+		Id:          dailyWorkUser.DailyWork.Id,
+		Description: dailyWorkUser.DailyWork.Description,
+	}
+
+	if dailyWorkUser.DailyWork.StartTime.Time != nil {
+		dailyWork.StartTime = dailyWorkUser.DailyWork.StartTime.Time.Format("15:04")
+	}
+
+	if dailyWorkUser.DailyWork.EndTime.Time != nil {
+		dailyWork.EndTime = dailyWorkUser.DailyWork.EndTime.Time.Format("15:04")
+	}
+
+	response.DailyWork = dailyWork
 
 	if dailyWorkUser.FinishedAt.Valid {
 		finished := dailyWorkUser.FinishedAt.Time
@@ -101,8 +110,7 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 		response.FinishedDate = finished.Format("02 Jan 2006")
 		response.FinishedTime = finished.Format("15:04")
 
-		if finished.Hour() < start.Hour() ||
-			(finished.Hour() == start.Hour() && finished.Minute() <= start.Minute()) {
+		if finished.Hour() < start.Hour() || (finished.Hour() == start.Hour() && finished.Minute() <= start.Minute()) {
 			response.Status = constant.DailyWorkDone
 		} else {
 			response.Status = constant.DailyWorkLate

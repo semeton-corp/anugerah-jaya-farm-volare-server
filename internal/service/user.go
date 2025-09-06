@@ -25,6 +25,7 @@ type UserService struct {
 	presenceService  IPresenceService
 	chickenService   IChickenService
 	placementService IPlacementService
+	cashflowService  ICashflowService
 }
 
 type IUserService interface {
@@ -38,7 +39,7 @@ type IUserService interface {
 	GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error)
 }
 
-func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService, placementService IPlacementService) IUserService {
+func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService, placementService IPlacementService, cashflowService ICashflowService) IUserService {
 	return &UserService{
 		log:              log,
 		repository:       repository,
@@ -46,6 +47,7 @@ func NewUserService(log *zap.Logger, repository repository.IUserRepository, work
 		presenceService:  presenceService,
 		chickenService:   chickenService,
 		placementService: placementService,
+		cashflowService:  cashflowService,
 	}
 }
 
@@ -360,8 +362,14 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		}
 	}
 
+	userCashAdvances, err := s.cashflowService.GetUserCashAdvanceByUserId(user.Id)
+	if err != nil {
+		return dto.UserOverviewResponse{}, err
+	}
+
 	overviewResponse := dto.UserOverviewResponse{
 		User:                    mapper.UserToResponse(&user),
+		UseCashAdvances:         userCashAdvances,
 		UserInformation:         userInformation,
 		Placements:              placements,
 		KPIPerformances:         kpiPerformances,
