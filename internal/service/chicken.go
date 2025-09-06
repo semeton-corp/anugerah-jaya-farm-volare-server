@@ -1455,10 +1455,6 @@ func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId ui
 		return err
 	}
 
-	if chickenProcurement.PaymentStatus == enum.PaymentStatusPaid {
-		return errx.BadRequest("chicken procurement is already paid")
-	}
-
 	totalPayment := decimal.Zero
 	for _, payment := range chickenProcurement.Payments {
 		if payment.Id != id {

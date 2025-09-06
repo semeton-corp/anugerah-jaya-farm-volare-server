@@ -276,7 +276,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment) dto.ChickenProcurementPaymentResponse {
 	return dto.ChickenProcurementPaymentResponse{
 		Id:            data.Id,
-		Date:          data.CreatedAt.Format("02 Jan 2006"),
+		Date:          data.PaymentDate.Format("02 Jan 2006"),
 		Nominal:       data.Nominal.String(),
 		PaymentMethod: data.PaymentMethod.String(),
 		PaymentProof:  data.PaymentProof,

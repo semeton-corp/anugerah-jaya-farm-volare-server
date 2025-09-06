@@ -249,6 +249,7 @@ type WarehouseSaleResponse struct {
 	Payments                      []WarehouseSalePaymentResponse `json:"payments"`
 	RemainingPayment              string                         `json:"remainingPayment"`
 	DeadlinePaymentDate           string                         `json:"deadlinePaymentDate"`
+	PaidDate                      string                         `json:"paymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                           `json:"isMoreThanDeadlinePaymentDate"`
 }
 

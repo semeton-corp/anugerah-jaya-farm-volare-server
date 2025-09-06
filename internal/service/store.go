@@ -966,14 +966,10 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
 		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
-		if totalPayment.GreaterThan(decimal.Zero) && totalPayment.LessThan(storeSale.TotalPrice) {
-			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
-		} else if totalPayment.Equal(storeSale.TotalPrice) {
-			storeSale.PaymentStatus = enum.PaymentStatusPaid
-			storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-		} else {
-			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		if totalPayment.GreaterThan(storeSale.TotalPrice) {
+			return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		}
+		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
 	if storeSale.PaymentStatus != enum.PaymentStatusPaid {

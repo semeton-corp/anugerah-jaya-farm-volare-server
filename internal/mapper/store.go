@@ -101,6 +101,12 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 		response.IsMoreThanDeadlinePaymentDate = false
 	}
 
+	if storeSale.PaidDate.Valid {
+		response.PaidDate = storeSale.PaidDate.Time.Format("02 Jan 2006")
+	} else {
+		response.PaidDate = "-"
+	}
+
 	return response
 }
 
