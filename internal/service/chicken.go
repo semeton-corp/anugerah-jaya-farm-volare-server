@@ -1122,7 +1122,7 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 
 	if totalPayment.Equal(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
-	} else if totalPayment.LessThan(decimal.Zero) {
+	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) {
 		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
 	} else {
 		return dto.ChickenProcurementResponse{}, errx.BadRequest("nominal greater than total price")
@@ -1199,7 +1199,6 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	} else {
 		chickenProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
-
 
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,

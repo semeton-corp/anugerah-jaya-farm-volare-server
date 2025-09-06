@@ -1953,7 +1953,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			Id:                  data.Id,
 			Date:                data.CreatedAt.Format("02 Jan 2006"),
 			Time:                data.CreatedAt.Format("15:04"),
-			Category:            constant.DebtCategoryAll,
+			Category:            constant.DebtCategoryWarehouseItemProcurement,
 			PlaceName:           data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
 			Name:                data.Supplier.Name,
 			PhoneNumber:         data.Supplier.PhoneNumber,
