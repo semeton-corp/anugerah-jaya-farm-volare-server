@@ -127,7 +127,6 @@ func (r *SupplierRepository) DeleteSupplier(id uint64) error {
 	return r.GetDB().Where("id = ?", id).Delete(&entity.Supplier{}).Error
 }
 
-// Todo : check to handle violation errror
 func (r *SupplierRepository) CreateSupplierItemInBatch(supplierItems *[]entity.SupplierItem) error {
 	return r.GetDB().Model(&entity.SupplierItem{}).CreateInBatches(supplierItems, len(*supplierItems)).Error
 }

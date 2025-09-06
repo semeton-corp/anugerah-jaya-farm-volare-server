@@ -50,7 +50,6 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	return response
 }
 
-// Todo : fix the description
 func WarehouseItemCornToResponse(warehouseItemCorn *entity.WarehouseItemCorn, cornItem *dto.ItemResponse) dto.WarehouseItemCornResponse {
 	return dto.WarehouseItemCornResponse{
 		Id:        warehouseItemCorn.Id,

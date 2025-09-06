@@ -35,7 +35,6 @@ func UserToListResponse(user *entity.User) dto.UserListResponse {
 	}
 }
 
-// Todo : KPI Status
 func UserOverviewToListResponse(user *entity.User) dto.UserListOverviewResponse {
 	return dto.UserListOverviewResponse{
 		Id:                   user.Id.String(),
@@ -45,6 +44,5 @@ func UserOverviewToListResponse(user *entity.User) dto.UserListOverviewResponse 
 		PhotoProfile:         user.PhotoProfile,
 		Role:                 RoleToResponse(&user.Role),
 		SalaryRecommendation: user.Salary.String(),
-		KpiStatus:            "",
 	}
 }

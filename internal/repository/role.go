@@ -17,6 +17,7 @@ type IRoleRepository interface {
 
 	GetRoles() ([]entity.Role, error)
 	GetRoleById(id uint64) (entity.Role, error)
+	GetRoleByName(name string) (entity.Role, error)
 }
 
 func NewRoleRepository(db *gorm.DB) IRoleRepository {
@@ -74,6 +75,16 @@ func (r *RoleRepository) GetRoleById(id uint64) (entity.Role, error) {
 	)
 
 	err = r.GetDB().Where("id = ?", id).First(&role).Error
+	if err != nil {
+		return entity.Role{}, err
+	}
+
+	return role, nil
+}
+
+func (r *RoleRepository) GetRoleByName(name string) (entity.Role, error) {
+	var role entity.Role
+	err := r.GetDB().Model(&entity.Role{}).Where("name = ?", name).First(&role).Error
 	if err != nil {
 		return entity.Role{}, err
 	}

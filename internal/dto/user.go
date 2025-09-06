@@ -35,9 +35,10 @@ type GetUserListFilter struct {
 }
 
 type GetUserOverviewListFilter struct {
-	Page    uint64 `query:"page"`
-	Keyword string `query:"keyword"`
-	RoleId  uint64 `query:"roleId"`
+	Page           uint64 `query:"page"`
+	Keyword        string `query:"keyword"`
+	RoleId         uint64 `query:"roleId"`
+	ExcludeRoleIds []uint64 `query:"excludeRoleIds"`
 }
 
 type UserListResponse struct {

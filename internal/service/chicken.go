@@ -1200,7 +1200,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 		chickenProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
 
-	// Todo : Sage pattern
+
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,
 		ChickenProcurementId: &chickenProcurement.Id,

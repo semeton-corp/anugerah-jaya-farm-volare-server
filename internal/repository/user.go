@@ -160,8 +160,12 @@ func (r *UserRepository) GetUserOverviewLists(filter *dto.GetUserOverviewListFil
 	}
 
 	if filter.Keyword != "" {
-		keyword := "%" + filter.Keyword + "%"
-		query = query.Where("name ILIKE ? OR email ILIKE ?", keyword, keyword)
+		keyword := "%" + strings.ToLower(filter.Keyword) + "%"
+		query = query.Where("LOWER(name) ILIKE ? OR LOWER(email) ILIKE ?", keyword, keyword)
+	}
+
+	if filter.ExcludeRoleIds != nil {
+		query = query.Where("role_id NOT IN ?", filter.ExcludeRoleIds)
 	}
 
 	err := query.Preload("Role").Find(&users).Error

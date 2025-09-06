@@ -21,5 +21,3 @@ type DailyWorkUser struct {
 	UpdatedAt   time.Time     `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy   uuid.NullUUID `gorm:"type:varchar(255)"`
 }
-
-// Todo : change constraint in created by user

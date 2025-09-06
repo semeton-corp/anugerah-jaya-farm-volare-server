@@ -2582,11 +2582,13 @@ func (s *CashflowService) GetCashflowHistories(filter dto.GetCashflowHistoryFilt
 		return nil, err
 	}
 
-	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
-	if err != nil {
-		return nil, err
+	if time.Now().Year() != int(filter.Year) {
+		currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+		if err != nil {
+			return nil, err
+		}
+		cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 	}
-	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 
 	cashflowByMonth := make(map[int]entity.CashflowHistory)
 	for _, cf := range cashflowHistories {
@@ -2637,6 +2639,7 @@ func (s *CashflowService) GetCashflowHistories(filter dto.GetCashflowHistoryFilt
 			Debt:             cf.Debt.String(),
 			StoreEggSale:     cf.StoreEggSale.String(),
 			WarehouseEggSale: cf.WarehouseEggSale.String(),
+			CreatedAt:        cf.CreatedAt,
 		})
 	}
 
@@ -2644,34 +2647,32 @@ func (s *CashflowService) GetCashflowHistories(filter dto.GetCashflowHistoryFilt
 }
 
 func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error) {
-	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang) // Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional) -> yang dibayarkan // Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan // Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang // Todo : filter location id
+	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang) // Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional) -> yang dibayarkan // Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan // Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang
 
 	s.repository.UseTx(false)
 
-	// fetch persisted histories
 	cashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
 		Year:       filter.Year,
-		LocationId: filter.LocationId, // make sure your repo supports filtering by location
+		LocationId: filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed get cashflow histories", zap.Error(err))
 		return dto.CashflowOverviewResponse{}, err
 	}
 
-	// add current month history (live calculated)
-	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
-	if err != nil {
-		return dto.CashflowOverviewResponse{}, err
+	if time.Now().Year() != int(filter.Year) {
+		currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+		if err != nil {
+			return dto.CashflowOverviewResponse{}, err
+		}
+		cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 	}
-	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 
-	// aggregate by month (can be multiple per month if multiple locations)
 	cashflowByMonth := make(map[int]entity.CashflowHistory)
 	for _, cf := range cashflowHistories {
 		month := int(cf.CreatedAt.Month())
 
 		if existing, ok := cashflowByMonth[month]; ok {
-			// aggregate
 			cashflowByMonth[month] = entity.CashflowHistory{
 				Income:           existing.Income.Add(cf.Income),
 				Profit:           existing.Profit.Add(cf.Profit),
@@ -2681,7 +2682,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 				Debt:             existing.Debt.Add(cf.Debt),
 				WarehouseEggSale: existing.WarehouseEggSale.Add(cf.WarehouseEggSale),
 				StoreEggSale:     existing.StoreEggSale.Add(cf.StoreEggSale),
-				CreatedAt:        existing.CreatedAt, // keep the existing CreatedAt
+				CreatedAt:        existing.CreatedAt,
 			}
 		} else {
 			cashflowByMonth[month] = cf
@@ -2698,7 +2699,6 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	totalReceivables := decimal.Zero
 	totalDebt := decimal.Zero
 
-	// build graphs for January–December
 	for month := 1; month <= 12; month++ {
 		cf, ok := cashflowByMonth[month]
 		if !ok {
@@ -2737,7 +2737,6 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 		totalDebt = totalDebt.Add(cf.Debt)
 	}
 
-	// compare with previous year
 	previousCashflowHistories, err := s.repository.GetCashflowHistories(dto.GetCashflowHistoryFilter{
 		Year:       filter.Year - 1,
 		LocationId: filter.LocationId,

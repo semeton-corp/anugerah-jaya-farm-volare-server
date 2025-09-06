@@ -245,7 +245,6 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 	}, nil
 }
 
-// Todo : pubsub redis store item history
 func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
@@ -1460,8 +1459,6 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 }
 
 func (s *StoreService) SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSaleResponse, error) {
-	// Todo : emit event for store item histories
-
 	storeSale, err := s.repository.GetStoreSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get store sale by id", zap.Error(err))

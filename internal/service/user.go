@@ -13,6 +13,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
@@ -22,6 +23,7 @@ type UserService struct {
 	log              *zap.Logger
 	repository       repository.IUserRepository
 	workService      IWorkService
+	roleService      IRoleService
 	presenceService  IPresenceService
 	chickenService   IChickenService
 	placementService IPlacementService
@@ -39,7 +41,7 @@ type IUserService interface {
 	GetUserPerformanceOverview(filter dto.GetUserPerformanceOverviewFilter) (dto.UserPerformanceOverviewResponse, error)
 }
 
-func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService, placementService IPlacementService, cashflowService ICashflowService) IUserService {
+func NewUserService(log *zap.Logger, repository repository.IUserRepository, workService IWorkService, presenceService IPresenceService, chickenService IChickenService, placementService IPlacementService, cashflowService ICashflowService, roleService IRoleService) IUserService {
 	return &UserService{
 		log:              log,
 		repository:       repository,
@@ -48,6 +50,7 @@ func NewUserService(log *zap.Logger, repository repository.IUserRepository, work
 		chickenService:   chickenService,
 		placementService: placementService,
 		cashflowService:  cashflowService,
+		roleService:      roleService,
 	}
 }
 
@@ -383,15 +386,66 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {
 	s.repository.UseTx(false)
 
+	ownerRole, err := s.roleService.GetRoleByName(constant.RoleOwner)
+	if err != nil {
+		return dto.UserListOverviewPaginationResponse{}, err
+	}
+
+	filter.ExcludeRoleIds = []uint64{ownerRole.Id}
 	users, err := s.repository.GetUserOverviewLists(&filter)
 	if err != nil {
 		s.log.Error("failed to get user overview", zap.Error(err))
 		return dto.UserListOverviewPaginationResponse{}, err
 	}
 
-	response := make([]dto.UserListOverviewResponse, 0)
+	responses := make([]dto.UserListOverviewResponse, 0)
 	for _, user := range users {
-		response = append(response, mapper.UserOverviewToListResponse(&user))
+		response := mapper.UserOverviewToListResponse(&user)
+
+		var (
+			withDeleted = true
+		)
+
+		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(user.Id,
+			dto.GetAdditionalWorkUserFilter{
+				Month:       param.MonthParam(time.Now().Month()),
+				Year:        uint64(time.Now().Year()),
+				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			})
+		if err != nil {
+			return dto.UserListOverviewPaginationResponse{}, err
+		}
+
+		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(user.Id,
+			dto.GetDailyWorkUserFilter{
+				Month:       param.MonthParam(time.Now().Month()),
+				Year:        uint64(time.Now().Year()),
+				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			})
+		if err != nil {
+			return dto.UserListOverviewPaginationResponse{}, err
+		}
+
+		userPresences, err := s.presenceService.GetUserPresencesByUserId(user.Id,
+			dto.GetPresenceFilter{
+				Month: param.MonthParam(time.Now().Month()),
+				Year:  uint64(time.Now().Year()),
+			})
+		if err != nil {
+			return dto.UserListOverviewPaginationResponse{}, err
+		}
+
+		presenceScore, workScore, _ := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+		kpiPerformance := (0.6 * presenceScore) + (0.4 * workScore)
+		if kpiPerformance >= 90 {
+			response.KpiStatus = constant.KPIStatusGood
+		} else if kpiPerformance >= 74 && kpiPerformance < 90 {
+			response.KpiStatus = constant.KPIStatusMid
+		} else {
+			response.KpiStatus = constant.KPIStatusBad
+		}
+
+		responses = append(responses, response)
 	}
 
 	totalData, err := s.repository.CountTotalUserOverviewList(&filter)
@@ -401,7 +455,7 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 	}
 
 	resp := dto.UserListOverviewPaginationResponse{
-		Users: response,
+		Users: responses,
 	}
 
 	if filter.Page > 0 {
