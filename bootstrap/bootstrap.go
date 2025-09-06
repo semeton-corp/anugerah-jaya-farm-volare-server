@@ -18,6 +18,7 @@ import (
 	_validator "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/validator"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/handler/rest"
 	_listener "github.com/semeton-corp/anugerah-jaya-farm-volare/internal/listener"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/middleware"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/service"
 	"github.com/spf13/viper"
@@ -182,6 +183,9 @@ func (b *Bootstrap) Run() {
 	storeListener := _listener.NewStoreListener(b.cache, b.db, b.log)
 	go storeListener.Start(context.Background())
 
+	notificationListener := _listener.NewNotificationListener(b.cache, b.db, b.log)
+	go notificationListener.Start(context.Background())
+
 	b.router.Use(cors.New(cors.Config{
 		AllowOrigins:  viper.GetString("server.cors.allow_origins"),
 		AllowMethods:  viper.GetString("server.cors.allow_methods"),
@@ -189,6 +193,8 @@ func (b *Bootstrap) Run() {
 		ExposeHeaders: viper.GetString("server.cors.expose_headers"),
 		MaxAge:        viper.GetInt("server.cors.max_age"),
 	}))
+
+	b.router.Use(middleware.RequestLogger(b.log))
 
 	b.log.Info("Setting up endpoints...")
 	for _, handler := range b.handlers {
