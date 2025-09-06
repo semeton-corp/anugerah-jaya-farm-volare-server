@@ -1152,6 +1152,18 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		return dto.ChickenProcurementResponse{}, err
 	}
 
+	isUsed := true
+	_, err = s.cageService.UpdateCage(chickenProcurement.CageId, dto.UpdateCageRequest{
+		Name:            chickenProcurement.Cage.Name,
+		Capacity:        chickenProcurement.Cage.Capacity,
+		LocationId:      chickenProcurement.Cage.LocationId,
+		ChickenCategory: chickenProcurement.Cage.ChickenCategory.String(),
+		IsUsed:          &isUsed,
+	}, userId)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+
 	err = s.repository.Commit()
 	if err != nil {
 		return dto.ChickenProcurementResponse{}, err
@@ -1203,19 +1215,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,
 		ChickenProcurementId: &chickenProcurement.Id,
-		TotalChicken:         chickenProcurement.Quantity,
-	}, userId)
-	if err != nil {
-		return dto.ChickenProcurementResponse{}, err
-	}
-
-	isUsed := true
-	_, err = s.cageService.UpdateCage(chickenProcurement.CageId, dto.UpdateCageRequest{
-		Name:            chickenProcurement.Cage.Name,
-		Capacity:        chickenProcurement.Cage.Capacity,
-		LocationId:      chickenProcurement.Cage.LocationId,
-		ChickenCategory: chickenProcurement.Cage.ChickenCategory.String(),
-		IsUsed:          &isUsed,
+		TotalChicken:         uint64(chickenProcurement.ReceiveQuantity.Int64),
 	}, userId)
 	if err != nil {
 		return dto.ChickenProcurementResponse{}, err
