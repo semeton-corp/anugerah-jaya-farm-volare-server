@@ -328,37 +328,42 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	data := make([]entity.ChickenPerformance, 0)
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	chickenMonitorinMap := make(map[uint64]entity.ChickenMonitoring)
+	eggMonitoringMap := make(map[uint64]entity.EggMonitoring)
+
+	var eggMonitorings []entity.EggMonitoring
+	err = tx.Model(&entity.EggMonitoring{}).Where("DATE(created_at) = ?", today).Find(&eggMonitorings).Error
+	if err != nil {
+		return err
+	}
+	for _, eggMonitoring := range eggMonitorings {
+		eggMonitoringMap[eggMonitoring.ChickenCageId] = eggMonitoring
+	}
+
+	var chickenMonitorings []entity.ChickenMonitoring
+	err = tx.Model(&entity.ChickenMonitoring{}).Where("DATE(created_at) = ?", today).Find(&chickenMonitorings).Error
+	if err != nil {
+		return err
+	}
+	for _, chickenMonitoring := range chickenMonitorings {
+		chickenMonitorinMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+	}
+
 	for _, chickenCage := range chickenCages {
-		var chickenMonitoring entity.ChickenMonitoring
-		err := tx.
-			Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCage.Id, today).
-			First(&chickenMonitoring).Error
-		if err != nil {
-			return err
-		}
-
-		var eggMonitoring entity.EggMonitoring
-		err = tx.
-			Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCage.Id, today).
-			First(&eggMonitoring).Error
-		if err != nil {
-			return err
-		}
-
 		avgConsumption := 0.0
 		if chickenCage.TotalChicken > 0 {
-			avgConsumption = chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken)
+			avgConsumption = chickenMonitorinMap[chickenCage.Id].TotalFeed / float64(chickenCage.TotalChicken)
 		}
 
-		totalEggCount := eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg
+		totalEggCount := eggMonitoringMap[chickenCage.Id].TotalGoodEgg + eggMonitoringMap[chickenCage.Id].TotalCrackedEgg
 		avgWeight := 0.0
 		if totalEggCount > 0 {
-			avgWeight = (eggMonitoring.TotalWeightGoodEgg + eggMonitoring.TotalWeightCrackedEgg) / float64(totalEggCount)
+			avgWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg + eggMonitoringMap[chickenCage.Id].TotalWeightCrackedEgg) / float64(totalEggCount)
 		}
 
 		mortality := 0.0
 		if chickenCage.TotalChicken > 0 {
-			mortality = float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken)
+			mortality = float64(chickenMonitorinMap[chickenCage.Id].TotalDeathChicken) / float64(chickenCage.TotalChicken)
 		}
 
 		fcr := 0.0
@@ -368,7 +373,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		hdp := 0.0
 		if totalEggCount > 0 {
-			hdp = float64(chickenMonitoring.TotalFeed) / float64(totalEggCount) * 100.0
+			hdp = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(totalEggCount) * 100.0
 		}
 
 		var goodEgg entity.Item
@@ -405,7 +410,6 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 				totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
 			}
 
-			// chicken procurements
 			var chickenProcurements []entity.ChickenProcurement
 			if err := db.Where("DATE(deadline_payment_date) BETWEEN ? AND ?", startDate, endDate).
 				Find(&chickenProcurements).Error; err != nil {
@@ -415,7 +419,6 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 				totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
 			}
 
-			// expenses
 			var expenses []entity.Expense
 			if err := db.Where("DATE(created_at) BETWEEN ? AND ?", startDate, endDate).
 				Find(&expenses).Error; err != nil {
@@ -425,7 +428,6 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 				totalExpenseProduction = totalExpenseProduction.Add(e.Nominal)
 			}
 
-			// user salary payments
 			var userSalaryPayments []entity.UserSalaryPayment
 			if err := db.Where("DATE(created_at) BETWEEN ? AND ?", startDate, endDate).
 				Find(&userSalaryPayments).Error; err != nil {
@@ -473,8 +475,8 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 				totalPrice = decimal.Zero
 			)
 
-			if eggMonitoring.TotalWeightGoodEgg != 0.0 {
-				totalPrice = goodEggItemPrice.Price.Mul(decimal.NewFromFloat(eggMonitoring.TotalWeightGoodEgg))
+			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
+				totalPrice = goodEggItemPrice.Price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
 			}
 
 			if totalPrice.Sub(totalExpensePerDay).GreaterThanOrEqual(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
@@ -698,7 +700,6 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		data = append(data, history)
 	}
 
-	// Bulk insert
 	if len(data) > 0 {
 		if err := tx.CreateInBatches(&data, len(data)).Error; err != nil {
 			return err

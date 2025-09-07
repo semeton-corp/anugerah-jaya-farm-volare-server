@@ -7,13 +7,11 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-// Nullable wrapper for LocationType
 type NullLocationType struct {
 	LocationType enum.LocationType
 	Valid        bool
 }
 
-// Scan implements the sql.Scanner interface
 func (n *NullLocationType) Scan(value interface{}) error {
 	if value == nil {
 		n.LocationType, n.Valid = enum.LocationTypeUnknown, false
@@ -35,7 +33,6 @@ func (n *NullLocationType) Scan(value interface{}) error {
 	return nil
 }
 
-// Value implements the driver.Valuer interface
 func (n NullLocationType) Value() (driver.Value, error) {
 	if !n.Valid {
 		return nil, nil

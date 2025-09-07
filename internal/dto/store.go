@@ -205,7 +205,7 @@ type CreateStoreSaleRequest struct {
 	Discount            float64                         `json:"discount" validate:"min=0"`
 	SendDate            string                          `json:"sendDate" validate:"required"`
 	PaymentType         string                          `json:"paymentType" validate:"required,paymentType"`
-	Payments            []CreateStoreSalePaymentRequest `json:"payments" validate:"required,dive"`
+	Payments            []CreateStoreSalePaymentRequest `json:"payments" validate:"dive"`
 }
 
 type UpdateStoreSaleRequest struct {

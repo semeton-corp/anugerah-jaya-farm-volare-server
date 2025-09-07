@@ -15,7 +15,7 @@ func RequestLogger(log *zap.Logger) fiber.Handler {
 
 		latency := time.Since(start)
 
-		log.Info("incoming request",
+		log.Info("request",
 			zap.String("ip", c.IP()),
 			zap.String("method", c.Method()),
 			zap.String("path", c.Path()),

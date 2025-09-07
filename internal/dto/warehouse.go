@@ -56,6 +56,10 @@ type UpdateWarehouseItemRequest struct {
 	Quantity float64 `json:"quantity" validate:"required"`
 }
 
+type UpdateWarehouseItemCornRequest struct {
+	Quantity float64 `json:"quantity" validate:"required"`
+}
+
 type WarehouseItemResponse struct {
 	Warehouse        WarehouseResponse `json:"warehouse"`
 	Item             ItemResponse      `json:"item"`
@@ -76,7 +80,7 @@ type CreateWarehouseItemProcurementRequest struct {
 	ExpiredAt             *string                                        `json:"expiredAt"`
 	DeadlinePaymentDate   *string                                        `json:"deadlinePaymentDate"`
 	PaymentType           string                                         `json:"paymentType" validate:"required,paymentType"`
-	Payments              []CreateWarehouseItemProcurementPaymentRequest `json:"payments" validate:"required,dive"`
+	Payments              []CreateWarehouseItemProcurementPaymentRequest `json:"payments" validate:"dive"`
 }
 
 type CreateWarehouseItemProcurementPaymentRequest struct {
@@ -275,7 +279,7 @@ type CreateWarehouseSaleRequest struct {
 	Discount            float64                             `json:"discount" validate:"min=0"`
 	SendDate            string                              `json:"sendDate" validate:"required"`
 	PaymentType         string                              `json:"paymentType" validate:"required,paymentType"`
-	Payments            []CreateWarehouseSalePaymentRequest `json:"payments" validate:"required,dive"`
+	Payments            []CreateWarehouseSalePaymentRequest `json:"payments" validate:"dive"`
 }
 
 type UpdateWarehouseSaleRequest struct {
@@ -432,7 +436,7 @@ type CreateWarehouseItemCornProcurementRequest struct {
 	Discount                  float64                                            `json:"discount" validate:"min=0"`
 	DeadlinePaymentDate       *string                                            `json:"deadlinePaymentDate"`
 	PaymentType               string                                             `json:"paymentType" validate:"required,paymentType"`
-	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"required,dive"`
+	Payments                  []CreateWarehouseItemCornProcurementPaymentRequest `json:"payments" validate:"dive"`
 }
 
 type WarehouseItemCornProcurementListResponse struct {
@@ -483,13 +487,12 @@ type WarehouseItemCornProcurementResponse struct {
 }
 
 type WarehouseItemCornResponse struct {
-	Id          uint64               `json:"id"`
-	OrderDate   string               `json:"orderDate"`
-	Quantity    float64              `json:"quantity"`
-	Item        ItemResponse         `json:"item"`
-	Supplier    SupplierListResponse `json:"supplier"`
-	ExpiredAt   string               `json:"expiredAt"`
-	Description string               `json:"description"`
+	Id        uint64               `json:"id"`
+	OrderDate string               `json:"orderDate"`
+	Quantity  float64              `json:"quantity"`
+	Item      ItemResponse         `json:"item"`
+	Supplier  SupplierListResponse `json:"supplier"`
+	ExpiredAt string               `json:"expiredAt"`
 }
 
 type GetWarehouseItemCornFilter struct {
@@ -545,7 +548,7 @@ type CreateRawFeedRequest struct {
 	CornQuantity float64                    `json:"cornQuantity" validate:"required"`
 	CornPrice    string                     `json:"cornPrice" validate:"required"`
 	DaysNeed     uint64                     `json:"daysNeed" validate:"required"`
-	RawMaterials []CreateRawMaterialRequest `json:"rawMaterials" validate:"required,dive"`
+	RawMaterials []CreateRawMaterialRequest `json:"rawMaterials" validate:"dive"`
 }
 
 type CreateRawMaterialRequest struct {

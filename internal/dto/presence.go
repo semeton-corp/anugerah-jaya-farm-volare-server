@@ -44,7 +44,7 @@ type GetPresenceFilter struct {
 
 type UpdateUserPresenceRequest struct {
 	Status    string  `json:"status" validate:"required,presenceStatus"`
-	StartTime string  `json:"startTime"` // format: "15:04"`
+	StartTime string  `json:"startTime"`
 	EndTime   string  `json:"endTime"`
 	Evidence  string  `json:"evidence"`
 	Note      string  `json:"note"`

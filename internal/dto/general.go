@@ -26,7 +26,6 @@ type ProductionAndSaleEggGraphResponse struct {
 	Sale       float64 `json:"sale"`
 }
 
-// Note : per day
 type GeneralOverview struct {
 	EggSummary                 EggSummaryResponse                  `json:"eggSummary"`
 	WarehouseItemSummary       WarehouseItemSummaryResponse        `json:"warehouseItemSummary"`

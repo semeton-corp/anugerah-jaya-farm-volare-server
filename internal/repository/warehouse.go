@@ -32,6 +32,7 @@ type IWarehouseRepository interface {
 	CreateWarehouseItemInBatch(warehouseItems *[]entity.WarehouseItem) error
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error)
+	GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error)
 	UpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error
 	DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error
 
@@ -921,7 +922,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemCorn(data *entity.WarehouseItem
 
 func (r *WarehouseRepository) GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error) {
 	var warehouseItemCorn entity.WarehouseItemCorn
-	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Where("id = ?", id).First(&warehouseItemCorn).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Preload("Supplier").Where("id = ?", id).First(&warehouseItemCorn).Error
 	if err != nil {
 		return entity.WarehouseItemCorn{}, err
 	}

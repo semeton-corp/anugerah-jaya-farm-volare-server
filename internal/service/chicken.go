@@ -2795,7 +2795,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 
 	return dto.ChickenAndCompanyOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
-			FeedConsumption:      totalFeed,
+			FeedConsumption:      totalFeed / 1000.0,
 			AverageEggWeight:     avgEggWeight,
 			AverageMortalityRate: avgMortality,
 			AverageFCR:           avgFCR,

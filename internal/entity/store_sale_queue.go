@@ -20,7 +20,7 @@ type StoreSaleQueue struct {
 	StoreId             uint64            `gorm:"type:bigint;not null"`
 	Store               Store             `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	SaleUnit            enum.SaleUnit     `gorm:"type:int;not null"`
-	Quantity            float64           `gorm:"type:decimal;not null;default:0"`
+	Quantity            float64           `gorm:"type:decimal;not null"`
 	CreatedAt           time.Time         `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy           uuid.NullUUID     `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time         `gorm:"type:timestamp;autoUpdateTime"`

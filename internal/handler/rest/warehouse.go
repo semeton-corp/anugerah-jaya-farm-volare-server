@@ -42,6 +42,7 @@ func (h *WarehouseHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Post("/items", middleware.Authentication(), h.CreateWarehouseItem)
 	v1.Get("/items", middleware.Authentication(), h.GetWarehouseItems)
+	v1.Put("/items/corns/:id", middleware.Authentication(), h.UpdateWarehouseItemCorn)
 	v1.Get("/:warehouseId/items/:itemId", middleware.Authentication(), h.GetWarehouseItemByWarehouseIdAndItemId)
 	v1.Put("/:warehouseId/items/:itemId", middleware.Authentication(), h.UpdateWarehouseItem)
 	v1.Delete("/:warehouseId/items/:itemId", middleware.Authentication(), h.DeleteWarehouseItem)
@@ -338,6 +339,38 @@ func (h *WarehouseHandler) UpdateWarehouseItem(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "update warehouse item success")
+}
+
+func (h *WarehouseHandler) UpdateWarehouseItemCorn(c *fiber.Ctx) error {
+	var request dto.UpdateWarehouseItemCornRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed parse request body", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id from param", zap.Error(err))
+		return err
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("user id not found in context", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.UpdateWarehouseItemCorn(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success update warehouse item corn")
 }
 
 func (h *WarehouseHandler) DeleteWarehouseItem(c *fiber.Ctx) error {

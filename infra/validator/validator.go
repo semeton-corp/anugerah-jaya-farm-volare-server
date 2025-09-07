@@ -184,7 +184,7 @@ func ValidationSupplierType(fl validator.FieldLevel) bool {
 func ValidationIncomeCategory(fl validator.FieldLevel) bool {
 	incomeCategory := fl.Field().String()
 	switch incomeCategory {
-	case "Penjualan Ayam Afkir", "Penjualan Telur Toko", "Penjualan Telur Gudang", "Semua":
+	case "Penjualan Ayam Afkir", "Penjualan Telur Toko", "Penjualan Telur Gudang", "Pembayaran Pinjaman Pegawai", "Semua":
 		return true
 	default:
 		return false

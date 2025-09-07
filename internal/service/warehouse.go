@@ -42,6 +42,7 @@ type IWarehouseService interface {
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (dto.WarehouseItemResponse, error)
 	UpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, updatedBy uuid.UUID) (dto.WarehouseItemResponse, error)
+	UpdateWarehouseItemCorn(id uint64, request dto.UpdateWarehouseItemCornRequest, userId uuid.UUID) (dto.WarehouseItemCornResponse, error)
 	DeleteWarehouseItem(warehouseId uint64, itemId uint64) error
 	GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummaryResponse, error)
 	GetCornWarehouseItemSummary(warehouseId uint64) (dto.CornWarehouseItemSummaryResponse, error)
@@ -384,6 +385,31 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 	return warehouseStockItemResponse, nil
 }
 
+func (s *WarehouseService) UpdateWarehouseItemCorn(id uint64, request dto.UpdateWarehouseItemCornRequest, userId uuid.UUID) (dto.WarehouseItemCornResponse, error) {
+	s.repository.UseTx(false)
+
+	warehouseItemCorn, err := s.repository.GetWarehouseItemCorn(id)
+	if err != nil {
+		s.log.Error("failed get warehouse item corn", zap.Error(err))
+		return dto.WarehouseItemCornResponse{}, err
+	}
+
+	warehouseItemCorn.Quantity = request.Quantity
+
+	err = s.repository.UpdateWarehouseItemCorn(&warehouseItemCorn)
+	if err != nil {
+		s.log.Error("failed update warehouse item corn", zap.Error(err))
+		return dto.WarehouseItemCornResponse{}, err
+	}
+
+	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornResponse{}, err
+	}
+
+	return mapper.WarehouseItemCornToResponse(&warehouseItemCorn, &cornItem), nil
+}
+
 func (s *WarehouseService) DeleteWarehouseItem(warehouseId uint64, warehouseItemId uint64) error {
 	s.repository.UseTx(false)
 
@@ -445,13 +471,6 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 
 	for _, e := range warehouseItemCorns {
 		res := mapper.WarehouseItemCornToResponse(&e, &cornItem)
-		switch res.Description {
-		case constant.WarehouseItemDescriptionDanger:
-			totalDangerStock++
-		case constant.WarehouseItemDescriptionSafe:
-			totalSafeStock++
-		}
-
 		warehouseItemCornResponses = append(warehouseItemCornResponses, res)
 	}
 
