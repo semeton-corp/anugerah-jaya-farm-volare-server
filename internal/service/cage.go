@@ -177,7 +177,7 @@ func (s *CageService) GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.Ch
 	chickenCageResponses := make([]dto.ChickenCageResponse, 0)
 	chickenCages, err := s.repository.GetChickenCages(filter)
 	if err != nil {
-		return chickenCageResponses, err
+		return nil, err
 	}
 
 	for _, chickenCage := range chickenCages {

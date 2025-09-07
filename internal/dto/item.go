@@ -26,7 +26,7 @@ type ItemResponse struct {
 	Name          string   `json:"name"`
 	Unit          string   `json:"unit"`
 	Category      string   `json:"category"`
-	DailySpending *float64 `json:"dailySpending"`
+	DailySpending *float64 `json:"dailySpending,omitempty"`
 }
 
 type CreateItemPriceRequest struct {

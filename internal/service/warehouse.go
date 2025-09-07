@@ -716,12 +716,15 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 	} else {
 		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		} else if totalPayment.Equal(warehouseSale.TotalPrice) {
+			warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+		} else {
+			warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
-		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
 	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
-		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateWarehouseSale(&warehouseSale)
@@ -847,7 +850,8 @@ func (s *WarehouseService) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) 
 	totalData, err := s.repository.CountTotalWarehouseSale(
 		dto.GetWarehouseSaleFilter{
 			Date:          filter.Date,
-			PaymentMethod: filter.PaymentMethod,
+			PaymentStatus: filter.PaymentStatus,
+			WarehouseId:   filter.WarehouseId,
 		},
 	)
 	if err != nil {
@@ -1510,15 +1514,20 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
 		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+		warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
 		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		} else if totalPayment.Equal(warehouseSale.TotalPrice) {
+			warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+			warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
+		} else {
+			warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
-		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
 	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
-		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateWarehouseSale(&warehouseSale)

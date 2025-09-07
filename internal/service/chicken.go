@@ -178,9 +178,9 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 
 	if mortalityRate < 0.5 {
 		notificationJsonParsed, err := json.Marshal(entity.Notification{
-			CageId:              sql.NullInt64{Int64: int64(chickenMonitoring.ChickenCage.CageId), Valid: true},
-			NotificationContext: pq.StringArray{constant.ChickenMonitoringNotificationContext},
-			Description:         fmt.Sprintf(constant.ChickenStatusNotification, chickenMonitoring.ChickenCage.Cage.Name, mortalityRate),
+			CageId:               sql.NullInt64{Int64: int64(chickenMonitoring.ChickenCage.CageId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.ChickenMonitoringNotificationContext},
+			Description:          fmt.Sprintf(constant.ChickenStatusNotification, chickenMonitoring.ChickenCage.Cage.Name, mortalityRate),
 		})
 		if err != nil {
 			s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -292,7 +292,6 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		CageId:     filter.CageId,
 	})
 	if err != nil {
-		c.log.Error("failed to get egg monitorings", zap.Error(err))
 		return dto.ChickenOverviewResponse{}, err
 	}
 
@@ -387,7 +386,6 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 		LocationId: locationId,
 	})
 	if err != nil {
-		c.log.Error("failed to get egg monitorings", zap.Error(err))
 		return -1, err
 	}
 
@@ -439,7 +437,6 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 		LocationId: locationId,
 	})
 	if err != nil {
-		c.log.Error("failed to get egg monitorings", zap.Error(err))
 		return nil, err
 	}
 
@@ -2406,39 +2403,54 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			return nil, errx.BadRequest("invalid egg item price")
 		}
 
-		for _, chickenCage := range chickenCages {
-			chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
-			if err != nil {
-				s.log.Error("failed get chicken monitoring today")
-				return nil, err
-			}
-			eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
-			if err != nil {
-				return nil, err
-			}
+		eggMonitoringMap := make(map[uint64]dto.EggMonitoringResponse)
+		eggMonitorings, err := s.eggService.GetEggMonitoringDetails(dto.GetEggMonitoringFilter{
+			Date:       param.DateParam(today),
+			LocationId: filter.LocationId,
+			CageId:     filter.CageId,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, eggMonitoring := range eggMonitorings {
+			eggMonitoringMap[eggMonitoring.ChickenCage.Id] = eggMonitoring
+		}
 
-			if chickenMonitoring.Id == 0 || eggMonitoring.Id == 0 {
+		chickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
+		chickenMonitorings, err := s.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+			Date:       param.DateParam(today),
+			LocationId: filter.LocationId,
+			CageId:     filter.CageId,
+		})
+		if err != nil {
+			s.log.Error("failed get chicken monitorings", zap.Error(err))
+			return nil, err
+		}
+		for _, chickenMonitoring := range chickenMonitorings {
+			chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+		}
+
+		for _, chickenCage := range chickenCages {
+			if chickenMonitoringMap[chickenCage.Id].Id == 0 || eggMonitoringMap[chickenCage.Id].Id == 0 {
 				s.log.Info("skipping cage, no monitoring data for today", zap.Uint64("cageId", chickenCage.Id))
 				continue
 			}
 
-			fmt.Println(chickenCage.Id)
-
-			totalEgg := (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) +
-				eggMonitoring.TotalRemainingCrackedEgg +
-				(eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) +
-				eggMonitoring.TotalRemainingGoodEgg
+			totalEgg := (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) +
+				eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg +
+				(eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) +
+				eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
 
 			var averageConsumptionPerChicken float64
 			if chickenCage.TotalChicken > 0 {
-				averageConsumptionPerChicken = chickenMonitoring.TotalFeed / float64(chickenCage.TotalChicken)
+				averageConsumptionPerChicken = chickenMonitoringMap[chickenCage.Id].TotalFeed / float64(chickenCage.TotalChicken)
 			} else {
 				averageConsumptionPerChicken = 0
 			}
 
 			var averageWeightPerEgg float64
 			if totalEgg > 0 {
-				averageWeightPerEgg = eggMonitoring.TotalWeightAllEgg / float64(totalEgg)
+				averageWeightPerEgg = eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg / float64(totalEgg)
 			} else {
 				averageWeightPerEgg = 0
 			}
@@ -2454,7 +2466,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			}
 
 			if chickenCage.TotalChicken > 0 {
-				response.MortalityRate = float64(chickenMonitoring.TotalDeathChicken) / float64(chickenCage.TotalChicken)
+				response.MortalityRate = float64(chickenMonitoringMap[chickenCage.Id].TotalDeathChicken) / float64(chickenCage.TotalChicken)
 			} else {
 				response.MortalityRate = 0
 			}
@@ -2466,7 +2478,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			}
 
 			if response.TotalEgg > 0 {
-				response.FCR = float64(chickenMonitoring.TotalFeed) / float64(response.TotalEgg)
+				response.FCR = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(response.TotalEgg)
 			} else {
 				response.FCR = 0
 			}
@@ -2475,8 +2487,8 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				response.Productivity = enum.ChickenProductivityAfkir.String()
 			} else {
 				totalPrice := decimal.Zero
-				if eggMonitoring.TotalWeightGoodEgg != 0.0 {
-					totalPrice = price.Mul(decimal.NewFromFloat(eggMonitoring.TotalWeightGoodEgg))
+				if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
+					totalPrice = price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
 				}
 
 				if totalPrice.Sub(totalExpensePerDay).GreaterThanOrEqual(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
@@ -2567,24 +2579,40 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		return dto.ChickenAndWarehouseOverviewResponse{}, err
 	}
 
-	for _, chickenCage := range chickenCages {
-		chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
-		if err != nil {
-			s.log.Error("failed get chicken monitoring today", zap.Error(err))
-			return dto.ChickenAndWarehouseOverviewResponse{}, err
-		}
+	eggMonitoringMap := make(map[uint64]dto.EggMonitoringResponse)
+	eggMonitorings, err := s.eggService.GetEggMonitoringDetails(dto.GetEggMonitoringFilter{
+		Date:       param.DateParam(today),
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		s.log.Error("failed get egg monitorings")
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+	for _, eggMonitoring := range eggMonitorings {
+		eggMonitoringMap[eggMonitoring.ChickenCage.Id] = eggMonitoring
+	}
 
-		eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
-		if err != nil {
-			s.log.Error("failed get egg monitoring today")
-			return dto.ChickenAndWarehouseOverviewResponse{}, err
-		}
+	chickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
+	chickenMonitorings, err := s.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+		Date:   param.DateParam(today),
+		CageId: filter.CageId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken monitorings", zap.Error(err))
+		return dto.ChickenAndWarehouseOverviewResponse{}, err
+	}
+	for _, chickenMonitoring := range chickenMonitorings {
+		chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+	}
+
+	for _, chickenCage := range chickenCages {
 
 		totalChicken += chickenCage.TotalChicken
-		totalFeed += chickenMonitoring.TotalFeed
-		totalDeathChicken += chickenMonitoring.TotalDeathChicken
-		totalEgg += (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg
-		totalWeightEgg += eggMonitoring.TotalWeightAllEgg
+		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
+		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
+		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
 		count := chickenCage.TotalChicken
 		switch chickenCage.Cage.ChickenCategory {
@@ -2649,24 +2677,38 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		return dto.ChickenAndCompanyOverviewResponse{}, err
 	}
 
+	eggMonitoringMap := make(map[uint64]dto.EggMonitoringResponse)
+	eggMonitorings, err := s.eggService.GetEggMonitoringDetails(dto.GetEggMonitoringFilter{
+		Date:       param.DateParam(today),
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
+	for _, eggMonitoring := range eggMonitorings {
+		eggMonitoringMap[eggMonitoring.ChickenCage.Id] = eggMonitoring
+	}
+
+	chickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
+	chickenMonitorings, err := s.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
+		Date:   param.DateParam(today),
+		CageId: filter.CageId,
+	})
+	if err != nil {
+		s.log.Error("failed get chicken monitorings", zap.Error(err))
+		return dto.ChickenAndCompanyOverviewResponse{}, err
+	}
+	for _, chickenMonitoring := range chickenMonitorings {
+		chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+	}
+
 	for _, chickenCage := range chickenCages {
-		chickenMonitoring, err := s.repository.GetChickenMonitoringToday(chickenCage.Id, today)
-		if err != nil {
-			s.log.Error("failed get chicken monitoring today", zap.Error(err))
-			return dto.ChickenAndCompanyOverviewResponse{}, err
-		}
-
-		eggMonitoring, err := s.eggService.GetEggMonitoringToday(chickenCage.Id, today)
-		if err != nil {
-			s.log.Error("failed get egg monitoring today")
-			return dto.ChickenAndCompanyOverviewResponse{}, err
-		}
-
 		totalChicken += chickenCage.TotalChicken
-		totalFeed += chickenMonitoring.TotalFeed
-		totalDeathChicken += chickenMonitoring.TotalDeathChicken
-		totalEgg += (eggMonitoring.TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingCrackedEgg + (eggMonitoring.TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoring.TotalRemainingGoodEgg
-		totalWeightEgg += eggMonitoring.TotalWeightAllEgg
+		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
+		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
+		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
 		count := chickenCage.TotalChicken
 		switch chickenCage.Cage.ChickenCategory {
@@ -2731,13 +2773,33 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		})
 	}
 
+	avgEggWeight := 0.0
+	if totalEgg != 0 {
+		avgEggWeight = (totalWeightEgg / float64(totalEgg)) * 1000.0
+	}
+
+	avgMortality := 0.0
+	if totalChicken != 0 {
+		avgMortality = float64(totalDeathChicken) / float64(totalChicken)
+	}
+
+	avgFCR := 0.0
+	if totalEgg != 0 {
+		avgFCR = totalFeed / float64(totalEgg)
+	}
+
+	avgHDP := 0.0
+	if totalChicken != 0 {
+		avgHDP = float64(totalEgg) / float64(totalChicken)
+	}
+
 	return dto.ChickenAndCompanyOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
 			FeedConsumption:      totalFeed,
-			AverageEggWeight:     totalWeightEgg / float64(totalEgg) * 1000.0,
-			AverageMortalityRate: float64(totalDeathChicken) / float64(totalChicken),
-			AverageFCR:           totalFeed / float64(totalEgg),
-			AverageHDP:           float64(totalEgg) / float64(totalChicken),
+			AverageEggWeight:     avgEggWeight,
+			AverageMortalityRate: avgMortality,
+			AverageFCR:           avgFCR,
+			AverageHDP:           avgHDP,
 		},
 		ChickenBarCharts: dto.ChickenBarChartResponse{
 			ChickenDOC:       float64(totalDOCChicken),

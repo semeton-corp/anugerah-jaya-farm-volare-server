@@ -968,12 +968,15 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	} else {
 		if totalPayment.GreaterThan(storeSale.TotalPrice) {
 			return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		} else if totalPayment.Equal(storeSale.TotalPrice) {
+			storeSale.PaymentStatus = enum.PaymentStatusPaid
+		} else {
+			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
-		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 	}
 
 	if storeSale.PaymentStatus != enum.PaymentStatusPaid {
-		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
+		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)
@@ -1076,6 +1079,7 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSa
 		dto.GetStoreSaleFilter{
 			Date:          filter.Date,
 			PaymentStatus: filter.PaymentStatus,
+			StoreId:       filter.StoreId,
 		},
 	)
 	if err != nil {
@@ -1980,8 +1984,8 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		}
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
 	} else {
-		if totalPayment.GreaterThan(decimal.Zero) && totalPayment.LessThan(storeSale.TotalPrice) {
-			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
+		if totalPayment.GreaterThan(totalPayment) {
+			return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		} else if totalPayment.Equal(storeSale.TotalPrice) {
 			storeSale.PaymentStatus = enum.PaymentStatusPaid
 		} else {
@@ -1990,7 +1994,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	}
 
 	if storeSale.PaymentStatus != enum.PaymentStatusPaid {
-		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7)}
+		storeSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
 	}
 
 	err = s.repository.CreateStoreSale(&storeSale)

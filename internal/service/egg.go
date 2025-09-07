@@ -36,12 +36,13 @@ type EggService struct {
 type IEggService interface {
 	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error)
+	GetEggMonitoringDetails(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringResponse, error)
+
 	GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error)
 	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
 	DeleteEggMonitoring(id uint64, userId uuid.UUID) error
 
 	GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
-	GetEggMonitoringToday(chickenCageId uint64, date time.Time) (dto.EggMonitoringResponse, error)
 }
 
 func NewEggService(
@@ -187,9 +188,9 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 	if abnormalityStatus == constant.EggMonitoringStatusCheck || abnormalityStatus == constant.EggMonitoringStatusUrgent {
 		notificationJsonParsed, err := json.Marshal(entity.Notification{
-			CageId:              sql.NullInt64{Int64: int64(eggMonitoring.ChickenCage.CageId), Valid: true},
-			NotificationContext: pq.StringArray{constant.EggMonitoringNotificationContext},
-			Description:         fmt.Sprintf(constant.EggStatusNotification, eggMonitoring.ChickenCage.Cage.Name, abnormalityStatus),
+			CageId:               sql.NullInt64{Int64: int64(eggMonitoring.ChickenCage.CageId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.EggMonitoringNotificationContext},
+			Description:          fmt.Sprintf(constant.EggStatusNotification, eggMonitoring.ChickenCage.Cage.Name, abnormalityStatus),
 		})
 		if err != nil {
 			s.log.Error("failed to parse struct into json", zap.Error(err))
@@ -588,14 +589,19 @@ func (s *EggService) buildEggOverviewDetails(
 	return details
 }
 
-func (s *EggService) GetEggMonitoringToday(chickenCageId uint64, date time.Time) (dto.EggMonitoringResponse, error) {
+func (s *EggService) GetEggMonitoringDetails(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
-	eggMonitoring, err := s.repository.GetEggMonitoringToday(chickenCageId, date)
+	eggMonitorings, err := s.repository.GetEggMonitorings(filter)
 	if err != nil {
 		s.log.Error("failed get egg monitoring today", zap.Error(err))
-		return dto.EggMonitoringResponse{}, err
+		return nil, err
 	}
 
-	return mapper.EggMonitoringToResponse(&eggMonitoring), nil
+	response := make([]dto.EggMonitoringResponse, 0)
+	for _, data := range eggMonitorings {
+		response = append(response, mapper.EggMonitoringToResponse(&data))
+	}
+
+	return response, nil
 }

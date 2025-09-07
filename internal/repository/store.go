@@ -351,6 +351,10 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Where("item_id = ?", filter.ItemId)
 	}
 
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
+	}
+
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
@@ -450,7 +454,11 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 	}
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_method = ?", filter.PaymentStatus.Value())
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
 	}
 
 	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error

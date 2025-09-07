@@ -84,8 +84,6 @@ type IChickenRepository interface {
 	CreateAfkirChickenSalePaymentInBatch(data *[]entity.AfkirChickenSalePayment) error
 
 	GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]entity.ChickenPerformance, error)
-
-	GetChickenMonitoringToday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error)
 }
 
 func NewChickenRepository(db *gorm.DB) IChickenRepository {
@@ -671,21 +669,4 @@ func (r *ChickenRepository) GetChickenPerformances(filter dto.GetChickenPerforma
 	}
 
 	return chickenPerformances, nil
-}
-
-func (r *ChickenRepository) GetChickenMonitoringToday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error) {
-	var monitoring entity.ChickenMonitoring
-
-	err := r.GetDB().
-		Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, date).
-		First(&monitoring).Error
-
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.ChickenMonitoring{}, nil
-		}
-		return entity.ChickenMonitoring{}, err
-	}
-
-	return monitoring, nil
 }

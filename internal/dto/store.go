@@ -245,6 +245,7 @@ type StoreSaleListResponse struct {
 	IsMoreThanDeadlinePaymentDate bool             `json:"isMoreThanDeadlinePaymentDate"`
 	CreatedAt                     time.Time        `json:"-"`
 	TotalPrice                    decimal.Decimal  `json:"-"`
+	PaidDate                      string           `json:"paidDate"`
 }
 
 type StoreSalePaymentResponse struct {

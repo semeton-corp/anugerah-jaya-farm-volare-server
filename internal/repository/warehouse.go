@@ -355,8 +355,12 @@ func (r *WarehouseRepository) CountTotalWarehouseSale(filter dto.GetWarehouseSal
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.PaymentMethod.Value().IsValid() {
-		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
 	err := query.Count(&totalData).Error
@@ -414,12 +418,16 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	if filter.PaymentMethod.Value().IsValid() {
-		query = query.Where("payment_method = ?", filter.PaymentMethod.Value())
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
 	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Find(&warehouseSales).Order("created_at DESC").Error

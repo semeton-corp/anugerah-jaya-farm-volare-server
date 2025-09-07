@@ -227,10 +227,11 @@ type GetWarehouseSaleFilter struct {
 	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
 	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
 	Date                     param.DateParam          `query:"date"`
-	PaymentMethod            param.PaymentMethodParam `query:"paymentMethod"`
+	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
 	Page                     uint64                   `query:"page"`
 	StartDate                param.DateParam
 	EndDate                  param.DateParam
+	WarehouseId              uint64
 	LocationId               uint64
 	ItemId                   uint64
 }
@@ -251,7 +252,7 @@ type WarehouseSaleResponse struct {
 	Payments                      []WarehouseSalePaymentResponse `json:"payments"`
 	RemainingPayment              string                         `json:"remainingPayment"`
 	DeadlinePaymentDate           string                         `json:"deadlinePaymentDate"`
-	PaidDate                      string                         `json:"paymentDate"`
+	PaidDate                      string                         `json:"paidDate"`
 	IsMoreThanDeadlinePaymentDate bool                           `json:"isMoreThanDeadlinePaymentDate"`
 }
 
@@ -305,7 +306,7 @@ type WarehouseSaleListResponse struct {
 	SendDate                      string            `json:"sentDate"`
 	Customer                      CustomerResponse  `json:"customer"`
 	Item                          ItemResponse      `json:"item"`
-	Warehouse                     WarehouseResponse `json:"Warehouse"`
+	Warehouse                     WarehouseResponse `json:"warehouse"`
 	Quantity                      float64           `json:"quantity"`
 	SaleUnit                      string            `json:"saleUnit"`
 	PaymentStatus                 string            `json:"paymentStatus"`
@@ -314,6 +315,7 @@ type WarehouseSaleListResponse struct {
 	TotalPrice                    decimal.Decimal   `json:"-"`
 	DeadlinePaymentDate           string            `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool              `json:"isMoreThanDeadlinePaymentDate"`
+	PaidDate                      string            `json:"paidDate"`
 }
 
 type WarehouseSalePaymentResponse struct {

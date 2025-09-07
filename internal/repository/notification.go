@@ -86,7 +86,7 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 	}
 
 	if len(filter.NotificationContexts) > 0 {
-		query = query.Where("notification_context && ?", pq.StringArray(filter.NotificationContexts))
+		query = query.Where("notification_contexts && ?", pq.StringArray(filter.NotificationContexts))
 	}
 
 	err := query.Find(&data).Error

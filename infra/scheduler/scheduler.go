@@ -721,9 +721,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, ws := range warehouseSales {
 		notifications = append(notifications, entity.Notification{
-			WarehouseId:         sql.NullInt64{Int64: int64(ws.WarehouseId), Valid: true},
-			NotificationContext: pq.StringArray{constant.WarehouseSaleNotificationContext, constant.ReceivablesNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ws.Customer.Name),
+			WarehouseId:          sql.NullInt64{Int64: int64(ws.WarehouseId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.WarehouseSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ws.Customer.Name),
 		})
 	}
 
@@ -734,9 +734,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, ss := range storeSales {
 		notifications = append(notifications, entity.Notification{
-			StoreId:             sql.NullInt64{Int64: int64(ss.StoreId), Valid: true},
-			NotificationContext: pq.StringArray{constant.StoreSaleNotificationContext, constant.ReceivablesNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ss.Customer.Name),
+			StoreId:              sql.NullInt64{Int64: int64(ss.StoreId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.StoreSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, ss.Customer.Name),
 		})
 	}
 
@@ -747,9 +747,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, as := range afkirSales {
 		notifications = append(notifications, entity.Notification{
-			CageId:              sql.NullInt64{Int64: int64(as.ChickenCage.CageId), Valid: true},
-			NotificationContext: pq.StringArray{constant.AfkirChickenSaleNotificationContext, constant.ReceivablesNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, as.AfkirChickenCustomer.Name),
+			CageId:               sql.NullInt64{Int64: int64(as.ChickenCage.CageId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.AfkirChickenSaleNotificationContext, constant.ReceivablesNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentReceivablesDeadlineNotification, as.AfkirChickenCustomer.Name),
 		})
 	}
 
@@ -760,9 +760,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, cp := range chickenProcurements {
 		notifications = append(notifications, entity.Notification{
-			CageId:              sql.NullInt64{Int64: int64(cp.CageId), Valid: true},
-			NotificationContext: pq.StringArray{constant.ChickenProcurementNotificationContext, constant.DebtNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
+			CageId:               sql.NullInt64{Int64: int64(cp.CageId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.ChickenProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
 		})
 	}
 
@@ -773,9 +773,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, wp := range itemProcurements {
 		notifications = append(notifications, entity.Notification{
-			WarehouseId:         sql.NullInt64{Int64: int64(wp.WarehouseId), Valid: true},
-			NotificationContext: pq.StringArray{constant.WarehouseItemProcurementNotificationContext, constant.DebtNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, wp.Supplier.Name),
+			WarehouseId:          sql.NullInt64{Int64: int64(wp.WarehouseId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.WarehouseItemProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentDebtDeadlineNotification, wp.Supplier.Name),
 		})
 	}
 
@@ -786,9 +786,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, cp := range cornProcurements {
 		notifications = append(notifications, entity.Notification{
-			WarehouseId:         sql.NullInt64{Int64: int64(cp.WarehouseId), Valid: true},
-			NotificationContext: pq.StringArray{constant.WarehouseItemCornProcurementNotificationContext, constant.DebtNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
+			WarehouseId:          sql.NullInt64{Int64: int64(cp.WarehouseId), Valid: true},
+			NotificationContexts: pq.StringArray{constant.WarehouseItemCornProcurementNotificationContext, constant.DebtNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.Supplier.Name),
 		})
 	}
 
@@ -804,9 +804,9 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 	}
 	for _, cp := range userCashAdvances {
 		notifications = append(notifications, entity.Notification{
-			UserId:              uuid.NullUUID{UUID: cp.UserId, Valid: true},
-			NotificationContext: pq.StringArray{constant.UserCashAdvanceNotificationContext, constant.ReceivablesNotificationContext},
-			Description:         fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.User.Name),
+			UserId:               uuid.NullUUID{UUID: cp.UserId, Valid: true},
+			NotificationContexts: pq.StringArray{constant.UserCashAdvanceNotificationContext, constant.ReceivablesNotificationContext},
+			Description:          fmt.Sprintf(constant.PaymentDebtDeadlineNotification, cp.User.Name),
 		})
 	}
 
@@ -856,9 +856,9 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 			}
 
 			err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-				CageId:              sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
-				NotificationContext: pq.StringArray{constant.ChickenMonitoringNotificationContext},
-				Description:         fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
+				CageId:               sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
+				NotificationContexts: pq.StringArray{constant.ChickenMonitoringNotificationContext},
+				Description:          fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
 			}).Error
 
 			if err != nil {
@@ -891,8 +891,8 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 
 	if totalStoreSaleNeedShip > 0 {
 		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-			NotificationContext: pq.StringArray{constant.StoreSaleNotificationContext},
-			Description:         fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalStoreSaleNeedShip),
+			NotificationContexts: pq.StringArray{constant.StoreSaleNotificationContext},
+			Description:          fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalStoreSaleNeedShip),
 		}).Error
 
 		if err != nil {
@@ -904,8 +904,8 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 
 	if totalWarehouseSaleNeedShip > 0 {
 		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-			NotificationContext: pq.StringArray{constant.WarehouseSaleNotificationContext},
-			Description:         fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
+			NotificationContexts: pq.StringArray{constant.WarehouseSaleNotificationContext},
+			Description:          fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
 		}).Error
 
 		if err != nil {
@@ -934,9 +934,9 @@ func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) e
 
 			if daysLeft < 3 {
 				notifications = append(notifications, entity.Notification{
-					WarehouseId:         sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
-					NotificationContext: pq.StringArray{constant.WarehouseItemNotificationContext},
-					Description:         fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name, warehouseItem.Warehouse.Name),
+					WarehouseId:          sql.NullInt64{Int64: int64(warehouseItem.WarehouseId), Valid: true},
+					NotificationContexts: pq.StringArray{constant.WarehouseItemNotificationContext},
+					Description:          fmt.Sprintf(constant.WarehouseItemInDangerNotification, warehouseItem.Item.Name, warehouseItem.Warehouse.Name),
 				})
 			}
 		}
@@ -970,9 +970,9 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 	for _, storeItem := range storeItems {
 		if storeItem.Quantity/float64(constant.TotalEggPerIkat) < 20.0 {
 			notifications = append(notifications, entity.Notification{
-				StoreId:             sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
-				NotificationContext: pq.StringArray{constant.StoreItemNotificationContext},
-				Description:         fmt.Sprintf(constant.StoreItemInDangerNotification, storeItem.Item.Name, storeItem.Store.Name),
+				StoreId:              sql.NullInt64{Int64: int64(storeItem.StoreId), Valid: true},
+				NotificationContexts: pq.StringArray{constant.StoreItemNotificationContext},
+				Description:          fmt.Sprintf(constant.StoreItemInDangerNotification, storeItem.Item.Name, storeItem.Store.Name),
 			})
 		}
 	}
