@@ -308,8 +308,9 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		totalSickChicken += cm.TotalSickChicken
 		totalDeathChicken += cm.TotalDeathChicken
 
+		chickenCategory := util.GetChickenCategoryByChickenCage(&cm.ChickenCage)
 		count := cm.ChickenCage.TotalChicken
-		switch cm.ChickenCage.Cage.ChickenCategory {
+		switch chickenCategory {
 		case enum.ChickenCategoryDOC:
 			totalDOCChicken += count
 		case enum.ChickenCategoryGrower:
@@ -2615,7 +2616,7 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
 		count := chickenCage.TotalChicken
-		switch chickenCage.Cage.ChickenCategory {
+		switch chickenCage.ChickenCategory {
 		case enum.ChickenCategoryDOC.String():
 			totalDOCChicken += count
 		case enum.ChickenCategoryGrower.String():
@@ -2711,7 +2712,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
 		count := chickenCage.TotalChicken
-		switch chickenCage.Cage.ChickenCategory {
+		switch chickenCage.ChickenCategory {
 		case enum.ChickenCategoryDOC.String():
 			totalDOCChicken += count
 		case enum.ChickenCategoryGrower.String():

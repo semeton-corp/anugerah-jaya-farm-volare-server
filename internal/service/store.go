@@ -1763,6 +1763,12 @@ func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequ
 		return dto.StoreSaleQueueResponse{}, errx.BadRequest("invalid customer type")
 	}
 
+	_, err := s.repository.GetStoreItemByStoreIdAndItemId(request.StoreId, request.ItemId)
+	if err != nil {
+		s.log.Error("failed get store item by store id and item id", zap.Error(err))
+		return dto.StoreSaleQueueResponse{}, err
+	}
+
 	data := entity.StoreSaleQueue{
 		ItemId:       request.ItemId,
 		StoreId:      request.StoreId,
@@ -1788,7 +1794,7 @@ func (s *StoreService) CreateStoreSaleQueue(request dto.CreateStoreSaleQueueRequ
 		data.CustomerId = sql.NullInt64{Int64: int64(request.CustomerId), Valid: true}
 	}
 
-	err := s.repository.CreateStoreSaleQueue(&data)
+	err = s.repository.CreateStoreSaleQueue(&data)
 	if err != nil {
 		s.log.Error("failed create store sale queue", zap.Error(err))
 		return dto.StoreSaleQueueResponse{}, err

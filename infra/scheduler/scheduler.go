@@ -182,6 +182,17 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationItemArrive(tx)
+			if err != nil {
+				s.log.Error("failed to create notification item arrive", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
 	s.cron.AddFunc("01 00 1 * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createCashflowHistoryMonthly(tx)
@@ -983,6 +994,48 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 		return err
 	}
 
+	return nil
+}
+
+func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
+	s.log.Info("create notification item arrived..")
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	var chickenProcurements []entity.ChickenProcurement
+	err := tx.Model(&entity.ChickenProcurement{}).Where("DATE(estimation_arrival_date) = ?", today).Preload("Cage").Find(&chickenProcurements).Error
+	if err != nil {
+		return err
+	}
+
+	var warehouseItemProcurements []entity.WarehouseItemProcurement
+	err = tx.Model(&entity.WarehouseItemProcurement{}).Where("DATE(estimation_arrival_date) = ?", today).Preload("Item").Find(&warehouseItemProcurements).Error
+	if err != nil {
+		return err
+	}
+
+	notifications := make([]entity.Notification, 0)
+	for _, chickenProcurement := range chickenProcurements {
+		notifications = append(notifications, entity.Notification{
+			CageId:               sql.NullInt64{Int64: int64(chickenProcurement.CageId), Valid: true},
+			Description:          fmt.Sprintf(constant.WorkChickenArriveNotification, chickenProcurement.Cage.Name),
+			NotificationContexts: pq.StringArray{constant.ChickenProcurementNotificationContext, constant.WorkNotificationContext},
+		})
+	}
+
+	for _, warehouseItemProcurement := range warehouseItemProcurements {
+		notifications = append(notifications, entity.Notification{
+			WarehouseId:          sql.NullInt64{Int64: int64(warehouseItemProcurement.WarehouseId), Valid: true},
+			Description:          fmt.Sprintf(constant.WorkItemArriveNotification, warehouseItemProcurement.Item.Name),
+			NotificationContexts: pq.StringArray{constant.WarehouseItemProcurementNotificationContext, constant.WorkNotificationContext},
+		})
+	}
+
+	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+	if err != nil {
+		return err
+	}
+
+	s.log.Info(fmt.Sprintf("success create %d notification for item arrive", len(notifications)))
 	return nil
 }
 

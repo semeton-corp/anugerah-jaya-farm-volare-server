@@ -24,8 +24,10 @@ func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.Chick
 			chickenCategory = enum.ChickenCategoryGrower
 		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
 			chickenCategory = enum.ChickenCategoryPreLayer
-		} else if chickenAgeInWeek >= 18 {
+		} else if chickenAgeInWeek >= 18 && chickenAgeInWeek < 90 {
 			chickenCategory = enum.ChickenCategoryLayer
+		} else if chickenAgeInWeek >= 90 {
+			chickenCategory = enum.ChickenCategoryAfkir
 		}
 	}
 

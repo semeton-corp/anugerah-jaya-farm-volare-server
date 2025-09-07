@@ -13,4 +13,7 @@ const (
 
 	PaymentReceivablesDeadlineNotification = "Tagihan %s berstatus mendekati jatuh tempo"
 	PaymentDebtDeadlineNotification        = "Tagihan %s berstatus mendekati jatuh tempo"
+
+	WorkChickenArriveNotification = "Ayam DOC kandang %s akan sampai hari ini"
+	WorkItemArriveNotification    = "Barang %s akan sampai hari ini"
 )
