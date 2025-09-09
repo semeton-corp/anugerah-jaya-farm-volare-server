@@ -2630,13 +2630,33 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		}
 	}
 
+	avgEggWeight := 0.0
+	if totalEgg > 0 {
+		avgEggWeight = (totalWeightEgg / float64(totalEgg)) * 1000.0
+	}
+
+	avgMortality := 0.0
+	if totalChicken > 0 {
+		avgMortality = float64(totalDeathChicken) / float64(totalChicken)
+	}
+
+	avgFCR := 0.0
+	if totalEgg > 0 {
+		avgFCR = totalFeed / float64(totalEgg)
+	}
+
+	avgHDP := 0.0
+	if totalChicken > 0 {
+		avgHDP = float64(totalEgg) / float64(totalChicken)
+	}
+
 	return dto.ChickenAndWarehouseOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
 			FeedConsumption:      totalFeed,
-			AverageEggWeight:     totalWeightEgg / float64(totalEgg) * 1000.0,
-			AverageMortalityRate: float64(totalDeathChicken) / float64(totalChicken),
-			AverageFCR:           totalFeed / float64(totalEgg),
-			AverageHDP:           float64(totalEgg) / float64(totalChicken),
+			AverageEggWeight:     avgEggWeight,
+			AverageMortalityRate: avgMortality,
+			AverageFCR:           avgFCR,
+			AverageHDP:           avgHDP,
 		},
 		ChickenBarCharts: dto.ChickenBarChartResponse{
 			ChickenDOC:       float64(totalDOCChicken),

@@ -304,14 +304,15 @@ type CreateStoreSaleQueueRequest struct {
 }
 
 type StoreSaleQueueResponse struct {
-	OrderPriority uint64           `json:"orderPriority"`
-	Id            uint64           `json:"id"`
-	Quantity      float64          `json:"quantity"`
-	Item          ItemResponse     `json:"item"`
-	Store         StoreResponse    `json:"store"`
-	SaleUnit      string           `json:"saleUnit"`
-	Customer      CustomerResponse `json:"customer"`
-	CustomerType  string           `json:"customerType"`
+	OrderPriority   uint64           `json:"orderPriority"`
+	Id              uint64           `json:"id"`
+	Quantity        float64          `json:"quantity"`
+	Item            ItemResponse     `json:"item"`
+	Store           StoreResponse    `json:"store"`
+	SaleUnit        string           `json:"saleUnit"`
+	Customer        CustomerResponse `json:"customer"`
+	CustomerType    string           `json:"customerType"`
+	TotalAllocation float64          `json:"totalAllocation"`
 }
 
 type StoreItemSummaryResponse struct {
