@@ -1402,7 +1402,12 @@ func (s *WarehouseService) GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQue
 	warehouseQueueMap := make(map[uint64]map[uint64][]entity.WarehouseSaleQueue)
 	warehouseItemMap := make(map[uint64]map[uint64]entity.WarehouseItem)
 	for _, warehouseSaleQueue := range warehouseSaleQueues {
-		warehouseQueueMap[warehouseSaleQueue.WarehouseId][warehouseSaleQueue.ItemId] = append(warehouseQueueMap[warehouseSaleQueue.WarehouseId][warehouseSaleQueue.ItemId], warehouseSaleQueue)
+		if _, ok := warehouseQueueMap[warehouseSaleQueue.WarehouseId]; !ok {
+			warehouseQueueMap[warehouseSaleQueue.WarehouseId] = make(map[uint64][]entity.WarehouseSaleQueue)
+		}
+		warehouseQueueMap[warehouseSaleQueue.WarehouseId][warehouseSaleQueue.ItemId] =
+			append(warehouseQueueMap[warehouseSaleQueue.WarehouseId][warehouseSaleQueue.ItemId], warehouseSaleQueue)
+
 		warehouseIds = append(warehouseIds, warehouseSaleQueue.WarehouseId)
 	}
 
@@ -1415,6 +1420,9 @@ func (s *WarehouseService) GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQue
 		return nil, err
 	}
 	for _, warehouseItem := range warehouseItems {
+		if _, ok := warehouseItemMap[warehouseItem.WarehouseId]; !ok {
+			warehouseItemMap[warehouseItem.WarehouseId] = make(map[uint64]entity.WarehouseItem)
+		}
 		warehouseItemMap[warehouseItem.WarehouseId][warehouseItem.ItemId] = warehouseItem
 	}
 

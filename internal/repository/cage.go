@@ -50,9 +50,6 @@ type ICageRepository interface {
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]entity.ChickenCage, error)
 
-	GetChickenMonitoringYesterday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error)
-	GetChickenMonitoringYesterdayByChickenCageIds(chickenCageIds []uint64, date time.Time) ([]entity.ChickenMonitoring, error)
-
 	CreateCageFeedStock(data *entity.CageFeedStock) error
 	UpdateCageFeedStock(data *entity.CageFeedStock) error
 	GetCageFeedStock(id uint64) (entity.CageFeedStock, error)
@@ -109,7 +106,7 @@ func (r *CageRepository) GetCages(filter dto.GetCageFilter) ([]entity.Cage, erro
 		query = query.Where("is_used = ?", filter.ChickenCategory)
 	}
 
-	err := query.Preload("Location").Find(&cages).Error
+	err := query.Order("created_at DESC").Preload("Location").Find(&cages).Error
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +209,7 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 
 func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	var cages []entity.Cage
-	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Find(&cages).Error
+	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Order("created_at DESC").Find(&cages).Error
 	if err != nil {
 		return nil, err
 	}
@@ -382,29 +379,6 @@ func (r *CageRepository) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter
 	}
 
 	return chickenCages, nil
-}
-
-func (r *CageRepository) GetChickenMonitoringYesterday(chickenCageId uint64, date time.Time) (entity.ChickenMonitoring, error) {
-	var chickenMonitoring entity.ChickenMonitoring
-	err := r.GetDB().Model(&entity.ChickenMonitoring{}).Where("DATE(created_at) = ? AND chicken_cage_id = ?", date, chickenCageId).First(&chickenMonitoring).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.ChickenMonitoring{}, nil
-		}
-		return entity.ChickenMonitoring{}, err
-	}
-
-	return chickenMonitoring, nil
-}
-
-func (r *CageRepository) GetChickenMonitoringYesterdayByChickenCageIds(chickenCageIds []uint64, date time.Time) ([]entity.ChickenMonitoring, error) {
-	var chickenMonitorings []entity.ChickenMonitoring
-	err := r.GetDB().Model(&entity.ChickenMonitoring{}).Where("id IN ? AND DATE(created_at) = ?", chickenCageIds, date).Find(&chickenMonitorings).Error
-	if err != nil {
-		return nil, err
-	}
-
-	return chickenMonitorings, nil
 }
 
 func (r *CageRepository) CreateCageFeedStock(data *entity.CageFeedStock) error {

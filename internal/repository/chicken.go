@@ -185,7 +185,7 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	}
 
 	err := query.
-		Order("created_at desc").
+		Order("created_at DESC").
 		Find(&chickenMonitorings).Error
 
 	if err != nil {
@@ -210,7 +210,7 @@ func (r *ChickenRepository) GetChickenHealthItems(filter dto.GetChickenHealthIte
 		query = query.Where("type = ?", filter.Type.Value())
 	}
 
-	err := query.Find(&chickenHealthItems).Error
+	err := query.Order("created_at DESC").Find(&chickenHealthItems).Error
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (r *ChickenRepository) GetChickenHealthMonitoringById(id uint64) (entity.Ch
 
 func (r *ChickenRepository) GetChickenHealthMonitoringByChickenCageId(chickenCageId uint64) ([]entity.ChickenHealthMonitoring, error) {
 	chickenHealthMonitoring := make([]entity.ChickenHealthMonitoring, 0)
-	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Find(&chickenHealthMonitoring).Error
+	err := r.GetDB().Model(&entity.ChickenHealthMonitoring{}).Where("chicken_cage_id = ?", chickenCageId).Find(&chickenHealthMonitoring).Error
 	if err != nil {
 		return chickenHealthMonitoring, err
 	}
@@ -296,7 +296,7 @@ func (r *ChickenRepository) CreateChickenProcurementDraft(data *entity.ChickenPr
 
 func (r *ChickenRepository) GetChickenProcurementDrafts() ([]entity.ChickenProcurementDraft, error) {
 	chickenProcurementDrafts := make([]entity.ChickenProcurementDraft, 0)
-	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Preload("Cage.Location").Preload("Supplier").Order("total_price ASC").Find(&chickenProcurementDrafts).Error
+	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Order("created_at DESC").Find(&chickenProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +424,7 @@ func (r *ChickenRepository) CreateAfkirChickenCustomer(data *entity.AfkirChicken
 
 func (r *ChickenRepository) GetAfkirChickenCustomers() ([]entity.AfkirChickenCustomer, error) {
 	var data []entity.AfkirChickenCustomer
-	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Find(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenCustomer{}).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -467,7 +467,7 @@ func (r *ChickenRepository) CreateAfkirChickenSaleDraft(data *entity.AfkirChicke
 
 func (r *ChickenRepository) GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSaleDraft, error) {
 	var data []entity.AfkirChickenSaleDraft
-	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +528,7 @@ func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleF
 		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
 	}
 
-	err := query.Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -627,7 +627,7 @@ func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurem
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
+	err := query.Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +663,7 @@ func (r *ChickenRepository) GetChickenPerformances(filter dto.GetChickenPerforma
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
-	err := query.Find(&chickenPerformances).Error
+	err := query.Order("created_at DESC").Find(&chickenPerformances).Error
 	if err != nil {
 		return nil, err
 	}

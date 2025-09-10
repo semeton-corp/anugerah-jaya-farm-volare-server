@@ -1837,7 +1837,12 @@ func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([
 	storeQueueMap := make(map[uint64]map[uint64][]entity.StoreSaleQueue)
 	storeItemMap := make(map[uint64]map[uint64]entity.StoreItem)
 	for _, storeSaleQueue := range storeSaleQueues {
-		storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId] = append(storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId], storeSaleQueue)
+		if _, ok := storeQueueMap[storeSaleQueue.StoreId]; !ok {
+			storeQueueMap[storeSaleQueue.StoreId] = make(map[uint64][]entity.StoreSaleQueue)
+		}
+		storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId] =
+			append(storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId], storeSaleQueue)
+
 		storeIds = append(storeIds, storeSaleQueue.StoreId)
 	}
 
@@ -1850,6 +1855,9 @@ func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([
 		return nil, err
 	}
 	for _, storeItem := range storeItems {
+		if _, ok := storeItemMap[storeItem.StoreId]; !ok {
+			storeItemMap[storeItem.StoreId] = make(map[uint64]entity.StoreItem)
+		}
 		storeItemMap[storeItem.StoreId][storeItem.ItemId] = storeItem
 	}
 

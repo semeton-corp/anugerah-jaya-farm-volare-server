@@ -120,7 +120,7 @@ func (r *CashflowRepository) GetWarehouseSalePayments(filter dto.GetWarehouseSal
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("WarehouseSale.Customer").
+	err := query.Order("created_at DESC").Preload("WarehouseSale.Customer").
 		Preload("WarehouseSale.Item").
 		Preload("WarehouseSale.Warehouse.Location").Find(&warehouseSalePayments).Error
 	if err != nil {
@@ -138,7 +138,7 @@ func (r *CashflowRepository) GetStoreSalePayments(filter dto.GetStoreSalePayment
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("StoreSale.Customer").
+	err := query.Order("created_at DESC").Preload("StoreSale.Customer").
 		Preload("StoreSale.Item").
 		Preload("StoreSale.Store.Location").Find(&storeSalePayments).Error
 	if err != nil {
@@ -156,7 +156,7 @@ func (r *CashflowRepository) GetAfkirChickenSalePayments(filter dto.GetAfkirChic
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("AfkirChickenSale.AfkirChickenCustomer").
+	err := query.Order("created_at DESC").Preload("AfkirChickenSale.AfkirChickenCustomer").
 		Preload("AfkirChickenSale.ChickenCage.Cage.Location").Find(&AfkirChickenSalePayments).Error
 	if err != nil {
 		return nil, err
@@ -247,7 +247,7 @@ func (r *CashflowRepository) GetExpenses(filter dto.GetExpenseFilter) ([]entity.
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -263,7 +263,7 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.
+	err := query.Preload("created_by DESC").
 		Preload("ChickenProcurement.Cage.Location").
 		Preload("ChickenProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -303,7 +303,7 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 		query = query.Where("is_paid = ?", filter.IsPaid)
 	}
 
-	err := query.
+	err := query.Order("created_at DESC").
 		Preload("User.Role").
 		Preload("CreatedByUser").
 		Find(&data).Error
@@ -354,7 +354,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.
+	err := query.Preload("created_at DESC").
 		Preload("WarehouseItemProcurement.Warehouse.Location").
 		Preload("WarehouseItemProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -373,7 +373,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.
+	err := query.Preload("created_at DESC").
 		Preload("WarehouseItemCornProcurement.Warehouse.Location").
 		Preload("WarehouseItemCornProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -463,7 +463,7 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := query.Preload("created_at DESC").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -489,7 +489,7 @@ func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter
 		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
-	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
+	err := query.Order("created_at DESC").Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +511,7 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 		query = query.Where("users.location_id = ?", filter.LocationId)
 	}
 
-	err := query.Find(&data).Error
+	err := query.Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -537,7 +537,7 @@ func (r *CashflowRepository) GetWarehouseSaleCashflows(filter dto.GetWarehouseSa
 		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&warehouseSales).Order("created_at DESC").Error
+	err := query.Order("created_at DESC").Preload("Warehouse.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&warehouseSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -552,7 +552,7 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
-	err := query.Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
+	err := query.Preload("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -643,7 +643,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.Get
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -668,7 +668,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflows(filter dto
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("Warehouse.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -693,7 +693,7 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
