@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
@@ -15,7 +16,7 @@ type CustomerService struct {
 
 type ICustomerService interface {
 	GetCustomers() ([]dto.CustomerResponse, error)
-	CreateCustomer(request dto.CreateCustomerRequest) (dto.CustomerResponse, error)
+	CreateCustomer(request dto.CreateCustomerRequest, userId uuid.UUID) (dto.CustomerResponse, error)
 	DeleteCustomer(id uint64) error
 }
 
@@ -43,12 +44,13 @@ func (s *CustomerService) GetCustomers() ([]dto.CustomerResponse, error) {
 	return responseCustomers, nil
 }
 
-func (s *CustomerService) CreateCustomer(request dto.CreateCustomerRequest) (dto.CustomerResponse, error) {
+func (s *CustomerService) CreateCustomer(request dto.CreateCustomerRequest, userId uuid.UUID) (dto.CustomerResponse, error) {
 	s.repository.UseTx(false)
 
 	customer := entity.Customer{
 		Name:        request.Name,
 		PhoneNumber: request.PhoneNumber,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateCustomer(&customer)

@@ -706,7 +706,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
-		resp, err := s.customerService.CreateCustomer(customer)
+		resp, err := s.customerService.CreateCustomer(customer, userId)
 		if err != nil {
 			return dto.WarehouseSaleResponse{}, err
 		}
@@ -1632,7 +1632,7 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
-		resp, err := s.customerService.CreateCustomer(customer)
+		resp, err := s.customerService.CreateCustomer(customer, userId)
 		if err != nil {
 			return dto.WarehouseSaleResponse{}, err
 		}

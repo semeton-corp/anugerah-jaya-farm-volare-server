@@ -923,7 +923,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
 
-		resp, err := s.customerService.CreateCustomer(customer)
+		resp, err := s.customerService.CreateCustomer(customer, userId)
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}
@@ -2073,7 +2073,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
 		}
 
-		resp, err := s.customerService.CreateCustomer(customer)
+		resp, err := s.customerService.CreateCustomer(customer, userId)
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}

@@ -60,7 +60,7 @@ func (r *CustomerRepository) GetDB() *gorm.DB {
 
 func (r *CustomerRepository) GetCustomers() ([]entity.Customer, error) {
 	var customers []entity.Customer
-	err := r.GetDB().Model(&entity.Customer{}).Preload("created_at DESC").Preload("StoreSales").Preload("WarehouseSales").Find(&customers).Error
+	err := r.GetDB().Model(&entity.Customer{}).Order("created_at DESC").Preload("StoreSales").Preload("WarehouseSales").Find(&customers).Error
 	return customers, err
 }
 
