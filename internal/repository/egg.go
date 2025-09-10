@@ -104,7 +104,7 @@ func (r *EggRepository) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]
 		query = query.Where("cages.id = ?", filter.CageId)
 	}
 
-	if err := query.Order("egg_monitorings.created_at ASC").Find(&eggMonitorings).Error; err != nil {
+	if err := query.Order("egg_monitorings.created_at DESC").Find(&eggMonitorings).Error; err != nil {
 		return nil, err
 	}
 
