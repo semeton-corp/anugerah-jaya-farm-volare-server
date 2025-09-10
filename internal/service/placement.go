@@ -18,13 +18,13 @@ type PlacementService struct {
 }
 
 type IPlacementService interface {
-	CreateCagePlacementForAuthentication(request []dto.CreateCagePlacementRequest, createdBy uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error)
-	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
-	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
+	CreateCagePlacementForAuthentication(request []dto.CreateCagePlacementRequest, userId uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error)
+	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
+	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
-	UpdateCagePlacement(request []dto.UpdateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error)
-	CreateStorePlacement(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error)
-	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error)
+	UpdateCagePlacement(request []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error)
+	CreateStorePlacement(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
+	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
 	GetStorePlacementByUserId(userId uuid.UUID) ([]dto.StorePlacementResponse, error)
 	GetWarehousePlacementByUserId(userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
@@ -45,7 +45,7 @@ func NewPlacementService(log *zap.Logger, repository repository.IPlacementReposi
 	}
 }
 
-func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.CreateCagePlacementRequest, createdBy uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error) {
+func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.CreateCagePlacementRequest, userId uuid.UUID, roleId uint64) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(false)
 
 	for _, r := range requests {
@@ -67,7 +67,7 @@ func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.C
 		data = append(data, entity.CagePlacement{
 			UserId:    uuid.MustParse(request.UserId),
 			CageId:    request.CageId,
-			CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+			CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 		})
 	}
 
@@ -91,14 +91,14 @@ func (s *PlacementService) CreateCagePlacementForAuthentication(requests []dto.C
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error) {
+func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	userId := uuid.MustParse(request.UserId)
+	userIdRequest := uuid.MustParse(request.UserId)
 	data := entity.StorePlacement{
-		UserId:    userId,
+		UserId:    userIdRequest,
 		StoreId:   request.StoreId,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateStorePlacement(&data)
@@ -107,7 +107,7 @@ func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.Cre
 		return nil, err
 	}
 
-	placements, err := s.repository.GetStorePlacementByUserId(userId)
+	placements, err := s.repository.GetStorePlacementByUserId(userIdRequest)
 	if err != nil {
 		s.log.Error("failed to get store placement by user id", zap.Error(err))
 		return nil, err
@@ -121,14 +121,14 @@ func (s *PlacementService) CreateStorePlacementForAuthentication(request dto.Cre
 	return response, nil
 }
 
-func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
+func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	userId := uuid.MustParse(request.UserId)
+	userIdRequest := uuid.MustParse(request.UserId)
 	data := entity.WarehousePlacement{
-		UserId:      userId,
+		UserId:      userIdRequest,
 		WarehouseId: request.WarehouseId,
-		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateWarehousePlacement(&data)
@@ -137,7 +137,7 @@ func (s *PlacementService) CreateWarehousePlacementForAuthentication(request dto
 		return nil, err
 	}
 
-	placements, err := s.repository.GetWarehousePlacementByUserId(userId)
+	placements, err := s.repository.GetWarehousePlacementByUserId(userIdRequest)
 	if err != nil {
 		s.log.Error("failed to get warehouse placement by user id", zap.Error(err))
 		return nil, err
@@ -232,7 +232,7 @@ func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.Cag
 	return dataResponse, nil
 }
 
-func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacementRequest, createdBy uuid.UUID) ([]dto.CagePlacementResponse, error) {
+func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -248,7 +248,7 @@ func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacemen
 		data = append(data, entity.CagePlacement{
 			UserId:    uuid.MustParse(request.UserId),
 			CageId:    request.CageId,
-			CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+			CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 		})
 	}
 
@@ -277,14 +277,14 @@ func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacemen
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateStorePlacement(request dto.CreateStorePlacementRequest, createdBy uuid.UUID) ([]dto.StorePlacementResponse, error) {
+func (s *PlacementService) CreateStorePlacement(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	userId := uuid.MustParse(request.UserId)
+	userIdRequest := uuid.MustParse(request.UserId)
 	data := entity.StorePlacement{
-		UserId:    userId,
+		UserId:    userIdRequest,
 		StoreId:   request.StoreId,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if err := s.repository.CreateStorePlacement(&data); err != nil {
@@ -306,14 +306,14 @@ func (s *PlacementService) CreateStorePlacement(request dto.CreateStorePlacement
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, createdBy uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
+func (s *PlacementService) CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error) {
 	s.repository.UseTx(false)
 
-	userId := uuid.MustParse(request.UserId)
+	userIdRequest := uuid.MustParse(request.UserId)
 	data := entity.WarehousePlacement{
-		UserId:      userId,
+		UserId:      userIdRequest,
 		WarehouseId: request.WarehouseId,
-		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateWarehousePlacement(&data)

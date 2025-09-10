@@ -20,23 +20,23 @@ type ItemService struct {
 }
 
 type IItemService interface {
-	CreateItemPrice(request dto.CreateItemPriceRequest, createdBy uuid.UUID) (dto.ItemPriceResponse, error)
+	CreateItemPrice(request dto.CreateItemPriceRequest, userId uuid.UUID) (dto.ItemPriceResponse, error)
 	GetItemPrices() ([]dto.ItemPriceResponse, error)
 	GetItemPriceById(id uint64) (dto.ItemPriceResponse, error)
-	UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, updatedBy uuid.UUID) (dto.ItemPriceResponse, error)
+	UpdateItemPrice(id uint64, request dto.UpdateItemPriceRequest, userId uuid.UUID) (dto.ItemPriceResponse, error)
 	DeleteItemPrice(id uint64) error
 	GetItemPriceByItemIdAndSaleUnit(itemId uint64, saleUnit string) (dto.ItemPriceResponse, error)
 
-	CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, createdBy uuid.UUID) (dto.ItemPriceDiscountResponse, error)
+	CreateItemDiscount(request dto.CreateItemPriceDiscountRequest, userId uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	GetItemDiscounts() ([]dto.ItemPriceDiscountResponse, error)
 	GetItemDiscountById(id uint64) (dto.ItemPriceDiscountResponse, error)
-	UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, createdBy uuid.UUID) (dto.ItemPriceDiscountResponse, error)
+	UpdateItemDiscount(id uint64, request dto.UpdateItemPriceDiscountRequest, userId uuid.UUID) (dto.ItemPriceDiscountResponse, error)
 	DeleteItemDiscount(id uint64) error
 
 	GetItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (dto.ItemResponse, error)
-	CreateItem(request dto.CreateItemRequest, createdBy uuid.UUID) (dto.ItemResponse, error)
+	CreateItem(request dto.CreateItemRequest, userId uuid.UUID) (dto.ItemResponse, error)
 	GetItems(filter dto.GetItemFilter) ([]dto.ItemResponse, error)
-	UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, updatedBy uuid.UUID) (dto.ItemResponse, error)
+	UpdateItem(warehouseItemId uint64, request dto.UpdateItemRequest, userId uuid.UUID) (dto.ItemResponse, error)
 	GetItemById(id uint64) (dto.ItemResponse, error)
 	DeleteItem(id uint64) error
 }
@@ -48,7 +48,7 @@ func NewItemPriceService(log *zap.Logger, repository repository.IItemRepository)
 	}
 }
 
-func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, createdBy uuid.UUID) (dto.ItemPriceResponse, error) {
+func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, userId uuid.UUID) (dto.ItemPriceResponse, error) {
 	s.repository.UseTx(false)
 
 	price, err := decimal.NewFromString(request.Price)
@@ -67,7 +67,7 @@ func (s *ItemService) CreateItemPrice(request dto.CreateItemPriceRequest, create
 		ItemId:    request.ItemId,
 		Price:     price,
 		SaleUnit:  saleUnit,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateItemPrice(&eggPrice)

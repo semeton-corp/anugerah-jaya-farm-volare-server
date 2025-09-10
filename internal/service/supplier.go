@@ -19,10 +19,10 @@ type SupplierService struct {
 }
 
 type ISupplierService interface {
-	CreateSupplier(request dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error)
+	CreateSupplier(request dto.CreateSupplierRequest, userId uuid.UUID) (dto.SupplierResponse, error)
 	GetSupplierById(id uint64) (dto.SupplierResponse, error)
 	GetSuppliers(filter dto.GetSupplierFilter) ([]dto.SupplierListResponse, error)
-	UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error)
+	UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, userId uuid.UUID) (dto.SupplierResponse, error)
 	DeleteSupplier(id uint64) error
 }
 
@@ -33,7 +33,7 @@ func NewSupplierService(log *zap.Logger, repository repository.ISupplierReposito
 	}
 }
 
-func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, createdBy uuid.UUID) (dto.SupplierResponse, error) {
+func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, userId uuid.UUID) (dto.SupplierResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -47,7 +47,7 @@ func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, crea
 		PhoneNumber:  request.PhoneNumber,
 		Address:      request.Address,
 		SupplierType: supplierType,
-		CreatedBy:    uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateSupplier(&supplier)
@@ -62,7 +62,7 @@ func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, crea
 			supplierItems = append(supplierItems, entity.SupplierItem{
 				SupplierId: supplier.Id,
 				ItemId:     e,
-				CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
+				CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
 			})
 		}
 
@@ -117,7 +117,7 @@ func (s *SupplierService) GetSuppliers(filter dto.GetSupplierFilter) ([]dto.Supp
 	return supplierResponses, nil
 }
 
-func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, updatedBy uuid.UUID) (dto.SupplierResponse, error) {
+func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRequest, userId uuid.UUID) (dto.SupplierResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -155,7 +155,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRe
 	supplier.PhoneNumber = request.PhoneNumber
 	supplier.Address = request.Address
 	supplier.SupplierType = supplierType
-	supplier.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	supplier.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if err := s.repository.UpdateSupplier(&supplier); err != nil {
 		s.log.Error("failed to update supplier", zap.Error(err))
@@ -176,7 +176,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRe
 			supplierItems = append(supplierItems, entity.SupplierItem{
 				SupplierId: supplier.Id,
 				ItemId:     e,
-				CreatedBy:  uuid.NullUUID{UUID: updatedBy, Valid: true},
+				CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
 			})
 		}
 		err := s.repository.CreateSupplierItemInBatch(&supplierItems)

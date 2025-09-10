@@ -41,7 +41,7 @@ type IWarehouseService interface {
 	CreateWarehouseItem(request dto.CreateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error)
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (dto.WarehouseItemResponse, error)
-	UpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, updatedBy uuid.UUID) (dto.WarehouseItemResponse, error)
+	UpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error)
 	UpdateWarehouseItemCorn(id uint64, request dto.UpdateWarehouseItemCornRequest, userId uuid.UUID) (dto.WarehouseItemCornResponse, error)
 	DeleteWarehouseItem(warehouseId uint64, itemId uint64) error
 	GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummaryResponse, error)
@@ -50,7 +50,7 @@ type IWarehouseService interface {
 	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) (dto.WarehouseItemHistoryListPaginationResponse, error)
 	GetWarehouseItemHistoryById(id uint64) (dto.WarehouseItemHistoryResponse, error)
 
-	CreateWarehouseSale(request dto.CreateWarehouseSaleRequest, createdBy uuid.UUID) (dto.WarehouseSaleResponse, error)
+	CreateWarehouseSale(request dto.CreateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 	GetWarehouseSaleById(id uint64) (dto.WarehouseSaleResponse, error)
 	GetWarehouseSales(filter dto.GetWarehouseSaleFilter) (dto.WarehouseSaleListPaginationResponse, error)
 	UpdateWarehouseSale(id uint64, request dto.UpdateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
@@ -175,7 +175,7 @@ func (s *WarehouseService) UpdateWarehouse(id uint64, request dto.UpdateWarehous
 	return mapper.WarehouseToResponse(&warehouse), nil
 }
 
-func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, createdBy uuid.UUID) (dto.WarehouseResponse, error) {
+func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, userId uuid.UUID) (dto.WarehouseResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -183,7 +183,7 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, c
 		Name:         request.Name,
 		LocationId:   request.LocationId,
 		CornCapacity: request.CornCapacity,
-		CreatedBy:    uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateWarehouse(&warehouse)

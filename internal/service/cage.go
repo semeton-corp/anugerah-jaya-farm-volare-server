@@ -24,7 +24,7 @@ type CageService struct {
 type ICageService interface {
 	GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, error)
 	CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error)
-	UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error)
+	UpdateCage(id uint64, request dto.UpdateCageRequest, userId uuid.UUID) (dto.CageResponse, error)
 	DeleteCage(id uint64) error
 	GetCageById(id uint64) (dto.CageResponse, error)
 	GetCagesByIds(ids []uint64) ([]dto.CageResponse, error)
@@ -32,7 +32,7 @@ type ICageService interface {
 	CreateChickenCage(request dto.CreateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
-	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error)
+	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]dto.ChickenCageFeedListResponse, error)
 	GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error)
@@ -72,7 +72,7 @@ func (s *CageService) GetCages(filter dto.GetCageFilter) ([]dto.CageResponse, er
 	return cageResponses, nil
 }
 
-func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.UUID) (dto.CageResponse, error) {
+func (s *CageService) CreateCage(request dto.CreateCageRequest, userId uuid.UUID) (dto.CageResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -87,7 +87,7 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 		Name:            request.Name,
 		Capacity:        request.Capacity,
 		ChickenCategory: chickenCategory,
-		CreatedBy:       uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:       uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateCage(&cage)
@@ -98,7 +98,7 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 
 	chickenCage := entity.ChickenCage{
 		CageId:    cage.Id,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateChickenCage(&chickenCage)
@@ -122,7 +122,7 @@ func (s *CageService) CreateCage(request dto.CreateCageRequest, createdBy uuid.U
 	return mapper.CageToResponse(&cage), nil
 }
 
-func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, updatedBy uuid.UUID) (dto.CageResponse, error) {
+func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, userId uuid.UUID) (dto.CageResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenCategory := enum.ValueOfChickenCategory(request.ChickenCategory)
@@ -142,7 +142,7 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, updat
 	cage.Capacity = request.Capacity
 	cage.ChickenCategory = chickenCategory
 	cage.IsUsed = *request.IsUsed
-	cage.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	cage.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateCage(&cage)
 	if err != nil {
@@ -198,7 +198,7 @@ func (s *CageService) GetChickenCageById(id uint64) (dto.ChickenCageResponse, er
 	return mapper.ChickenCageToResponse(&chickenCage), nil
 }
 
-func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, updatedBy uuid.UUID) (dto.ChickenCageResponse, error) {
+func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenCage, err := s.repository.GetChickenCageById(id)

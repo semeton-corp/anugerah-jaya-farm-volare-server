@@ -34,26 +34,26 @@ type StoreService struct {
 }
 
 type IStoreService interface {
-	CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error)
-	UpdateStore(id uint64, request dto.UpdateStoreRequest, updatedBy uuid.UUID) (dto.StoreResponse, error)
+	CreateStore(request dto.CreateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error)
+	UpdateStore(id uint64, request dto.UpdateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error)
 	DeleteStore(id uint64) error
 	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
 	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
 	GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.StoreOverview, error)
 
-	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
-	CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItemById(id uint64) (dto.StoreRequestItemResponse, error)
 	GetStoreRequestItems(filter dto.GetStoreRequestItemFilter) (dto.StoreRequestItemListPaginationResponse, error)
-	WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
-	StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
-	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
-	SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error)
+	WarehouseConfirmationStoreRequestItem(id uint64, request dto.WarehouseConfirmationStoreRequestItem, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	StoreConfirmationStoreRequestItem(id uint64, request dto.StoreConfirmationStoreRequestItem, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
+	SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
 
 	GetStoreItems(filter dto.GetStoreItemFilter) ([]dto.StoreItemResponse, error)
 	GetStoreItemStocks(id uint64) (dto.StoreItemOverview, error)
 	GetStoreItemByStoreIdAndItemId(storeId uint64, itemId uint64) (dto.StoreItemResponse, error)
-	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, updatedBy uuid.UUID) (dto.StoreItemResponse, error)
+	UpdateStoreItem(storeId uint64, itemId uint64, request dto.UpdateStoreItemRequest, userId uuid.UUID) (dto.StoreItemResponse, error)
 	GetEggStoreItemSummary(storeId uint64) ([]dto.EggStoreItemSummary, error)
 
 	GetStoreItemHistories(filter dto.GetStoreItemHistoryFilter) (dto.StoreItemHistoryListPaginationResponse, error)
@@ -89,14 +89,14 @@ func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, ca
 	}
 }
 
-func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uuid.UUID) (dto.StoreResponse, error) {
+func (s *StoreService) CreateStore(request dto.CreateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	store := entity.Store{
 		Name:       request.Name,
 		LocationId: request.LocationId,
-		CreatedBy:  uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:  uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateStore(&store)
@@ -161,7 +161,7 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, createdBy uui
 	return mapper.StoreToResponse(&store), nil
 }
 
-func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, updatedBy uuid.UUID) (dto.StoreResponse, error) {
+func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error) {
 	s.repository.UseTx(false)
 
 	store, err := s.repository.GetStoreById(id)
@@ -172,7 +172,7 @@ func (s *StoreService) UpdateStore(id uint64, request dto.UpdateStoreRequest, up
 
 	store.Name = request.Name
 	store.LocationId = request.LocationId
-	store.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	store.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStore(&store)
 	if err != nil {
@@ -245,7 +245,7 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 	}, nil
 }
 
-func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
 	warehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(request.WarehouseId, request.ItemId)
@@ -263,7 +263,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		StoreId:     sql.NullInt64{Int64: int64(request.StoreId), Valid: true},
 		Quantity:    request.Quantity,
 		Status:      enum.RequestItemStatusPending,
-		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateStoreRequestItem(&storeRequestItem)
@@ -275,7 +275,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 	return s.GetStoreRequestItemById(storeRequestItem.Id)
 }
 
-func (s *StoreService) CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, createdBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
 	storeRequestItem := entity.StoreRequestItem{
@@ -283,7 +283,7 @@ func (s *StoreService) CreateStoreRequestItemFromEggMonitoring(request dto.Creat
 		ItemId:      request.ItemId,
 		Quantity:    request.Quantity,
 		Status:      enum.RequestItemStatusPending,
-		CreatedBy:   uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateStoreRequestItem(&storeRequestItem)
@@ -503,7 +503,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 	return s.GetStoreRequestItemById(id)
 }
 
-func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
 	storeRequestItem, err := s.repository.GetStoreRequestItemById(id)
@@ -523,7 +523,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 	}
 
 	storeRequestItem.Status = status
-	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
@@ -534,7 +534,7 @@ func (s *StoreService) UpdateStoreRequestItem(id uint64, request dto.UpdateStore
 	return s.GetStoreRequestItemById(id)
 }
 
-func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, updatedBy uuid.UUID) (dto.StoreRequestItemResponse, error) {
+func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -571,12 +571,12 @@ func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingSto
 	}
 
 	crackedEgg.Quantity -= request.BrokenEggInKg
-	crackedEgg.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	crackedEgg.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	brokenEgg.Quantity += math.Ceil(float64(request.BrokenEggInButir) / 4)
-	brokenEgg.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	brokenEgg.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	storeRequestItem.IsSorted = true
-	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {

@@ -30,7 +30,7 @@ type PresenceService struct {
 type IPresenceService interface {
 	GetCurrentUserPresence(userId uuid.UUID) (dto.PresenceResponse, error)
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
-	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error)
+	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, userId uuid.UUID) (dto.PresenceResponse, error)
 
 	GetRoleLocationPresenceSummaries() ([]dto.RoleLocationPresenceSummaryResponse, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
@@ -96,7 +96,7 @@ func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.
 	return resp, nil
 }
 
-func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, updatedBy uuid.UUID) (dto.PresenceResponse, error) {
+func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, userId uuid.UUID) (dto.PresenceResponse, error) {
 	s.repository.UseTx(false)
 
 	userPresence, err := s.repository.GetUserPresenceById(id)
@@ -160,7 +160,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 		userPresence.SubmissionPresenceStatus = enum.SubmissionPresenceStatusPending
 	}
 
-	userPresence.UpdatedBy = uuid.NullUUID{UUID: updatedBy, Valid: true}
+	userPresence.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateUserPresence(&userPresence)
 	if err != nil {

@@ -42,14 +42,14 @@ type IChickenService interface {
 	UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, accoundId uuid.UUID) (dto.ChickenMonitoringResponse, error)
 	DeleteChickenMonitoring(id uint64) error
 
-	CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, createdBy uuid.UUID) (dto.ChickenHealthItemResponse, error)
+	CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, userId uuid.UUID) (dto.ChickenHealthItemResponse, error)
 	GetChickenHealthItems(filter dto.GetChickenHealthItemFilter) ([]dto.ChickenHealthItemResponse, error)
 	GetChickenHealthItemById(id uint64) (dto.ChickenHealthItemResponse, error)
-	UpdateChickenHealthItem(id uint64, request dto.UpdateChickenHealthItemRequest, updatedBy uuid.UUID) (dto.ChickenHealthItemResponse, error)
+	UpdateChickenHealthItem(id uint64, request dto.UpdateChickenHealthItemRequest, userId uuid.UUID) (dto.ChickenHealthItemResponse, error)
 	DeleteChickenHealthItem(id uint64) error
 
-	CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, createdBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
-	UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, updatedBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
+	CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, userId uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
+	UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, userId uuid.UUID) (dto.ChickenHealthMonitoringResponse, error)
 	DeleteChickenHealthMonitoring(id uint64) error
 	GetChickenHealthMonitoringDetails(chickenCageId uint64) (dto.ChickenHealthMonitoringDetailResponse, error)
 	GetChickenHealthMonitoringById(id uint64) (dto.ChickenHealthMonitoringResponse, error)
@@ -584,7 +584,7 @@ func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64) ([]d
 	return graphs, nil
 }
 
-func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, createdBy uuid.UUID) (dto.ChickenHealthItemResponse, error) {
+func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, userId uuid.UUID) (dto.ChickenHealthItemResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenHealthitemType := enum.ValueOfChickenHealthItemType(request.Type)
@@ -596,7 +596,7 @@ func (s *ChickenService) CreateChickenHealthItem(request dto.CreateChickenHealth
 	data := entity.ChickenHealthItem{
 		Name:      request.Name,
 		Type:      chickenHealthitemType,
-		CreatedBy: uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 		Note:      request.Note,
 	}
 
@@ -647,7 +647,7 @@ func (s *ChickenService) GetChickenHealthItemById(id uint64) (dto.ChickenHealthI
 	return mapper.ChickenHealthItemToResponse(&chickenHealthItem), nil
 }
 
-func (s *ChickenService) UpdateChickenHealthItem(id uint64, request dto.UpdateChickenHealthItemRequest, updatedBy uuid.UUID) (dto.ChickenHealthItemResponse, error) {
+func (s *ChickenService) UpdateChickenHealthItem(id uint64, request dto.UpdateChickenHealthItemRequest, userId uuid.UUID) (dto.ChickenHealthItemResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenHealthItem, err := s.repository.GetChickenHealthItemById(id)
@@ -695,7 +695,7 @@ func (s *ChickenService) DeleteChickenHealthItem(id uint64) error {
 	return nil
 }
 
-func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, createdBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
+func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChickenHealthMonitoringRequest, userId uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenHealthMonitoringType := enum.ValueOfChickenHealthItemType(request.Type)
@@ -720,7 +720,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 		Dose:           request.Dose,
 		Unit:           request.Unit,
 		ChickenAge:     chickenCage.ChickenAge,
-		CreatedBy:      uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:      uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.Disease != nil {
@@ -730,7 +730,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
 		TotalChicken:                   chickenCage.TotalChicken,
 		LatestChickenAgeVaccineRoutine: &chickenCage.ChickenAge,
-	}, createdBy)
+	}, userId)
 	if err != nil {
 		return dto.ChickenHealthMonitoringResponse{}, err
 	}
@@ -750,7 +750,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 	return mapper.ChickenHealthMonitoringToResponse(&data), nil
 }
 
-func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, updatedBy uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
+func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.UpdateChickenHealthMonitoringRequest, userId uuid.UUID) (dto.ChickenHealthMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
 	chickenHealthMonitoring, err := s.repository.GetChickenHealthMonitoringById(id)

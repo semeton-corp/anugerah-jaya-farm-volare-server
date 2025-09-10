@@ -34,12 +34,12 @@ type EggService struct {
 }
 
 type IEggService interface {
-	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
+	CreateEggMonitoring(request dto.CreateEggMonitoringRequest, userId uuid.UUID) (dto.EggMonitoringResponse, error)
 	GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringListResponse, error)
 	GetEggMonitoringDetails(filter dto.GetEggMonitoringFilter) ([]dto.EggMonitoringResponse, error)
 
 	GetEggMonitoringById(id uint64) (dto.EggMonitoringResponse, error)
-	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, updatedBy uuid.UUID) (dto.EggMonitoringResponse, error)
+	UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, userId uuid.UUID) (dto.EggMonitoringResponse, error)
 	DeleteEggMonitoring(id uint64, userId uuid.UUID) error
 
 	GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (dto.EggOverviewResponse, error)
@@ -65,7 +65,7 @@ func NewEggService(
 	}
 }
 
-func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, createdBy uuid.UUID) (dto.EggMonitoringResponse, error) {
+func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest, userId uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
 	count, err := s.repository.CountEggMonitoringByChickenCageIdToday(request.ChickenCageId)
@@ -92,7 +92,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		TotalGoodEgg:          (request.TotalKarpetGoodEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingGoodEgg,
 		TotalCrackedEgg:       (request.TotalKarpetCrackedEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingCrackedEgg,
 		TotalRejectEgg:        (request.TotalKarpetRejectEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingRejectEgg,
-		CreatedBy:             uuid.NullUUID{UUID: createdBy, Valid: true},
+		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
@@ -111,7 +111,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  eggMonitoring.TotalWeightGoodEgg + goodEggWarehouseItem.Quantity,
-		UserId:         createdBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})
 
@@ -123,7 +123,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: goodEggWarehouseItem.Quantity + eggMonitoring.TotalWeightGoodEgg,
-	}, createdBy)
+	}, userId)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -144,7 +144,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  eggMonitoring.TotalWeightCrackedEgg + crackedEggWarehouseItem.Quantity,
-		UserId:         createdBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})
 	if err != nil {
@@ -155,7 +155,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: crackedEggWarehouseItem.Quantity + eggMonitoring.TotalWeightCrackedEgg,
-	}, createdBy)
+	}, userId)
 	if err != nil {
 		return dto.EggMonitoringResponse{}, err
 	}
@@ -169,7 +169,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		WarehouseId: request.WarehouseId,
 		Quantity:    float64(request.TotalWeightCrackedEgg) / float64(constant.TotalEggPerIkat),
 		ItemId:      crackedEggItem.Id,
-	}, createdBy)
+	}, userId)
 	if err != nil {
 		s.log.Error("failed to create store request item from egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
@@ -337,7 +337,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	return mapper.EggMonitoringToResponse(&eggMonitoring), nil
 }
 
-func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
+func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 	s.repository.UseTx(false)
 
 	eggMonitoring, err := s.repository.GetEggMonitoringById(id)
@@ -362,7 +362,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		Destination:    goodEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: goodEggWarehouseItem.Quantity,
 		QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg,
-		UserId:         updatedBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStockUpdated,
 	})
 	if err != nil {
@@ -373,7 +373,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg,
-	}, updatedBy)
+	}, userId)
 	if err != nil {
 		return err
 	}
@@ -394,7 +394,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 		Destination:    crackedEggWarehouseItem.Warehouse.Name,
 		QuantityBefore: crackedEggWarehouseItem.Quantity,
 		QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg,
-		UserId:         updatedBy,
+		UserId:         userId,
 		Status:         enum.ItemHistoryStockUpdated,
 	})
 	if err != nil {
@@ -405,7 +405,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, updatedBy uuid.UUID) error {
 
 	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
 		Quantity: crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg,
-	}, updatedBy)
+	}, userId)
 	if err != nil {
 		return err
 	}
