@@ -254,6 +254,10 @@ func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity
 		query = query.Where("items.unit IN ?", filter.Units)
 	}
 
+	if filter.StoreIds != nil {
+		query = query.Where("store_items.store_id IN ?", filter.StoreIds)
+	}
+
 	err := query.Preload("Item").Preload("Store.Location").Find(&storeItems).Error
 	if err != nil {
 		return nil, err

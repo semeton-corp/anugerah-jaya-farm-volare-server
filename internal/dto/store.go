@@ -259,6 +259,7 @@ type StoreSalePaymentResponse struct {
 
 type GetStoreItemFilter struct {
 	StoreId   uint64                  `query:"storeId"`
+	StoreIds  []uint64                `query:"storeIds"`
 	Category  param.ItemCategoryParam `query:"category"`
 	ItemNames []string                `query:"itemNames"`
 	Units     []string                `query:"units"`

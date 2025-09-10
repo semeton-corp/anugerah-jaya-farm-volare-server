@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -1831,12 +1832,116 @@ func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([
 		return nil, err
 	}
 
-	response := make([]dto.StoreSaleQueueResponse, 0)
+	// map[storeId][itemId]
+	storeIds := make([]uint64, 0)
+	storeQueueMap := make(map[uint64]map[uint64][]entity.StoreSaleQueue)
+	storeItemMap := make(map[uint64]map[uint64]entity.StoreItem)
 	for _, storeSaleQueue := range storeSaleQueues {
-		response = append(response, mapper.StoreSaleQueueToResponse(&storeSaleQueue))
+		storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId] = append(storeQueueMap[storeSaleQueue.StoreId][storeSaleQueue.ItemId], storeSaleQueue)
+		storeIds = append(storeIds, storeSaleQueue.StoreId)
 	}
 
-	return response, nil
+	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
+		StoreIds: storeIds,
+		Category: param.ItemCategoryParam(enum.ItemCategoryEgg),
+	})
+	if err != nil {
+		s.log.Error("failed get store items", zap.Error(err))
+		return nil, err
+	}
+	for _, storeItem := range storeItems {
+		storeItemMap[storeItem.StoreId][storeItem.ItemId] = storeItem
+	}
+
+	weightPerStoreSaleQueueMap := make(map[uint64]float64)
+	startAllocationStoreSaleQueueMap := make(map[uint64]float64)
+	startBacklogQueueMap := make(map[uint64]float64)
+	additionalALlocationStoreSaleQueueMap := make(map[uint64]float64)
+
+	for storeId, storeSaleQueueItemMap := range storeQueueMap {
+		for storeSaleQueueItemId, storeSaleQueues := range storeSaleQueueItemMap {
+			storeItem := storeItemMap[storeId][storeSaleQueueItemId]
+
+			totalDemand := 0.0
+			for _, storeSaleQueue := range storeSaleQueues {
+				if storeSaleQueue.SaleUnit == enum.SaleUnitIkat {
+					totalDemand += storeSaleQueue.Quantity * float64(constant.TotalEggPerIkat)
+				} else {
+					totalDemand += storeSaleQueue.Quantity
+				}
+			}
+
+			totalWeight := 0.0
+			for _, storeSaleQueue := range storeSaleQueues {
+				demandRatio := 0.0
+				if totalDemand != 0 {
+					demandRatio = storeSaleQueue.Quantity / totalDemand
+				}
+
+				totalWeightCurrStoreSaleQueue := 0.0
+				switch storeSaleQueue.CustomerType {
+				case enum.CustomerTypeNew:
+					totalWeightCurrStoreSaleQueue += constant.CustomerTypeNewWeight * constant.CustomerIndex
+				case enum.CustomerTypeOld:
+					totalWeightCurrStoreSaleQueue += constant.CustomerTypeOldWeight * constant.CustomerIndex
+				}
+
+				totalWeightCurrStoreSaleQueue += constant.DemandIndex * demandRatio
+				totalWeight += totalWeightCurrStoreSaleQueue
+				weightPerStoreSaleQueueMap[storeSaleQueue.Id] = totalWeightCurrStoreSaleQueue
+			}
+
+			totalStartAllocation := 0.0
+			for _, storeSaleQueue := range storeSaleQueues {
+				currStoreSaleDemand := 0.0
+				if storeSaleQueue.SaleUnit == enum.SaleUnitIkat {
+					currStoreSaleDemand += storeSaleQueue.Quantity * float64(constant.TotalEggPerIkat)
+				} else {
+					currStoreSaleDemand += storeSaleQueue.Quantity
+				}
+
+				startAllocation := math.Min(currStoreSaleDemand, weightPerStoreSaleQueueMap[storeSaleQueue.Id]/(totalWeight*storeItem.Quantity))
+				totalStartAllocation += startAllocation
+				startAllocationStoreSaleQueueMap[storeSaleQueue.Id] = startAllocation
+			}
+
+			totalStartBacklog := 0.0
+			for _, storeSaleQueue := range storeSaleQueues {
+				currStoreSaleDemand := 0.0
+				if storeSaleQueue.SaleUnit == enum.SaleUnitIkat {
+					currStoreSaleDemand += storeSaleQueue.Quantity * float64(constant.TotalEggPerIkat)
+				} else {
+					currStoreSaleDemand += storeSaleQueue.Quantity
+				}
+				startBacklog := math.Max(0, currStoreSaleDemand-startAllocationStoreSaleQueueMap[storeSaleQueue.Id])
+				totalStartBacklog += startBacklog
+				startBacklogQueueMap[storeSaleQueue.Id] = startBacklog
+			}
+
+			remainingQuantityAllocation := storeItem.Quantity - totalStartAllocation
+			for _, storeSaleQueue := range storeSaleQueues {
+				additionalAllocationStoreSale := math.Min(startAllocationStoreSaleQueueMap[storeSaleQueue.Id], remainingQuantityAllocation*(startAllocationStoreSaleQueueMap[storeSaleQueue.Id]/totalStartBacklog))
+				additionalALlocationStoreSaleQueueMap[storeSaleQueue.Id] = additionalAllocationStoreSale
+			}
+		}
+	}
+
+	responses := make([]dto.StoreSaleQueueResponse, 0)
+	for _, storeSaleQueue := range storeSaleQueues {
+		response := mapper.StoreSaleQueueToResponse(&storeSaleQueue)
+		response.TotalAllocation = startAllocationStoreSaleQueueMap[storeSaleQueue.Id] + additionalALlocationStoreSaleQueueMap[storeSaleQueue.Id]
+		responses = append(responses, response)
+	}
+
+	sort.Slice(responses, func(i, j int) bool {
+		return responses[i].TotalAllocation > responses[j].TotalAllocation
+	})
+
+	for i := range responses {
+		responses[i].OrderPriority = uint64(i + 1)
+	}
+
+	return responses, nil
 }
 
 func (s *StoreService) DeleteStoreSaleQueue(id uint64) error {

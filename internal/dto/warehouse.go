@@ -24,11 +24,12 @@ type GetWarehouseFilter struct {
 }
 
 type GetWarehouseItemFilter struct {
-	LocationId  uint64                  `query:"locationId"`
-	WarehouseId uint64                  `query:"warehouseId"`
-	Category    param.ItemCategoryParam `query:"category"`
-	ItemNames   []string                `query:"itemNames"`
-	Units       []string                `query:"units"`
+	LocationId   uint64                  `query:"locationId"`
+	WarehouseIds []uint64                `query:"warehouseIds"`
+	WarehouseId  uint64                  `query:"warehouseId"`
+	Category     param.ItemCategoryParam `query:"category"`
+	ItemNames    []string                `query:"itemNames"`
+	Units        []string                `query:"units"`
 }
 
 type WarehouseResponse struct {
@@ -343,13 +344,14 @@ type CreateWarehouseSaleQueueRequest struct {
 }
 
 type WarehouseSaleQueueResponse struct {
-	OrderPriority uint64            `json:"orderPriority"`
-	Id            uint64            `json:"id"`
-	Quantity      float64           `json:"quantity"`
-	Item          ItemResponse      `json:"item"`
-	Warehouse     WarehouseResponse `json:"warehouse"`
-	SaleUnit      string            `json:"saleUnit"`
-	Customer      CustomerResponse  `json:"customer"`
+	OrderPriority   uint64            `json:"orderPriority"`
+	Id              uint64            `json:"id"`
+	Quantity        float64           `json:"quantity"`
+	Item            ItemResponse      `json:"item"`
+	Warehouse       WarehouseResponse `json:"warehouse"`
+	SaleUnit        string            `json:"saleUnit"`
+	Customer        CustomerResponse  `json:"customer"`
+	TotalAllocation float64           `json:"totalAllocation"`
 }
 
 type GetWarehouseSaleQueueFilter struct {

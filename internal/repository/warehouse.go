@@ -234,6 +234,10 @@ func (r *WarehouseRepository) GetWarehouseItems(filter dto.GetWarehouseItemFilte
 		query = query.Where("items.unit IN ?", filter.Units)
 	}
 
+	if filter.WarehouseIds != nil {
+		query = query.Where("warehouse_items.warehouse_id IN ?", filter.WarehouseIds)
+	}
+
 	err := query.Preload("Item").Preload("Warehouse.Location").Find(&warehouseItems).Error
 	if err != nil {
 		return nil, err
