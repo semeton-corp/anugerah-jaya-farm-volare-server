@@ -1003,11 +1003,13 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	}
 
 	realQuantity := request.Quantity
+	tempStoreSaleQuantity := warehouseSale.Quantity
 	if saleUnit == enum.SaleUnitIkat {
 		realQuantity *= float64(constant.TotalEggPerIkat)
+		tempStoreSaleQuantity *= float64(constant.TotalEggPerIkat)
 	}
 
-	if warehouseItem.Quantity < realQuantity {
+	if warehouseItem.Quantity+tempStoreSaleQuantity < realQuantity {
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 

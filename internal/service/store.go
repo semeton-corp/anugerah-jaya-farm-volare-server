@@ -1215,11 +1215,13 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	}
 
 	realQuantity := request.Quantity
+	tempStoreSaleQuantity := storeSale.Quantity
 	if saleUnit == enum.SaleUnitIkat {
 		realQuantity *= float64(constant.TotalEggPerIkat)
+		tempStoreSaleQuantity *= float64(constant.TotalEggPerIkat)
 	}
 
-	if storeItem.Quantity < realQuantity {
+	if storeItem.Quantity+tempStoreSaleQuantity < realQuantity {
 		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
@@ -1823,37 +1825,10 @@ func (s *StoreService) GetStoreSaleQueue(id uint64) (dto.StoreSaleQueueResponse,
 func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]dto.StoreSaleQueueResponse, error) {
 	s.repository.UseTx(false)
 
-	totalDemand := 0.0
 	storeSaleQueues, err := s.repository.GetStoreSaleQueues(filter)
 	if err != nil {
 		s.log.Error("failed get store sale queues", zap.Error(err))
 		return nil, err
-	}
-
-	// Group By Store Id
-	// Group By Egg Category
-	// Then Sort and Add the allocation
-
-	demandPercentagePerQueueMap := make(map[uint64]float64)
-	weightPerQueueMap := make(map[uint64]float64)
-
-	for _, storeSaleQueue := range storeSaleQueues {
-		totalDemand += storeSaleQueue.Quantity
-	}
-
-	for _, storeSaleQueue := range storeSaleQueues {
-		demandPercentagePerQueueMap[storeSaleQueue.Id] = storeSaleQueue.Quantity / totalDemand
-	}
-
-	for _, storeSaleQueue := range storeSaleQueues {
-		customerIndex := 0.0
-		if storeSaleQueue.CustomerType == enum.CustomerTypeNew {
-			customerIndex = constant.CustomerTypeNewWeight * constant.CustomerIndex
-		} else {
-			customerIndex = constant.CustomerTypeOldWeight * constant.CustomerIndex
-		}
-
-		weightPerQueueMap[storeSaleQueue.Id] = (demandPercentagePerQueueMap[storeSaleQueue.Id] * constant.DemandIndex) + customerIndex
 	}
 
 	response := make([]dto.StoreSaleQueueResponse, 0)
