@@ -100,6 +100,7 @@ func (r *WorkRepository) GetDailyWorkByRoleId(roleId uint64) ([]entity.DailyWork
 	err := r.GetDB().
 		Preload("Role").
 		Where("role_id = ?", roleId).
+		Order("created_at DESC").
 		Find(&dailyWorks).Error
 
 	if err != nil {
@@ -277,7 +278,6 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
-	// query := r.GetDB().Model(&entity.AdditionalWork{}).Joins("JOIN additional_work_users ON additional_works.id = additional_work_users.additional_work_id")
 	query := r.GetDB().Model(&entity.AdditionalWork{})
 
 	if filter.LocationId > 0 {
@@ -291,6 +291,7 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 		Preload("Warehouse").
 		Preload("Store").
 		Where("deleted_at IS NULL").
+		Order("created_at DESC").
 		Find(&additionalWorks).Error
 
 	if err != nil {

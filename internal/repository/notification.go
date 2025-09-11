@@ -89,7 +89,7 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 		query = query.Where("notification_contexts && ?", pq.StringArray(filter.NotificationContexts))
 	}
 
-	err := query.Find(&data).Error
+	err := query.Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (r *NotificationRepository) UpdateNotificationAsMarked(ids []uint64) error 
 
 func (r *NotificationRepository) GetNotificationByIds(ids []uint64) ([]entity.Notification, error) {
 	var data []entity.Notification
-	err := r.GetDB().Model(&entity.Notification{}).Where("id IN ?", ids).Find(&data).Error
+	err := r.GetDB().Order("created_at DESC").Model(&entity.Notification{}).Where("id IN ?", ids).Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

@@ -54,6 +54,6 @@ func (r *LocationRepository) GetDB() *gorm.DB {
 
 func (r *LocationRepository) GetLocations() ([]entity.Location, error) {
 	var locations []entity.Location
-	err := r.GetDB().Find(&locations).Error
+	err := r.GetDB().Order("created_at DESC").Find(&locations).Error
 	return locations, err
 }

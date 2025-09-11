@@ -134,6 +134,7 @@ func (r *PresenceRepository) GetUserPresencesByUserId(userId uuid.UUID, filter d
 func (r *PresenceRepository) GetUserPresenceInRoleIds(roleIds []uint64) ([]entity.UserPresence, error) {
 	var userPresences []entity.UserPresence
 	err := r.GetDB().
+		Order("created_at DESC").
 		Joins("JOIN users ON users.id = user_presences.user_id").
 		Where("users.role_id IN ?", roleIds).
 		Preload("User.Role").
@@ -371,7 +372,7 @@ func (r *PresenceRepository) GetLocationUserPresence(filter dto.GetLocationUserP
 		query = query.Where("DATE(user_presences.created_at) = ?", filter.Date.Value())
 	}
 
-	err := query.Preload("User").Find(&data).Error
+	err := query.Preload("user_presences.created_at DESC").Preload("User").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +397,7 @@ func (r *PresenceRepository) GetUserPresences(filter dto.GetUserPresenceFilter) 
 		query = query.Where("id In ?", filter.Ids)
 	}
 
-	err := query.Preload("User").Find(&userPresences).Error
+	err := query.Order("created_at DESC").Preload("User").Find(&userPresences).Error
 	if err != nil {
 		return nil, err
 	}

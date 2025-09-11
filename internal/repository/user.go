@@ -118,7 +118,7 @@ func (r *UserRepository) GetUsers(filter *dto.GetUserListFilter) ([]entity.User,
 		query = query.Where("role_id NOT IN ?", filter.ExcluseRoleIds)
 	}
 
-	if err := query.Preload("Role").Find(&users).Error; err != nil {
+	if err := query.Order("created_at DESC").Preload("Role").Find(&users).Error; err != nil {
 		return nil, err
 	}
 

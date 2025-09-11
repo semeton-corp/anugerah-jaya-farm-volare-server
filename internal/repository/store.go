@@ -134,7 +134,7 @@ func (r *StoreRepository) GetStores(filter dto.GetStoreFilter) ([]entity.Store, 
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
-	err := query.Preload("StorePlacement").Preload("Location").Find(&stores).Error
+	err := query.Order("created_at DESC").Preload("StorePlacement").Preload("Location").Find(&stores).Error
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFil
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").Find(&storeRequestItems).Order("status ASC").Error
+	err := query.Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").Find(&storeRequestItems).Order("created_at ASC").Error
 	if err != nil {
 		return nil, err
 	}
@@ -258,7 +258,7 @@ func (r *StoreRepository) GetStoreItems(filter dto.GetStoreItemFilter) ([]entity
 		query = query.Where("store_items.store_id IN ?", filter.StoreIds)
 	}
 
-	err := query.Preload("Item").Preload("Store.Location").Find(&storeItems).Error
+	err := query.Order("created_at DESC").Preload("Item").Preload("Store.Location").Find(&storeItems).Error
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func (r *StoreRepository) GetStoreItemHistories(filter dto.GetStoreItemHistoryFi
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("User").Find(&storeItemHistory).Error
+	err := query.Order("created_at DESC").Preload("User").Find(&storeItemHistory).Error
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +510,7 @@ func (r *StoreRepository) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter)
 		query = query.Where("store_id = ?", filter.StoreId)
 	}
 
-	err := query.Preload("Store.Location").Preload("Item").Preload("Customer").Find(&storeSaleQueues).Error
+	err := query.Order("created_at DESC").Preload("Store.Location").Preload("Item").Preload("Customer").Find(&storeSaleQueues).Error
 	if err != nil {
 		return nil, err
 	}

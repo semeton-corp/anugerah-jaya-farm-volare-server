@@ -100,7 +100,7 @@ func (r *SupplierRepository) GetSuppliers(filter dto.GetSupplierFilter) ([]entit
 		query = query.Joins("LEFT JOIN supplier_items ON suppliers.id = supplier_items.id").Where("supplier_items.item_id = ?", filter.ItemId)
 	}
 
-	err := query.Preload("SupplierItems.Item").Find(&suppliers).Error
+	err := query.Order("created_at DESC").Preload("SupplierItems.Item").Find(&suppliers).Error
 	if err != nil {
 		return nil, err
 	}

@@ -60,7 +60,7 @@ func (r *RoleRepository) GetRoles() ([]entity.Role, error) {
 		err   error
 	)
 
-	err = r.GetDB().Find(&roles).Error
+	err = r.GetDB().Order("created_at DESC").Find(&roles).Error
 	if err != nil {
 		return nil, err
 	}

@@ -93,7 +93,7 @@ func (r *PlacementRepository) CreateCagePlacementBatch(data []entity.CagePlaceme
 
 func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]entity.CagePlacement, error) {
 	data := make([]entity.CagePlacement, 0)
-	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User.Role").Preload("Cage.Location").Where("user_id = ?", userId).Find(&data).Error
+	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User.Role").Preload("Cage.Location").Where("user_id = ?", userId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -103,7 +103,7 @@ func (r *PlacementRepository) GetCagePlacementByUserId(userId uuid.UUID) ([]enti
 
 func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) ([]entity.StorePlacement, error) {
 	data := make([]entity.StorePlacement, 0)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Role").Preload("Store.Location").Where("user_id = ?", userId).Find(&data).Error
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Role").Preload("Store.Location").Where("user_id = ?", userId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -113,7 +113,7 @@ func (r *PlacementRepository) GetStorePlacementByUserId(userId uuid.UUID) ([]ent
 
 func (r *PlacementRepository) GetWarehousePlacementByUserId(userId uuid.UUID) ([]entity.WarehousePlacement, error) {
 	data := make([]entity.WarehousePlacement, 0)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Role").Preload("Warehouse.Location").Where("user_id = ?", userId).Find(&data).Error
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Role").Preload("Warehouse.Location").Where("user_id = ?", userId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (r *PlacementRepository) DeleteWarehousePlacementByUserId(userId uuid.UUID)
 
 func (r *PlacementRepository) GetCagePlacementByCageId(cageId uint64) ([]entity.CagePlacement, error) {
 	data := make([]entity.CagePlacement, 0)
-	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Cage.Location").Where("cage_id = ?", cageId).Find(&data).Error
+	err := r.GetDB().Model(&entity.CagePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Cage.Location").Where("cage_id = ?", cageId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -145,7 +145,7 @@ func (r *PlacementRepository) GetCagePlacementByCageId(cageId uint64) ([]entity.
 
 func (r *PlacementRepository) GetStorePlacementByStoreId(storeId uint64) ([]entity.StorePlacement, error) {
 	data := make([]entity.StorePlacement, 0)
-	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Store.Location").Where("store_id = ?", storeId).Find(&data).Error
+	err := r.GetDB().Model(&entity.StorePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Store.Location").Where("store_id = ?", storeId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return data, err
 	}
@@ -155,7 +155,7 @@ func (r *PlacementRepository) GetStorePlacementByStoreId(storeId uint64) ([]enti
 
 func (r *PlacementRepository) GetWarehousePlacementByWarehouseId(warehouseId uint64) ([]entity.WarehousePlacement, error) {
 	data := make([]entity.WarehousePlacement, 0)
-	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Warehouse.Location").Where("warehouse_id = ?", warehouseId).Find(&data).Error
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Preload("User.Location").Preload("User.Role").Preload("Warehouse.Location").Where("warehouse_id = ?", warehouseId).Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return data, err
 	}

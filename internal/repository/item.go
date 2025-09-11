@@ -86,13 +86,13 @@ func (r *ItemRepository) CreateItemPriceDiscount(itemPriceDiscount *entity.ItemP
 
 func (r *ItemRepository) GetItemPrices() ([]entity.ItemPrice, error) {
 	var eggPrice []entity.ItemPrice
-	err := r.GetDB().Preload("Item").Find(&eggPrice).Error
+	err := r.GetDB().Order("created_at DESC").Preload("Item").Find(&eggPrice).Error
 	return eggPrice, err
 }
 
 func (r *ItemRepository) GetItemPriceDiscounts() ([]entity.ItemPriceDiscount, error) {
 	var eggPriceDiscount []entity.ItemPriceDiscount
-	err := r.GetDB().Find(&eggPriceDiscount).Error
+	err := r.GetDB().Order("created_at DESC").Find(&eggPriceDiscount).Error
 	return eggPriceDiscount, err
 }
 
@@ -168,7 +168,7 @@ func (r *ItemRepository) GetItems(filter dto.GetItemFilter) ([]entity.Item, erro
 		query = query.Where("name IN ?", filter.ItemNames)
 	}
 
-	err := query.Find(&warehouseItems).Error
+	err := query.Order("created_at DESC").Find(&warehouseItems).Error
 	if err != nil {
 		return nil, err
 	}
