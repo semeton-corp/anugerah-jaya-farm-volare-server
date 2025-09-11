@@ -263,7 +263,7 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("created_by DESC").
+	err := query.Preload("created_at DESC").
 		Preload("ChickenProcurement.Cage.Location").
 		Preload("ChickenProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -354,7 +354,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("created_at DESC").
+	err := query.Order("created_at DESC").
 		Preload("WarehouseItemProcurement.Warehouse.Location").
 		Preload("WarehouseItemProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -463,7 +463,7 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("created_at DESC").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := query.Order("created_at DESC").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
