@@ -186,6 +186,12 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		abnormalityStatus = constant.EggMonitoringStatusUrgent
 	}
 
+	eggMonitoring, err = s.repository.GetEggMonitoringById(eggMonitoring.Id)
+	if err != nil {
+		s.log.Error("failed to get egg monitoring", zap.Error(err))
+		return dto.EggMonitoringResponse{}, err
+	}
+
 	if abnormalityStatus == constant.EggMonitoringStatusCheck || abnormalityStatus == constant.EggMonitoringStatusUrgent {
 		notificationJsonParsed, err := json.Marshal(entity.Notification{
 			CageId:               sql.NullInt64{Int64: int64(eggMonitoring.ChickenCage.CageId), Valid: true},
@@ -198,12 +204,6 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		}
 
 		s.cacheService.Publish(context.Background(), constant.NotificationTopic, string(notificationJsonParsed))
-	}
-
-	eggMonitoring, err = s.repository.GetEggMonitoringById(eggMonitoring.Id)
-	if err != nil {
-		s.log.Error("failed to get egg monitoring", zap.Error(err))
-		return dto.EggMonitoringResponse{}, err
 	}
 
 	return mapper.EggMonitoringToResponse(&eggMonitoring), nil
