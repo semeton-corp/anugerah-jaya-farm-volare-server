@@ -263,7 +263,7 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("created_at DESC").
+	err := query.Order("created_at DESC").
 		Preload("ChickenProcurement.Cage.Location").
 		Preload("ChickenProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -373,7 +373,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("created_at DESC").
+	err := query.Order("created_at DESC").
 		Preload("WarehouseItemCornProcurement.Warehouse.Location").
 		Preload("WarehouseItemCornProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -552,7 +552,7 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 		query = query.Where("DATE(deadline_payment_date) >= ? AND DATE(deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
-	err := query.Preload("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
+	err := query.Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}
