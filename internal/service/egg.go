@@ -95,83 +95,87 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
+	if eggMonitoring.TotalGoodEgg == 0 {
+		goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
+
+		goodEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, goodEggItem.Id)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
+
+		jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+			ItemName:       goodEggItem.Name,
+			Source:         chickenCage.Cage.Name,
+			Destination:    goodEggWarehouseItem.Warehouse.Name,
+			QuantityBefore: goodEggWarehouseItem.Quantity,
+			QuantityAfter:  eggMonitoring.TotalWeightGoodEgg + goodEggWarehouseItem.Quantity,
+			UserId:         userId,
+			Status:         enum.ItemHistoryStatusIn,
+		})
+
+		if err != nil {
+			s.log.Error("failed to parse struct into json", zap.Error(err))
+			return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
+		}
+		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(jsonParsed))
+
+		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
+			Quantity: goodEggWarehouseItem.Quantity + eggMonitoring.TotalWeightGoodEgg,
+		}, userId)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
 	}
 
-	goodEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, goodEggItem.Id)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
+	if eggMonitoring.TotalCrackedEgg == 0 {
+		crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
 
-	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemName:       goodEggItem.Name,
-		Source:         chickenCage.Cage.Name,
-		Destination:    goodEggWarehouseItem.Warehouse.Name,
-		QuantityBefore: goodEggWarehouseItem.Quantity,
-		QuantityAfter:  eggMonitoring.TotalWeightGoodEgg + goodEggWarehouseItem.Quantity,
-		UserId:         userId,
-		Status:         enum.ItemHistoryStatusIn,
-	})
+		crackedEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, crackedEggItem.Id)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
 
-	if err != nil {
-		s.log.Error("failed to parse struct into json", zap.Error(err))
-		return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
-	}
-	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(jsonParsed))
+		crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+			ItemName:       crackedEggItem.Name,
+			Source:         chickenCage.Cage.Name,
+			Destination:    crackedEggWarehouseItem.Warehouse.Name,
+			QuantityBefore: crackedEggWarehouseItem.Quantity,
+			QuantityAfter:  eggMonitoring.TotalWeightCrackedEgg + crackedEggWarehouseItem.Quantity,
+			UserId:         userId,
+			Status:         enum.ItemHistoryStatusIn,
+		})
+		if err != nil {
+			s.log.Error("failed to parse struct into json", zap.Error(err))
+			return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
+		}
+		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(crackedEggJsonParsed))
 
-	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
-		Quantity: goodEggWarehouseItem.Quantity + eggMonitoring.TotalWeightGoodEgg,
-	}, userId)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
+		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
+			Quantity: crackedEggWarehouseItem.Quantity + eggMonitoring.TotalWeightCrackedEgg,
+		}, userId)
+		if err != nil {
+			return dto.EggMonitoringResponse{}, err
+		}
 
-	crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	crackedEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, crackedEggItem.Id)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-		ItemName:       crackedEggItem.Name,
-		Source:         chickenCage.Cage.Name,
-		Destination:    crackedEggWarehouseItem.Warehouse.Name,
-		QuantityBefore: crackedEggWarehouseItem.Quantity,
-		QuantityAfter:  eggMonitoring.TotalWeightCrackedEgg + crackedEggWarehouseItem.Quantity,
-		UserId:         userId,
-		Status:         enum.ItemHistoryStatusIn,
-	})
-	if err != nil {
-		s.log.Error("failed to parse struct into json", zap.Error(err))
-		return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
-	}
-	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(crackedEggJsonParsed))
-
-	_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
-		Quantity: crackedEggWarehouseItem.Quantity + eggMonitoring.TotalWeightCrackedEgg,
-	}, userId)
-	if err != nil {
-		return dto.EggMonitoringResponse{}, err
+		_, err = s.storeService.CreateStoreRequestItemFromEggMonitoring(dto.CreateStoreRequestItemRequest{
+			WarehouseId: request.WarehouseId,
+			Quantity:    float64(request.TotalWeightCrackedEgg) / float64(constant.TotalEggPerIkat),
+			ItemId:      crackedEggItem.Id,
+		}, userId)
+		if err != nil {
+			s.log.Error("failed to create store request item from egg monitoring", zap.Error(err))
+			return dto.EggMonitoringResponse{}, err
+		}
 	}
 
 	if err := s.repository.CreateEggMonitoring(&eggMonitoring); err != nil {
 		s.log.Error("failed to create egg monitoring", zap.Error(err))
-		return dto.EggMonitoringResponse{}, err
-	}
-
-	_, err = s.storeService.CreateStoreRequestItemFromEggMonitoring(dto.CreateStoreRequestItemRequest{
-		WarehouseId: request.WarehouseId,
-		Quantity:    float64(request.TotalWeightCrackedEgg) / float64(constant.TotalEggPerIkat),
-		ItemId:      crackedEggItem.Id,
-	}, userId)
-	if err != nil {
-		s.log.Error("failed to create store request item from egg monitoring", zap.Error(err))
 		return dto.EggMonitoringResponse{}, err
 	}
 
