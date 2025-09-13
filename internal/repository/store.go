@@ -363,7 +363,7 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
-	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Find(&storeSales).Order("created_at DESC").Error
+	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
 	}

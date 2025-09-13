@@ -1109,11 +1109,6 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already sent")
 	}
 
-	if warehouseSale.PaymentStatus == enum.PaymentStatusPaid {
-		s.log.Error("warehouse sale is already paid", zap.Uint64("id", warehouseSale.Id))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already paid")
-	}
-
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed to parse payment date", zap.Error(err))
@@ -1282,11 +1277,6 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 		return errx.BadRequest("warehouse sale is already sent")
 	}
 
-	if warehouseSale.PaymentStatus == enum.PaymentStatusPaid {
-		s.log.Error("warehouse sale is already paid", zap.Uint64("id", warehouseSale.Id))
-		return errx.BadRequest("warehouse sale is already paid")
-	}
-
 	totalPayment := decimal.Zero
 	for _, payment := range warehouseSale.Payments {
 		if payment.Id != id {
@@ -1300,7 +1290,7 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 		warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	} else if totalPayment.LessThan(decimal.Zero) {
 		s.log.Error("delete this payment make minus", zap.Error(err))
-		return errx.BadRequest("delete this payment make minus")
+		return errx.BadRequest("payment minus")
 	}
 
 	err = s.repository.UpdateWarehouseSale(&warehouseSale)
