@@ -159,11 +159,13 @@ type WarehouseItemProcurementListPaginationResponse struct {
 }
 
 type GetWarehouseItemProcurementFilter struct {
-	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
-	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
-	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
-	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
-	Page                     uint64                     `query:"page"`
+	DeadlinePaymentStartDate param.DateParam              `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam              `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam     `query:"paymentStatus"`
+	Status                   param.ProcurementStatusParam `query:"status"`
+	PaymentStatuses          []param.PaymentStatusParam   `query:"paymentStatuses"`
+	Page                     uint64                       `query:"page"`
+	WarehouseId              uint64                       `query:"warehouseId"`
 	LocationId               uint64
 }
 

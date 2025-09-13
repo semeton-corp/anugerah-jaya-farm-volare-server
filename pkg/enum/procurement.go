@@ -21,7 +21,7 @@ func (c ProcurementStatus) String() string {
 	return ProcurementStatusMap[c]
 }
 
-func ValueOfProcurmentStatus(value string) ProcurementStatus {
+func ValueOfProcurementStatus(value string) ProcurementStatus {
 	for k, v := range ProcurementStatusMap {
 		if v == value {
 			return k

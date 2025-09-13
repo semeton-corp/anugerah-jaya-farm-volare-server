@@ -37,7 +37,6 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error
 
 	GetWarehouseItemByNameAndUnitAndType(name string, unit string, itemType enum.ItemCategory) (entity.Item, error)
-	CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error)
 
 	GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error)
 	GetWarehouseItemHistoryById(id uint64) (entity.WarehouseItemHistory, error)
@@ -296,16 +295,6 @@ func (r *WarehouseRepository) FirstOrCreateWarehouseItem(warehouseItem *entity.W
 	return *warehouseItem, nil
 }
 
-func (r *WarehouseRepository) CountStoreRequestItemByWarehouseId(warehouseId uint64) (int64, error) {
-	var count int64
-	err := r.GetDB().Model(&entity.StoreRequestItem{}).Where("warehouse_id = ?", warehouseId).Count(&count).Error
-	if err != nil {
-		return -1, err
-	}
-
-	return count, nil
-}
-
 func (r *WarehouseRepository) GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error) {
 	warehouseItemHistory := make([]entity.WarehouseItemHistory, 0)
 	query := r.GetDB().Model(&entity.WarehouseItemHistory{})
@@ -550,8 +539,16 @@ func (r *WarehouseRepository) CountWarehouseItemProcurement(filter dto.GetWareho
 	var count int64
 	query := r.GetDB().Model(&entity.WarehouseItemProcurement{})
 
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus)
+		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.Status.Value().IsValid() {
+		query = query.Where("status = ?", filter.Status.Value())
 	}
 
 	err := query.Count(&count).Error

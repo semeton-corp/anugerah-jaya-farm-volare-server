@@ -197,3 +197,19 @@ func (p *ChickenCategoryParam) UnmarshalText(text []byte) error {
 func (p ChickenCategoryParam) Value() enum.ChickenCategory {
 	return enum.ChickenCategory(p)
 }
+
+type ProcurementStatusParam enum.ProcurementStatus
+
+func (p *ProcurementStatusParam) UnmarshalText(text []byte) error {
+	parsedFilter := enum.ValueOfProcurementStatus(string(text))
+	if !parsedFilter.IsValid() {
+		return errx.BadRequest("invalid procurement status")
+	}
+
+	*p = ProcurementStatusParam(parsedFilter)
+	return nil
+}
+
+func (p ProcurementStatusParam) Value() enum.ProcurementStatus {
+	return enum.ProcurementStatus(p)
+}

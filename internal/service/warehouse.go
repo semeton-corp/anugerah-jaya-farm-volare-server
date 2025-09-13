@@ -477,9 +477,12 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		warehouseItemCornResponses = append(warehouseItemCornResponses, res)
 	}
 
-	requestItemCount, err := s.repository.CountStoreRequestItemByWarehouseId(id)
+	warehouseItemProcurementSentOffCount, err := s.repository.CountWarehouseItemProcurement(dto.GetWarehouseItemProcurementFilter{
+		WarehouseId: id,
+		Status:      param.ProcurementStatusParam(enum.ProcurementStatusSentOff),
+	})
 	if err != nil {
-		s.log.Error("failed to count store request item by warehouse id", zap.Error(err))
+		s.log.Error("failed to count warehouse item procurements", zap.Error(err))
 		return dto.WarehouseOverview{}, err
 	}
 
@@ -496,7 +499,7 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		EquipmentStocks:   warehouseItemEquipmentResponses,
 		TotalSafeStock:    uint64(totalSafeStock),
 		TotalDangerStock:  uint64(totalDangerStock),
-		TotalStoreRequest: uint64(requestItemCount),
+		TotalStoreRequest: uint64(warehouseItemProcurementSentOffCount),
 	}, nil
 }
 
