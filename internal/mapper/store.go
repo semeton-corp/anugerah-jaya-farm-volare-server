@@ -160,6 +160,7 @@ func StoreItemHistoryToResponse(storeItemHistory *entity.StoreItemHistory) dto.S
 	return dto.StoreItemHistoryResponse{
 		Id:             storeItemHistory.Id,
 		ItemName:       storeItemHistory.ItemName,
+		ItemUnit:       storeItemHistory.ItemUnit,
 		Source:         storeItemHistory.Source,
 		Destination:    storeItemHistory.Destination,
 		QuantityBefore: storeItemHistory.QuantityBefore,
@@ -175,6 +176,7 @@ func StoreItemHistoryToListResponse(storeItemHistory *entity.StoreItemHistory) d
 	return dto.StoreItemHistoryListResponse{
 		Id:          storeItemHistory.Id,
 		ItemName:    storeItemHistory.ItemName,
+		ItemUnit:    storeItemHistory.ItemUnit,
 		Source:      storeItemHistory.Source,
 		Destination: storeItemHistory.Destination,
 		Status:      storeItemHistory.Status.String(),

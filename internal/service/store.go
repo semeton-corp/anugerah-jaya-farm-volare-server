@@ -481,6 +481,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 
 	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
 		ItemName:       storeRequestItem.Item.Name,
+		ItemUnit:       storeRequestItem.Item.Unit,
 		Source:         storeRequestItem.Warehouse.Name,
 		Destination:    storeRequestItem.Store.Name,
 		QuantityBefore: storeItem.Quantity,
@@ -1007,6 +1008,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 
 	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
 		ItemName:       storeSale.Item.Name,
+		ItemUnit:       storeSale.Item.Unit,
 		Source:         storeSale.Store.Name,
 		Destination:    storeSale.Customer.Name,
 		QuantityBefore: storeItem.Quantity,
@@ -2161,6 +2163,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 
 	jsonStoreHistoryParsed, err := json.Marshal(entity.StoreItemHistory{
 		ItemName:       storeSale.Item.Name,
+		ItemUnit:       storeSale.Item.Unit,
 		Source:         storeSale.Store.Name,
 		Destination:    storeSale.Customer.Name,
 		QuantityBefore: storeItem.Quantity,
