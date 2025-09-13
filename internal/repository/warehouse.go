@@ -491,7 +491,7 @@ func (r *WarehouseRepository) UpdateWarehouseSalePayment(data *entity.WarehouseS
 }
 
 func (r *WarehouseRepository) DeleteWarehouseSale(id uint64) error {
-	return r.GetDB().Where("id = ?", id).Delete(&entity.StoreSale{}).Error
+	return r.GetDB().Where("id = ?", id).Delete(&entity.WarehouseSale{}).Error
 }
 
 func (r *WarehouseRepository) DeleteWarehouseSalePayment(id uint64) error {

@@ -1227,24 +1227,29 @@ func (s *WarehouseService) SendWarehouseSale(id uint64, userId uuid.UUID) (dto.W
 }
 
 func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) error {
-	storeSale, err := s.repository.GetWarehouseSaleById(id)
+	warehouseSale, err := s.repository.GetWarehouseSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return err
 	}
 
-	if storeSale.IsSend {
+	if warehouseSale.IsSend {
 		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
 		return errx.BadRequest("store sale already send")
 	}
 
-	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(storeSale.WarehouseId, storeSale.ItemId)
+	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseSale.WarehouseId, warehouseSale.ItemId)
 	if err != nil {
 		s.log.Error("failed to get warehouse item by store id and item id", zap.Error(err))
 		return err
 	}
 
-	warehouseItem.Quantity += storeSale.Quantity
+	realQuantity := warehouseSale.Quantity
+	if warehouseSale.SaleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	warehouseItem.Quantity += realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)

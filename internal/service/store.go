@@ -1530,7 +1530,12 @@ func (s *StoreService) DeleteStoreSale(id uint64, userId uuid.UUID) error {
 		return err
 	}
 
-	storeItem.Quantity += storeSale.Quantity
+	realQuantity := storeSale.Quantity
+	if storeSale.SaleUnit == enum.SaleUnitIkat {
+		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	storeItem.Quantity += realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
