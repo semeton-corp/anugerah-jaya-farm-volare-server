@@ -11,7 +11,7 @@ import (
 type UserCashAdvancePayment struct {
 	Id                uint64             `gorm:"primaryKey;autoIncrement"`
 	UserCashAdvanceId uint64             `gorm:"type:bigint;not null"`
-	UserCashAdvance   UserCashAdvance    `gorm:"foreignKey:UserCashAdvanceId;references:Id"`
+	UserCashAdvance   UserCashAdvance    `gorm:"foreignKey:UserCashAdvanceId;references:Id;constraint:OnDelete:CASCADE"`
 	PaymentDate       time.Time          `gorm:"type:date;not null"`
 	Nominal           decimal.Decimal    `gorm:"type:decimal;not null"`
 	PaymentProof      string             `gorm:"type:text;not null"`

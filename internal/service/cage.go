@@ -162,7 +162,17 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, userI
 func (s *CageService) DeleteCage(id uint64) error {
 	s.repository.UseTx(false)
 
-	err := s.repository.DeleteCage(id)
+	cage, err := s.repository.GetCageById(id)
+	if err != nil {
+		s.log.Error("failed get cage by id", zap.Error(err))
+		return err
+	}
+
+	if cage.IsUsed {
+		return errx.BadRequest("cage is in used, please make cage empty first")
+	}
+
+	err = s.repository.DeleteCage(id)
 	if err != nil {
 		s.log.Error("failed to delete cage", zap.Error(err))
 		return err

@@ -11,7 +11,7 @@ import (
 type WarehouseItemProcurementPayment struct {
 	Id                         uint64                   `gorm:"primaryKey;autoIncrement"`
 	WarehouseItemProcurementId uint64                   `gorm:"type:bigint;not null"`
-	WarehouseItemProcurement   WarehouseItemProcurement `gorm:"foreignKey:WarehouseItemProcurementId;references:Id"`
+	WarehouseItemProcurement   WarehouseItemProcurement `gorm:"foreignKey:WarehouseItemProcurementId;references:Id;constraint:OnDelete:CASCADE"`
 	PaymentDate                time.Time                `gorm:"type:date;not null"`
 	Nominal                    decimal.Decimal          `gorm:"type:decimal;not null"`
 	PaymentProof               string                   `gorm:"type:text;not null"`

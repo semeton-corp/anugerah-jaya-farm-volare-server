@@ -12,7 +12,7 @@ import (
 type StoreSale struct {
 	Id                  uint64             `gorm:"primaryKey;autoIncrement;not null"`
 	CustomerId          uint64             `gorm:"type:varchar(255);not null"`
-	Customer            Customer           `gorm:"foreignKey:CustomerId;references:Id"`
+	Customer            Customer           `gorm:"foreignKey:CustomerId;references:Id;constraint:OnDelete:SET NULL"`
 	ItemId              uint64             `gorm:"type:bigint;not null"`
 	Item                Item               `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	StoreId             uint64             `gorm:"type:bigint;not null"`

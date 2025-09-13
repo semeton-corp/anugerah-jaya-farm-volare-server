@@ -12,7 +12,7 @@ import (
 type ChickenProcurement struct {
 	Id                    uint64                      `gorm:"primaryKey;autoIncrement"`
 	CageId                uint64                      `gorm:"type:bigint;not null"`
-	Cage                  Cage                        `gorm:"foreignKey:CageId;refereces:Id"`
+	Cage                  Cage                        `gorm:"foreignKey:CageId;refereces:Id;constraint:OnDelete:CASCADE"`
 	SupplierId            uint64                      `gorm:"type:bigint;not null"`
 	Supplier              Supplier                    `gorm:"foreignKey:SupplierId;refereces:Id;constraint:OnDelete:SET NULL"`
 	Quantity              uint64                      `gorm:"type:bigint;not null"`

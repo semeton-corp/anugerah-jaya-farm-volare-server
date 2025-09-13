@@ -32,5 +32,5 @@ type Expense struct {
 	CreatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time            `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
-	CreatedByUser       User                 `gorm:"foreignKey:CreatedBy;references:Id"`
+	CreatedByUser       User                 `gorm:"foreignKey:CreatedBy;references:Id;constraint:OnDelete:SET NULL"`
 }

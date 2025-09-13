@@ -11,7 +11,7 @@ import (
 type AfkirChickenSalePayment struct {
 	Id                 uint64             `gorm:"primaryKey;autoIncrement"`
 	AfkirChickenSaleId uint64             `gorm:"type:bigint"`
-	AfkirChickenSale   AfkirChickenSale   `gorm:"foreignKey:AfkirChickenSaleId;references:Id"`
+	AfkirChickenSale   AfkirChickenSale   `gorm:"foreignKey:AfkirChickenSaleId;references:Id;constraint:OnDelete:CASCADE"`
 	PaymentDate        time.Time          `gorm:"type:date;not null"`
 	Nominal            decimal.Decimal    `gorm:"decimal;not null"`
 	PaymentProof       string             `gorm:"type:text;not null"`

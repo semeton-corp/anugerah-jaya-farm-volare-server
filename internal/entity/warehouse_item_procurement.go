@@ -16,7 +16,7 @@ type WarehouseItemProcurement struct {
 	ItemId                uint64                            `gorm:"type:bigint;not null"`
 	Item                  Item                              `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	SupplierId            uint64                            `gorm:"type:bigint;not null"`
-	Supplier              Supplier                          `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
+	Supplier              Supplier                          `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:SET NULL"`
 	DailySpending         float64                           `gorm:"type:decimal;not null"`
 	DaysNeed              uint64                            `gorm:"type:int;not null"`
 	Quantity              float64                           `gorm:"type:decimal;not null"`

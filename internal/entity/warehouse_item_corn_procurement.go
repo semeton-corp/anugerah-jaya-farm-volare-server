@@ -14,7 +14,7 @@ type WarehouseItemCornProcurement struct {
 	WarehouseId               uint64                                `gorm:"type:bigint;not null"`
 	Warehouse                 Warehouse                             `gorm:"foreignKey:WarehouseId;references:Id;constraint:OnDelete:CASCADE"`
 	SupplierId                uint64                                `gorm:"type:bigint;not null"`
-	Supplier                  Supplier                              `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
+	Supplier                  Supplier                              `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:SET NULL"`
 	Quantity                  float64                               `gorm:"type:decimal;not null"`
 	ReceiveQuantity           sql.NullFloat64                       `gorm:"type:decimal;not null;default:0"`
 	Note                      string                                `gorm:"type:text"`
