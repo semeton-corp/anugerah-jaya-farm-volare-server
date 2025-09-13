@@ -65,7 +65,7 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
 		s.log.Error("failed to parse salary from string", zap.Error(err))
-		return dto.SignUpResponse{}, err
+		return dto.SignUpResponse{}, errx.BadRequest("invalid salary format")
 	}
 
 	salaryInterval := enum.ValueOfSalaryInterval(request.SalaryInterval)

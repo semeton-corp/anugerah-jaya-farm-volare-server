@@ -31,7 +31,7 @@ func (h *PlacementHandler) SetEndpoint(router *fiber.App) {
 	v1.Delete("/warehouses/:warehouseId/users/:userId", middleware.Authentication(), h.DeleteWarehousePlacementByUserId)
 
 	v1.Get("/cages/me", middleware.Authentication(), h.GetCurrentUserCagePlacement)
-	v1.Post("/cages", middleware.Authentication(), h.UpdateCagePlacement)
+	v1.Post("/cages", middleware.Authentication(), h.CreateCagePlacement)
 	v1.Delete("/cages/:cageId/users/:userId", middleware.Authentication(), h.DeleteCagePlacementByUserIdAndCageId)
 }
 
@@ -140,7 +140,7 @@ func (h *PlacementHandler) CreateWarehousePlacement(c *fiber.Ctx) error {
 	return response.SuccessResponse(c, fiber.StatusCreated, data, "success create warehouse placement")
 }
 
-func (h *PlacementHandler) UpdateCagePlacement(c *fiber.Ctx) error {
+func (h *PlacementHandler) CreateCagePlacement(c *fiber.Ctx) error {
 	var requests []dto.UpdateCagePlacementRequest
 	if err := c.BodyParser(&requests); err != nil {
 		h.log.Error("failed to parse request", zap.Error(err))
@@ -160,7 +160,7 @@ func (h *PlacementHandler) UpdateCagePlacement(c *fiber.Ctx) error {
 		return errx.Unauthorized("user id not found in context")
 	}
 
-	data, err := h.service.UpdateCagePlacement(requests, uuid.MustParse(userId))
+	data, err := h.service.CreateCagePlacement(requests, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}

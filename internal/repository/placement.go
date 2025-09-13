@@ -84,7 +84,15 @@ func (r *PlacementRepository) CreateStorePlacement(data *entity.StorePlacement) 
 }
 
 func (r *PlacementRepository) CreateWarehousePlacement(data *entity.WarehousePlacement) error {
-	return r.GetDB().Model(&entity.WarehousePlacement{}).Create(data).Error
+	err := r.GetDB().Model(&entity.WarehousePlacement{}).Create(data).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.BadRequest("invalid warehouse or user")
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (r *PlacementRepository) CreateCagePlacementBatch(data []entity.CagePlacement) error {

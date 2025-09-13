@@ -22,7 +22,7 @@ type IPlacementService interface {
 	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
-	UpdateCagePlacement(request []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error)
+	CreateCagePlacement(request []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error)
 	CreateStorePlacement(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
@@ -232,15 +232,30 @@ func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.Cag
 	return dataResponse, nil
 }
 
-func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
+func (s *PlacementService) CreateCagePlacement(requests []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	// Note : need check the user id is egg and chicken
-	err := s.repository.DeleteCagePlacementByCageId(requests[0].CageId)
-	if err != nil {
-		s.log.Error("failed delete cage placement by cage id", zap.Error(err))
-		return nil, err
+	for _, r := range requests {
+		cagePlacements, err := s.repository.GetCagePlacementByCageId(r.CageId)
+		if err != nil {
+			s.log.Error("failed get cage placement by cage id")
+			return nil, err
+		}
+
+		for _, cagePlacement := range cagePlacements {
+			if cagePlacement.User.RoleId == r.RoleId {
+				return nil, errx.BadRequest(fmt.Sprintf("user with this role already exist in cage %s", cagePlacement.Cage.Name))
+			}
+		}
+	}
+
+	for _, r := range requests {
+		err := s.repository.DeleteCagePlacementByCageId(r.CageId)
+		if err != nil {
+			s.log.Error("failed delete cage placement by cage id", zap.Error(err))
+			return nil, err
+		}
 	}
 
 	data := make([]entity.CagePlacement, 0)
@@ -252,7 +267,7 @@ func (s *PlacementService) UpdateCagePlacement(requests []dto.UpdateCagePlacemen
 		})
 	}
 
-	err = s.repository.CreateCagePlacementBatch(data)
+	err := s.repository.CreateCagePlacementBatch(data)
 	if err != nil {
 		s.log.Error("failed to create cage placement in batch", zap.Error(err))
 		return nil, err
@@ -281,6 +296,16 @@ func (s *PlacementService) CreateStorePlacement(request dto.CreateStorePlacement
 	s.repository.UseTx(false)
 
 	userIdRequest := uuid.MustParse(request.UserId)
+	userStorePlacement, err := s.repository.GetStorePlacementByUserId(userIdRequest)
+	if err != nil {
+		s.log.Error("failed get store placement by user id", zap.Error(err))
+		return nil, err
+	}
+
+	if len(userStorePlacement) > 0 {
+		return nil, errx.BadRequest(fmt.Sprintf("user has been exits in store %s", userStorePlacement[0].Store.Name))
+	}
+
 	data := entity.StorePlacement{
 		UserId:    userIdRequest,
 		StoreId:   request.StoreId,
@@ -310,13 +335,23 @@ func (s *PlacementService) CreateWarehousePlacement(request dto.CreateWarehouseP
 	s.repository.UseTx(false)
 
 	userIdRequest := uuid.MustParse(request.UserId)
+	userWarehousePlacement, err := s.repository.GetWarehousePlacementByUserId(userIdRequest)
+	if err != nil {
+		s.log.Error("failed get warehouse placement by user id", zap.Error(err))
+		return nil, err
+	}
+
+	if len(userWarehousePlacement) > 0 {
+		return nil, errx.BadRequest(fmt.Sprintf("user has been exits in warehouse %s", userWarehousePlacement[0].Warehouse.Name))
+	}
+
 	data := entity.WarehousePlacement{
 		UserId:      userIdRequest,
 		WarehouseId: request.WarehouseId,
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	err := s.repository.CreateWarehousePlacement(&data)
+	err = s.repository.CreateWarehousePlacement(&data)
 	if err != nil {
 		s.log.Error("failed to create warehouse placement in batch", zap.Error(err))
 		return nil, err
