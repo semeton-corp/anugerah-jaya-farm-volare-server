@@ -394,6 +394,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 
 	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       storeRequestItem.Item.Name,
+		ItemUnit:       storeRequestItem.Item.Unit,
 		Source:         storeRequestItem.Warehouse.Name,
 		Destination:    storeRequestItem.Store.Name,
 		QuantityBefore: warehouseItem.Quantity,
@@ -719,6 +720,7 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 
 	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       storeItem.Item.Name,
+		ItemUnit:       storeItem.Item.Unit,
 		Source:         storeItem.Store.Name,
 		Destination:    "-",
 		QuantityBefore: storeItem.Quantity,

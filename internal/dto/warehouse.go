@@ -180,6 +180,7 @@ type WarehouseOverview struct {
 type WarehouseItemHistoryListResponse struct {
 	Id          uint64  `json:"id"`
 	ItemName    string  `json:"itemName"`
+	ItemUnit    string  `json:"itemUnit"`
 	Source      string  `json:"source"`
 	Destination string  `json:"destination"`
 	Quantity    float64 `json:"quantity"`
@@ -196,6 +197,7 @@ type WarehouseItemHistoryListPaginationResponse struct {
 type WarehouseItemHistoryResponse struct {
 	Id             uint64  `json:"id"`
 	ItemName       string  `json:"itemName"`
+	ItemUnit       string  `json:"itemUnit"`
 	Source         string  `json:"source"`
 	Destination    string  `json:"destination"`
 	QuantityBefore float64 `json:"quantityBefore"`

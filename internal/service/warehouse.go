@@ -358,6 +358,7 @@ func (s *WarehouseService) UpdateWarehouseItem(warehouseId uint64, warehouseItem
 
 	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       warehouseItem.Item.Name,
+		ItemUnit:       warehouseItem.Item.Unit,
 		Source:         warehouseItem.Warehouse.Name,
 		Destination:    "-",
 		QuantityBefore: warehouseItem.Quantity,
@@ -797,6 +798,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 
 	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       warehouseSale.Item.Name,
+		ItemUnit:       warehouseSale.Item.Unit,
 		Source:         warehouseSale.Warehouse.Name,
 		Destination:    warehouseSale.Customer.Name,
 		QuantityBefore: warehouseSale.Quantity,
@@ -1719,6 +1721,7 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 
 	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       warehouseSale.Item.Name,
+		ItemUnit:       warehouseSale.Item.Unit,
 		Source:         warehouseSale.Warehouse.Name,
 		Destination:    warehouseSale.Customer.Name,
 		QuantityBefore: warehouseSale.Quantity,

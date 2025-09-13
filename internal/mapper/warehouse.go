@@ -65,6 +65,7 @@ func WarehouseItemHistoryToResponse(warehouseItemHistory *entity.WarehouseItemHi
 	return dto.WarehouseItemHistoryResponse{
 		Id:             warehouseItemHistory.Id,
 		ItemName:       warehouseItemHistory.ItemName,
+		ItemUnit:       warehouseItemHistory.ItemUnit,
 		Source:         warehouseItemHistory.Source,
 		Destination:    warehouseItemHistory.Destination,
 		QuantityBefore: warehouseItemHistory.QuantityBefore,
@@ -80,6 +81,7 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 	return dto.WarehouseItemHistoryListResponse{
 		Id:          warehouseItemHistory.Id,
 		ItemName:    warehouseItemHistory.ItemName,
+		ItemUnit:    warehouseItemHistory.ItemUnit,
 		Source:      warehouseItemHistory.Source,
 		Destination: warehouseItemHistory.Destination,
 		Status:      warehouseItemHistory.Status.String(),

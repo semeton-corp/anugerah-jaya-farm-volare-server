@@ -9,7 +9,8 @@ import (
 
 type WarehouseItemHistory struct {
 	Id             uint64                 `gorm:"primaryKey;autoIncrement"`
-	ItemName       string                 `gorm:"type:varchar(255);not null;default:'"`
+	ItemName       string                 `gorm:"type:varchar(255)"`
+	ItemUnit       string                 `gorm:"type:varchar(255)"`
 	Source         string                 `gorm:"type:varchar(255)"`
 	Destination    string                 `gorm:"type:varchar(255)"`
 	QuantityBefore float64                `gorm:"type:decimal;not null"`
