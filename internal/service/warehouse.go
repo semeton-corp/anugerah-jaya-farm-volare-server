@@ -493,13 +493,13 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 	}
 
 	return dto.WarehouseOverview{
-		Warehouse:         mapper.WarehouseToResponse(&warehouse),
-		EggStocks:         warehouseItemEggResponses,
-		CornStocks:        warehouseItemCornResponses,
-		EquipmentStocks:   warehouseItemEquipmentResponses,
-		TotalSafeStock:    uint64(totalSafeStock),
-		TotalDangerStock:  uint64(totalDangerStock),
-		TotalStoreRequest: uint64(warehouseItemProcurementSentOffCount),
+		Warehouse:        mapper.WarehouseToResponse(&warehouse),
+		EggStocks:        warehouseItemEggResponses,
+		CornStocks:       warehouseItemCornResponses,
+		EquipmentStocks:  warehouseItemEquipmentResponses,
+		TotalSafeStock:   uint64(totalSafeStock),
+		TotalDangerStock: uint64(totalDangerStock),
+		TotalItemInOrder: uint64(warehouseItemProcurementSentOffCount),
 	}, nil
 }
 

@@ -170,13 +170,13 @@ type GetWarehouseItemProcurementFilter struct {
 }
 
 type WarehouseOverview struct {
-	Warehouse         WarehouseResponse           `json:"warehouse"`
-	TotalSafeStock    uint64                      `json:"totalSafeStock"`
-	TotalDangerStock  uint64                      `json:"totalDangerStock"`
-	TotalStoreRequest uint64                      `json:"totalStoreRequest"`
-	EggStocks         []WarehouseItemResponse     `json:"eggStocks"`
-	CornStocks        []WarehouseItemCornResponse `json:"cornStocks"`
-	EquipmentStocks   []WarehouseItemResponse     `json:"equipmentStocks"`
+	Warehouse        WarehouseResponse           `json:"warehouse"`
+	TotalSafeStock   uint64                      `json:"totalSafeStock"`
+	TotalDangerStock uint64                      `json:"totalDangerStock"`
+	TotalItemInOrder uint64                      `json:"totalItemInOrder"`
+	EggStocks        []WarehouseItemResponse     `json:"eggStocks"`
+	CornStocks       []WarehouseItemCornResponse `json:"cornStocks"`
+	EquipmentStocks  []WarehouseItemResponse     `json:"equipmentStocks"`
 }
 
 type WarehouseItemHistoryListResponse struct {
