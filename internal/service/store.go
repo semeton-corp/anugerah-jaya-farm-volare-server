@@ -416,7 +416,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	_, err = s.warehouseService.UpdateWarehouseItem(storeRequestItem.WarehouseId, storeRequestItem.Id, dto.UpdateWarehouseItemRequest{
+	_, err = s.warehouseService.UpdateWarehouseItem(storeRequestItem.WarehouseId, storeRequestItem.ItemId, dto.UpdateWarehouseItemRequest{
 		Quantity: warehouseItem.Quantity - request.Quantity,
 	}, userId)
 	if err != nil {
@@ -1330,11 +1330,6 @@ func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, req
 		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already sent")
 	}
 
-	if storeSale.PaymentStatus == enum.PaymentStatusPaid {
-		s.log.Error("store sale is already paid", zap.Uint64("id", storeSale.Id))
-		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already paid")
-	}
-
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
 	if !paymentMethod.IsValid() {
 		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
@@ -1429,11 +1424,6 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 	if storeSale.IsSend {
 		s.log.Error("store sale is already sent", zap.Uint64("id", storeSale.Id))
 		return errx.BadRequest("store sale is already sent")
-	}
-
-	if storeSale.PaymentStatus == enum.PaymentStatusPaid {
-		s.log.Error("store sale is already paid", zap.Uint64("id", storeSale.Id))
-		return errx.BadRequest("store sale is already paid")
 	}
 
 	totalPayment := decimal.Zero
