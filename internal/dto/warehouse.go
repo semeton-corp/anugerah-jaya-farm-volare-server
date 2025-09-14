@@ -586,8 +586,10 @@ type GetWarehouseSalePaymentFilter struct {
 
 type GetStoreSalePaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
+	Page       uint64          `query:"page"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	StoreId    uint64          `query:"storeId"`
 }
 
 type GetAfkirChickenSalePaymentFilter struct {

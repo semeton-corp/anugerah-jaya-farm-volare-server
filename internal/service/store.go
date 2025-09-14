@@ -76,6 +76,8 @@ type IStoreService interface {
 	GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([]dto.StoreSaleQueueResponse, error)
 	DeleteStoreSaleQueue(id uint64) error
 	AllocateStoreSaleQueue(id uint64, request dto.CreateStoreSaleRequest, userId uuid.UUID) (dto.StoreSaleResponse, error)
+
+	GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto.StoreCashflowListPaginationResponse, error)
 }
 
 func NewStoreService(log *zap.Logger, repository repository.IStoreRepository, cacheService cache.ICache, placementService IPlacementService, warehouseService IWarehouseService, itemService IItemService, customerService ICustomerService) IStoreService {
@@ -2188,4 +2190,127 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	storeSaleResponse.RemainingPayment = remainingPayment.String()
 
 	return storeSaleResponse, nil
+}
+
+func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto.StoreCashflowListPaginationResponse, error) {
+	s.repository.UseTx(false)
+
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
+
+	switch filter.Category {
+	case constant.StoreCashflowCategoryIncome:
+		storeCashflows := make([]dto.StoreCashflowListResponse, 0)
+		storeSalePayments, err := s.repository.GetStoreSalePayments(dto.GetStoreSalePaymentFilter{
+			StoreId:   filter.StoreId,
+			Page:      filter.Page,
+			StartDate: param.DateParam(startDate),
+			EndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			s.log.Error("failed get store sale payments", zap.Error(err))
+			return dto.StoreCashflowListPaginationResponse{}, err
+		}
+
+		for _, payment := range storeSalePayments {
+			storeCashflows = append(storeCashflows, dto.StoreCashflowListResponse{
+				ParentId:     payment.StoreSaleId,
+				Id:           payment.Id,
+				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
+				Category:     constant.IncomeCategoryStoreEggSale,
+				ItemName:     payment.StoreSale.Item.Name,
+				ItemUnit:     payment.StoreSale.SaleUnit.String(),
+				Quantity:     payment.StoreSale.Quantity,
+				CustomerName: payment.StoreSale.Customer.Name,
+				Nominal:      payment.Nominal.String(),
+				PaymentProof: payment.PaymentProof,
+			})
+		}
+
+		totalData, err := s.repository.CountTotalStoreSalePayment(dto.GetStoreSalePaymentFilter{
+			StoreId:   filter.StoreId,
+			Page:      filter.Page,
+			StartDate: param.DateParam(startDate),
+			EndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			s.log.Error("failed count total store sale payment", zap.Error(err))
+			return dto.StoreCashflowListPaginationResponse{}, err
+		}
+
+		response := dto.StoreCashflowListPaginationResponse{
+			StoreCashflows: storeCashflows,
+		}
+
+		if filter.Page > 0 {
+			response.TotalData = totalData
+			response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+		}
+
+		return response, nil
+	case constant.StoreCashflowCategoryReceieveables:
+		storeCashflows := make([]dto.StoreCashflowListResponse, 0)
+		storeSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+			StoreId:                  filter.StoreId,
+			Page:                     filter.Page,
+			DeadlinePaymentStartDate: param.DateParam(startDate),
+			DeadlinePaymentEndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			s.log.Error("failed get store sale cashflows", zap.Error(err))
+			return dto.StoreCashflowListPaginationResponse{}, err
+		}
+
+		for _, e := range storeSales {
+			receieveable := dto.StoreCashflowListResponse{
+				Id:                  e.Id,
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				Category:            constant.ReceieveablesCategoryStoreEggSale,
+				PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
+				Name:                e.Customer.Name,
+				PhoneNumber:         e.Customer.PhoneNumber,
+				TotalNominal:        e.TotalPrice.String(),
+				PaymentStatus:       e.PaymentStatus.String(),
+			}
+
+			if e.PaidDate.Valid {
+				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			} else {
+				receieveable.PaidDate = "-"
+			}
+
+			totalCurrentPayment := decimal.Zero
+			for _, p := range e.Payments {
+				totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+			}
+
+			receieveable.RemainingPayment = e.TotalPrice.Sub(totalCurrentPayment).String()
+
+			storeCashflows = append(storeCashflows, receieveable)
+		}
+
+		totalData, err := s.repository.CountTotalStoreSale(dto.GetStoreSaleFilter{
+			StoreId:                  filter.StoreId,
+			Page:                     filter.Page,
+			DeadlinePaymentStartDate: param.DateParam(startDate),
+			DeadlinePaymentEndDate:   param.DateParam(endDate),
+		})
+		if err != nil {
+			s.log.Error("failed count total store sale", zap.Error(err))
+			return dto.StoreCashflowListPaginationResponse{}, err
+		}
+
+		response := dto.StoreCashflowListPaginationResponse{
+			StoreCashflows: storeCashflows,
+		}
+
+		if filter.Page > 0 {
+			response.TotalData = totalData
+			response.TotalPage = uint64(math.Ceil(float64(totalData) / float64(constant.PaginationDefaultLimit)))
+		}
+
+		return response, nil
+	default:
+		return dto.StoreCashflowListPaginationResponse{}, errx.BadRequest("invalid category for store cashflow")
+	}
 }

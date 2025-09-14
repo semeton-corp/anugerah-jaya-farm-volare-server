@@ -23,6 +23,8 @@ type StoreHandler struct {
 func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/stores")
 
+	v1.Get("/cashflows", middleware.Authentication(), h.GetStoreCashflows)
+
 	v1.Post("/queues", middleware.Authentication(), h.CreateStoreSaleQueue)
 	v1.Get("/queues", middleware.Authentication(), h.GetStoreSaleQueues)
 	v1.Get("/queues/:id", middleware.Authentication(), h.GetStoreSaleQueue)
@@ -62,6 +64,7 @@ func (h *StoreHandler) SetEndpoint(router *fiber.App) {
 
 	v1.Get("/items/histories", middleware.Authentication(), h.GetStoreItemHistories)
 	v1.Get("/items/histories/:id", middleware.Authentication(), h.GetStoreItemHistory)
+
 }
 
 func NewStoreHandler(log *zap.Logger, service service.IStoreService, validator *validator.Validate) *StoreHandler {
@@ -865,4 +868,24 @@ func (h *StoreHandler) AllocateStoreSaleQueue(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success allocate store sale queue")
+}
+
+func (h *StoreHandler) GetStoreCashflows(c *fiber.Ctx) error {
+	var filter dto.GetStoreCashflowFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed parse query store cashflow", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := h.service.GetStoreCashflows(filter)
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, data, "success get store cashflows")
 }

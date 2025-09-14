@@ -67,7 +67,7 @@ type ExpensePieResponse struct {
 	WarehouseItemCornProcurementPercentage float64 `json:"warehouseItemCornProcurementPercentage"`
 	OtherPercentage                        float64 `json:"otherPercentage"`
 	UserCashAdvancePercentage              float64 `json:"userCashAdvancePercentage"`
-	TaxPercentage                          float64 `jsonn:"taxPercentage"`
+	TaxPercentage                          float64 `json:"taxPercentage"`
 }
 
 type ExpenseListResponse struct {

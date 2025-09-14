@@ -74,6 +74,76 @@ func NewCashflowService(log *zap.Logger, repository repository.ICashflowReposito
 	}
 }
 
+func (s *CashflowService) GetIncomeStoreSalePayments(filter dto.GetStoreSalePaymentFilter) ([]dto.IncomeListResponse, error) {
+	s.repository.UseTx(false)
+	incomeResponses := make([]dto.IncomeListResponse, 0)
+
+	storeSalePayments, err := s.repository.GetStoreSalePayments(filter)
+	if err != nil {
+		s.log.Error("failed get store sale payments", zap.Error(err))
+		return nil, err
+	}
+
+	for _, payment := range storeSalePayments {
+		incomeResponses = append(incomeResponses, dto.IncomeListResponse{
+			ParentId:     payment.StoreSaleId,
+			Id:           payment.Id,
+			Date:         payment.PaymentDate.Format("02 Jan 2006"),
+			PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
+			Category:     constant.IncomeCategoryStoreEggSale,
+			ItemName:     payment.StoreSale.Item.Name,
+			ItemUnit:     payment.StoreSale.SaleUnit.String(),
+			Quantity:     payment.StoreSale.Quantity,
+			CustomerName: payment.StoreSale.Customer.Name,
+			Nominal:      payment.Nominal.String(),
+			PaymentProof: payment.PaymentProof,
+		})
+	}
+
+	return incomeResponses, nil
+}
+
+func (s *CashflowService) GetReceiveablesStoreSale(filter dto.GetStoreSaleFilter) ([]dto.ReceivablesListResponse, error) {
+	s.repository.UseTx(false)
+
+	receieveables := make([]dto.ReceivablesListResponse, 0)
+	storeSales, err := s.repository.GetStoreSaleCashflows(filter)
+	if err != nil {
+		s.log.Error("failed get store sale cashflows", zap.Error(err))
+		return nil, err
+	}
+
+	for _, e := range storeSales {
+		receieveable := dto.ReceivablesListResponse{
+			Id:                  e.Id,
+			DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			Category:            constant.ReceieveablesCategoryStoreEggSale,
+			PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
+			Name:                e.Customer.Name,
+			PhoneNumber:         e.Customer.PhoneNumber,
+			TotalNominal:        e.TotalPrice.String(),
+			PaymentStatus:       e.PaymentStatus.String(),
+		}
+
+		if e.PaidDate.Valid {
+			receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+		} else {
+			receieveable.PaidDate = "-"
+		}
+
+		totalCurrentPayment := decimal.Zero
+		for _, p := range e.Payments {
+			totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
+		}
+
+		receieveable.RemainingPayment = e.TotalPrice.Sub(totalCurrentPayment).String()
+
+		receieveables = append(receieveables, receieveable)
+	}
+
+	return receieveables, nil
+}
+
 func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) (dto.IncomeOverviewResponse, error) {
 	incomeResponses := make([]dto.IncomeListResponse, 0)
 

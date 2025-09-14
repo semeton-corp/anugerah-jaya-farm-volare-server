@@ -322,3 +322,38 @@ type StoreItemSummaryResponse struct {
 	TotalSafeItem    uint64 `json:"totalSafeItem"`
 	TotalNotSafeItem uint64 `json:"totalNotSafeItem"`
 }
+
+type GetStoreCashflowFilter struct {
+	Category string           `query:"category" validate:"required,storeCashflowCategory"`
+	Page     uint64           `query:"page"`
+	StoreId  uint64           `query:"storeId"`
+	Month    param.MonthParam `query:"month" validate:"required"`
+	Year     uint64           `query:"year" validate:"required"`
+}
+
+type StoreCashflowListPaginationResponse struct {
+	TotalData      uint64                      `json:"totalData"`
+	TotalPage      uint64                      `json:"totalPage"`
+	StoreCashflows []StoreCashflowListResponse `json:"storeCashflows"`
+}
+
+type StoreCashflowListResponse struct {
+	ParentId            uint64  `json:"parentId,omitempty"`
+	Id                  uint64  `json:"id,omitempty"`
+	Date                string  `json:"date,omitempty"`
+	PlaceName           string  `json:"placeName,omitempty"`
+	Category            string  `json:"category,omitempty"`
+	ItemName            string  `json:"itemName,omitempty"`
+	ItemUnit            string  `json:"itemUnit,omitempty"`
+	Quantity            float64 `json:"quantity,omitempty"`
+	CustomerName        string  `json:"customerName,omitempty"`
+	Nominal             string  `json:"nominal,omitempty"`
+	PaymentProof        string  `json:"paymentProof,omitempty"`
+	DeadlinePaymentDate string  `json:"deadlinePaymentDate,omitempty"`
+	Name                string  `json:"name,omitempty"`
+	PhoneNumber         string  `json:"phoneNumber,omitempty"`
+	TotalNominal        string  `json:"totalNominal,omitempty"`
+	RemainingPayment    string  `json:"remainingPayment,omitempty"`
+	PaymentStatus       string  `json:"paymentStatus,omitempty"`
+	PaidDate            string  `json:"paidDate,omitempty"`
+}

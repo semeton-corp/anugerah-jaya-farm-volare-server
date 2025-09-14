@@ -27,6 +27,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("debtCategory", ValidationDebtCategory)
 	validate.RegisterValidation("approvalStatus", ValidationApprovalStatus)
 	validate.RegisterValidation("locationType", ValidationLocationType)
+	validate.RegisterValidation("storeCashflowCategory", ValidationStoreCashflowCategory)
 
 	return validate
 }
@@ -235,6 +236,16 @@ func ValidationLocationType(fl validator.FieldLevel) bool {
 	locationType := fl.Field().String()
 	switch locationType {
 	case "Kandang", "Gudang", "Toko", "Site":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationStoreCashflowCategory(fl validator.FieldLevel) bool {
+	storeCashflowCategory := fl.Field().String()
+	switch storeCashflowCategory {
+	case "Pendapatan", "Piutang":
 		return true
 	default:
 		return false

@@ -8,5 +8,8 @@ const (
 	CustomerTypeOldWeight float64 = 0.15
 
 	CustomerIndex float64 = 0.6
-	DemandIndex          float64 = 0.4
+	DemandIndex   float64 = 0.4
+
+	StoreCashflowCategoryIncome        string = "Pendapatan"
+	StoreCashflowCategoryReceieveables string = "Piutang"
 )
