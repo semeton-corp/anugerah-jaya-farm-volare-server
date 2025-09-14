@@ -22,7 +22,7 @@ type IPlacementService interface {
 	CreateStorePlacementForAuthentication(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacementForAuthentication(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
-	CreateCagePlacement(request []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error)
+	UpdateCagePlacement(request dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error)
 	CreateStorePlacement(request dto.CreateStorePlacementRequest, userId uuid.UUID) ([]dto.StorePlacementResponse, error)
 	CreateWarehousePlacement(request dto.CreateWarehousePlacementRequest, userId uuid.UUID) ([]dto.WarehousePlacementResponse, error)
 
@@ -232,12 +232,12 @@ func (s *PlacementService) GetCagePlacementByUserId(userId uuid.UUID) ([]dto.Cag
 	return dataResponse, nil
 }
 
-func (s *PlacementService) CreateCagePlacement(requests []dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
+func (s *PlacementService) UpdateCagePlacement(request dto.UpdateCagePlacementRequest, userId uuid.UUID) ([]dto.CagePlacementResponse, error) {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	for _, r := range requests {
-		cagePlacements, err := s.repository.GetCagePlacementByCageId(r.CageId)
+	for _, r := range request.Users {
+		cagePlacements, err := s.repository.GetCagePlacementByCageId(request.CageId)
 		if err != nil {
 			s.log.Error("failed get cage placement by cage id")
 			return nil, err
@@ -250,27 +250,27 @@ func (s *PlacementService) CreateCagePlacement(requests []dto.UpdateCagePlacemen
 		}
 	}
 
-	for _, r := range requests {
-		err := s.repository.DeleteCagePlacementByCageId(r.CageId)
+	err := s.repository.DeleteCagePlacementByCageId(request.CageId)
+	if err != nil {
+		s.log.Error("failed delete cage placement by cage id", zap.Error(err))
+		return nil, err
+	}
+
+	if len(request.Users) > 0 {
+		data := make([]entity.CagePlacement, 0)
+		for _, r := range request.Users {
+			data = append(data, entity.CagePlacement{
+				UserId:    uuid.MustParse(r.UserId),
+				CageId:    request.CageId,
+				CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
+			})
+		}
+
+		err := s.repository.CreateCagePlacementBatch(data)
 		if err != nil {
-			s.log.Error("failed delete cage placement by cage id", zap.Error(err))
+			s.log.Error("failed to create cage placement in batch", zap.Error(err))
 			return nil, err
 		}
-	}
-
-	data := make([]entity.CagePlacement, 0)
-	for _, request := range requests {
-		data = append(data, entity.CagePlacement{
-			UserId:    uuid.MustParse(request.UserId),
-			CageId:    request.CageId,
-			CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
-		})
-	}
-
-	err := s.repository.CreateCagePlacementBatch(data)
-	if err != nil {
-		s.log.Error("failed to create cage placement in batch", zap.Error(err))
-		return nil, err
 	}
 
 	err = s.repository.Commit()
@@ -279,7 +279,7 @@ func (s *PlacementService) CreateCagePlacement(requests []dto.UpdateCagePlacemen
 	}
 
 	dataResponse := make([]dto.CagePlacementResponse, 0)
-	data, err = s.repository.GetCagePlacementByCageId(data[0].CageId)
+	data, err := s.repository.GetCagePlacementByCageId(request.CageId)
 	if err != nil {
 		s.log.Error("failed to get cage placement by cage id", zap.Error(err))
 		return nil, err

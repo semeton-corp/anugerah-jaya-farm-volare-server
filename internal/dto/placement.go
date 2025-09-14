@@ -6,9 +6,13 @@ type CreateCagePlacementRequest struct {
 }
 
 type UpdateCagePlacementRequest struct {
-	UserId string `json:"userId" validate:"required"`
-	RoleId uint64 `json:"roleId" validate:"required,number"`
-	CageId uint64 `json:"cageId" validate:"required,number"`
+	CageId uint64                           `json:"cageId" validate:"required,number"`
+	Users  []UpdateCagePlacementUserRequest `json:"users" validate:"dive"`
+}
+
+type UpdateCagePlacementUserRequest struct {
+	UserId string `json:"userId"`
+	RoleId uint64 `json:"roleId" validate:"number"`
 }
 
 type CreateStorePlacementRequest struct {
