@@ -244,7 +244,7 @@ func (s *PlacementService) CreateCagePlacement(requests []dto.UpdateCagePlacemen
 		}
 
 		for _, cagePlacement := range cagePlacements {
-			if cagePlacement.User.RoleId == r.RoleId {
+			if cagePlacement.User.RoleId == r.RoleId && cagePlacement.UserId.String() != r.UserId {
 				return nil, errx.BadRequest(fmt.Sprintf("user with this role already exist in cage %s", cagePlacement.Cage.Name))
 			}
 		}
