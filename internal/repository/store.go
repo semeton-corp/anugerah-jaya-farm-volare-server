@@ -394,6 +394,7 @@ func (r *StoreRepository) UpdateStoreSale(data *entity.StoreSale) error {
 		"is_send":               data.IsSend,
 		"deadline_payment_date": data.DeadlinePaymentDate,
 		"updated_by":            data.UpdatedBy,
+		"paid_date":             data.PaidDate,
 	}
 
 	return r.GetDB().

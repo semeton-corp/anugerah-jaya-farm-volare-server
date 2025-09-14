@@ -26,7 +26,7 @@ type ChickenProcurement struct {
 	PaymentType           enum.PaymentType            `gorm:"paymentType;not null;default:0"`
 	IsArrived             bool                        `gorm:"type:boolean;not null;default:false"`
 	EstimationArrivalDate time.Time                   `gorm:"type:date;not null"`
-	Payments              []ChickenProcurementPayment `gorm:"foreignKey:ChickenProcurementId;references:Id"`
+	Payments              []ChickenProcurementPayment `gorm:"foreignKey:ChickenProcurementId;references:Id;constraint:OnDelete:CASCADE"`
 	DeadlinePaymentDate   sql.NullTime                `gorm:"type:date"`
 	PaidDate              sql.NullTime                `gorm:"type:date"`
 	CreatedAt             time.Time                   `gorm:"type:timestamp;autoCreateTime"`

@@ -478,6 +478,7 @@ func (r *CashflowRepository) UpdateUserCashAdvance(data *entity.UserCashAdvance)
 		"deadline_payment_date": data.DeadlinePaymentDate,
 		"payment_status":        data.PaymentStatus,
 		"updated_by":            data.UpdatedBy,
+		"paid_date":             data.PaidDate,
 	}).Error
 }
 

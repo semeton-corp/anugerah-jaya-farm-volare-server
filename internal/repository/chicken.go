@@ -356,6 +356,7 @@ func (r *ChickenRepository) UpdateChickenProcurement(data *entity.ChickenProcure
 		"estimation_arrival_date": data.EstimationArrivalDate,
 		"deadline_payment_date":   data.DeadlinePaymentDate,
 		"updated_by":              data.UpdatedBy,
+		"paid_date":               data.PaidDate,
 	}).Error
 }
 

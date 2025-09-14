@@ -206,7 +206,7 @@ func (s *Scheduler) InitScheduler() {
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
-	s.log.Info("Creating daily work user...")
+	s.log.Info("Creating daily work user")
 
 	var dailyWorks []entity.DailyWork
 	if err := tx.Model(&entity.DailyWork{}).Find(&dailyWorks).Error; err != nil {
@@ -238,7 +238,7 @@ func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
-	s.log.Info("Creating user presence...")
+	s.log.Info("Creating user presence")
 
 	var users []entity.User
 	tx.Model(&entity.User{}).Preload("Role").Find(&users)
@@ -265,7 +265,7 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
-	s.log.Info("Checking user presence...")
+	s.log.Info("Checking user presence")
 
 	var userPresences []entity.UserPresence
 	if err := tx.Where("status = ? AND start_time IS NOT NULL", enum.PresenceStatusPresent).Find(&userPresences).Error; err != nil {
@@ -287,6 +287,8 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
+	s.log.Info("refresh chicken cage need feed every day")
+
 	var chickenCages []entity.ChickenCage
 
 	subQuery := tx.Model(&entity.ChickenCage{}).
@@ -319,6 +321,8 @@ func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
+	s.log.Info("create kpi performance chicken cage")
+
 	var chickenCages []entity.ChickenCage
 	query := tx.Model(&entity.ChickenCage{})
 	subQuery := tx.Model(&entity.ChickenCage{}).
@@ -512,7 +516,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
-	s.log.Info("create user salary payments per month...")
+	s.log.Info("create user salary payments per month")
 
 	var users []entity.User
 	if err := tx.Preload("Role").Find(&users).Error; err != nil {
@@ -542,7 +546,7 @@ func (s *Scheduler) createUserSalaryPaymentPerMonth(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
-	s.log.Info("create user salary payments per daily...")
+	s.log.Info("create user salary payments per daily")
 
 	var users []entity.User
 	if err := tx.Preload("Role").Find(&users).Error; err != nil {
@@ -572,7 +576,7 @@ func (s *Scheduler) createUserSalaryPaymentPerDaily(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
-	s.log.Info("create cashflow history monthly...")
+	s.log.Info("create cashflow history monthly")
 
 	now := time.Now()
 	year, month, _ := now.Date()
@@ -602,7 +606,9 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		totalWarehouseEggSale := decimal.Zero
 
 		var warehouseSalePayments []entity.WarehouseSalePayment
-		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+		if err := tx.Joins("JOIN warehouse_sales ws ON ws.id = warehouse_sale_payments.warehouse_sale_id").
+			Joins("JOIN warehouses w ON w.id = ws.warehouse_id").
+			Where("w.location_id = ? AND warehouse_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&warehouseSalePayments).Error; err != nil {
 			return err
 		}
@@ -611,7 +617,9 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		}
 
 		var storeSalePayments []entity.StoreSalePayment
-		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+		if err := tx.Joins("JOIN store_sales ss ON ss.id = store_sale_payments.store_sale_id").
+			Joins("JOIN stores st ON st.id = ss.store_id").
+			Where("st.location_id = ? AND store_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&storeSalePayments).Error; err != nil {
 			return err
 		}
@@ -620,7 +628,10 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		}
 
 		var afkirPayments []entity.AfkirChickenSalePayment
-		if err := tx.Where("created_at BETWEEN ? AND ?", startDate, endDate).
+		if err := tx.Joins("JOIN afkir_chicken_sales acs ON acs.id = afkir_chicken_sale_payments.afkir_chicken_sale_id").
+			Joins("JOIN chicken_cages cc ON cc.id = acs.chicken_cage_id").
+			Joins("JOIN cages c ON c.id = cc.cage_id").
+			Where("c.location_id = ? AND afkir_chicken_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&afkirPayments).Error; err != nil {
 			return err
 		}
@@ -629,7 +640,9 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		}
 
 		var chickenProcurements []entity.ChickenProcurementPayment
-		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+		if err := tx.Joins("JOIN chicken_procurements cp ON cp.id = chicken_procurement_payments.chicken_procurement_id").
+			Joins("JOIN cages c ON c.id = cp.cage_id").
+			Where("c.location_id = ? AND chicken_procurement_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&chickenProcurements).Error; err != nil {
 			return err
 		}
@@ -638,7 +651,8 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		}
 
 		var salaries []entity.UserSalaryPayment
-		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ? AND is_paid = ?", loc.Id, startDate, endDate, true).
+		if err := tx.Joins("JOIN users u ON u.id = user_salary_payments.user_id").
+			Where("u.location_id = ? AND user_salary_payments.created_at BETWEEN ? AND ? AND user_salary_payments.is_paid = ?", loc.Id, startDate, endDate, true).
 			Find(&salaries).Error; err != nil {
 			return err
 		}
@@ -653,7 +667,8 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 
 		var storeSales []entity.StoreSale
 		if err := tx.Preload("Payments").
-			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Joins("JOIN stores st ON st.id = store_sales.store_id").
+			Where("st.location_id = ? AND store_sales.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&storeSales).Error; err != nil {
 			return err
 		}
@@ -668,7 +683,8 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 
 		var warehouseSales []entity.WarehouseSale
 		if err := tx.Preload("Payments").
-			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Joins("JOIN warehouses w ON w.id = warehouse_sales.warehouse_id").
+			Where("w.location_id = ? AND warehouse_sales.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&warehouseSales).Error; err != nil {
 			return err
 		}
@@ -681,13 +697,14 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 			totalWarehouseEggSale = totalWarehouseEggSale.Add(sale.TotalPrice)
 		}
 
-		var warehouseItemProcurements []entity.WarehouseItemProcurement
+		var chickenProcurementsDebt []entity.ChickenProcurement
 		if err := tx.Preload("Payments").
-			Where("location_id = ? AND deadline_payment BETWEEN ? AND ?", loc.Id, startDate, endDate).
-			Find(&warehouseItemProcurements).Error; err != nil {
+			Joins("JOIN cages c ON c.id = chicken_procurements.cage_id").
+			Where("c.location_id = ? AND chicken_procurements.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&chickenProcurementsDebt).Error; err != nil {
 			return err
 		}
-		for _, procurement := range warehouseItemProcurements {
+		for _, procurement := range chickenProcurementsDebt {
 			total := procurement.TotalPrice
 			for _, p := range procurement.Payments {
 				total = total.Sub(p.Nominal)
@@ -722,6 +739,8 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gorm.DB) error {
+	s.log.Info("create notification for 3 days before deadline payment date")
+
 	now := time.Now()
 	targetDate := now.AddDate(0, 0, 3).Format("2006-01-02")
 
@@ -804,11 +823,6 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 		})
 	}
 
-	err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
-	if err != nil {
-		return err
-	}
-
 	var userCashAdvances []entity.UserCashAdvance
 	if err := tx.Where("DATE(deadline_payment_date) = ?", targetDate).Preload("User").
 		Find(&userCashAdvances).Error; err != nil {
@@ -822,10 +836,12 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 		})
 	}
 
-	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+	err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
 	if err != nil {
 		return err
 	}
+
+	s.log.Info(fmt.Sprintf("success create %d notification for 3 days before deadline payment date", len(notifications)))
 
 	return nil
 }
@@ -850,9 +866,11 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 		return err
 	}
 
+	chickenCageNeedVaccineIds := make([]uint64, 0)
+	notifications := make([]entity.Notification, 0)
+
 	for _, chickenCage := range chickenCages {
 		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
-
 		var chickenHealthItems []entity.ChickenHealthItem
 		err := tx.Model(&entity.ChickenHealthItem{}).Where("chicken_age = ? AND type = ?", chickenAge, enum.ChickenHealthItemTypeVaccineRoutine).Find(&chickenHealthItems).Error
 		if err != nil {
@@ -861,25 +879,38 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 
 		if len(chickenHealthItems) == 0 {
 			continue
-		} else if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && chickenCage.IsNeedRoutineVaccine {
+		} else if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && !chickenCage.IsNeedRoutineVaccine {
 			var vaccineRoutineNames []string
 			for _, chickenHealthItem := range chickenHealthItems {
 				vaccineRoutineNames = append(vaccineRoutineNames, chickenHealthItem.Name)
 			}
 
-			err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
+			chickenCageNeedVaccineIds = append(chickenCageNeedVaccineIds, chickenCage.Id)
+			notifications = append(notifications, entity.Notification{
 				CageId:               sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
 				NotificationContexts: pq.StringArray{constant.ChickenMonitoringNotificationContext},
 				Description:          fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
-			}).Error
-
-			if err != nil {
-				return err
-			}
+			})
 		}
 	}
 
-	s.log.Info("success check chicken cage if need routine vaccine")
+	if len(chickenCageNeedVaccineIds) > 0 {
+		err := tx.Model(&entity.ChickenCage{}).Where("id IN ?", chickenCageNeedVaccineIds).Updates(map[string]any{
+			"is_need_routine_vaccine": true,
+		}).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(notifications) > 0 {
+		err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	s.log.Info(fmt.Sprintf("success check chicken cage if need routine vaccine, total chicken cage need vaccine : %d", len(chickenCageNeedVaccineIds)))
 
 	return nil
 }
@@ -923,9 +954,9 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 		if err != nil {
 			return err
 		}
-
-		s.log.Info(fmt.Sprintf("total %d from warehouse sale need ship today", totalWarehouseSaleNeedShip))
 	}
+
+	s.log.Info(fmt.Sprintf("total %d from warehouse sale need ship today", totalWarehouseSaleNeedShip))
 
 	return nil
 }
@@ -954,9 +985,11 @@ func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) e
 		}
 	}
 
-	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
-	if err != nil {
-		return err
+	if len(notifications) > 0 {
+		err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+		if err != nil {
+			return err
+		}
 	}
 
 	s.log.Error(fmt.Sprintf("success create %d notification if warehouse item in danger status", len(notifications)))
@@ -967,7 +1000,7 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 	s.log.Info("create notification store item good egg in danger")
 
 	var goodEggItem entity.Item
-	err := tx.Model(&entity.Item{}).Where("name = ? AND unit = ? AND type = ?", constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg).First(&goodEggItem).Error
+	err := tx.Model(&entity.Item{}).Where("name = ? AND unit = ? AND category = ?", constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg).First(&goodEggItem).Error
 	if err != nil {
 		return err
 	}
@@ -989,10 +1022,14 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 		}
 	}
 
-	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
-	if err != nil {
-		return err
+	if len(notifications) > 0 {
+		err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+		if err != nil {
+			return err
+		}
 	}
+
+	s.log.Error(fmt.Sprintf("success create %d notification store item good egg in danger", len(notifications)))
 
 	return nil
 }
@@ -1030,9 +1067,11 @@ func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
 		})
 	}
 
-	err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
-	if err != nil {
-		return err
+	if len(notifications) > 0 {
+		err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+		if err != nil {
+			return err
+		}
 	}
 
 	s.log.Info(fmt.Sprintf("success create %d notification for item arrive", len(notifications)))

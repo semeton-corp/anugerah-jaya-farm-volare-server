@@ -19,7 +19,7 @@ type AfkirChickenSale struct {
 	PricePerChicken        decimal.Decimal           `gorm:"decimal;not null"`
 	TotalPrice             decimal.Decimal           `gorm:"decimal;not null"`
 	ChickenAge             uint64                    `gorm:"type:int;not null"`
-	Payments               []AfkirChickenSalePayment `gorm:"foreignKey:AfkirChickenSaleId;references:Id"`
+	Payments               []AfkirChickenSalePayment `gorm:"foreignKey:AfkirChickenSaleId;references:Id;constraint:OnDelete:CASCADE"`
 	PaymentType            enum.PaymentType          `gorm:"type:int;not null"`
 	PaymentStatus          enum.PaymentStatus        `gorm:"type:int;not null"`
 	DeadlinePaymentDate    sql.NullTime              `gorm:"type:date"`

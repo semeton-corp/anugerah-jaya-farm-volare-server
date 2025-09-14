@@ -3195,8 +3195,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	}
 
 	afkirChickenSalePayments, err := s.repository.GetAfkirChickenSalePayments(dto.GetAfkirChickenSalePaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get afkir chicken sale payments", zap.Error(err))

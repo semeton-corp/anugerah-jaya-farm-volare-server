@@ -455,6 +455,7 @@ func (r *WarehouseRepository) UpdateWarehouseSale(data *entity.WarehouseSale) er
 		"is_send":               data.IsSend,
 		"deadline_payment_date": data.DeadlinePaymentDate,
 		"updated_by":            data.UpdatedBy,
+		"paid_date":             data.PaidDate,
 	}
 
 	return r.GetDB().
@@ -660,6 +661,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemProcurement(data *entity.Wareho
 		"expired_at":              data.ExpiredAt,
 		"deadline_payment_date":   data.DeadlinePaymentDate,
 		"payment_type":            data.PaymentType,
+		"paid_date":               data.PaidDate,
 		"updated_by":              data.UpdatedBy,
 	}
 
@@ -791,6 +793,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemCornProcurement(data *entity.Wa
 		"payment_type":                    data.PaymentType,
 		"discount":                        data.Discount,
 		"updated_by":                      data.UpdatedBy,
+		"paid_date":                       data.PaidDate,
 	}
 
 	return r.GetDB().
