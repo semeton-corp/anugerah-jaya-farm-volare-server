@@ -30,7 +30,7 @@ func New() *zap.Logger {
 	}
 
 	ll := lumberjack.Logger{
-		Filename:   ".log/application.log",
+		Filename:   "log/application.log",
 		MaxSize:    1024,
 		MaxBackups: 30,
 		MaxAge:     30,
