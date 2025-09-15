@@ -21,6 +21,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    volumes:
+      - log-data:~/app/log
 
   postgres:
     image: postgres:17
@@ -99,6 +101,7 @@ services:
 volumes:
   pg_data:
   redis_data:
+  log-data:
 
 networks:
   volare-network:

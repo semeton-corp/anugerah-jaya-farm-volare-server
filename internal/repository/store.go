@@ -123,6 +123,9 @@ func (r *StoreRepository) GetStoreById(id uint64) (entity.Store, error) {
 	var data entity.Store
 	err := r.GetDB().Model(&entity.Store{}).Preload("Location").Where("id = ?", id).First(&data).Error
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.Store{}, errx.BadRequest("store not found")
+		}
 		return entity.Store{}, err
 	}
 
