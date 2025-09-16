@@ -397,6 +397,10 @@ func (s *WarehouseService) UpdateWarehouseItemCorn(id uint64, request dto.Update
 		return dto.WarehouseItemCornResponse{}, err
 	}
 
+	if warehouseItemCorn.Warehouse.CornCapacity < request.Quantity {
+		return dto.WarehouseItemCornResponse{}, errx.BadRequest("quantity is more than max capacity")
+	}
+
 	warehouseItemCorn.Quantity = request.Quantity
 
 	err = s.repository.UpdateWarehouseItemCorn(&warehouseItemCorn)

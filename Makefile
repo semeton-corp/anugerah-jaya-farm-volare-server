@@ -30,3 +30,7 @@ compose-dev-down:
 	@echo "Starting Docker containers in development mode..."
 	docker compose -f compose.dev.yaml down
 
+.PHONY: air
+air:
+	@echo "Starting go app with air..."
+	air -c .air.toml

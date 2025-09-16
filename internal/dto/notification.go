@@ -9,9 +9,10 @@ type CreateNotificationRequest struct {
 }
 
 type NotificationResponse struct {
-	Id          uint64 `json:"id"`
-	Description string `json:"description"`
-	IsMarked    bool   `json:"isMarked"`
+	Id                   uint64   `json:"id"`
+	Description          string   `json:"description"`
+	IsMarked             bool     `json:"isMarked"`
+	NotificationContexts []string `json:"notificationContexts"`
 }
 
 type MarkNotificationRequest struct {
@@ -19,10 +20,10 @@ type MarkNotificationRequest struct {
 }
 
 type GetNotificationFilter struct {
-	UserId               string   `query:"userId"`
-	StoreId              uint64   `query:"storeId"`
-	CageId               uint64   `query:"cageId"`
-	WarehouseId          uint64   `query:"warehouseId"`
+	UserIds              []string `query:"userIds"`
+	StoreIds             []uint64 `query:"storeIds"`
+	CageIds              []uint64 `query:"cageIds"`
+	WarehouseIds         []uint64 `query:"warehouseIds"`
 	NotificationContexts []string `query:"notificationContexts"`
 	IsMarked             *bool    `query:"isMarked"`
 }

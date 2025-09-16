@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"strings"
+
 	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -63,37 +65,67 @@ func (r *NotificationRepository) CreateNotification(data *entity.Notification) e
 
 func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilter) ([]entity.Notification, error) {
 	var data []entity.Notification
-	query := r.GetDB().Model(&entity.Notification{})
+	db := r.GetDB().Model(&entity.Notification{})
 
-	if filter.CageId > 0 {
-		query = query.Where("cage_id = ?", filter.CageId)
+	var ors []string
+	var args []interface{}
+
+	if filter.StoreIds != nil {
+		if len(filter.NotificationContexts) > 0 {
+			ors = append(ors, "(store_id IN ? AND notification_contexts && ?)")
+			args = append(args, filter.StoreIds, pq.StringArray(filter.NotificationContexts))
+		} else {
+			ors = append(ors, "store_id IN ?")
+			args = append(args, filter.StoreIds)
+		}
 	}
 
-	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	if filter.CageIds != nil {
+		if len(filter.NotificationContexts) > 0 {
+			ors = append(ors, "(cage_id IN ? AND notification_contexts && ?)")
+			args = append(args, filter.CageIds, pq.StringArray(filter.NotificationContexts))
+		} else {
+			ors = append(ors, "cage_id IN ?")
+			args = append(args, filter.CageIds)
+		}
 	}
 
-	if filter.StoreId > 0 {
-		query = query.Where("store_id = ?", filter.StoreId)
+	if filter.WarehouseIds != nil {
+		if len(filter.NotificationContexts) > 0 {
+			ors = append(ors, "(warehouse_id IN ? AND notification_contexts && ?)")
+			args = append(args, filter.WarehouseIds, pq.StringArray(filter.NotificationContexts))
+		} else {
+			ors = append(ors, "warehouse_id IN ?")
+			args = append(args, filter.WarehouseIds)
+		}
 	}
 
-	if filter.UserId != "" {
-		query = query.Where("user_id = ?", filter.UserId)
+	if len(ors) > 0 {
+		db = db.Where(strings.Join(ors, " OR "), args...)
+	}
+
+	if filter.UserIds != nil {
+		if len(ors) > 0 || filter.IsMarked != nil {
+			sub := r.GetDB().Model(&entity.Notification{})
+			sub = sub.Where(strings.Join(ors, " OR "), args...)
+			if filter.IsMarked != nil {
+				sub = sub.Where("is_marked = ?", filter.IsMarked)
+			}
+			db = r.GetDB().Model(&entity.Notification{}).
+				Where("user_id IN ? OR id IN (?)", filter.UserIds, sub.Select("id"))
+		} else {
+			db = db.Where("user_id IN ?", filter.UserIds)
+		}
 	}
 
 	if filter.IsMarked != nil {
-		query = query.Where("is_marked = ?", filter.IsMarked)
+		db = db.Where("is_marked = ?", filter.IsMarked)
 	}
 
-	if len(filter.NotificationContexts) > 0 {
-		query = query.Where("notification_contexts && ?", pq.StringArray(filter.NotificationContexts))
-	}
-
-	err := query.Order("created_at DESC").Find(&data).Error
+	err := db.Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
-
 	return data, nil
 }
 

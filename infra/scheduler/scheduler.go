@@ -915,6 +915,7 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 	return nil
 }
 
+// Todo : per toko
 func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error {
 	s.log.Info("create notification for total shipped today")
 

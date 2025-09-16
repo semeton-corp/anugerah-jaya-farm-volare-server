@@ -926,7 +926,7 @@ func (r *WarehouseRepository) UpdateWarehouseItemCorn(data *entity.WarehouseItem
 
 func (r *WarehouseRepository) GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error) {
 	var warehouseItemCorn entity.WarehouseItemCorn
-	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Preload("Supplier").Where("id = ?", id).First(&warehouseItemCorn).Error
+	err := r.GetDB().Model(&entity.WarehouseItemCorn{}).Preload("Warehouse.Location").Preload("Supplier").Where("id = ?", id).First(&warehouseItemCorn).Error
 	if err != nil {
 		return entity.WarehouseItemCorn{}, err
 	}

@@ -76,9 +76,10 @@ func (s *NotificationService) GetNotifications(filter dto.GetNotificationFilter)
 	response := make([]dto.NotificationResponse, 0)
 	for _, d := range data {
 		response = append(response, dto.NotificationResponse{
-			Id:          d.Id,
-			Description: d.Description,
-			IsMarked:    d.IsMarked,
+			Id:                   d.Id,
+			Description:          d.Description,
+			IsMarked:             d.IsMarked,
+			NotificationContexts: d.NotificationContexts,
 		})
 	}
 

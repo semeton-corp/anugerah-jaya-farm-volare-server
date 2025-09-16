@@ -2,3 +2,4 @@ env.yaml
 compose.env
 app.exe
 log/
+tmp/
