@@ -7,7 +7,7 @@ const (
 	AfkirChickenSaleNotificationContext             string = "Penjualan Ayam"
 	ChickenMonitoringNotificationContext            string = "Monitoring Ayam"
 	WarehouseItemNotificationContext                string = "Barang Gudang"
-	StoreItemNotificationContext                    string = "Barang Gudang"
+	StoreItemNotificationContext                    string = "Barang Toko"
 	DebtNotificationContext                         string = "Hutang"
 	ReceivablesNotificationContext                  string = "Piutang"
 	ChickenProcurementNotificationContext           string = "Pengadaan Ayam"
