@@ -116,7 +116,7 @@ func (r *CashflowRepository) GetWarehouseSalePayments(filter dto.GetWarehouseSal
 	var warehouseSalePayments []entity.WarehouseSalePayment
 	query := r.GetDB().Model(&entity.WarehouseSalePayment{}).
 		Joins("LEFT JOIN warehouse_sales ON warehouse_sales.id = warehouse_sale_payments.warehouse_sale_id").
-		Joins("LEFT JOIN warehouses.id = warehouse_sales.warehouse_id")
+		Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_sales.warehouse_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(warehouse_sale_payments.created_at) >= ? AND DATE(warehouse_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
@@ -143,7 +143,7 @@ func (r *CashflowRepository) GetStoreSalePayments(filter dto.GetStoreSalePayment
 		Joins("LEFT JOIN stores ON stores.id = store_sales.store_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(store_sale_payments.created_at) >= ? AND DATE(store_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
