@@ -104,22 +104,12 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 		db = db.Where(strings.Join(ors, " OR "), args...)
 	}
 
-	if filter.UserIds != nil {
-		if len(ors) > 0 || filter.IsMarked != nil {
-			sub := r.GetDB().Model(&entity.Notification{})
-			sub = sub.Where(strings.Join(ors, " OR "), args...)
-			if filter.IsMarked != nil {
-				sub = sub.Where("is_marked = ?", filter.IsMarked)
-			}
-			db = r.GetDB().Model(&entity.Notification{}).
-				Where("user_id IN ? OR id IN (?)", filter.UserIds, sub.Select("id"))
-		} else {
-			db = db.Where("user_id IN ?", filter.UserIds)
-		}
+	if filter.IsMarked != nil {
+		db = db.Where("is_marked = ?", *filter.IsMarked)
 	}
 
-	if filter.IsMarked != nil {
-		db = db.Where("is_marked = ?", filter.IsMarked)
+	if filter.UserIds != nil {
+		db = db.Where("user_id IN ?", filter.UserIds)
 	}
 
 	err := db.Order("created_at DESC").Find(&data).Error

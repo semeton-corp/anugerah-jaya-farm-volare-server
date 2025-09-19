@@ -73,17 +73,25 @@ func (s *NotificationService) GetNotifications(filter dto.GetNotificationFilter)
 		return nil, err
 	}
 
-	response := make([]dto.NotificationResponse, 0)
+	responses := make([]dto.NotificationResponse, 0)
 	for _, d := range data {
-		response = append(response, dto.NotificationResponse{
+		notificationContexts := make([]string, 0)
+		response := dto.NotificationResponse{
 			Id:                   d.Id,
 			Description:          d.Description,
 			IsMarked:             d.IsMarked,
 			NotificationContexts: d.NotificationContexts,
-		})
+		}
+
+		for _, notificationContext := range d.NotificationContexts {
+			notificationContexts = append(notificationContexts, notificationContext)
+		}
+
+		response.NotificationContexts = notificationContexts
+		responses = append(responses, response)
 	}
 
-	return response, nil
+	return responses, nil
 }
 
 func (s *NotificationService) MarkNotifications(request dto.MarkNotificationRequest, userId uuid.UUID) ([]dto.NotificationResponse, error) {
@@ -101,14 +109,22 @@ func (s *NotificationService) MarkNotifications(request dto.MarkNotificationRequ
 		return nil, err
 	}
 
-	response := make([]dto.NotificationResponse, 0)
+	responses := make([]dto.NotificationResponse, 0)
 	for _, d := range data {
-		response = append(response, dto.NotificationResponse{
+		notificationContexts := make([]string, 0)
+		response := dto.NotificationResponse{
 			Id:          d.Id,
 			Description: d.Description,
 			IsMarked:    d.IsMarked,
-		})
+		}
+
+		for _, notificationContext := range d.NotificationContexts {
+			notificationContexts = append(notificationContexts, notificationContext)
+		}
+
+		response.NotificationContexts = notificationContexts
+		responses = append(responses, response)
 	}
 
-	return response, nil
+	return responses, nil
 }
