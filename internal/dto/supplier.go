@@ -28,11 +28,12 @@ type SupplierResponse struct {
 }
 
 type SupplierListResponse struct {
-	Id           uint64 `json:"id"`
-	Name         string `json:"name"`
-	PhoneNumber  string `json:"phoneNumber"`
-	Address      string `json:"address"`
-	SupplierType string `json:"supplierType"`
+	Id           uint64   `json:"id"`
+	Name         string   `json:"name"`
+	PhoneNumber  string   `json:"phoneNumber"`
+	Address      string   `json:"address"`
+	SupplierType string   `json:"supplierType"`
+	ItemIds      []uint64 `json:"itemIds"`
 }
 
 type GetSupplierFilter struct {

@@ -33,5 +33,12 @@ func SupplierToListResponse(supplier *entity.Supplier) dto.SupplierListResponse 
 		SupplierType: supplier.SupplierType.String(),
 	}
 
+	itemIds := make([]uint64, 0)
+	for _, item := range supplier.SupplierItems {
+		itemIds = append(itemIds, item.ItemId)
+	}
+
+	response.ItemIds = itemIds
+
 	return response
 }
