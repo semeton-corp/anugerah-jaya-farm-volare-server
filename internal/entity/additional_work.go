@@ -31,5 +31,5 @@ type AdditionalWork struct {
 	CreatedAt           time.Time            `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy           uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt           time.Time            `gorm:"type:timestamp;autoUpdateTime"`
-	DeletedAt           gorm.DeletedAt       `gorm:"type:timestamp;index"` // soft delete
+	DeletedAt           gorm.DeletedAt       `gorm:"type:timestamp;index"`
 }

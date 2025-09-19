@@ -184,7 +184,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		dto.GetAdditionalWorkUserFilter{
 			Month:       filter.Month,
 			Year:        filter.Year,
-			WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+			WithDeleted: &withDeleted,
 		})
 	if err != nil {
 		return dto.UserOverviewResponse{}, nil

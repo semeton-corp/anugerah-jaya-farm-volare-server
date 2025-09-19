@@ -157,6 +157,28 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	if chickenCage.TotalChicken-request.TotalDeathChicken != 0 {
+		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
+			CageId:       chickenCage.Cage.Id,
+			TotalChicken: 0,
+		}, userId)
+		if err != nil {
+			return dto.ChickenMonitoringResponse{}, err
+		}
+
+		isUsed := false
+		_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
+			Name:            chickenCage.Cage.Name,
+			Capacity:        chickenCage.Cage.Capacity,
+			LocationId:      chickenCage.Cage.Location.Id,
+			ChickenCategory: chickenCage.Cage.ChickenCategory,
+			IsUsed:          &isUsed,
+		}, userId)
+		if err != nil {
+			return dto.ChickenMonitoringResponse{}, err
+		}
+	}
+
 	err = s.repository.CreateChickenMonitoring(&chickenMonitoring)
 	if err != nil {
 		s.log.Error("failed to create chicken monitoring", zap.Error(err))

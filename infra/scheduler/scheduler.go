@@ -127,7 +127,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("01 00 * * *", func() {
+	s.cron.AddFunc("* * * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createNotificationTotalItemSaleShipToday(tx)
 			if err != nil {
@@ -915,49 +915,71 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 	return nil
 }
 
-// Todo : per toko
 func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error {
 	s.log.Info("create notification for total shipped today")
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	var totalWarehouseSaleNeedShip int64
-	err := tx.Model(&entity.WarehouseSale{}).Where("DATE(send_date) = ?", today).Count(&totalWarehouseSaleNeedShip).Error
+	var storeResults []struct {
+		StoreId   uint64
+		StoreName string
+		Total     int64
+	}
+
+	err := tx.Table("store_sales AS ss").
+		Select("ss.store_id, st.name AS store_name, COUNT(*) AS total").
+		Joins("JOIN stores st ON ss.store_id = st.id").
+		Where("DATE(ss.send_date) = ?", today).
+		Group("ss.store_id, st.name").
+		Scan(&storeResults).Error
 	if err != nil {
 		return err
 	}
 
-	var totalStoreSaleNeedShip int64
-	err = tx.Model(&entity.StoreSale{}).Where("DATE(send_date) = ?", today).Count(&totalStoreSaleNeedShip).Error
+	var warehouseResults []struct {
+		WarehouseId   uint64
+		WarehouseName string
+		Total         int64
+	}
+
+	err = tx.Table("warehouse_sales AS ws").
+		Select("ws.warehouse_id, wh.name AS warehouse_name, COUNT(*) AS total").
+		Joins("JOIN warehouses wh ON ws.warehouse_id = wh.id").
+		Where("DATE(ws.send_date) = ?", today).
+		Group("ws.warehouse_id, wh.name").
+		Scan(&warehouseResults).Error
 	if err != nil {
 		return err
 	}
 
-	if totalStoreSaleNeedShip > 0 {
-		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-			NotificationContexts: pq.StringArray{constant.StoreSaleNotificationContext},
-			Description:          fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalStoreSaleNeedShip),
-		}).Error
-
-		if err != nil {
-			return err
-		}
-
-		s.log.Info(fmt.Sprintf("total %d from store sale need ship today", totalStoreSaleNeedShip))
-	}
-
-	if totalWarehouseSaleNeedShip > 0 {
-		err = tx.Model(&entity.Notification{}).Create(&entity.Notification{
-			NotificationContexts: pq.StringArray{constant.WarehouseSaleNotificationContext},
-			Description:          fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, totalWarehouseSaleNeedShip),
-		}).Error
-
-		if err != nil {
-			return err
+	var notifications []entity.Notification
+	for _, r := range storeResults {
+		if r.Total > 0 {
+			notifications = append(notifications, entity.Notification{
+				StoreId:              sql.NullInt64{Int64: int64(r.StoreId), Valid: true},
+				NotificationContexts: pq.StringArray{constant.StoreSaleNotificationContext},
+				Description:          fmt.Sprintf(constant.ItemShipTodayStoreSaleNotification, r.Total, r.StoreName),
+			})
+			s.log.Info(fmt.Sprintf("store %s (id=%d) has %d sales to ship today", r.StoreName, r.StoreId, r.Total))
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("total %d from warehouse sale need ship today", totalWarehouseSaleNeedShip))
+	for _, r := range warehouseResults {
+		if r.Total > 0 {
+			notifications = append(notifications, entity.Notification{
+				WarehouseId:          sql.NullInt64{Int64: int64(r.WarehouseId), Valid: true},
+				NotificationContexts: pq.StringArray{constant.WarehouseSaleNotificationContext},
+				Description:          fmt.Sprintf(constant.ItemShipTodayWarehouseSaleNotification, r.Total, r.WarehouseName),
+			})
+			s.log.Info(fmt.Sprintf("warehouse %s (id=%d) has %d sales to ship today", r.WarehouseName, r.WarehouseId, r.Total))
+		}
+	}
+
+	if len(notifications) > 0 {
+		if err := tx.CreateInBatches(&notifications, 10).Error; err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
@@ -1036,7 +1058,7 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 }
 
 func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
-	s.log.Info("create notification item arrived..")
+	s.log.Info("create notification item arrived")
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	var chickenProcurements []entity.ChickenProcurement
