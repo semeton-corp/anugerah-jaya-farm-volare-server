@@ -138,7 +138,18 @@ func (h *PresenceHandler) UpdateUserPresence(c *fiber.Ctx) error {
 }
 
 func (s *PresenceHandler) GetLocationPresenceSummaries(c *fiber.Ctx) error {
-	data, err := s.service.GetRoleLocationPresenceSummaries()
+	var filter dto.RoleLocationPresenceSummaryFilter
+	if err := c.QueryParser(&filter); err != nil {
+		s.log.Error("failed parse query param", zap.Error(err))
+		return err
+	}
+
+	if err := s.validator.Struct(&filter); err != nil {
+		s.log.Error("error validation", zap.Error(err))
+		return err
+	}
+
+	data, err := s.service.GetRoleLocationPresenceSummaries(filter)
 	if err != nil {
 		return err
 	}

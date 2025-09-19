@@ -76,6 +76,7 @@ type RoleLocationPresenceSummaryResponse struct {
 type GetLocationPresenceSummaryFilter struct {
 	Date         param.DateParam         `query:"date"`
 	LocationType param.LocationTypeParam `query:"locationType"`
+	LocationId   uint64                  `query:"locationId"`
 }
 
 type GetUserPresenceSummaryFilter struct {
@@ -151,4 +152,8 @@ type GetUserPresencePendingFilter struct {
 	PlaceId                  uint64                              `json:"placeId" validate:"required"`
 	PresenceStatus           param.PresenceStatusParam           `query:"presenceStatus" validate:"required"`
 	SubmissionPresenceStatus param.SubmissionPresenceStatusParam `query:"submissionPresence" validate:"required"`
+}
+
+type RoleLocationPresenceSummaryFilter struct {
+	LocationId uint64 `query:"locationId"`
 }

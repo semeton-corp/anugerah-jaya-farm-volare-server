@@ -32,7 +32,7 @@ type IPresenceService interface {
 	GetUserPresencesByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (dto.PresenceListPaginationResponse, error)
 	UpdateUserPresence(id uint64, request dto.UpdateUserPresenceRequest, userId uuid.UUID) (dto.PresenceResponse, error)
 
-	GetRoleLocationPresenceSummaries() ([]dto.RoleLocationPresenceSummaryResponse, error)
+	GetRoleLocationPresenceSummaries(filter dto.RoleLocationPresenceSummaryFilter) ([]dto.RoleLocationPresenceSummaryResponse, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
 	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
 	ApprovalUserPresence(request dto.ApprovalPresenceRequest, userId uuid.UUID) ([]dto.PresenceResponse, error)
@@ -171,7 +171,7 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 	return mapper.PresenceToResponse(&userPresence), nil
 }
 
-func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocationPresenceSummaryResponse, error) {
+func (s *PresenceService) GetRoleLocationPresenceSummaries(filter dto.RoleLocationPresenceSummaryFilter) ([]dto.RoleLocationPresenceSummaryResponse, error) {
 	s.repository.UseTx(false)
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
@@ -219,6 +219,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	cageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
 		LocationType: param.LocationTypeParam(enum.LocationTypeCage),
+		LocationId:   filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
@@ -229,6 +230,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	headCageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
 		LocationType: param.LocationTypeParam(enum.LocationTypeSite),
+		LocationId:   filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
@@ -239,6 +241,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	storeSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
 		LocationType: param.LocationTypeParam(enum.LocationTypeStore),
+		LocationId:   filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed to get store location presence summaries", zap.Error(err))
@@ -249,6 +252,7 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries() ([]dto.RoleLocation
 	warehouseSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
 		LocationType: param.LocationTypeParam(enum.LocationTypeWarehouse),
+		LocationId:   filter.LocationId,
 	})
 	if err != nil {
 		s.log.Error("failed to get warehouse location presence summaries", zap.Error(err))

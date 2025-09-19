@@ -296,7 +296,7 @@ func (r *ChickenRepository) CreateChickenProcurementDraft(data *entity.ChickenPr
 
 func (r *ChickenRepository) GetChickenProcurementDrafts() ([]entity.ChickenProcurementDraft, error) {
 	chickenProcurementDrafts := make([]entity.ChickenProcurementDraft, 0)
-	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Order("created_at DESC").Find(&chickenProcurementDrafts).Error
+	err := r.GetDB().Model(&entity.ChickenProcurementDraft{}).Order("total_price ASC").Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Order("created_at DESC").Find(&chickenProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}
@@ -468,7 +468,7 @@ func (r *ChickenRepository) CreateAfkirChickenSaleDraft(data *entity.AfkirChicke
 
 func (r *ChickenRepository) GetAfkirChickenSaleDrafts() ([]entity.AfkirChickenSaleDraft, error) {
 	var data []entity.AfkirChickenSaleDraft
-	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
+	err := r.GetDB().Model(&entity.AfkirChickenSaleDraft{}).Order("price_per_chicken * total_sell_chicken ASC").Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

@@ -166,7 +166,7 @@ type GetWarehouseItemProcurementFilter struct {
 	PaymentStatuses          []param.PaymentStatusParam   `query:"paymentStatuses"`
 	Page                     uint64                       `query:"page"`
 	WarehouseId              uint64                       `query:"warehouseId"`
-	LocationId               uint64
+	LocationId               uint64                       `query:"locationId"`
 }
 
 type WarehouseOverview struct {
