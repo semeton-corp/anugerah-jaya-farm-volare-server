@@ -776,8 +776,7 @@ func (s *CageService) GetTotalCageFeedHistory(cageId uint64) (float64, error) {
 	return totalCurrentFeed, nil
 }
 
-// Update the usedTotalFeedUpdated
-func (s *CageService) ReduceCageFeedHistory(latestFeed float64, currentFeeds float64, cageId uint64) error {
+func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error {
 	s.repository.UseTx(false)
 	defer s.repository.Rollback()
 

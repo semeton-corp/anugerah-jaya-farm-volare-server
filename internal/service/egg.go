@@ -483,7 +483,7 @@ func (s *EggService) GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (
 
 func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
 	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	startDate := endDate.AddDate(0, 0, -6) // 7 days including today
+	startDate := endDate.AddDate(0, 0, -6)
 
 	weekEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		LocationId: locationId,

@@ -2187,7 +2187,7 @@ func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleR
 
 	for i := 0; i < len(headers); i++ {
 		col, _ := excelize.ColumnNumberToName(i + 1)
-		f.SetColWidth(storeSheet, col, col, 20) // 20 is a good default, you can adjust
+		f.SetColWidth(storeSheet, col, col, 20)
 	}
 
 	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
@@ -2278,7 +2278,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				dto.GetAdditionalWorkUserFilter{
 					Month:       param.MonthParam(filter.Month.Value()),
 					Year:        filter.Year,
-					WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+					WithDeleted: &withDeleted,
 				})
 			if err != nil {
 				return dto.UserSalarySummaryResponse{}, err
@@ -2288,7 +2288,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				dto.GetDailyWorkUserFilter{
 					Month:       param.MonthParam(filter.Month.Value()),
 					Year:        filter.Year,
-					WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+					WithDeleted: &withDeleted,
 				})
 			if err != nil {
 				return dto.UserSalarySummaryResponse{}, err
@@ -2432,7 +2432,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			dto.GetAdditionalWorkUserFilter{
 				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
-				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				WithDeleted: &withDeleted,
 			})
 		if err != nil {
 			return dto.UserSalaryDetailResponse{}, err
@@ -2465,7 +2465,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			dto.GetDailyWorkUserFilter{
 				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
-				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				WithDeleted: &withDeleted,
 			})
 		if err != nil {
 			return dto.UserSalaryDetailResponse{}, err
@@ -2775,7 +2775,10 @@ func (s *CashflowService) GetCashflowHistories(filter dto.GetCashflowHistoryFilt
 }
 
 func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error) {
-	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang) // Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional) -> yang dibayarkan // Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan // Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang
+	// Cash -> total price (penjualan ayam, penjualan telur toko, penjualan telur gudang)
+	// Pengeluaran -> total pengeluaran perusahaan (pengadaan barang, pengadaan jagung, pembelian ayam, pembayaran gaji, operasional) -> yang dibayarkan
+	// Pendapatan -> total pendapatan perusahaan (penjualan ayam, penjualan telur toko, penjualan telur gudang) -> yang sudah dibayarkan
+	// Keuntutngan -> total pendapatan + piutang - total pengeluaran + total hiutang
 
 	s.repository.UseTx(false)
 

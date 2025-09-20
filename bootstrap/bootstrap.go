@@ -47,7 +47,8 @@ func New() *Bootstrap {
 		zap.L().Fatal(fmt.Sprintf("failed to load timezone: %v", err))
 	}
 
-	time.Local = loc // -> this is setting the global timezone
+	// Note : this is setting for global timezone
+	time.Local = loc
 
 	env.Load()
 	router := _router.New()

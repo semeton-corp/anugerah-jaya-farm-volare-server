@@ -2724,7 +2724,6 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCompanyOverviewFilter) (dto.ChickenAndCompanyOverviewResponse, error) {
 	// R/C Ratio = Keuntungan (Return) / Biaya Produksi (Cost)
 	// Keuntungan (Return) = Penjualan Telur + Penjualan Ayam - Biaya Produksi (Pengaadan Ayam, Pengadaan Barang, Pengadaan Jagung, Gaji, Operational, Pajak)
-
 	// Mos (%) = (Penjualan Aktual)
 
 	s.repository.UseTx(false)

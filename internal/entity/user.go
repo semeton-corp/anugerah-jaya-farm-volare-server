@@ -9,6 +9,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// Note : field CreateByOwner to avoid circular preload
 type User struct {
 	Id             uuid.UUID           `gorm:"type:varchar(255);primaryKey"`
 	Username       string              `gorm:"type:varchar(255);not null;unique"`
@@ -24,7 +25,7 @@ type User struct {
 	Address        string              `gorm:"type:text;not null"`
 	SalaryInterval enum.SalaryInterval `gorm:"type:int;not null;default:1"`
 	Salary         decimal.Decimal     `gorm:"type:decimal;not null"`
-	CreatedByOwner uuid.NullUUID       `gorm:"type:varchar(255)"` // Note : Avoid circular preload
+	CreatedByOwner uuid.NullUUID       `gorm:"type:varchar(255)"`
 	CreatedAt      time.Time           `gorm:"type:timestamp;autoCreateTime"`
 	UpdatedBy      uuid.NullUUID       `gorm:"type:varchar(255)"`
 	UpdatedAt      time.Time           `gorm:"type:timestamp;autoUpdateTime"`

@@ -1953,7 +1953,6 @@ func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([
 		responses = append(responses, resp)
 	}
 
-	// Sort by allocation
 	sort.Slice(responses, func(i, j int) bool {
 		return responses[i].TotalAllocation > responses[j].TotalAllocation
 	})

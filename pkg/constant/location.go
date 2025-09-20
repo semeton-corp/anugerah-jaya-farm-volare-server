@@ -1,5 +1,6 @@
 package constant
 
 const (
-	RadiusPresence = 10 // in km
+	// Note : in KM
+	RadiusPresence = 10
 )

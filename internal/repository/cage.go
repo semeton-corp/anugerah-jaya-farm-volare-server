@@ -146,7 +146,7 @@ func (r *CageRepository) DeleteCage(id uint64) error {
 
 func (r *CageRepository) GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error) {
 	var chickenCage entity.ChickenCage
-	// Find the newest chicken in the cage
+	// Note : find the newest chicken cage by cage id, that's why sort desc
 	err := r.GetDB().Model(&entity.ChickenCage{}).Where("cage_id = ?", cageId).Order("created_at DESC").First(&chickenCage).Error
 
 	if err != nil {

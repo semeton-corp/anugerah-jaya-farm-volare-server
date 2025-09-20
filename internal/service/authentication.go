@@ -123,7 +123,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 
 			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId, request.RoleId)
 			if err != nil {
-				// Saga Pattern
 				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}
@@ -137,7 +136,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				StoreId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
-				// Saga Pattern
 				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}
@@ -151,7 +149,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				WarehouseId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
-				// Saga Pattern
 				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}

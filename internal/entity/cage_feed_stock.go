@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// Note : why i create like this to check the history when the feed is created
 type CageFeedStock struct {
 	Id        uint64        `gorm:"primaryKey;autoIncrement"`
 	CageId    uint64        `gorm:"type:bigint;not null"`

@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Note : field work date as a start date of the work
 type AdditionalWork struct {
 	Id                  uint64               `gorm:"primaryKey;autoIncrement"`
 	Name                string               `gorm:"type:varchar(255);not null"`
@@ -23,7 +24,7 @@ type AdditionalWork struct {
 	Cage                Cage                 `gorm:"foreignKey:CageId;refereces:Id;constraint:OnDelete:CASCADE"`
 	Description         string               `gorm:"type:text;not null"`
 	Slot                uint64               `gorm:"type:bigint;not null"`
-	WorkDate            time.Time            `gorm:"type:timestamp;not null"` // Start Date
+	WorkDate            time.Time            `gorm:"type:timestamp;not null"`
 	Salary              decimal.Decimal      `gorm:"decimal;not null;default:0"`
 	LocationType        enum.LocationType    `gorm:"int;not null"`
 	AdditionalWorkUsers []AdditionalWorkUser `gorm:"foreignKey:AdditionalWorkId;references:Id;constraint:OnDelete:CASCADE"`

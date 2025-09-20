@@ -596,7 +596,6 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 		return dto.AdditionalWorkUserResponse{}, errx.BadRequest("additional work already full")
 	}
 
-	// Note : Can be improved by checking in the database directly
 	for _, user := range additionalWork.AdditionalWorkUsers {
 		if user.UserId == userId {
 			w.log.Error("user already taken additional work", zap.Error(errx.BadRequest("user already taken additional work")))

@@ -11,13 +11,13 @@ const (
 	UnitKarpet  string = "Karpet"
 	UnitPlastik string = "Plastik"
 
-	GoodEgg    string = "Telur OK" // display in store and warehouse
+	GoodEgg    string = "Telur OK"
 	RejectEgg  string = "Telur Reject"
-	CrackedEgg string = "Telur Retak"  // display in store
-	BrokenEgg  string = "Telur Bonyok" // display in store
+	CrackedEgg string = "Telur Retak"
+	BrokenEgg  string = "Telur Bonyok"
 
 	Corn string = "Jagung"
 
-	TotalEggPerKarpet uint64 = 30 // butir
-	TotalEggPerIkat   uint64 = 15 // kg
+	TotalEggPerKarpet uint64 = 30
+	TotalEggPerIkat   uint64 = 15
 )
