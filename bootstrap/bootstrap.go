@@ -125,7 +125,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	eggHandler := rest.NewEggHandler(b.log, eggService, b.validator)
 
 	cashflowRepository := repository.NewCashflowRepository(b.db)
-	cashflowService := service.NewCashflowService(b.log, cashflowRepository, workService, itemService, presenceService)
+	cashflowService := service.NewCashflowService(b.log, cashflowRepository, workService, itemService, presenceService, storeService, warehouseService)
 	cashflowHandler := rest.NewCashflowHandler(b.log, cashflowService, b.validator)
 
 	chickenRepository := repository.NewChickenRepository(b.db)
