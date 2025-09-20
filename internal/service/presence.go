@@ -274,8 +274,52 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries(filter dto.RoleLocati
 	}
 	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationTypeWarehouse.String())
 
-	responses := make([]dto.RoleLocationPresenceSummaryResponse, 0)
+	unassignedSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
+		Date:         param.DateParam(today),
+		LocationType: param.LocationTypeParam(enum.LocationTypeUnassigned),
+		LocationId:   filter.LocationId,
+	})
+	if err != nil {
+		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
+		return nil, err
+	}
 
+	cageStaffSummariesUnassigned := make([]entity.LocationPresenceSummary, 0)
+	eggStaffSummariesUnassigned := make([]entity.LocationPresenceSummary, 0)
+	storeStaffSummariesUnassigned := make([]entity.LocationPresenceSummary, 0)
+	warehouseStaffSummariesUnassigned := make([]entity.LocationPresenceSummary, 0)
+
+	for _, unassignedSummary := range unassignedSummaries {
+		switch unassignedSummary.RoleName {
+		case constant.RolePekerjaKandang:
+			cageStaffSummariesUnassigned = append(cageStaffSummariesUnassigned, unassignedSummary)
+		case constant.RolePekerjaTelur:
+			eggStaffSummariesUnassigned = append(eggStaffSummariesUnassigned, unassignedSummary)
+		case constant.RolePekerjaToko:
+			storeStaffSummariesUnassigned = append(storeStaffSummariesUnassigned, unassignedSummary)
+		case constant.RolePekerjaGudang:
+			warehouseStaffSummariesUnassigned = append(warehouseStaffSummariesUnassigned, unassignedSummary)
+		}
+	}
+
+	cageStaffPresenceUnassignedMap := processPresenceSummaries(cageStaffSummariesUnassigned, enum.LocationTypeUnassigned.String())
+	eggStaffPresenceUnassignedMap := processPresenceSummaries(eggStaffSummariesUnassigned, enum.LocationTypeUnassigned.String())
+	storeStaffPresenceUnassignedMap := processPresenceSummaries(storeStaffSummariesUnassigned, enum.LocationTypeUnassigned.String())
+	warehouseStaffPresenceUnassignedMap := processPresenceSummaries(warehouseStaffSummariesUnassigned, enum.LocationTypeUnassigned.String())
+
+	responses := make([]dto.RoleLocationPresenceSummaryResponse, 0)
+	for _, v := range cageStaffPresenceUnassignedMap {
+		responses = append(responses, v)
+	}
+	for _, v := range eggStaffPresenceUnassignedMap {
+		responses = append(responses, v)
+	}
+	for _, v := range storeStaffPresenceUnassignedMap {
+		responses = append(responses, v)
+	}
+	for _, v := range warehouseStaffPresenceUnassignedMap {
+		responses = append(responses, v)
+	}
 	for _, v := range eggStaffPresenceMap {
 		responses = append(responses, v)
 	}
@@ -409,18 +453,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 	s.repository.UseTx(false)
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	cageRoleType := []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
-	siteRoleType := []string{constant.RoleKepalaKandang}
-	storeRoleType := []string{constant.RolePekerjaToko}
-	warehouseRoleType := []string{constant.RolePekerjaGudang}
-
 	role, err := s.roleService.GetRoleById(filter.RoleId)
 	if err != nil {
 		return nil, err
 	}
 
 	responses := make([]dto.UserPresencePendingResponse, 0)
-	if slices.Contains(cageRoleType, role.Name) {
+	if slices.Contains(entity.CageLocationTypeList, role.Name) {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -445,7 +484,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(siteRoleType, role.Name) {
+	} else if slices.Contains(entity.SiteLocationTypeList, role.Name) {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -470,7 +509,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(storeRoleType, role.Name) {
+	} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -495,7 +534,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(warehouseRoleType, role.Name) {
+	} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,

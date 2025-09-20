@@ -468,7 +468,7 @@ type WarehouseItemCornProcurementListResponse struct {
 type WarehouseItemCornProcurementListPaginationResponse struct {
 	TotalData                     uint64                                     `json:"totalData,omitempty"`
 	TotalPage                     uint64                                     `json:"totalPage,omitempty"`
-	WarehouseItemCornProcurements []WarehouseItemCornProcurementListResponse `json:"WarehouseItemCornProcurements"`
+	WarehouseItemCornProcurements []WarehouseItemCornProcurementListResponse `json:"warehouseItemCornProcurements"`
 }
 
 type WarehouseItemCornProcurementResponse struct {

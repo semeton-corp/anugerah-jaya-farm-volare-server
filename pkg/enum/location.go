@@ -3,19 +3,21 @@ package enum
 type LocationType uint8
 
 const (
-	LocationTypeUnknown   LocationType = 0
-	LocationTypeCage      LocationType = 1
-	LocationTypeStore     LocationType = 2
-	LocationTypeWarehouse LocationType = 3
-	LocationTypeSite      LocationType = 4
+	LocationTypeUnknown    LocationType = 0
+	LocationTypeCage       LocationType = 1
+	LocationTypeStore      LocationType = 2
+	LocationTypeWarehouse  LocationType = 3
+	LocationTypeSite       LocationType = 4
+	LocationTypeUnassigned LocationType = 5
 )
 
 var (
 	LocationWorkTypeMap = map[LocationType]string{
-		LocationTypeCage:      "Kandang",
-		LocationTypeStore:     "Toko",
-		LocationTypeWarehouse: "Gudang",
-		LocationTypeSite:      "Site",
+		LocationTypeCage:       "Kandang",
+		LocationTypeStore:      "Toko",
+		LocationTypeWarehouse:  "Gudang",
+		LocationTypeSite:       "Site",
+		LocationTypeUnassigned: "Belum Ditempatkan",
 	}
 )
 

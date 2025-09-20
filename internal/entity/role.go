@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 )
 
 type Role struct {
@@ -16,7 +17,7 @@ type Role struct {
 }
 
 var (
-	CageLocationTypeList      = []string{"Pekerja Telur", "Pekerja Kandang"}
+	CageLocationTypeList      = []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
 	SiteLocationTypeList      = []string{"Kepala Kandang"}
 	StoreLocationTypeList     = []string{"Pekerja Toko"}
 	WarehouseLocationTypeList = []string{"Pekerja Gudang"}

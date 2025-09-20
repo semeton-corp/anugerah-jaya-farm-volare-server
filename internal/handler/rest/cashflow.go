@@ -125,7 +125,7 @@ func (h *CashflowHandler) ExportSalesToExcel(c *fiber.Ctx) error {
 		return err
 	}
 
-	fileName := fmt.Sprintf("sales_report_%s.xlsx", time.Now().Format("20060102_150405"))
+	fileName := fmt.Sprintf("laporan_cashflow_%s.xlsx", time.Now().Format("20060102_150405"))
 
 	buf, err := f.WriteToBuffer()
 	if err != nil {
