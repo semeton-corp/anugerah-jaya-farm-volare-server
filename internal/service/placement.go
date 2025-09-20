@@ -236,20 +236,6 @@ func (s *PlacementService) UpdateCagePlacement(request dto.UpdateCagePlacementRe
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	for _, r := range request.Users {
-		cagePlacements, err := s.repository.GetCagePlacementByCageId(request.CageId)
-		if err != nil {
-			s.log.Error("failed get cage placement by cage id")
-			return nil, err
-		}
-
-		for _, cagePlacement := range cagePlacements {
-			if cagePlacement.User.RoleId == r.RoleId && cagePlacement.UserId.String() != r.UserId {
-				return nil, errx.BadRequest(fmt.Sprintf("user with this role already exist in cage %s", cagePlacement.Cage.Name))
-			}
-		}
-	}
-
 	err := s.repository.DeleteCagePlacementByCageId(request.CageId)
 	if err != nil {
 		s.log.Error("failed delete cage placement by cage id", zap.Error(err))

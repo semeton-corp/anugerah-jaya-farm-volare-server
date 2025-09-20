@@ -41,10 +41,10 @@ type WarehouseResponse struct {
 }
 
 type WarehouseDetailResponse struct {
-	Id       uint64           `json:"id"`
-	Name     string           `json:"name"`
-	Location LocationResponse `json:"location"`
-	Users    []UserResponse   `json:"users"`
+	Id       uint64             `json:"id"`
+	Name     string             `json:"name"`
+	Location LocationResponse   `json:"location"`
+	Users    []UserListResponse `json:"users"`
 }
 
 type CreateWarehouseItemRequest struct {

@@ -3,7 +3,6 @@ package service
 import (
 	"database/sql"
 	"math"
-	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +23,6 @@ type PresenceService struct {
 	log             *zap.Logger
 	repository      repository.IPresenceRepository
 	locationService ILocationService
-	roleService     IRoleService
 }
 
 type IPresenceService interface {
@@ -40,12 +38,11 @@ type IPresenceService interface {
 	GetUserPresencePending(filter dto.GetUserPresencePendingFilter) ([]dto.UserPresencePendingResponse, error)
 }
 
-func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService, roleService IRoleService) IPresenceService {
+func NewPresenceService(log *zap.Logger, repository repository.IPresenceRepository, locationService ILocationService) IPresenceService {
 	return &PresenceService{
 		log:             log,
 		repository:      repository,
 		locationService: locationService,
-		roleService:     roleService,
 	}
 }
 
@@ -453,13 +450,8 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 	s.repository.UseTx(false)
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
-	role, err := s.roleService.GetRoleById(filter.RoleId)
-	if err != nil {
-		return nil, err
-	}
-
 	responses := make([]dto.UserPresencePendingResponse, 0)
-	if slices.Contains(entity.CageLocationTypeList, role.Name) {
+	if filter.LocationType.Value() == enum.LocationTypeCage {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -484,7 +476,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(entity.SiteLocationTypeList, role.Name) {
+	} else if filter.LocationType.Value() == enum.LocationTypeSite {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -509,7 +501,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
+	} else if filter.LocationType.Value() == enum.LocationTypeStore {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -534,7 +526,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			})
 		}
 
-	} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
+	} else if filter.LocationType.Value() == enum.LocationTypeWarehouse {
 		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
 			PlaceId:                  filter.PlaceId,
 			RoleId:                   filter.RoleId,
@@ -542,6 +534,30 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
 			Date:                     param.DateParam(today),
 			LocationType:             param.LocationTypeParam(enum.LocationTypeWarehouse),
+		})
+		if err != nil {
+			s.log.Error("failed get location user presence", zap.Error(err))
+			return nil, err
+		}
+
+		for _, e := range userPresences {
+			responses = append(responses, dto.UserPresencePendingResponse{
+				Id:       e.Id,
+				Date:     e.CreatedAt.Format("02 Jan 2006"),
+				Name:     e.User.Name,
+				Status:   e.Status.String(),
+				Evidence: e.Evidence.String,
+				Note:     e.Note.String,
+			})
+		}
+	} else if filter.LocationType.Value() == enum.LocationTypeUnassigned {
+		userPresences, err := s.repository.GetLocationUserPresence(dto.GetLocationUserPresenceFilter{
+			PlaceId:                  filter.PlaceId,
+			RoleId:                   filter.RoleId,
+			PresenceStatus:           filter.PresenceStatus,
+			SubmissionPresenceStatus: filter.SubmissionPresenceStatus,
+			Date:                     param.DateParam(today),
+			LocationType:             param.LocationTypeParam(enum.LocationTypeUnassigned),
 		})
 		if err != nil {
 			s.log.Error("failed get location user presence", zap.Error(err))

@@ -26,16 +26,16 @@ type CreateWarehousePlacementRequest struct {
 }
 
 type CagePlacementResponse struct {
-	User UserResponse `json:"user"`
-	Cage CageResponse `json:"cage"`
+	User UserListResponse `json:"user"`
+	Cage CageResponse     `json:"cage"`
 }
 
 type StorePlacementResponse struct {
-	User  UserResponse  `json:"user"`
-	Store StoreResponse `json:"store"`
+	User  UserListResponse `json:"user"`
+	Store StoreResponse    `json:"store"`
 }
 
 type WarehousePlacementResponse struct {
-	User      UserResponse      `json:"user"`
+	User      UserListResponse  `json:"user"`
 	Warehouse WarehouseResponse `json:"warehouse"`
 }

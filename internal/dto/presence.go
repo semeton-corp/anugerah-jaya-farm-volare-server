@@ -139,16 +139,18 @@ type GetLocationUserPresenceFilter struct {
 }
 
 type UserPresencePendingResponse struct {
-	Id       uint64 `json:"id"`
-	Date     string `json:"date"`
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	Note     string `json:"note"`
-	Evidence string `json:"evidence"`
+	Id           uint64 `json:"id"`
+	Date         string `json:"date"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	Note         string `json:"note"`
+	Evidence     string `json:"evidence"`
+	LocationType string `json:"locationType"`
 }
 
 type GetUserPresencePendingFilter struct {
 	RoleId                   uint64                              `query:"roleId" validate:"required"`
+	LocationType             param.LocationTypeParam             `query:"locationType" validate:"required"`
 	PlaceId                  uint64                              `json:"placeId" validate:"required"`
 	PresenceStatus           param.PresenceStatusParam           `query:"presenceStatus" validate:"required"`
 	SubmissionPresenceStatus param.SubmissionPresenceStatusParam `query:"submissionPresence" validate:"required"`

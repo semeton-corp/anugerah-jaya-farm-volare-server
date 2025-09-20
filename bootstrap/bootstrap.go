@@ -97,7 +97,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	locationHandler := rest.NewLocationHandler(b.log, locationService, b.validator)
 
 	presenceRepository := repository.NewPresenceRepository(b.db)
-	presenceService := service.NewPresenceService(b.log, presenceRepository, locationService, roleService)
+	presenceService := service.NewPresenceService(b.log, presenceRepository, locationService)
 	presenceHandler := rest.NewPresenceHandler(b.log, presenceService, b.validator)
 
 	supplierRepository := repository.NewSupplierRepository(b.db)

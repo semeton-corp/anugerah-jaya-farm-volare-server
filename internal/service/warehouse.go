@@ -135,7 +135,7 @@ func (s *WarehouseService) GetWarehouseDetailById(id uint64) (dto.WarehouseDetai
 		return dto.WarehouseDetailResponse{}, err
 	}
 
-	userResponses := make([]dto.UserResponse, 0)
+	userResponses := make([]dto.UserListResponse, 0)
 	for _, e := range warehousePlacements {
 		userResponses = append(userResponses, e.User)
 	}

@@ -29,10 +29,10 @@ type StoreResponse struct {
 }
 
 type StoreDetailResponse struct {
-	Id       uint64           `json:"id"`
-	Name     string           `json:"name"`
-	Location LocationResponse `json:"location"`
-	Users    []UserResponse   `json:"users"`
+	Id       uint64             `json:"id"`
+	Name     string             `json:"name"`
+	Location LocationResponse   `json:"location"`
+	Users    []UserListResponse `json:"users"`
 }
 
 // Note : the quantity in this request should be ikat

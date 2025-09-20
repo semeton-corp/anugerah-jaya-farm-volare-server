@@ -235,7 +235,7 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 		return dto.StoreDetailResponse{}, err
 	}
 
-	userResponses := make([]dto.UserResponse, 0)
+	userResponses := make([]dto.UserListResponse, 0)
 	for _, e := range storePlacements {
 		userResponses = append(userResponses, e.User)
 	}

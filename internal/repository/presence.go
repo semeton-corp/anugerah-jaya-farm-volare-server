@@ -394,6 +394,12 @@ func (r *PresenceRepository) GetLocationUserPresence(filter dto.GetLocationUserP
 				Joins("LEFT JOIN users ON users.id = user_presences.user_id").
 				Where("users.location_id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?",
 					filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
+
+		case enum.LocationTypeUnassigned:
+			query = query.
+				Joins("LEFT JOIN users ON users.id = user_presences.user_id").
+				Where("roles.name NOT IN ('Kepala Kandang', 'Owner') AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM warehouse_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM store_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM cage_placements) users.location_id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?",
+					filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())
 		default:
 			return nil, errors.New("unsupported location type")
 		}
