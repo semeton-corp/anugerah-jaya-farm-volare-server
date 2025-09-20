@@ -234,16 +234,17 @@ type GetEggWarehouseItemSummary struct {
 }
 
 type GetWarehouseSaleFilter struct {
-	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
-	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
-	Date                     param.DateParam          `query:"date"`
-	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
-	Page                     uint64                   `query:"page"`
-	StartDate                param.DateParam
-	EndDate                  param.DateParam
-	WarehouseId              uint64
-	LocationId               uint64
-	ItemId                   uint64
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	Date                     param.DateParam            `query:"date"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	Page                     uint64                     `query:"page"`
+	StartDate                param.DateParam            `query:"startDate"`
+	EndDate                  param.DateParam            `query:"endDate"`
+	WarehouseId              uint64                     `query:"warehouseId"`
+	LocationId               uint64                     `query:"locationId"`
+	ItemId                   uint64                     `query:"itemId"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 }
 
 type WarehouseSaleResponse struct {

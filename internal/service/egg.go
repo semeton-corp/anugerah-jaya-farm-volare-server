@@ -539,7 +539,7 @@ func (s *EggService) buildEggMonthlyGraph(locationId uint64) ([]dto.EggGraphResp
 		}
 	}
 
-	keys := util.GetSortedKeys(weekMaps)
+	keys := util.GetSortedKeysInt(weekMaps)
 	graphs := make([]dto.EggGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.EggGraphResponse{
@@ -576,7 +576,7 @@ func (s *EggService) buildEggYearlyGraph(locationId uint64) ([]dto.EggGraphRespo
 		}
 	}
 
-	keys := util.GetSortedKeys(monthMaps)
+	keys := util.GetSortedKeysInt(monthMaps)
 	graphs := make([]dto.EggGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.EggGraphResponse{

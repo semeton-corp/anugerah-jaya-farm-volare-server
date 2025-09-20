@@ -1702,7 +1702,7 @@ func (s *StoreService) buildStoreOverviewMonthlyGraph(storeId uint64, itemId uin
 		}
 	}
 
-	keys := util.GetSortedKeys(weekMaps)
+	keys := util.GetSortedKeysInt(weekMaps)
 	graphs := make([]dto.StoreGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.StoreGraphResponse{
@@ -1743,7 +1743,7 @@ func (s *StoreService) buildStoreOverviewYearlyGraph(storeId uint64, itemId uint
 		}
 	}
 
-	keys := util.GetSortedKeys(monthMaps)
+	keys := util.GetSortedKeysInt(monthMaps)
 	graphs := make([]dto.StoreGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.StoreGraphResponse{

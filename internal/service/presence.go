@@ -225,7 +225,21 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries(filter dto.RoleLocati
 		s.log.Error("failed to get cage location presence summaries", zap.Error(err))
 		return nil, err
 	}
-	cagePresenceMap := processPresenceSummaries(cageSummaries, enum.LocationTypeCage.String())
+
+	cageStaffSummaries := make([]entity.LocationPresenceSummary, 0)
+	eggStaffSummaries := make([]entity.LocationPresenceSummary, 0)
+
+	for _, cageSummary := range cageSummaries {
+		switch cageSummary.RoleName {
+		case constant.RolePekerjaKandang:
+			cageStaffSummaries = append(cageStaffSummaries, cageSummary)
+		case constant.RolePekerjaTelur:
+			eggStaffSummaries = append(eggStaffSummaries, cageSummary)
+		}
+	}
+
+	cageStaffPresenceMap := processPresenceSummaries(cageStaffSummaries, enum.LocationTypeCage.String())
+	eggStaffPresenceMap := processPresenceSummaries(eggStaffSummaries, enum.LocationTypeCage.String())
 
 	headCageSummaries, err := s.repository.GetLocationPresenceSummaries(dto.GetLocationPresenceSummaryFilter{
 		Date:         param.DateParam(today),
@@ -260,23 +274,25 @@ func (s *PresenceService) GetRoleLocationPresenceSummaries(filter dto.RoleLocati
 	}
 	warehousePresenceMap := processPresenceSummaries(warehouseSummaries, enum.LocationTypeWarehouse.String())
 
-	response := make([]dto.RoleLocationPresenceSummaryResponse, 0,
-		len(cagePresenceMap)+len(storePresenceMap)+len(warehousePresenceMap)+len(headPresenceMap))
+	responses := make([]dto.RoleLocationPresenceSummaryResponse, 0)
 
-	for _, v := range cagePresenceMap {
-		response = append(response, v)
+	for _, v := range eggStaffPresenceMap {
+		responses = append(responses, v)
+	}
+	for _, v := range cageStaffPresenceMap {
+		responses = append(responses, v)
 	}
 	for _, v := range storePresenceMap {
-		response = append(response, v)
+		responses = append(responses, v)
 	}
 	for _, v := range warehousePresenceMap {
-		response = append(response, v)
+		responses = append(responses, v)
 	}
 	for _, v := range headPresenceMap {
-		response = append(response, v)
+		responses = append(responses, v)
 	}
 
-	return response, nil
+	return responses, nil
 }
 
 func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error) {

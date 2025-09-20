@@ -507,7 +507,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 	}
 
 	kpiChickenInWeek := make(map[int]float64)
-	keys := util.GetSortedKeys(weekRanges)
+	keys := util.GetSortedKeysInt(weekRanges)
 
 	for key := range keys {
 		if totalChickenInWeek[key] == 0 {
@@ -579,7 +579,7 @@ func (c *ChickenService) buildMonthlyGraph(locationId uint64, cageId uint64) ([]
 		}
 	}
 
-	keys := util.GetSortedKeys(weekMaps)
+	keys := util.GetSortedKeysInt(weekMaps)
 	graphs := make([]dto.ChickenGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.ChickenGraphResponse{
@@ -616,7 +616,7 @@ func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64) ([]d
 		}
 	}
 
-	keys := util.GetSortedKeys(monthMaps)
+	keys := util.GetSortedKeysInt(monthMaps)
 	graphs := make([]dto.ChickenGraphResponse, 0)
 	for _, k := range keys {
 		graphs = append(graphs, dto.ChickenGraphResponse{

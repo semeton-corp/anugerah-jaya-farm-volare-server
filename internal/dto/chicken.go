@@ -440,11 +440,12 @@ type AfkirChickenSalePaymentResponse struct {
 }
 
 type GetAfkirChickenSaleFilter struct {
-	DeadlinePaymentStartDate param.DateParam          `query:"deadlinePaymentStartDate"`
-	DeadlinePaymentEndDate   param.DateParam          `query:"deadlinePaymentEndDate"`
-	PaymentStatus            param.PaymentStatusParam `query:"paymentStatus"`
-	Page                     uint64                   `query:"page"`
-	LocationId               uint64
+	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
+	Page                     uint64                     `query:"page"`
+	LocationId               uint64                     `query:"locationId"`
+	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
 }
 
 type GetChickenPerformanceFilter struct {

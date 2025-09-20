@@ -184,9 +184,9 @@ type GetUserCashAdvanceFilter struct {
 	UserId                   uuid.UUID                  `query:"userId"`
 	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
 	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
-	LocationId               uint64
-	StartDate                param.DateParam `query:"startDate"`
-	EndDate                  param.DateParam `query:"endDate"`
+	LocationId               uint64                     `query:"locationId"`
+	StartDate                param.DateParam            `query:"startDate"`
+	EndDate                  param.DateParam            `query:"endDate"`
 }
 
 type ReceivablesResponse struct {

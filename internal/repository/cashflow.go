@@ -535,6 +535,19 @@ func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter
 		query = query.Where("stores.location_id = ?", filter.LocationId)
 	}
 
+	if filter.ItemId > 0 {
+		query = query.Where("store_sales.item_id = ?", filter.ItemId)
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("store_sales.payment_status IN ?", paymentStatus)
+	}
+
 	err := query.Order("store_sales.created_at DESC").Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
@@ -591,6 +604,19 @@ func (r *CashflowRepository) GetWarehouseSaleCashflows(filter dto.GetWarehouseSa
 		query = query.Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
+	if filter.ItemId > 0 {
+		query = query.Where("warehouse_sales.item_id = ?", filter.ItemId)
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("warehouse_sales.payment_status IN ?", paymentStatus)
+	}
+
 	err := query.Order("warehouse_sales.created_at DESC").Preload("Warehouse.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&warehouseSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
@@ -610,6 +636,15 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 
 	if filter.LocationId > 0 {
 		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("afkir_chicken_sales.payment_status IN ?", paymentStatus)
 	}
 
 	err := query.Order("afkir_chicken_sales.created_at DESC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
