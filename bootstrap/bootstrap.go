@@ -173,7 +173,7 @@ func (b *Bootstrap) Run() {
 	b.scheduler.InitScheduler()
 	b.scheduler.Start()
 
-	b.log.Info("Running database migrations...")
+	b.log.Info("running database migrations...")
 	_persistence.Migrate(b.db)
 	// _persistence.Rollback(b.db)
 
@@ -196,13 +196,13 @@ func (b *Bootstrap) Run() {
 
 	b.router.Use(middleware.RequestLogger(b.log))
 
-	b.log.Info("Setting up endpoints...")
+	b.log.Info("setting up endpoints...")
 	for _, handler := range b.handlers {
 		handler.SetEndpoint(b.router)
 	}
 
 	addr := fmt.Sprintf("%s:%d", viper.GetString("app.address"), viper.GetInt("app.port"))
-	b.log.Info("Server starting", zap.String("address", addr))
+	b.log.Info("server starting", zap.String("address", addr))
 
 	if err := b.router.Listen(addr); err != nil {
 		b.log.Error("Server error", zap.Error(err))

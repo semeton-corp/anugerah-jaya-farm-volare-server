@@ -206,7 +206,7 @@ func (s *Scheduler) InitScheduler() {
 }
 
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
-	s.log.Info("Creating daily work user")
+	s.log.Info("creating daily work user")
 
 	var dailyWorks []entity.DailyWork
 	if err := tx.Model(&entity.DailyWork{}).Find(&dailyWorks).Error; err != nil {
@@ -233,12 +233,12 @@ func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("Daily work user created: %d", len(dailyWorkUsers)))
+	s.log.Info(fmt.Sprintf("daily work user created: %d", len(dailyWorkUsers)))
 	return tx.CreateInBatches(dailyWorkUsers, len(dailyWorkUsers)).Error
 }
 
 func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
-	s.log.Info("Creating user presence")
+	s.log.Info("creating user presence")
 
 	var users []entity.User
 	tx.Model(&entity.User{}).Preload("Role").Find(&users)
@@ -265,7 +265,7 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 }
 
 func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
-	s.log.Info("Checking user presence")
+	s.log.Info("checking user presence")
 
 	var userPresences []entity.UserPresence
 	if err := tx.Where("status = ? AND start_time IS NOT NULL", enum.PresenceStatusPresent).Find(&userPresences).Error; err != nil {
@@ -282,7 +282,7 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("User presence checked: %d", len(userPresences)))
+	s.log.Info(fmt.Sprintf("user presence checked: %d", len(userPresences)))
 	return nil
 }
 
@@ -980,6 +980,8 @@ func (s *Scheduler) createNotificationTotalItemSaleShipToday(tx *gorm.DB) error 
 			return err
 		}
 	}
+
+	s.log.Info(fmt.Sprintf("create %d notification about total item ship today", len(notifications)))
 
 	return nil
 }
