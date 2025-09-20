@@ -167,6 +167,7 @@ type GetWarehouseItemProcurementFilter struct {
 	Page                     uint64                       `query:"page"`
 	WarehouseId              uint64                       `query:"warehouseId"`
 	LocationId               uint64                       `query:"locationId"`
+	ProcurementStatus        param.ProcurementStatusParam `query:"procurementStatus"`
 }
 
 type WarehouseOverview struct {
@@ -502,16 +503,18 @@ type WarehouseItemCornResponse struct {
 }
 
 type GetWarehouseItemCornFilter struct {
-	WarehouseId uint64
+	WarehouseId uint64 `query:"warehouseId"`
 }
 
 type GetWarehouseItemCornProcurementFilter struct {
-	DeadlinePaymentStartDate param.DateParam            `query:"deadlinePaymentStartDate"`
-	DeadlinePaymentEndDate   param.DateParam            `query:"deadlinePaymentEndDate"`
-	PaymentStatus            param.PaymentStatusParam   `query:"paymentStatus"`
-	PaymentStatuses          []param.PaymentStatusParam `query:"paymentStatuses"`
-	Page                     uint64                     `query:"page"`
-	LocationId               uint64
+	DeadlinePaymentStartDate param.DateParam              `query:"deadlinePaymentStartDate"`
+	DeadlinePaymentEndDate   param.DateParam              `query:"deadlinePaymentEndDate"`
+	PaymentStatus            param.PaymentStatusParam     `query:"paymentStatus"`
+	PaymentStatuses          []param.PaymentStatusParam   `query:"paymentStatuses"`
+	Page                     uint64                       `query:"page"`
+	WarehouseId              uint64                       `query:"warehouseId"`
+	LocationId               uint64                       `query:"locationId"`
+	ProcurementStatus        param.ProcurementStatusParam `query:"procurementStatus"`
 }
 
 type CreateWarehouseItemCornProcurementPaymentRequest struct {

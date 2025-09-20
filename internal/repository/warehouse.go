@@ -617,6 +617,10 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
+	if filter.ProcurementStatus.Value().IsValid() {
+		query = query.Where("status = ?", filter.ProcurementStatus.Value())
+	}
+
 	if filter.Page > 0 {
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
@@ -825,6 +829,14 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurements(filter dto.GetWar
 
 	if filter.PaymentStatus.Value().IsValid() {
 		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.ProcurementStatus.Value().IsValid() {
+		query = query.Where("status = ?", filter.ProcurementStatus.Value())
 	}
 
 	if filter.Page > 0 {
