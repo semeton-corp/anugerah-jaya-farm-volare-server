@@ -16,4 +16,5 @@ const (
 	UserCashAdvanceNotificationContext              string = "Pinjaman Pegawai"
 	WorkNotificationContext                         string = "Pekerjaan"
 	UserKPINotificationContext                      string = "Performa Pegawai"
+	ChickenKPINotificationContext                      string = "Performa Ayam"
 )

@@ -467,12 +467,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
-				Id:       e.Id,
-				Date:     e.CreatedAt.Format("02 Jan 2006"),
-				Name:     e.User.Name,
-				Status:   e.Status.String(),
-				Evidence: e.Evidence.String,
-				Note:     e.Note.String,
+				Id:           e.Id,
+				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Name:         e.User.Name,
+				Status:       e.Status.String(),
+				Evidence:     e.Evidence.String,
+				Note:         e.Note.String,
+				LocationType: enum.LocationTypeCage.String(),
 			})
 		}
 
@@ -492,12 +493,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
-				Id:       e.Id,
-				Date:     e.CreatedAt.Format("02 Jan 2006"),
-				Name:     e.User.Name,
-				Status:   e.Status.String(),
-				Evidence: e.Evidence.String,
-				Note:     e.Note.String,
+				Id:           e.Id,
+				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Name:         e.User.Name,
+				Status:       e.Status.String(),
+				Evidence:     e.Evidence.String,
+				Note:         e.Note.String,
+				LocationType: enum.LocationTypeSite.String(),
 			})
 		}
 
@@ -517,12 +519,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
-				Id:       e.Id,
-				Date:     e.CreatedAt.Format("02 Jan 2006"),
-				Name:     e.User.Name,
-				Status:   e.Status.String(),
-				Evidence: e.Evidence.String,
-				Note:     e.Note.String,
+				Id:           e.Id,
+				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Name:         e.User.Name,
+				Status:       e.Status.String(),
+				Evidence:     e.Evidence.String,
+				Note:         e.Note.String,
+				LocationType: enum.LocationTypeStore.String(),
 			})
 		}
 
@@ -542,12 +545,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
-				Id:       e.Id,
-				Date:     e.CreatedAt.Format("02 Jan 2006"),
-				Name:     e.User.Name,
-				Status:   e.Status.String(),
-				Evidence: e.Evidence.String,
-				Note:     e.Note.String,
+				Id:           e.Id,
+				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Name:         e.User.Name,
+				Status:       e.Status.String(),
+				Evidence:     e.Evidence.String,
+				Note:         e.Note.String,
+				LocationType: enum.LocationTypeWarehouse.String(),
 			})
 		}
 	} else if filter.LocationType.Value() == enum.LocationTypeUnassigned {
@@ -566,12 +570,13 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
-				Id:       e.Id,
-				Date:     e.CreatedAt.Format("02 Jan 2006"),
-				Name:     e.User.Name,
-				Status:   e.Status.String(),
-				Evidence: e.Evidence.String,
-				Note:     e.Note.String,
+				Id:           e.Id,
+				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Name:         e.User.Name,
+				Status:       e.Status.String(),
+				Evidence:     e.Evidence.String,
+				Note:         e.Note.String,
+				LocationType: enum.LocationTypeUnassigned.String(),
 			})
 		}
 	}

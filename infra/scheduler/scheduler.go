@@ -514,9 +514,10 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			for _, cagePlacement := range chickenCage.Cage.CagePlacement {
 				if cagePlacement.User.Role.Name == constant.RolePekerjaKandang {
 					notifications = append(notifications, entity.Notification{
-						CageId:      sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
-						UserId:      uuid.NullUUID{UUID: cagePlacement.UserId, Valid: true},
-						Description: fmt.Sprintf(constant.KPIPerformanceChickenBadNotification, chickenCage.Cage.Name),
+						CageId:               sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
+						UserId:               uuid.NullUUID{UUID: cagePlacement.UserId, Valid: true},
+						NotificationContexts: []string{constant.ChickenKPINotificationContext},
+						Description:          fmt.Sprintf(constant.KPIPerformanceChickenBadNotification, chickenCage.Cage.Name),
 					})
 				}
 			}
