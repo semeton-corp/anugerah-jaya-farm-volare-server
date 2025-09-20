@@ -2303,7 +2303,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				return dto.UserSalarySummaryResponse{}, err
 			}
 
-			presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+			presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers, dailyWorkUsers, userPresences)
 
 			if userSalaryPayment.User.Role.Name == constant.RolePekerjaKandang {
 				totalDayInMonth := util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month.Value()))
@@ -2471,7 +2471,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			return dto.UserSalaryDetailResponse{}, err
 		}
 
-		presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+		presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers, dailyWorkUsers, userPresences)
 
 		if userSalaryPayment.User.Role.Name == constant.RolePekerjaKandang {
 			totalDayInMonth := util.TotalDaysInMonth(userSalaryPayment.CreatedAt.Year(), userSalaryPayment.CreatedAt.Month())

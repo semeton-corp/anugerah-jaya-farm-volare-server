@@ -20,10 +20,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	ownerRole = "Owner"
-)
-
 type IScheduler interface {
 	Start()
 	InitScheduler()
@@ -121,6 +117,17 @@ func (s *Scheduler) InitScheduler() {
 			err := s.createKpiChickenCage(tx)
 			if err != nil {
 				s.log.Error("failed to create kpi chicken performance", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("0 18 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationWhenKPIPerformanceUserBad(tx)
+			if err != nil {
+				s.log.Error("failed to create notification when kpi performance usere bad", zap.Error(err))
 				return err
 			}
 			return nil
@@ -245,7 +252,7 @@ func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 
 	totalCreatedUserPresence := 0
 	for _, user := range users {
-		if user.Role.Name != ownerRole {
+		if user.Role.Name != constant.RoleOwner {
 			userPresence := entity.UserPresence{
 				UserId:                   user.Id,
 				Status:                   enum.PresenceStatusAlpha,
@@ -341,6 +348,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	}
 
 	data := make([]entity.ChickenPerformance, 0)
+	notifications := make([]entity.Notification, 0)
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	chickenMonitorinMap := make(map[uint64]entity.ChickenMonitoring)
@@ -501,11 +509,31 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			}
 		}
 
+		kpiChicken := (mortality + hdp) / 2
+		if kpiChicken < constant.ThresholdKpiChicken {
+			for _, cagePlacement := range chickenCage.Cage.CagePlacement {
+				if cagePlacement.User.Role.Name == constant.RolePekerjaKandang {
+					notifications = append(notifications, entity.Notification{
+						CageId:      sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
+						UserId:      uuid.NullUUID{UUID: cagePlacement.UserId, Valid: true},
+						Description: fmt.Sprintf(constant.KPIPerformanceChickenBadNotification, chickenCage.Cage.Name),
+					})
+				}
+			}
+		}
+
 		data = append(data, newData)
 	}
 
 	if len(data) > 0 {
 		err = tx.Model(&entity.ChickenPerformance{}).CreateInBatches(&data, len(data)).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	if len(notifications) > 0 {
+		err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
 		if err != nil {
 			return err
 		}
@@ -1100,6 +1128,82 @@ func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
 	}
 
 	s.log.Info(fmt.Sprintf("success create %d notification for item arrive", len(notifications)))
+	return nil
+}
+
+func (s *Scheduler) createNotificationWhenKPIPerformanceUserBad(tx *gorm.DB) error {
+	s.log.Info("create notification when KPI performance user bad")
+
+	now := time.Now()
+	month := int(now.Month())
+	year := now.Year()
+
+	startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(enum.Month(month), year)
+
+	var users []entity.User
+	if err := tx.Model(&entity.User{}).Find(&users).Error; err != nil {
+		return err
+	}
+
+	notifications := make([]entity.Notification, 0)
+
+	for _, user := range users {
+		var dailyWorkUsers []entity.DailyWorkUser
+		if err := tx.Model(&entity.DailyWorkUser{}).
+			Joins("JOIN daily_works ON daily_work_users.daily_work_id = daily_works.id").
+			Where("daily_work_users.user_id = ?", user.Id).
+			Where("daily_work_users.created_at BETWEEN ? AND ?", startDate, endDate).
+			Where("daily_works.deleted_at IS NULL").
+			Find(&dailyWorkUsers).Error; err != nil {
+			s.log.Error("failed to query daily work", zap.Error(err))
+			continue
+		}
+
+		var additionalWorkUsers []entity.AdditionalWorkUser
+		if err := tx.Model(&entity.AdditionalWorkUser{}).
+			Joins("JOIN additional_works ON additional_work_users.additional_work_id = additional_works.id").
+			Where("additional_work_users.user_id = ?", user.Id).
+			Where("additional_work_users.created_at BETWEEN ? AND ?", startDate, endDate).
+			Where("additional_works.deleted_at IS NULL").
+			Find(&additionalWorkUsers).Error; err != nil {
+			s.log.Error("failed to query additional work", zap.Error(err))
+			continue
+		}
+
+		var userPresences []entity.UserPresence
+		if err := tx.Model(&entity.UserPresence{}).
+			Where("user_id = ?", user.Id).
+			Where("created_at BETWEEN ? AND ?", startDate, endDate).
+			Find(&userPresences).Error; err != nil {
+			s.log.Error("failed to query presence", zap.Error(err))
+			continue
+		}
+
+		presenceScore, workScore, _ := util.CalculateKPIScoreUserInMonthViaEntity(
+			additionalWorkUsers,
+			dailyWorkUsers,
+			userPresences,
+		)
+
+		totalScore := (0.6 * presenceScore) + (0.4 * workScore)
+		if totalScore <= constant.KPIScoreBad {
+			notifications = append(notifications, entity.Notification{
+				UserId:               uuid.NullUUID{UUID: user.Id, Valid: true},
+				NotificationContexts: pq.StringArray{constant.UserKPINotificationContext},
+				Description:          fmt.Sprintf(constant.KPIPerformanceUserBadNotification, user.Name),
+			})
+
+			s.log.Info(fmt.Sprintf("user %s (id=%s) has bad KPI score %.2f", user.Name, user.Id.String(), totalScore))
+		}
+	}
+
+	if len(notifications) > 0 {
+		if err := tx.CreateInBatches(&notifications, 10).Error; err != nil {
+			return err
+		}
+	}
+
+	s.log.Info(fmt.Sprintf("create %d notifications for bad KPI performance", len(notifications)))
 	return nil
 }
 

@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse, dailyWorkUsers dto.DailyWorkUserListPaginationResponse, userPresences dto.PresenceListPaginationResponse) (float64, float64, uint64) {
+func CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse, dailyWorkUsers dto.DailyWorkUserListPaginationResponse, userPresences dto.PresenceListPaginationResponse) (float64, float64, uint64) {
 	var (
 		totalPresent  uint64  = 0
 		totalOvertime float64 = 0
@@ -71,4 +72,79 @@ func CalculateKPIScoreUserInMonth(additionalWorkUsers dto.AdditionalWorkUserList
 	}
 
 	return presenceScore, workScore, uint64(len(userPresences.Presences)) - totalPresent
+}
+
+func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.AdditionalWorkUser, dailyWorkUsers []entity.DailyWorkUser, userPresences []entity.UserPresence) (float64, float64, uint64) {
+	var (
+		totalPresent  uint64  = 0
+		totalOvertime float64 = 0
+		totalWorkHour float64 = 0
+
+		totalWorkDone uint64 = 0
+
+		presenceScore float64 = float64(0)
+		workScore     float64 = float64(0)
+	)
+
+	for _, userPresence := range userPresences {
+		if userPresence.Status == enum.PresenceStatusPresent {
+			totalPresent++
+
+			if !userPresence.EndTime.Time.IsZero() {
+				startTime := userPresence.StartTime.Time
+
+				endTime := userPresence.EndTime.Time
+
+				diffHours := endTime.Sub(*startTime).Hours()
+				if diffHours > 8 {
+					totalWorkHour += 8.0
+				} else {
+					totalWorkHour += diffHours
+				}
+
+				endOfWork := time.Date(
+					userPresence.CreatedAt.Year(),
+					userPresence.CreatedAt.Month(),
+					userPresence.CreatedAt.Day(),
+					17, 0, 0, 0, time.Local,
+				)
+
+				extraTime := userPresence.EndTime.Time.Sub(endOfWork)
+				overtime := float64(0)
+				if extraTime > 0 {
+					overtime = extraTime.Hours()
+				} else {
+					overtime = 0
+				}
+
+				totalOvertime += overtime
+			}
+		}
+	}
+
+	for _, dailyWorkUser := range dailyWorkUsers {
+		if dailyWorkUser.IsDone {
+			totalWorkDone++
+		}
+	}
+
+	for _, additionalWorkUser := range additionalWorkUsers {
+		if additionalWorkUser.IsDone {
+			totalWorkDone++
+		}
+	}
+
+	if len(userPresences) == 0 {
+		presenceScore = 0
+	} else {
+		presenceScore = float64(totalWorkHour) / float64(len(userPresences)*8) * 100
+	}
+
+	if len(dailyWorkUsers)+len(additionalWorkUsers) == 0 {
+		workScore = 0
+	} else {
+		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers)+len(additionalWorkUsers)) * 100
+	}
+
+	return presenceScore, workScore, uint64(len(userPresences)) - totalPresent
 }

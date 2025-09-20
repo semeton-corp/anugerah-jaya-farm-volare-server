@@ -15,4 +15,5 @@ const (
 	WarehouseItemCornProcurementNotificationContext string = "Pengadaan Barang Jagung"
 	UserCashAdvanceNotificationContext              string = "Pinjaman Pegawai"
 	WorkNotificationContext                         string = "Pekerjaan"
+	UserKPINotificationContext                      string = "Performa Pegawai"
 )

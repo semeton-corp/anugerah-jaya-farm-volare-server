@@ -452,7 +452,7 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 			dto.GetAdditionalWorkUserFilter{
 				Month:       param.MonthParam(time.Now().Month()),
 				Year:        uint64(time.Now().Year()),
-				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				WithDeleted: &withDeleted,
 			})
 		if err != nil {
 			return dto.UserListOverviewPaginationResponse{}, err
@@ -462,7 +462,7 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 			dto.GetDailyWorkUserFilter{
 				Month:       param.MonthParam(time.Now().Month()),
 				Year:        uint64(time.Now().Year()),
-				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				WithDeleted: &withDeleted,
 			})
 		if err != nil {
 			return dto.UserListOverviewPaginationResponse{}, err
@@ -477,11 +477,11 @@ func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) 
 			return dto.UserListOverviewPaginationResponse{}, err
 		}
 
-		presenceScore, workScore, _ := util.CalculateKPIScoreUserInMonth(additionalWorkUsers, dailyWorkUsers, userPresences)
+		presenceScore, workScore, _ := util.CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers, dailyWorkUsers, userPresences)
 		kpiPerformance := (0.6 * presenceScore) + (0.4 * workScore)
-		if kpiPerformance >= 90 {
+		if kpiPerformance >= constant.KPIScoreGood {
 			response.KpiStatus = constant.KPIStatusGood
-		} else if kpiPerformance >= 74 && kpiPerformance < 90 {
+		} else if kpiPerformance >= constant.KPIScoreMid && kpiPerformance < constant.KPIScoreGood {
 			response.KpiStatus = constant.KPIStatusMid
 		} else {
 			response.KpiStatus = constant.KPIStatusBad
@@ -547,7 +547,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 			dto.GetAdditionalWorkUserFilter{
 				Month:       filter.Month,
 				Year:        filter.Year,
-				WithDeleted: &withDeleted, // In case the user work is done but the work is deleted
+				WithDeleted: &withDeleted,
 			})
 		if err != nil {
 			return dto.UserPerformanceOverviewResponse{}, nil
