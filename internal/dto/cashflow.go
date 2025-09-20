@@ -114,8 +114,9 @@ type GetReceivablesOverviewFilter struct {
 }
 
 type GetCashflowSaleReportFilter struct {
-	Year  uint64           `query:"year" validate:"required"`
-	Month param.MonthParam `query:"month" validate:"required"`
+	LocationId uint64           `query:"locationId"`
+	Year       uint64           `query:"year" validate:"required"`
+	Month      param.MonthParam `query:"month" validate:"required"`
 }
 
 type CreateExpenseRequest struct {

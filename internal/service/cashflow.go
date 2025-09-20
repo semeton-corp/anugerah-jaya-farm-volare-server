@@ -55,7 +55,7 @@ type ICashflowService interface {
 	GetUserSalaries(filter dto.GetUserSalaryListFilter) (dto.UserSalaryListPaginationResponse, error)
 	GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailResponse, error)
 
-	ExportSalesCashflowToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error)
+	ExportCashflowSaleToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error)
 
 	GetCashflowSaleOverview(filter dto.GetCashflowSaleOverviewFilter) (dto.CashflowSaleOverviewResponse, error)
 	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error)
@@ -2145,97 +2145,203 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 	}
 }
 
-func (s *CashflowService) ExportSalesCashflowToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error) {
+func (s *CashflowService) ExportCashflowSaleToExcel(filter dto.GetCashflowSaleReportFilter) (*excelize.File, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
-
 	f := excelize.NewFile()
 
+	// ====== Common Styles ======
+	headerStyle, _ := f.NewStyle(&excelize.Style{
+		Font:      &excelize.Font{Bold: true, Size: 12, Color: "FFFFFF"},
+		Fill:      excelize.Fill{Type: "pattern", Color: []string{"4F81BD"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center"},
+		Border:    []excelize.Border{{Type: "bottom", Style: 2, Color: "000000"}},
+	})
+	numStyle, _ := f.NewStyle(&excelize.Style{
+		NumFmt: 3, // #,##0
+	})
+
+	// =============== STORE SALES SHEET ================
+	storeSheet := "Penjualan Toko"
+	f.NewSheet(storeSheet)
+
+	storeHeaders := []string{
+		"ID", "Customer", "Item", "Toko", "Kuantitas", "Harga Satuan", "Total Harga",
+		"Diskon", "Tanggal Kirim", "Jenis Pembayaran", "Status Pembayaran",
+		"Pembayaran Saat Ini", "Tanggal Dibuat",
+	}
+	for i, h := range storeHeaders {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(storeSheet, cell, h)
+		f.SetCellStyle(storeSheet, cell, cell, headerStyle)
+	}
+
 	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	storeSheet := "Store Sales"
-	f.NewSheet(storeSheet)
-	headers := []string{
-		"ID", "Customer", "Item", "Store", "Quantity", "Sale Unit",
-		"Total Price", "Payment Status", "Is Send", "Deadline Payment Date", "Send Date",
-	}
-	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(storeSheet, cell, h)
-	}
-
-	for row, sale := range storeSales {
-		values := []interface{}{
-			sale.Id,
-			sale.Customer.Name,
-			sale.Item.Name,
-			sale.Store.Name,
-			sale.Quantity,
-			sale.SaleUnit,
-			sale.TotalPrice.String(),
-			sale.PaymentStatus,
-			sale.IsSend,
-			sale.DeadlinePaymentDate,
-			sale.SendDate,
+	for row, ss := range storeSales {
+		paid := decimal.Zero
+		for _, p := range ss.Payments {
+			paid = paid.Add(p.Nominal)
 		}
+		currentPayment := ss.TotalPrice.Sub(paid)
+
+		values := []interface{}{
+			ss.Id,
+			ss.Customer.Name,
+			ss.Item.Name,
+			ss.Store.Name,
+			ss.Quantity,
+			ss.Price.InexactFloat64(),
+			ss.TotalPrice.InexactFloat64(),
+			ss.Discount,
+			ss.SendDate,
+			ss.PaymentType.String(),
+			ss.PaymentStatus.String(),
+			currentPayment.InexactFloat64(),
+			ss.CreatedAt,
+		}
+
 		for col, v := range values {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row+2)
 			f.SetCellValue(storeSheet, cell, v)
+			if col == 5 || col == 6 || col == 10 || col == 11 {
+				f.SetCellStyle(storeSheet, cell, cell, numStyle)
+			}
 		}
 	}
-
-	for i := 0; i < len(headers); i++ {
+	for i := 0; i < len(storeHeaders); i++ {
 		col, _ := excelize.ColumnNumberToName(i + 1)
 		f.SetColWidth(storeSheet, col, col, 20)
 	}
 
+	// ============= WAREHOUSE SALES SHEET ==============
+	warehouseSheet := "Penjualan Gudang"
+	f.NewSheet(warehouseSheet)
+
+	warehouseHeaders := []string{
+		"ID", "Customer", "Item", "Gudang", "Kuantitas", "Harga Satuan", "Total Harga",
+		"Diskon", "Tanggal Kirim", "Jenis Pembayaran", "Status Pembayaran",
+		"Pembayaran Saat Ini", "Tanggal Dibuat",
+	}
+	for i, h := range warehouseHeaders {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(warehouseSheet, cell, h)
+		f.SetCellStyle(warehouseSheet, cell, cell, headerStyle)
+	}
+
 	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	warehouseSheet := "Warehouse Sales"
-	f.NewSheet(warehouseSheet)
-	headers = []string{
-		"ID", "Customer", "Item", "Warehouse", "Quantity", "Sale Unit",
-		"Total Price", "Payment Status", "Is Send", "Deadline Payment Date", "Send Date",
-	}
-	for i, h := range headers {
-		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
-		f.SetCellValue(warehouseSheet, cell, h)
-	}
-
-	for row, sale := range warehouseSales {
-		values := []interface{}{
-			sale.Id,
-			sale.Customer.Name,
-			sale.Item.Name,
-			sale.Warehouse.Name,
-			sale.Quantity,
-			sale.SaleUnit,
-			sale.TotalPrice.String(),
-			sale.PaymentStatus,
-			sale.IsSend,
-			sale.DeadlinePaymentDate,
-			sale.SendDate,
+	for row, ws := range warehouseSales {
+		paid := decimal.Zero
+		for _, p := range ws.Payments {
+			paid = paid.Add(p.Nominal)
 		}
+		currentPayment := ws.TotalPrice.Sub(paid)
+
+		values := []interface{}{
+			ws.Id,
+			ws.Customer.Name,
+			ws.Item.Name,
+			ws.Warehouse.Name,
+			ws.Quantity,
+			ws.Price.InexactFloat64(),
+			ws.TotalPrice.InexactFloat64(),
+			ws.Discount,
+			ws.SendDate,
+			ws.PaymentType.String(),
+			ws.PaymentStatus.String(),
+			currentPayment.InexactFloat64(),
+			ws.CreatedAt,
+		}
+
 		for col, v := range values {
 			cell, _ := excelize.CoordinatesToCellName(col+1, row+2)
 			f.SetCellValue(warehouseSheet, cell, v)
+			if col == 5 || col == 6 || col == 10 || col == 11 {
+				f.SetCellStyle(warehouseSheet, cell, cell, numStyle)
+			}
 		}
 	}
-
-	for i := 0; i < len(headers); i++ {
+	for i := 0; i < len(warehouseHeaders); i++ {
 		col, _ := excelize.ColumnNumberToName(i + 1)
 		f.SetColWidth(warehouseSheet, col, col, 20)
+	}
+
+	// ================= EXPENSES SHEET =================
+	expenseSheet := "Pengeluaran"
+	f.NewSheet(expenseSheet)
+
+	expenseHeaders := []string{
+		"ID", "Kategori", "Nama Pengeluaran", "Penerima", "Nomor HP",
+		"Nominal", "Metode Pembayaran", "Tempat", "Deskripsi", "Tanggal Dibuat",
+	}
+	for i, h := range expenseHeaders {
+		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(expenseSheet, cell, h)
+		f.SetCellStyle(expenseSheet, cell, cell, headerStyle)
+	}
+
+	expenses, err := s.repository.GetExpenses(dto.GetExpenseFilter{
+		LocationId: filter.LocationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for row, e := range expenses {
+		var tempat string
+		switch e.LocationType {
+		case enum.LocationTypeCage:
+			tempat = e.Cage.Name
+		case enum.LocationTypeStore:
+			tempat = e.Store.Name
+		case enum.LocationTypeWarehouse:
+			tempat = e.Warehouse.Name
+		case enum.LocationTypeSite:
+			tempat = e.Location.Name
+		default:
+			tempat = "Tidak Diketahui"
+		}
+
+		values := []interface{}{
+			e.Id,
+			e.ExpenseCategory.String(),
+			e.Name,
+			e.ReceiverName,
+			e.ReceiverPhoneNumber,
+			e.Nominal.InexactFloat64(),
+			e.PaymentMethod.String(),
+			tempat,
+			e.Description,
+			e.CreatedAt,
+		}
+
+		for col, v := range values {
+			cell, _ := excelize.CoordinatesToCellName(col+1, row+2)
+			f.SetCellValue(expenseSheet, cell, v)
+			if col == 5 {
+				f.SetCellStyle(expenseSheet, cell, cell, numStyle)
+			}
+		}
+	}
+	for i := 0; i < len(expenseHeaders); i++ {
+		col, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(expenseSheet, col, col, 20)
 	}
 
 	f.DeleteSheet("Sheet1")
@@ -2332,9 +2438,9 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 			}
 
 			kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
-			if kpiPerformance >= 90 {
+			if kpiPerformance >= constant.KPIScoreGood {
 				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.User.Salary))
-			} else if kpiPerformance < 75 {
+			} else if kpiPerformance <= constant.KPIScoreMid {
 				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.User.Salary))
 			}
 
@@ -2489,9 +2595,9 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		}
 
 		kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
-		if kpiPerformance >= 90 {
+		if kpiPerformance >= constant.KPIScoreGood {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
-		} else if kpiPerformance < 75 {
+		} else if kpiPerformance <= constant.KPIScoreMid {
 			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		}
 
@@ -3108,24 +3214,25 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 		expenseMap[week] = expenseMap[week].Add(expense.Nominal)
 	}
 
+	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 		LocationId: locationId,
+		IsPaid:     &isPaid,
 	})
 	if err != nil {
 		return nil, err
 	}
 	for _, salary := range userSalaryPayments {
-		if salary.IsPaid {
-			total := salary.BaseSalary.
-				Add(salary.BonusSalary).
-				Add(salary.CompentationSalary).
-				Add(salary.AdditionalWorkSalary).
-				Add(salary.Cashbond)
-			week := util.FindWeek(salary.CreatedAt, weeks)
-			expenseMap[week] = expenseMap[week].Add(total)
-		}
+		total := salary.BaseSalary.
+			Add(salary.BonusSalary).
+			Add(salary.CompentationSalary).
+			Add(salary.AdditionalWorkSalary).
+			Add(salary.Cashbond)
+		week := util.FindWeek(salary.CreatedAt, weeks)
+		expenseMap[week] = expenseMap[week].Add(total)
+
 	}
 
 	return expenseMap, nil
@@ -3426,10 +3533,39 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		totalExpense = totalExpense.Add(e.Nominal)
 	}
 
-	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+	totalEggStoreSale := decimal.Zero
+	totalWarehouseStoreSale := decimal.Zero
+
+	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get store sale cashflows", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+	for _, storeSale := range storeSales {
+		totalEggStoreSale = totalEggStoreSale.Add(storeSale.TotalPrice)
+	}
+
+	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+	for _, warehouseSale := range warehouseSales {
+		totalWarehouseStoreSale = totalWarehouseStoreSale.Add(warehouseSale.TotalPrice)
+	}
+
+	totalReceivables := decimal.Zero
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advance", zap.Error(err))
@@ -3439,50 +3575,41 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		totalExpense = totalExpense.Add(e.Nominal)
 	}
 
-	totalReceivables := decimal.Zero
-	totalEggStoreSale := decimal.Zero
-	totalWarehouseStoreSale := decimal.Zero
-
-	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+	storeSaleReceivables, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get store sale cashflows", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-	for _, storeSale := range storeSales {
+	for _, storeSale := range storeSaleReceivables {
 		totalNominal := storeSale.TotalPrice
 		for _, payment := range storeSale.Payments {
 			totalNominal = totalNominal.Sub(payment.Nominal)
 		}
 		totalReceivables = totalReceivables.Add(totalNominal)
-		totalEggStoreSale = totalEggStoreSale.Add(storeSale.TotalPrice)
 	}
 
-	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+	warehouseSaleReceivables, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
-	for _, warehouseSale := range warehouseSales {
+	for _, warehouseSale := range warehouseSaleReceivables {
 		totalNominal := warehouseSale.TotalPrice
 		for _, payment := range warehouseSale.Payments {
 			totalNominal = totalNominal.Sub(payment.Nominal)
 		}
 		totalReceivables = totalReceivables.Add(totalNominal)
-		totalWarehouseStoreSale = totalWarehouseStoreSale.Add(warehouseSale.TotalPrice)
 	}
 
 	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
@@ -3497,9 +3624,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	}
 
 	userCashAdvanceReceivables, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advances", zap.Error(err))
@@ -3514,11 +3640,9 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	}
 
 	totalDebt := decimal.Zero
-
 	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item procurements", zap.Error(err))
@@ -3533,9 +3657,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	}
 
 	warehouseItemCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item corn procurements", zap.Error(err))
@@ -3550,9 +3673,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	}
 
 	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
-		DeadlinePaymentStartDate: param.DateParam(startDate),
-		DeadlinePaymentEndDate:   param.DateParam(endDate),
-		LocationId:               locationId,
+		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		LocationId:      locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get chicken procurements", zap.Error(err))
@@ -3573,7 +3695,7 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		Receivables:      totalReceivables,
 		Debt:             totalDebt,
 		Cash:             totalIncome.Add(totalReceivables),
-		Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),
+		Profit:           totalIncome.Sub(totalExpense),
 		WarehouseEggSale: totalWarehouseStoreSale,
 		StoreEggSale:     totalEggStoreSale,
 		CreatedAt:        time.Now(),

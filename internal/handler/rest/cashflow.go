@@ -120,7 +120,7 @@ func (h *CashflowHandler) ExportSalesToExcel(c *fiber.Ctx) error {
 		return err
 	}
 
-	f, err := h.service.ExportSalesCashflowToExcel(filter)
+	f, err := h.service.ExportCashflowSaleToExcel(filter)
 	if err != nil {
 		return err
 	}

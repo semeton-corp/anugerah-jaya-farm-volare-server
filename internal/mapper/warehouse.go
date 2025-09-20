@@ -328,6 +328,8 @@ func WarehouseItemCornProcurementDraftToResponse(data *entity.WarehouseItemCornP
 		discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount.Float64 / 100.0))
 		response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
 		response.Discount = &data.Discount.Float64
+	} else {
+		response.TotalPrice = data.Price.Mul(decimal.NewFromFloat(response.Quantity)).String()
 	}
 
 	if data.CornWaterLevel.Valid {
