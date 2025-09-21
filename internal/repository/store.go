@@ -6,6 +6,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
 )
@@ -373,6 +374,15 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
+	}
+
 	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
 	if err != nil {
 		return nil, err
@@ -464,10 +474,6 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	if filter.Page > 0 {
-		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
-	}
-
 	if filter.PaymentStatus.Value().IsValid() {
 		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
 	}
@@ -486,6 +492,15 @@ func (r *StoreRepository) CountTotalStoreSale(filter dto.GetStoreSaleFilter) (ui
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
 	err := query.Model(&entity.StoreSale{}).Count(&totalData).Error
@@ -569,10 +584,10 @@ func (r *StoreRepository) GetStoreSalePayments(filter dto.GetStoreSalePaymentFil
 
 func (r *StoreRepository) CountTotalStoreSalePayment(filter dto.GetStoreSalePaymentFilter) (uint64, error) {
 	var count int64
-	query := r.GetDB().Model(&entity.StoreSalePayment{})
+	query := r.GetDB().Model(&entity.StoreSalePayment{}).Joins("LEFT JOIN store_sales ON store_sales.id = store_sale_payments.store_sale_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(store_sale_payments.created_at) >= ? AND DATE(store_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.StoreId > 0 {

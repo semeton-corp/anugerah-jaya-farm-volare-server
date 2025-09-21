@@ -2250,10 +2250,9 @@ func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto
 	case constant.StoreCashflowCategoryReceieveables:
 		storeCashflows := make([]dto.StoreCashflowListResponse, 0)
 		storeSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
-			StoreId:                  filter.StoreId,
-			Page:                     filter.Page,
-			DeadlinePaymentStartDate: param.DateParam(startDate),
-			DeadlinePaymentEndDate:   param.DateParam(endDate),
+			StoreId:         filter.StoreId,
+			Page:            filter.Page,
+			PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		})
 		if err != nil {
 			s.log.Error("failed get store sale cashflows", zap.Error(err))
@@ -2289,10 +2288,8 @@ func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto
 		}
 
 		totalData, err := s.repository.CountTotalStoreSale(dto.GetStoreSaleFilter{
-			StoreId:                  filter.StoreId,
-			Page:                     filter.Page,
-			DeadlinePaymentStartDate: param.DateParam(startDate),
-			DeadlinePaymentEndDate:   param.DateParam(endDate),
+			StoreId:         filter.StoreId,
+			PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		})
 		if err != nil {
 			s.log.Error("failed count total store sale", zap.Error(err))
