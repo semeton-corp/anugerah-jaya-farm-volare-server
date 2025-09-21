@@ -1555,6 +1555,7 @@ func (s *StoreService) GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 
 	storeSales, err := s.repository.GetStoreSales(dto.GetStoreSaleFilter{
+		StoreId:   filter.StoreId,
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
 	})
