@@ -841,7 +841,18 @@ func (h *WarehouseHandler) CreateWarehouseItemProcurementDraft(c *fiber.Ctx) err
 }
 
 func (h *WarehouseHandler) GetWarehouseItemProcurementDrafts(c *fiber.Ctx) error {
-	res, err := h.service.GetWarehouseItemProcurementDrafts()
+	var filter dto.GetWarehouseItemProcurementDraftFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetWarehouseItemProcurementDrafts(filter)
 	if err != nil {
 		return err
 	}
@@ -1135,7 +1146,18 @@ func (h *WarehouseHandler) CreateWarehouseItemCornProcurementDraft(c *fiber.Ctx)
 }
 
 func (h *WarehouseHandler) GetWarehouseItemCornProcurementDrafts(c *fiber.Ctx) error {
-	res, err := h.service.GetWarehouseItemCornProcurementDrafts()
+	var filter dto.GetWarehouseItemCornProcurementDraftFilter
+	if err := c.QueryParser(&filter); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return errx.BadRequest(err.Error())
+	}
+
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("validation error", zap.Error(err))
+		return err
+	}
+
+	res, err := h.service.GetWarehouseItemCornProcurementDrafts(filter)
 	if err != nil {
 		return err
 	}

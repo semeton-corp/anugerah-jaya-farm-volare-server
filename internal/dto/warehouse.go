@@ -613,3 +613,11 @@ type GetWarehouseItemCornProcurementPaymentFilter struct {
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
 }
+
+type GetWarehouseItemProcurementDraftFilter struct {
+	WarehouseId uint64 `query:"warehouseId"`
+}
+
+type GetWarehouseItemCornProcurementDraftFilter struct {
+	WarehouseId uint64 `query:"warehouseId"`
+}

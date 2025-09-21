@@ -62,7 +62,7 @@ type IWarehouseRepository interface {
 
 	CreateWarehouseItemProcurementDraftInBatch(data *[]entity.WarehouseItemProcurementDraft) error
 	CreateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error
-	GetWarehouseItemProcurementDrafts() ([]entity.WarehouseItemProcurementDraft, error)
+	GetWarehouseItemProcurementDrafts(filter dto.GetWarehouseItemProcurementDraftFilter) ([]entity.WarehouseItemProcurementDraft, error)
 	GetWarehouseItemProcurementDraft(id uint64) (entity.WarehouseItemProcurementDraft, error)
 	UpdateWarehouseItemProcurementDraft(data *entity.WarehouseItemProcurementDraft) error
 	DeleteWarehouseItemProcurementDraft(id uint64) error
@@ -81,7 +81,7 @@ type IWarehouseRepository interface {
 	DeleteWarehouseItemProcurementPayment(id uint64) error
 
 	CreateWarehouseItemCornProcurementDraft(data *entity.WarehouseItemCornProcurementDraft) error
-	GetWarehouseItemCornProcurementDrafts() ([]entity.WarehouseItemCornProcurementDraft, error)
+	GetWarehouseItemCornProcurementDrafts(filter dto.GetWarehouseItemCornProcurementDraftFilter) ([]entity.WarehouseItemCornProcurementDraft, error)
 	GetWarehouseItemCornProcurementDraft(id uint64) (entity.WarehouseItemCornProcurementDraft, error)
 	UpdateWarehouseItemCornProcurementDraft(data *entity.WarehouseItemCornProcurementDraft) error
 	DeleteWarehouseItemCornProcurementDraft(id uint64) error
@@ -526,9 +526,15 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurementDraft(data *entity.W
 	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Create(data).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts() ([]entity.WarehouseItemProcurementDraft, error) {
+func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts(filter dto.GetWarehouseItemProcurementDraftFilter) ([]entity.WarehouseItemProcurementDraft, error) {
 	var data []entity.WarehouseItemProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Order("days_need * price ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
+	query := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{})
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	err := query.Order("days_need * price ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +631,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("created_at DESC").Find(&data).Error
+	err := query.Order("item_id ASC").Order("total_price ASC").Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -725,9 +731,15 @@ func (r *WarehouseRepository) CreateWarehouseItemCornProcurementDraft(data *enti
 	return r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Create(data).Error
 }
 
-func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts() ([]entity.WarehouseItemCornProcurementDraft, error) {
+func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts(filter dto.GetWarehouseItemCornProcurementDraftFilter) ([]entity.WarehouseItemCornProcurementDraft, error) {
 	var warehouseItemCornProcurementDrafts []entity.WarehouseItemCornProcurementDraft
-	err := r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{}).Order("price * quantity ASC").Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
+	query := r.GetDB().Model(&entity.WarehouseItemCornProcurementDraft{})
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	err := query.Order("price * quantity ASC").Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}

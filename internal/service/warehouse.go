@@ -71,7 +71,7 @@ type IWarehouseService interface {
 	AllocateWarehouseSaleQueue(id uint64, request dto.CreateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error)
 
 	CreateWarehouseItemProcurementDraft(request dto.CreateWarehouseItemProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemProcurementDraftResponse, error)
-	GetWarehouseItemProcurementDrafts() ([]dto.WarehouseItemProcurementDraftResponse, error)
+	GetWarehouseItemProcurementDrafts(filter dto.GetWarehouseItemProcurementDraftFilter) ([]dto.WarehouseItemProcurementDraftResponse, error)
 	GetWarehouseItemProcurementDraft(id uint64) (dto.WarehouseItemProcurementDraftResponse, error)
 	UpdateWarehouseItemProcurementDraft(id uint64, request dto.UpdateWarehouseItemProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemProcurementDraftResponse, error)
 	DeleteWarehouseItemProcurementDraft(id uint64) error
@@ -87,7 +87,7 @@ type IWarehouseService interface {
 	DeleteWarehouseItemProcurementPayment(id uint64, warehouseItemProcurementId uint64, userId uuid.UUID) error
 
 	CreateWarehouseItemCornProcurementDraft(request dto.CreateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error)
-	GetWarehouseItemCornProcurementDrafts() ([]dto.WarehouseItemCornProcurementDraftResponse, error)
+	GetWarehouseItemCornProcurementDrafts(filter dto.GetWarehouseItemCornProcurementDraftFilter) ([]dto.WarehouseItemCornProcurementDraftResponse, error)
 	GetWarehouseItemCornProcurementDraft(id uint64) (dto.WarehouseItemCornProcurementDraftResponse, error)
 	UpdateWarehouseItemCornProcurementDraft(id uint64, request dto.UpdateWarehouseItemCornProcurementDraftRequest, userId uuid.UUID) (dto.WarehouseItemCornProcurementDraftResponse, error)
 	DeleteWarehouseItemCornProcurementDraft(id uint64) error
@@ -1799,10 +1799,10 @@ func (s *WarehouseService) CreateWarehouseItemProcurementDraft(request dto.Creat
 	return mapper.WarehouseItemProcurementDraftToResponse(&data), nil
 }
 
-func (s *WarehouseService) GetWarehouseItemProcurementDrafts() ([]dto.WarehouseItemProcurementDraftResponse, error) {
+func (s *WarehouseService) GetWarehouseItemProcurementDrafts(filter dto.GetWarehouseItemProcurementDraftFilter) ([]dto.WarehouseItemProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	data, err := s.repository.GetWarehouseItemProcurementDrafts()
+	data, err := s.repository.GetWarehouseItemProcurementDrafts(filter)
 	if err != nil {
 		s.log.Error("failed get warehouse item procurement drafts", zap.Error(err))
 		return nil, err
@@ -2598,10 +2598,10 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurementDraft(request dto.C
 	return mapper.WarehouseItemCornProcurementDraftToResponse(&data, cornItem), nil
 }
 
-func (s *WarehouseService) GetWarehouseItemCornProcurementDrafts() ([]dto.WarehouseItemCornProcurementDraftResponse, error) {
+func (s *WarehouseService) GetWarehouseItemCornProcurementDrafts(filter dto.GetWarehouseItemCornProcurementDraftFilter) ([]dto.WarehouseItemCornProcurementDraftResponse, error) {
 	s.repository.UseTx(false)
 
-	data, err := s.repository.GetWarehouseItemCornProcurementDrafts()
+	data, err := s.repository.GetWarehouseItemCornProcurementDrafts(filter)
 	if err != nil {
 		return nil, err
 	}
