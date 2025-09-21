@@ -112,7 +112,7 @@ type DailyWorkUserResponse struct {
 	IsDone       bool                    `json:"isDone"`
 	Note         string                  `json:"note"`
 	DailyWork    DailyWorkDetailResponse `json:"dailyWork"`
-	FinishedDate string                  `json:"finishedAt"`
+	FinishedDate string                  `json:"finishedDate"`
 	FinishedTime string                  `json:"finishedTime"`
 	CreatedAt    time.Time               `json:"-"`
 	Status       string                  `json:"status"`

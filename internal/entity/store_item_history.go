@@ -16,7 +16,7 @@ type StoreItemHistory struct {
 	QuantityBefore float64                `gorm:"type:decimal;not null"`
 	QuantityAfter  float64                `gorm:"type:decimal;not null"`
 	Status         enum.ItemHistoryStatus `gorm:"type:int;not null"`
-	UserId         uuid.UUID              `gorm:"type:varchar(255);not null"`
+	UserId         uuid.UUID              `gorm:"type:varchar(255);constraint:OnDelete:SET NULL"`
 	User           User                   `gorm:"foreignKey:UserId;references:Id" json:"-"`
 	CreatedAt      time.Time              `gorm:"type:timestamp;autoCreateTime"`
 }
