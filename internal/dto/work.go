@@ -139,7 +139,7 @@ type AdditionalWorkListResponse struct {
 	Place                string `json:"place"`
 	RemainingSlot        uint64 `json:"remainingSlot"`
 	Status               string `json:"status"`
-	IsTakenByCurrentUser bool   `json:"IsTakenByCurrentUser"`
+	IsTakenByCurrentUser *bool  `json:"IsTakenByCurrentUser,omitempty"`
 }
 
 type GetAdditonalWorkFilter struct {

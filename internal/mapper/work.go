@@ -51,7 +51,7 @@ func AdditionalWorkUserInformationToResponse(additionalWorkUser *entity.Addition
 	}
 }
 
-// Note : without status
+// Note : without status, isTakenByCurrUser
 func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.AdditionalWorkListResponse {
 	response := dto.AdditionalWorkListResponse{
 		Id:            additionalWork.Id,
@@ -135,8 +135,18 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("02 Jan 2006"),
 			Time:        additionalWorkUser.AdditionalWork.CreatedAt.Format("15:04"),
 			Salary:      additionalWorkUser.AdditionalWork.Salary.String(),
+			Location:    LocationToResponse(&additionalWorkUser.AdditionalWork.Location),
+			PlaceType:   additionalWorkUser.AdditionalWork.LocationType.String(),
 		},
 		CreatedAt: additionalWorkUser.CreatedAt,
+	}
+
+	if additionalWorkUser.AdditionalWork.CageId.Valid {
+		response.AdditionalWork.Place = additionalWorkUser.AdditionalWork.Cage.Name
+	} else if additionalWorkUser.AdditionalWork.WarehouseId.Valid {
+		response.AdditionalWork.Place = additionalWorkUser.AdditionalWork.Warehouse.Name
+	} else if additionalWorkUser.AdditionalWork.StoreId.Valid {
+		response.AdditionalWork.Place = additionalWorkUser.AdditionalWork.Store.Name
 	}
 
 	if additionalWorkUser.TakenAt.Valid {

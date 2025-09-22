@@ -505,7 +505,9 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, curr
 		}
 
 		additionalWorkResponses[i] = mapper.AdditionalWorkToListResponse(&additionalWork)
-		additionalWorkResponses[i].IsTakenByCurrentUser = isTakenByCurrentUser
+		if currUser != uuid.Nil {
+			additionalWorkResponses[i].IsTakenByCurrentUser = &isTakenByCurrentUser
+		}
 	}
 
 	if filter.Status == constant.AdditionalWorkAvailable {

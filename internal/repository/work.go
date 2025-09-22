@@ -229,6 +229,10 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	err := query.Where("users.id = ?", userId).
 		Preload("AdditionalWork").
 		Preload("User").
+		Preload("AdditionalWork.Store").
+		Preload("AdditionalWork.Cage").
+		Preload("AdditionalWork.Warehouse").
+		Preload("AdditionalWork.Location").
 		Order("created_at DESC").
 		Find(&additionalWorks).Error
 
@@ -331,6 +335,10 @@ func (r *WorkRepository) GetAdditionalWorkUserById(id uint64) (entity.Additional
 	err := r.GetDB().
 		Model(&entity.AdditionalWorkUser{}).
 		Preload("AdditionalWork", "deleted_at IS NULL").
+		Preload("AdditionalWork.Store").
+		Preload("AdditionalWork.Cage").
+		Preload("AdditionalWork.Warehouse").
+		Preload("AdditionalWork.Location").
 		Preload("User").
 		Where("id = ?", id).
 		First(&additionalWorkUser).Error
