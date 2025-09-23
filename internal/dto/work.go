@@ -82,6 +82,7 @@ type AdditionalWorkUserInformationResponse struct {
 
 type AdditionalWorkDetailResponse struct {
 	Id          uint64           `json:"id"`
+	Name        string           `json:"name"`
 	Description string           `json:"description"`
 	Date        string           `json:"date"`
 	Time        string           `json:"time"`
@@ -134,7 +135,8 @@ type AdditionalWorkListResponse struct {
 	Id                   uint64 `json:"id"`
 	Date                 string `json:"date"`
 	Time                 string `json:"time"`
-	Name                 string `json:"description"`
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
 	Location             string `json:"location"`
 	Place                string `json:"place"`
 	RemainingSlot        uint64 `json:"remainingSlot"`

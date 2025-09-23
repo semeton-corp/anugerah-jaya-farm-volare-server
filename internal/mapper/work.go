@@ -58,6 +58,7 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 		Date:          additionalWork.WorkDate.Format("02 Jan 2006"),
 		Time:          additionalWork.WorkDate.Format("15:04"),
 		Name:          additionalWork.Name,
+		Description:   additionalWork.Description,
 		Location:      additionalWork.Location.Name,
 		RemainingSlot: additionalWork.Slot - uint64(len(additionalWork.AdditionalWorkUsers)),
 	}
@@ -131,6 +132,7 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 		Note:   additionalWorkUser.Note,
 		AdditionalWork: dto.AdditionalWorkDetailResponse{
 			Id:          additionalWorkUser.AdditionalWork.Id,
+			Name:        additionalWorkUser.AdditionalWork.Name,
 			Description: additionalWorkUser.AdditionalWork.Description,
 			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("02 Jan 2006"),
 			Time:        additionalWorkUser.AdditionalWork.CreatedAt.Format("15:04"),
