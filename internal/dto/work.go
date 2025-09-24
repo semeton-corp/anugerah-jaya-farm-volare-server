@@ -31,6 +31,7 @@ type DailyWorkResponse struct {
 type DailyWorkDetailResponse struct {
 	Id          uint64 `json:"id"`
 	Description string `json:"description"`
+	Date        string `json:"date"`
 	StartTime   string `json:"startTime"`
 	EndTime     string `json:"endTime"`
 }

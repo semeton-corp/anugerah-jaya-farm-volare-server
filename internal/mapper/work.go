@@ -11,6 +11,7 @@ func DailyWorkDetailToResponse(dailyWork *entity.DailyWork) dto.DailyWorkDetailR
 	return dto.DailyWorkDetailResponse{
 		Id:          dailyWork.Id,
 		Description: dailyWork.Description,
+		Date:        dailyWork.CreatedAt.Format("02 Jan 20006"),
 		StartTime:   dailyWork.StartTime.Time.Format("15:04"),
 		EndTime:     dailyWork.EndTime.Time.Format("15:04"),
 	}
@@ -85,6 +86,7 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 	response := dto.DailyWorkUserResponse{
 		Id:        dailyWorkUser.Id,
 		IsDone:    dailyWorkUser.IsDone,
+		DailyWork: DailyWorkDetailToResponse(&dailyWorkUser.DailyWork),
 		Note:      dailyWorkUser.Note,
 		CreatedAt: dailyWorkUser.CreatedAt,
 	}
