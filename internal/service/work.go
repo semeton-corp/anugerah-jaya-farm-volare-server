@@ -673,9 +673,9 @@ func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto
 		return dto.AdditionalWorkUserListPaginationResponse{}, err
 	}
 
-	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0)
+	additionalWorkResponses := make([]dto.AdditionalWorkUserResponse, 0)
 	for _, additionalWork := range additionalWorkUsers {
-		additionalWorkResponse = append(additionalWorkResponse, mapper.AdditionalWorkUserToResponse(&additionalWork))
+		additionalWorkResponses = append(additionalWorkResponses, mapper.AdditionalWorkUserToResponse(&additionalWork))
 	}
 
 	totalData, err := w.repository.CountAdditionalWorkUserByUserId(userId, filter)
@@ -685,7 +685,7 @@ func (w *WorkService) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter dto
 	}
 
 	resp := dto.AdditionalWorkUserListPaginationResponse{
-		AdditionalWorkUsers: additionalWorkResponse,
+		AdditionalWorkUsers: additionalWorkResponses,
 	}
 
 	if filter.Page > 0 {

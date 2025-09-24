@@ -223,7 +223,7 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	}
 
 	if filter.Page > 0 {
-		query = query.Offset(int(constant.PaginationDefaultLimit-1) * int(filter.Page)).Limit(int(constant.PaginationDefaultLimit))
+		query = query.Offset(int(filter.Page-1) * int(constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	err := query.Where("users.id = ?", userId).
@@ -239,6 +239,7 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	if err != nil {
 		return nil, err
 	}
+
 	return additionalWorks, nil
 }
 
