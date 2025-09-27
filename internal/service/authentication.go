@@ -102,10 +102,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 		return dto.SignUpResponse{}, err
 	}
 
-	if err = s.repository.Commit(); err != nil {
-		s.log.Error("failed to commit transaction", zap.Error(err))
-	}
-
 	if request.PlacementIds != nil {
 		role, err := s.roleService.GetRoleById(request.RoleId)
 		if err != nil {
@@ -123,7 +119,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 
 			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId, request.RoleId)
 			if err != nil {
-				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}
 		} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
@@ -136,7 +131,6 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				StoreId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
-				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}
 		} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
@@ -149,10 +143,13 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 				WarehouseId: request.PlacementIds[0],
 			}, userId)
 			if err != nil {
-				s.repository.DeleteUser(Id)
 				return dto.SignUpResponse{}, err
 			}
 		}
+	}
+
+	if err = s.repository.Commit(); err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 	}
 
 	user, err = s.repository.GetUserById(Id)

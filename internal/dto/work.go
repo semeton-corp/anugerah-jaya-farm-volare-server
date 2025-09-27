@@ -40,7 +40,7 @@ type CreateAdditionalWorkRequest struct {
 	Name         string   `json:"name" validate:"required"`
 	LocationId   uint64   `json:"locationId" validate:"required"`
 	LocationType string   `json:"locationType" validate:"required,locationType"`
-	PlaceId      uint64   `json:"placeId" validate:"required"`
+	PlaceId      *uint64  `json:"placeId"`
 	Description  string   `json:"description" validate:"required"`
 	Slot         uint64   `json:"slot" validate:"required"`
 	Salary       string   `json:"salary" validate:"required"`
@@ -52,7 +52,7 @@ type UpdateAdditionalWorkRequest struct {
 	Name         string   `json:"name" validate:"required"`
 	LocationId   uint64   `json:"locationId" validate:"required"`
 	LocationType string   `json:"locationType" validate:"required,locationType"`
-	PlaceId      uint64   `json:"placeId" validate:"required"`
+	PlaceId      *uint64  `json:"placeId"`
 	Description  string   `json:"description" validate:"required"`
 	Slot         uint64   `json:"slot" validate:"required"`
 	Salary       string   `json:"salary" validate:"required"`
@@ -146,8 +146,10 @@ type AdditionalWorkListResponse struct {
 }
 
 type GetAdditonalWorkFilter struct {
-	Status     string `query:"status"`
-	LocationId uint64 `query:"locationId"`
+	Status       string                  `query:"status"`
+	LocationId   uint64                  `query:"locationId"`
+	LocationType param.LocationTypeParam `query:"locationType"`
+	PlaceId      uint64                  `query:"placeId"`
 }
 
 type UpdateAdditionalWorkUserRequest struct {

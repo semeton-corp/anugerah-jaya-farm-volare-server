@@ -11,11 +11,11 @@ import (
 type WarehouseItemProcurementDraft struct {
 	Id            uint64          `gorm:"primaryKey;autoIncrement"`
 	WarehouseId   uint64          `gorm:"type:bigint;not null"`
-	Warehouse     Warehouse       `gorm:"foreignKey:WarehouseId;refereces:Id"`
+	Warehouse     Warehouse       `gorm:"foreignKey:WarehouseId;refereces:Id;constraint:OnDelete:CASCADE"`
 	ItemId        uint64          `gorm:"type:bigint;not null"`
-	Item          Item            `gorm:"foreignKey:ItemId;references:Id"`
+	Item          Item            `gorm:"foreignKey:ItemId;references:Id;constraint:OnDelete:CASCADE"`
 	SupplierId    sql.NullInt64   `gorm:"type:bigint"`
-	Supplier      Supplier        `gorm:"foreignKey:SupplierId;references:Id"`
+	Supplier      Supplier        `gorm:"foreignKey:SupplierId;references:Id;constraint:OnDelete:CASCADE"`
 	DailySpending float64         `gorm:"type:decimal;not null"`
 	DaysNeed      uint64          `gorm:"type:int;not null"`
 	Price         decimal.Decimal `gorm:"type:decimal;not null"`

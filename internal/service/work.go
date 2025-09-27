@@ -272,13 +272,15 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	switch locationType {
-	case enum.LocationTypeCage:
-		additionalWork.CageId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-	case enum.LocationTypeStore:
-		additionalWork.StoreId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-	case enum.LocationTypeWarehouse:
-		additionalWork.WarehouseId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
+	if request.PlaceId != nil {
+		switch locationType {
+		case enum.LocationTypeCage:
+			additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+		case enum.LocationTypeStore:
+			additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+		case enum.LocationTypeWarehouse:
+			additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+		}
 	}
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {
@@ -388,19 +390,21 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	additionalWork.LocationType = locationType
 	additionalWork.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
-	switch locationType {
-	case enum.LocationTypeCage:
-		additionalWork.CageId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-		additionalWork.WarehouseId = sql.NullInt64{}
-		additionalWork.StoreId = sql.NullInt64{}
-	case enum.LocationTypeStore:
-		additionalWork.StoreId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-		additionalWork.WarehouseId = sql.NullInt64{}
-		additionalWork.CageId = sql.NullInt64{}
-	case enum.LocationTypeWarehouse:
-		additionalWork.WarehouseId = sql.NullInt64{Int64: int64(request.PlaceId), Valid: true}
-		additionalWork.StoreId = sql.NullInt64{}
-		additionalWork.CageId = sql.NullInt64{}
+	if request.PlaceId != nil {
+		switch locationType {
+		case enum.LocationTypeCage:
+			additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+			additionalWork.WarehouseId = sql.NullInt64{}
+			additionalWork.StoreId = sql.NullInt64{}
+		case enum.LocationTypeStore:
+			additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+			additionalWork.WarehouseId = sql.NullInt64{}
+			additionalWork.CageId = sql.NullInt64{}
+		case enum.LocationTypeWarehouse:
+			additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+			additionalWork.StoreId = sql.NullInt64{}
+			additionalWork.CageId = sql.NullInt64{}
+		}
 	}
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {

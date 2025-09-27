@@ -21,7 +21,7 @@ type User struct {
 	Role           Role                `gorm:"foreignKey:RoleId;references:Id;constraint:OnDelete:set null"`
 	PhotoProfile   string              `gorm:"type:text;default:null"`
 	Name           string              `gorm:"type:varchar(255);not null"`
-	PhoneNumber    string              `gorm:"type:varchar(255);not null"`
+	PhoneNumber    string              `gorm:"type:varchar(255);not null;unique"`
 	Address        string              `gorm:"type:text;not null"`
 	SalaryInterval enum.SalaryInterval `gorm:"type:int;not null;default:1"`
 	Salary         decimal.Decimal     `gorm:"type:decimal;not null"`

@@ -65,7 +65,7 @@ func (r *AuthenticationRepository) CreateUser(user *entity.User) error {
 	err := r.GetDB().Create(user).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return errx.BadRequest("email already exists")
+			return errx.BadRequest("user already exists")
 		}
 	}
 

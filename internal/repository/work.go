@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"gorm.io/gorm"
@@ -287,6 +288,17 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 
 	if filter.LocationId > 0 {
 		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
+	if !filter.LocationType.Value().IsValid() {
+		switch filter.LocationType.Value() {
+		case enum.LocationTypeCage:
+			query = query.Where("cage_id = ?", filter.PlaceId)
+		case enum.LocationTypeStore:
+			query = query.Where("store_id = ?", filter.PlaceId)
+		case enum.LocationTypeWarehouse:
+			query = query.Where("warehouse_id = ?", filter.PlaceId)
+		}
 	}
 
 	err := query.
