@@ -1844,11 +1844,16 @@ func (s *WarehouseService) UpdateWarehouseItemProcurementDraft(id uint64, reques
 
 	warehouseItemProcurementDraft.WarehouseId = request.WarehouseId
 	warehouseItemProcurementDraft.ItemId = request.ItemId
-	warehouseItemProcurementDraft.SupplierId = sql.NullInt64{Int64: int64(request.SupplierId), Valid: true}
 	warehouseItemProcurementDraft.DailySpending = request.DailySpending
 	warehouseItemProcurementDraft.DaysNeed = request.DaysNeed
 	warehouseItemProcurementDraft.Price = price
 	warehouseItemProcurementDraft.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if request.SupplierId != nil {
+		warehouseItemProcurementDraft.SupplierId = sql.NullInt64{Int64: int64(*request.SupplierId), Valid: true}
+	} else {
+		warehouseItemProcurementDraft.SupplierId = sql.NullInt64{Valid: false}
+	}
 
 	err = s.repository.UpdateWarehouseItemProcurementDraft(&warehouseItemProcurementDraft)
 	if err != nil {
