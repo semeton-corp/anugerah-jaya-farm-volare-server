@@ -771,12 +771,15 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 		data.Disease = sql.NullString{String: *request.Disease, Valid: true}
 	}
 
-	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
-		TotalChicken:                   chickenCage.TotalChicken,
-		LatestChickenAgeVaccineRoutine: &chickenCage.ChickenAge,
-	}, userId)
-	if err != nil {
-		return dto.ChickenHealthMonitoringResponse{}, err
+	if chickenHealthMonitoringType == enum.ChickenHealthItemTypeVaccineRoutine {
+		_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
+			TotalChicken:                   chickenCage.TotalChicken,
+			LatestChickenAgeVaccineRoutine: &chickenCage.ChickenAge,
+			IsNeedRoutineVaccine:           false,
+		}, userId)
+		if err != nil {
+			return dto.ChickenHealthMonitoringResponse{}, err
+		}
 	}
 
 	err = s.repository.CreateChickenHealthMonitoring(&data)

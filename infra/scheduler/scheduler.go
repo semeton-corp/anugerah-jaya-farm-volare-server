@@ -917,7 +917,7 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 			chickenCageNeedVaccineIds = append(chickenCageNeedVaccineIds, chickenCage.Id)
 			notifications = append(notifications, entity.Notification{
 				CageId:               sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
-				NotificationContexts: pq.StringArray{constant.ChickenMonitoringNotificationContext},
+				NotificationContexts: pq.StringArray{constant.VaccineMonitoringNotificationContext},
 				Description:          fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
 			})
 		}

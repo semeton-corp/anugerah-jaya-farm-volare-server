@@ -6,6 +6,7 @@ const (
 	EggMonitoringNotificationContext                string = "Monitoring Telur"
 	AfkirChickenSaleNotificationContext             string = "Penjualan Ayam"
 	ChickenMonitoringNotificationContext            string = "Monitoring Ayam"
+	VaccineMonitoringNotificationContext            string = "Vaksin Ayam"
 	WarehouseItemNotificationContext                string = "Barang Gudang"
 	StoreItemNotificationContext                    string = "Barang Toko"
 	DebtNotificationContext                         string = "Hutang"
@@ -16,5 +17,5 @@ const (
 	UserCashAdvanceNotificationContext              string = "Pinjaman Pegawai"
 	WorkNotificationContext                         string = "Pekerjaan"
 	UserKPINotificationContext                      string = "Performa Pegawai"
-	ChickenKPINotificationContext                      string = "Performa Ayam"
+	ChickenKPINotificationContext                   string = "Performa Ayam"
 )
