@@ -288,20 +288,14 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 		return dto.AdditionalWorkResponse{}, err
 	}
 
-	IsAdditionalWorkFull := false
-	if request.Slot == uint64(len(request.UserIds)) {
-		IsAdditionalWorkFull = true
-	}
-
 	additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
 	if request.UserIds != nil {
 		for _, userIdReq := range request.UserIds {
 			additionalWorkUsers = append(additionalWorkUsers, entity.AdditionalWorkUser{
-				UserId:               uuid.MustParse(userIdReq),
-				AdditionalWorkId:     additionalWork.Id,
-				IsAdditionalWorkFull: IsAdditionalWorkFull,
-				CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
-				TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
+				UserId:           uuid.MustParse(userIdReq),
+				AdditionalWorkId: additionalWork.Id,
+				CreatedBy:        uuid.NullUUID{UUID: userId, Valid: true},
+				TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
 			})
 		}
 
@@ -439,20 +433,14 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 		}
 	}
 
-	isAdditionalWorkFull := false
-	if request.Slot == uint64(len(request.UserIds)) {
-		isAdditionalWorkFull = true
-	}
-
 	if newUserIds != nil {
 		additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
 
 		for _, userId := range newUserIds {
 			additionalWorkUsers = append(additionalWorkUsers, entity.AdditionalWorkUser{
-				UserId:               userId,
-				AdditionalWorkId:     additionalWork.Id,
-				IsAdditionalWorkFull: isAdditionalWorkFull,
-				CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
+				UserId:           userId,
+				AdditionalWorkId: additionalWork.Id,
+				CreatedBy:        uuid.NullUUID{UUID: userId, Valid: true},
 			})
 		}
 
@@ -535,7 +523,13 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 		return dto.AdditionalWorkUserResponse{}, err
 	}
 
-	if !additionalWorkUser.IsAdditionalWorkFull {
+	additionalWork, err := w.repository.GetAdditionalWorkById(additionalWorkUser.AdditionalWorkId)
+	if err != nil {
+		w.log.Error("failed to get additional work by id", zap.Error(err))
+		return dto.AdditionalWorkUserResponse{}, err
+	}
+
+	if int(additionalWork.Slot) == len(additionalWork.AdditionalWorkUsers) {
 		w.log.Warn("additional work must be full taken")
 		return dto.AdditionalWorkUserResponse{}, errx.BadRequest("additional work must be full taken")
 	}
@@ -614,11 +608,10 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 	)
 	if len(additionalWork.AdditionalWorkUsers)+1 == int(additionalWork.Slot) {
 		additionalWorkUser = entity.AdditionalWorkUser{
-			AdditionalWorkId:     id,
-			UserId:               userId,
-			IsDone:               false,
-			IsAdditionalWorkFull: true,
-			TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
+			AdditionalWorkId: id,
+			UserId:           userId,
+			IsDone:           false,
+			TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
 		}
 
 		err := w.repository.UpdateAdditionalWorkUserByAdditionalWorkId(id, map[string]any{
@@ -631,11 +624,10 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 
 	} else {
 		additionalWorkUser = entity.AdditionalWorkUser{
-			AdditionalWorkId:     id,
-			UserId:               userId,
-			IsDone:               false,
-			IsAdditionalWorkFull: false,
-			TakenAt:              sql.NullTime{Time: time.Now(), Valid: true},
+			AdditionalWorkId: id,
+			UserId:           userId,
+			IsDone:           false,
+			TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
 		}
 	}
 

@@ -381,12 +381,11 @@ func (r *WorkRepository) GetAdditionalWorkUserById(id uint64) (entity.Additional
 
 func (r *WorkRepository) UpdateAdditionalWorkUser(data *entity.AdditionalWorkUser) error {
 	updates := map[string]interface{}{
-		"is_done":                 data.IsDone,
-		"is_additional_work_full": data.IsAdditionalWorkFull,
-		"note":                    data.Note,
-		"finished_at":             data.FinishedAt,
-		"taken_at":                data.TakenAt,
-		"updated_by":              data.UpdatedBy,
+		"is_done":     data.IsDone,
+		"note":        data.Note,
+		"finished_at": data.FinishedAt,
+		"taken_at":    data.TakenAt,
+		"updated_by":  data.UpdatedBy,
 	}
 
 	return r.GetDB().
