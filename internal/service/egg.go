@@ -595,13 +595,13 @@ func (s *EggService) buildEggOverviewDetails(
 
 	details := []dto.EggOverviewDetailResponse{
 		{Name: constant.GoodEgg, Quantity: float64(totalGoodEggInButir), Unit: constant.UnitButir},
-		{Name: constant.GoodEgg, Quantity: math.Ceil(float64(totalGoodEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
+		{Name: constant.GoodEgg, Quantity: math.Floor(float64(totalGoodEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
 		{Name: constant.CrackedEgg, Quantity: float64(totalCrackedEggInButir), Unit: constant.UnitButir},
-		{Name: constant.CrackedEgg, Quantity: math.Ceil(float64(totalCrackedEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
+		{Name: constant.CrackedEgg, Quantity: math.Floor(float64(totalCrackedEggInButir) / float64(constant.TotalEggPerKarpet)), Unit: constant.UnitKarpet},
 		{Name: constant.GoodEgg, Quantity: totalGoodEggInKg, Unit: constant.UnitKg},
-		{Name: constant.GoodEgg, Quantity: math.Ceil(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
+		{Name: constant.GoodEgg, Quantity: math.Floor(totalGoodEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
 		{Name: constant.CrackedEgg, Quantity: totalCrackedEggInKg, Unit: constant.UnitKg},
-		{Name: constant.CrackedEgg, Quantity: math.Ceil(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
+		{Name: constant.CrackedEgg, Quantity: math.Floor(totalCrackedEggInKg / float64(constant.TotalEggPerIkat)), Unit: constant.UnitIkat},
 		{Name: constant.RejectEgg, Quantity: float64(totalRejectEggInButir), Unit: constant.UnitButir},
 	}
 	return details
