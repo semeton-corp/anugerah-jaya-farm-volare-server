@@ -301,6 +301,14 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 		db = db.Where(`user_id IN (?)`, r.GetDB().Table("warehouse_placements").
 			Select("user_id").
 			Where("warehouse_id = ?", filter.PlaceId))
+	case enum.LocationTypeUnassigned:
+		db = db.Where(`user_id IN (?)`, r.GetDB().Table("users").
+			Select("id").
+			Where("location_id = ? AND roles.name NOT IN ('Kepala Kandang', 'Owner') AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM warehouse_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM store_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM cage_placements)", filter.PlaceId))
+	case enum.LocationTypeSite:
+		db = db.Where(`user_id IN (?)`, r.GetDB().Table("users").
+			Select("id").
+			Where("location_id = ? AND roles.name = 'Kepala Kandang'", filter.PlaceId))
 	default:
 		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}
@@ -349,6 +357,12 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		db = db.
 			Joins(`LEFT JOIN warehouse_placements ON warehouse_placements.user_id = users.id`).
 			Where("warehouse_placements.warehouse_id = ?", filter.PlaceId)
+	case enum.LocationTypeSite:
+		db = db.
+			Where("users.location_id = ? AND roles.name = 'Kepala Kandang'", filter.PlaceId)
+	case enum.LocationTypeUnassigned:
+		db = db.
+			Where("users.location_id = ? AND roles.name NOT IN ('Kepala Kandang', 'Owner') AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM warehouse_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM store_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM cage_placements)", filter.PlaceId)
 	default:
 		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}
