@@ -174,6 +174,7 @@ type GetAdditionalWorkUserFilter struct {
 	Month                param.MonthParam `query:"month"`
 	Year                 uint64           `query:"year"`
 	Page                 uint64           `query:"page"`
+	WithDoneToday        bool             `query:"withIsDoneToday"`
 	IsAdditionalWorkFull bool             `query:"isAdditionalWorkFull"`
 	WithDeleted          *bool            `query:"withDeleted" validate:"required"`
 }

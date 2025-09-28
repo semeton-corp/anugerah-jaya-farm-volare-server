@@ -228,6 +228,12 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 		query = query.Offset(int(filter.Page-1) * int(constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
+	if filter.WithDoneToday {
+		query = query.Where(
+			"(additional_work_users.is_done = true AND DATE(additional_work_users.finished_at) = CURRENT_DATE) OR (additional_work_users.is_done = false)",
+		)
+	}
+
 	err := query.Where("users.id = ?", userId).
 		Preload("AdditionalWork").
 		Preload("User").

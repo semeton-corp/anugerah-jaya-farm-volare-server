@@ -222,6 +222,7 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 	additionalWorkUsers, err := w.repository.GetAdditionalWorkUserByUserId(userId, dto.GetAdditionalWorkUserFilter{
 		WithDeleted:          &withDeleted,
 		IsAdditionalWorkFull: true,
+		WithDoneToday:        true,
 	})
 	if err != nil {
 		w.log.Error("failed to get daily work user", zap.Error(err))
@@ -542,7 +543,12 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 	additionalWorkUser.IsDone = request.IsDone
 	additionalWorkUser.Note = request.Note
 	additionalWorkUser.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	additionalWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
+
+	if request.IsDone {
+		additionalWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
+	} else {
+		additionalWorkUser.FinishedAt = sql.NullTime{Valid: false}
+	}
 
 	if err := w.repository.UpdateAdditionalWorkUser(&additionalWorkUser); err != nil {
 		w.log.Error("failed to update additional work user", zap.Error(err))
@@ -569,7 +575,12 @@ func (w *WorkService) UpdateDailyWorkUser(id uint64, request dto.UpdateDailyWork
 	dailyWorkUser.IsDone = request.IsDone
 	dailyWorkUser.Note = request.Note
 	dailyWorkUser.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	dailyWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
+
+	if request.IsDone {
+		dailyWorkUser.FinishedAt = sql.NullTime{Time: time.Now(), Valid: true}
+	} else {
+		dailyWorkUser.FinishedAt = sql.NullTime{Valid: false}
+	}
 
 	if err := w.repository.UpdateDailyWorkUser(&dailyWorkUser); err != nil {
 		w.log.Error("failed to update daily work user", zap.Error(err))
