@@ -119,7 +119,7 @@ func (r *CashflowRepository) GetWarehouseSalePayments(filter dto.GetWarehouseSal
 		Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_sales.warehouse_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(warehouse_sale_payments.created_at) >= ? AND DATE(warehouse_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(warehouse_sale_payments.payment_date) >= ? AND DATE(warehouse_sale_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -143,7 +143,7 @@ func (r *CashflowRepository) GetStoreSalePayments(filter dto.GetStoreSalePayment
 		Joins("LEFT JOIN stores ON stores.id = store_sales.store_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(store_sale_payments.created_at) >= ? AND DATE(store_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(store_sale_payments.payment_date) >= ? AND DATE(store_sale_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -166,7 +166,7 @@ func (r *CashflowRepository) GetAfkirChickenSalePayments(filter dto.GetAfkirChic
 		Joins("LEFT JOIN chicken_cages ON chicken_cages.id = afkir_chicken_sales.chicken_cage_id").Joins("LEFT JOIN cages ON cages.id = chicken_cages.cage_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(afkir_chicken_sale_payments.created_at) >= ? AND DATE(afkir_chicken_sale_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(afkir_chicken_sale_payments.payment_date) >= ? AND DATE(afkir_chicken_sale_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -376,7 +376,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 	query := r.GetDB().Model(&entity.WarehouseItemProcurementPayment{}).Joins("LEFT JOIN warehouse_item_procurements ON warehouse_item_procurements.id = warehouse_item_procurement_payments.warehouse_item_procurement_id").Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id")
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
-		query = query.Where("DATE(payment_date) >= ? AND DATE(payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(warehouse_item_procurement_payments.payment_date) >= ? AND DATE(warehouse_item_procurement_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -563,7 +563,7 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 		Joins("LEFT JOIN users ON  users.id = user_cash_advances.user_id")
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(user_cash_advance_payments.created_at) >= ? AND DATE(user_cash_advance_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(user_cash_advance_payments.payment_date) >= ? AND DATE(user_cash_advance_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {

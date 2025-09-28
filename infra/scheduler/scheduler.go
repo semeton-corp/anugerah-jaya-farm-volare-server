@@ -638,7 +638,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		var warehouseSalePayments []entity.WarehouseSalePayment
 		if err := tx.Joins("JOIN warehouse_sales ws ON ws.id = warehouse_sale_payments.warehouse_sale_id").
 			Joins("JOIN warehouses w ON w.id = ws.warehouse_id").
-			Where("w.location_id = ? AND warehouse_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("w.location_id = ? AND warehouse_sale_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&warehouseSalePayments).Error; err != nil {
 			return err
 		}
@@ -649,7 +649,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		var storeSalePayments []entity.StoreSalePayment
 		if err := tx.Joins("JOIN store_sales ss ON ss.id = store_sale_payments.store_sale_id").
 			Joins("JOIN stores st ON st.id = ss.store_id").
-			Where("st.location_id = ? AND store_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("st.location_id = ? AND store_sale_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&storeSalePayments).Error; err != nil {
 			return err
 		}
@@ -661,7 +661,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		if err := tx.Joins("JOIN afkir_chicken_sales acs ON acs.id = afkir_chicken_sale_payments.afkir_chicken_sale_id").
 			Joins("JOIN chicken_cages cc ON cc.id = acs.chicken_cage_id").
 			Joins("JOIN cages c ON c.id = cc.cage_id").
-			Where("c.location_id = ? AND afkir_chicken_sale_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("c.location_id = ? AND afkir_chicken_sale_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&afkirPayments).Error; err != nil {
 			return err
 		}
@@ -669,20 +669,31 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 			totalIncome = totalIncome.Add(e.Nominal)
 		}
 
-		var chickenProcurements []entity.ChickenProcurementPayment
-		if err := tx.Joins("JOIN chicken_procurements cp ON cp.id = chicken_procurement_payments.chicken_procurement_id").
-			Joins("JOIN cages c ON c.id = cp.cage_id").
-			Where("c.location_id = ? AND chicken_procurement_payments.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
-			Find(&chickenProcurements).Error; err != nil {
+		var userCashAdvancePayment []entity.UserCashAdvancePayment
+		if err := tx.Joins("JOIN user_cash_advances uca ON uca.id = user_cash_advance_payments.user_cash_advance_id").
+			Joins("JOIN users u ON u.id = uca.user_id").
+			Where("u.location_id = ? AND user_cash_advance_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&userCashAdvancePayment).Error; err != nil {
 			return err
 		}
-		for _, e := range chickenProcurements {
+		for _, e := range userCashAdvancePayment {
+			totalIncome = totalIncome.Add(e.Nominal)
+		}
+
+		var chickenProcurementPayments []entity.ChickenProcurementPayment
+		if err := tx.Joins("JOIN chicken_procurements cp ON cp.id = chicken_procurement_payments.chicken_procurement_id").
+			Joins("JOIN cages c ON c.id = cp.cage_id").
+			Where("c.location_id = ? AND chicken_procurement_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&chickenProcurementPayments).Error; err != nil {
+			return err
+		}
+		for _, e := range chickenProcurementPayments {
 			totalExpense = totalExpense.Add(e.Nominal)
 		}
 
 		var salaries []entity.UserSalaryPayment
 		if err := tx.Joins("JOIN users u ON u.id = user_salary_payments.user_id").
-			Where("u.location_id = ? AND user_salary_payments.created_at BETWEEN ? AND ? AND user_salary_payments.is_paid = ?", loc.Id, startDate, endDate, true).
+			Where("u.location_id = ? AND user_salary_payments.payment_date BETWEEN ? AND ? AND user_salary_payments.is_paid = ?", loc.Id, startDate, endDate, true).
 			Find(&salaries).Error; err != nil {
 			return err
 		}
@@ -695,46 +706,159 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 				Sub(e.Cashbond)
 		}
 
+		var warehouseItemProcurementPayments []entity.WarehouseItemProcurementPayment
+		if err := tx.Joins("JOIN chicken_procurements cp ON cp.id = chicken_procurement_payments.chicken_procurement_id").
+			Joins("LEFT JOIN warehouse_item_procurements ON warehouse_item_procurements.id = warehouse_item_procurement_payments.warehouse_item_procurement_id").Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id").
+			Where("warehouses.location_id = ? AND warehouse_item_procurement_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&warehouseItemProcurementPayments).Error; err != nil {
+			return err
+		}
+		for _, e := range warehouseItemProcurementPayments {
+			totalExpense = totalExpense.Add(e.Nominal)
+		}
+
+		var warehouseItemCornProcurementPayments []entity.WarehouseItemCornProcurementPayment
+		if err := tx.Joins("LEFT JOIN warehouse_item_corn_procurements ON warehouse_item_corn_procurements.id = warehouse_item_corn_procurement_payments.warehouse_item_corn_procurement_id").Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_item_corn_procurements.warehouse_id").
+			Where("warehouses.location_id = ? AND warehouse_item_corn_procurement_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&warehouseItemCornProcurementPayments).Error; err != nil {
+			return err
+		}
+		for _, e := range warehouseItemCornProcurementPayments {
+			totalExpense = totalExpense.Add(e.Nominal)
+		}
+
+		var expenses []entity.Expense
+		if err := tx.Where("location_id = ? AND created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).Find(&expenses).Error; err != nil {
+			return err
+		}
+		for _, e := range expenses {
+			totalExpense = totalExpense.Add(e.Nominal)
+		}
+
 		var storeSales []entity.StoreSale
 		if err := tx.Preload("Payments").
 			Joins("JOIN stores st ON st.id = store_sales.store_id").
-			Where("st.location_id = ? AND store_sales.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("st.location_id = ? AND store_sales.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&storeSales).Error; err != nil {
 			return err
 		}
 		for _, sale := range storeSales {
-			total := sale.TotalPrice
-			for _, p := range sale.Payments {
-				total = total.Sub(p.Nominal)
-			}
-			totalReceivables = totalReceivables.Add(total)
 			totalStoreEggSale = totalStoreEggSale.Add(sale.TotalPrice)
 		}
 
 		var warehouseSales []entity.WarehouseSale
 		if err := tx.Preload("Payments").
 			Joins("JOIN warehouses w ON w.id = warehouse_sales.warehouse_id").
-			Where("w.location_id = ? AND warehouse_sales.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("w.location_id = ? AND warehouse_sales.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&warehouseSales).Error; err != nil {
 			return err
 		}
 		for _, sale := range warehouseSales {
+			totalWarehouseEggSale = totalWarehouseEggSale.Add(sale.TotalPrice)
+		}
+
+		var warehouseSaleReceivables []entity.WarehouseSale
+		if err := tx.Preload("Payments").
+			Joins("JOIN warehouses w ON w.id = warehouse_sales.warehouse_id").
+			Where("w.location_id = ? AND warehouse_sales.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("warehouse_sales.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&warehouseSaleReceivables).Error; err != nil {
+			return err
+		}
+		for _, sale := range warehouseSaleReceivables {
 			total := sale.TotalPrice
 			for _, p := range sale.Payments {
 				total = total.Sub(p.Nominal)
 			}
 			totalReceivables = totalReceivables.Add(total)
-			totalWarehouseEggSale = totalWarehouseEggSale.Add(sale.TotalPrice)
 		}
 
-		var chickenProcurementsDebt []entity.ChickenProcurement
+		var afkirSales []entity.AfkirChickenSale
 		if err := tx.Preload("Payments").
-			Joins("JOIN cages c ON c.id = chicken_procurements.cage_id").
-			Where("c.location_id = ? AND chicken_procurements.deadline_payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
-			Find(&chickenProcurementsDebt).Error; err != nil {
+			Joins("JOIN chicken_cages cc ON cc.id = afkir_chicken_sales.chicken_cage_id").
+			Joins("JOIN cages c ON c.id = cc.cage_id").
+			Where("c.location_id = ? AND afkir_chicken_sales.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("afkir_chicken_sales.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&afkirSales).Error; err != nil {
 			return err
 		}
-		for _, procurement := range chickenProcurementsDebt {
+		for _, sale := range afkirSales {
+			total := sale.TotalPrice
+			for _, p := range sale.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalReceivables = totalReceivables.Add(total)
+		}
+
+		var userAdvances []entity.UserCashAdvance
+		if err := tx.Preload("Payments").
+			Joins("JOIN users u ON u.id = user_cash_advances.user_id").
+			Where("u.location_id = ? AND user_cash_advances.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("user_cash_advances.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&userAdvances).Error; err != nil {
+			return err
+		}
+		for _, adv := range userAdvances {
+			total := adv.Nominal
+			for _, p := range adv.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalReceivables = totalReceivables.Add(total)
+		}
+
+		var warehouseItemProcurements []entity.WarehouseItemProcurement
+		if err := tx.Preload("Payments").
+			Joins("JOIN warehouses w ON w.id = warehouse_item_procurements.warehouse_id").
+			Where("w.location_id = ? AND warehouse_item_procurements.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("warehouse_item_procurements.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&warehouseItemProcurements).Error; err != nil {
+			return err
+		}
+		for _, procurement := range warehouseItemProcurements {
+			total := procurement.TotalPrice
+			for _, p := range procurement.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalDebt = totalDebt.Add(total)
+		}
+
+		var warehouseItemCornProcurements []entity.WarehouseItemCornProcurement
+		if err := tx.Preload("Payments").
+			Joins("JOIN warehouses w ON w.id = warehouse_item_corn_procurements.warehouse_id").
+			Where("w.location_id = ? AND warehouse_item_corn_procurements.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("warehouse_item_corn_procurements.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&warehouseItemCornProcurements).Error; err != nil {
+			return err
+		}
+		for _, procurement := range warehouseItemCornProcurements {
+			total := procurement.TotalPrice
+			for _, p := range procurement.Payments {
+				total = total.Sub(p.Nominal)
+			}
+			totalDebt = totalDebt.Add(total)
+		}
+
+		var chickenProcurements []entity.ChickenProcurement
+		if err := tx.Preload("Payments").
+			Joins("JOIN cages c ON c.id = chicken_procurements.cage_id").
+			Where("c.location_id = ? AND chicken_procurements.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Where("chicken_procurements.payment_status IN ?", []enum.PaymentStatus{
+				enum.PaymentStatusNotPaid,
+				enum.PaymentStatusUnpaid,
+			}).Find(&chickenProcurements).Error; err != nil {
+			return err
+		}
+		for _, procurement := range chickenProcurements {
 			total := procurement.TotalPrice
 			for _, p := range procurement.Payments {
 				total = total.Sub(p.Nominal)
@@ -749,7 +873,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 			Receivables:      totalReceivables,
 			Debt:             totalDebt,
 			Cash:             totalIncome.Add(totalReceivables),
-			Profit:           totalIncome.Add(totalReceivables).Sub(totalExpense.Add(totalDebt)),
+			Profit:           totalIncome.Sub(totalExpense),
 			WarehouseEggSale: totalWarehouseEggSale,
 			StoreEggSale:     totalStoreEggSale,
 			CreatedAt:        time.Now(),

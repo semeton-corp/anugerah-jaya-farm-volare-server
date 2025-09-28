@@ -20,6 +20,16 @@ build:
 	@echo "Building the application..."
 	go build -o app.exe cmd/app/main.go
 
+.PHONY: clean-go-cache
+clean-go-cache:
+	@echo "Cleaning Go build cache..."
+	go clean -cache -modcache
+
+.PHONY: clean-docker-cache
+clean-docker-cache:
+	@echo "Cleaning Docker system..."
+	docker system prune -af
+
 .PHONY: compose-dev
 compose-dev:
 	@echo "Starting Docker containers in development mode..."

@@ -2816,13 +2816,13 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 	}
 
 	for _, chickenCage := range chickenCages {
-		totalChicken += chickenCage.TotalChicken
+		totalChicken += chickenMonitoringMap[chickenCage.Id].TotalChicken
 		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
 		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
 		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
 		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
-		count := chickenCage.TotalChicken
+		count := chickenMonitoringMap[chickenCage.Id].TotalChicken
 		switch chickenCage.ChickenCategory {
 		case enum.ChickenCategoryDOC.String():
 			totalDOCChicken += count

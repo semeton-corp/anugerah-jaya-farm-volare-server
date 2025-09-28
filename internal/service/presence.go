@@ -375,7 +375,11 @@ func (s *PresenceService) GetUserPresenceWorkDetailSummaries(filter dto.GetUserP
 	response := make([]dto.UserPresenceWorkDetailSummaryResponse, 0)
 
 	for _, userPresenceWorkDetailSummary := range userPresenceWorkDetailSummaries {
-		workDonePercentage := float64(userPresenceWorkDetailSummary.TotalDoneAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDoneDailyWorkUsers) / float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDailyWorkUsers)
+		totalWork := float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers + userPresenceWorkDetailSummary.TotalDailyWorkUsers)
+		workDonePercentage := float64(0)
+		if totalWork != 0 {
+			workDonePercentage = float64(userPresenceWorkDetailSummary.TotalDoneAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDoneDailyWorkUsers) / float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDailyWorkUsers)
+		}
 
 		newData := dto.UserPresenceWorkDetailSummaryResponse{
 			UserId:             userPresenceWorkDetailSummary.UserId.String(),
