@@ -2700,7 +2700,7 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 		})
 	}
 
-	eggSaleGraphs, err := s.buildStoreOverviewMonthlyGraph(filter.LocationId, filter.ItemId, filter.Year, filter.Month.Value())
+	eggSaleGraphs, err := s.buildEggSaleOverviewMonthlyGraph(filter.LocationId, filter.ItemId, filter.Year, filter.Month.Value())
 	if err != nil {
 		return dto.CashflowSaleOverviewResponse{}, err
 	}
@@ -2813,9 +2813,10 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 	totalExpense := decimal.Zero
 	totalProfit := decimal.Zero
 	cashflowSaleGraphs := make([]dto.CashflowSaleGraphResponse, 0)
-	for key := range weeks {
+	keys := util.GetSortedKeysInt(weeks)
+	for key := range keys {
 		cashflowSaleGraphs = append(cashflowSaleGraphs, dto.CashflowSaleGraphResponse{
-			Key:     fmt.Sprintf("Minggu %d", key),
+			Key:     fmt.Sprintf("Minggu %d", key+1),
 			Income:  income[key].String(),
 			Expense: expense[key].String(),
 			Profit:  income[key].Sub(expense[key]).String(),
@@ -2829,7 +2830,7 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 	totalPreviousMonthIncome := decimal.Zero
 	totalPreviousMonthExpense := decimal.Zero
 	totalPreviousMonthProfit := decimal.Zero
-	for key := range weeks {
+	for _, key := range keys {
 		totalPreviousMonthIncome = totalPreviousMonthIncome.Add(incomePreviousMonth[key])
 		totalPreviousMonthExpense = totalPreviousMonthExpense.Add(expensePreviousMonth[key])
 		totalPreviousMonthProfit = totalPreviousMonthProfit.Add(incomePreviousMonth[key].Sub(expensePreviousMonth[key]))
@@ -3253,7 +3254,7 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 	return expenseMap, nil
 }
 
-func (s *CashflowService) buildStoreOverviewMonthlyGraph(locationId uint64, itemId uint64, year uint64, month enum.Month) ([]dto.EggSaleGraphResponse, error) {
+func (s *CashflowService) buildEggSaleOverviewMonthlyGraph(locationId uint64, itemId uint64, year uint64, month enum.Month) ([]dto.EggSaleGraphResponse, error) {
 	weekMaps := util.GetFourWeekRanges(int(year), time.Month(month))
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
 
