@@ -378,7 +378,7 @@ func (s *PresenceService) GetUserPresenceWorkSummaries(filter dto.GetUserPresenc
 		totalWork := float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers + userPresenceWorkDetailSummary.TotalDailyWorkUsers)
 		workDonePercentage := float64(0)
 		if totalWork != 0 {
-			workDonePercentage = float64(userPresenceWorkDetailSummary.TotalDoneAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDoneDailyWorkUsers) / float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDailyWorkUsers)
+			workDonePercentage = (float64(userPresenceWorkDetailSummary.TotalDoneAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDoneDailyWorkUsers) / float64(userPresenceWorkDetailSummary.TotalAdditionalWorkUsers+userPresenceWorkDetailSummary.TotalDailyWorkUsers)) * 100
 		}
 
 		newData := dto.UserPresenceWorkDetailSummaryResponse{
