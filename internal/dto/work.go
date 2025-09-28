@@ -149,7 +149,7 @@ type GetAdditonalWorkFilter struct {
 	Status       string                  `query:"status"`
 	LocationId   uint64                  `query:"locationId"`
 	LocationType param.LocationTypeParam `query:"locationType"`
-	PlaceId      uint64                  `query:"placeId"`
+	PlaceIds     []uint64                `query:"placeIds"`
 }
 
 type UpdateAdditionalWorkUserRequest struct {

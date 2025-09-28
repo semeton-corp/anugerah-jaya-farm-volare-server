@@ -80,7 +80,7 @@ type GetLocationPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceSummaryFilter struct {
-	RoleId    uint64                  `query:"roleId" validate:"roleId"`
+	RoleId    uint64                  `query:"roleId" validate:"required"`
 	PlaceType param.LocationTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                  `query:"placeId" validate:"required"`
 	Month     param.MonthParam        `query:"month" validate:"required"`
@@ -88,7 +88,7 @@ type GetUserPresenceSummaryFilter struct {
 }
 
 type GetUserPresenceWorkDetailSummaryFilter struct {
-	RoleId    uint64                  `query:"roleId" validate:"roleId"`
+	RoleId    uint64                  `query:"roleId" validate:"required"`
 	PlaceType param.LocationTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                  `query:"placeId" validate:"required"`
 	Date      param.DateParam         `query:"date"`
@@ -115,7 +115,7 @@ type UserPresenceWorkDetailSummaryResponse struct {
 	PresenceStatus     string  `json:"status"`
 	ArrivedTime        string  `json:"arrivedTime"`
 	DepartureTime      string  `json:"departureTime"`
-	WorkDonePercentage float64 `json:"WorkDonePercentage"`
+	WorkDonePercentage float64 `json:"workDonePercentage"`
 }
 
 type ApprovalPresenceRequest struct {

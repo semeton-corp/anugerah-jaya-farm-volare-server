@@ -534,7 +534,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts(filter dto.GetWa
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Order("days_need * price ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
+	err := query.Order("created_at DESC").Order("days_need * price ASC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -739,7 +739,7 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts(filter dto.G
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Order("price * quantity ASC").Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
+	err := query.Order("price ASC").Order("created_at DESC").Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
 	if err != nil {
 		return nil, err
 	}

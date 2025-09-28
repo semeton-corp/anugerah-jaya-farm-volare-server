@@ -327,6 +327,7 @@ func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
 	return nil
 }
 
+// Todo : check this!!!
 func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	s.log.Info("create kpi performance chicken cage")
 
@@ -1104,6 +1105,7 @@ func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
 		return err
 	}
 
+	// Todo : Implement for spesific user Id
 	notifications := make([]entity.Notification, 0)
 	for _, chickenProcurement := range chickenProcurements {
 		notifications = append(notifications, entity.Notification{

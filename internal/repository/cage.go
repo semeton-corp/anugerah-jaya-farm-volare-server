@@ -275,7 +275,7 @@ func (r *CageRepository) CreateCageFeed(data *entity.CageFeed) error {
 
 func (r *CageRepository) GetCageFeeds() ([]entity.CageFeed, error) {
 	var cageFeeds []entity.CageFeed
-	err := r.GetDB().Model(&entity.CageFeed{}).Preload("CageFeedDetails.Item").Find(&cageFeeds).Error
+	err := r.GetDB().Model(&entity.CageFeed{}).Order("chicken_category ASC").Preload("CageFeedDetails.Item").Find(&cageFeeds).Error
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -286,19 +287,32 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	var additionalWorks []entity.AdditionalWork
 	query := r.GetDB().Model(&entity.AdditionalWork{})
 
+	var orConditions []string
+	var orArgs []interface{}
+
 	if filter.LocationId > 0 {
-		query = query.Where("location_id = ?", filter.LocationId)
+		orConditions = append(orConditions, "location_id = ?")
+		orArgs = append(orArgs, filter.LocationId)
 	}
 
-	if !filter.LocationType.Value().IsValid() {
+	if filter.LocationType.Value().IsValid() {
 		switch filter.LocationType.Value() {
 		case enum.LocationTypeCage:
-			query = query.Where("cage_id = ?", filter.PlaceId)
+			orConditions = append(orConditions, "cage_id IN ?")
+			orArgs = append(orArgs, filter.PlaceIds)
 		case enum.LocationTypeStore:
-			query = query.Where("store_id = ?", filter.PlaceId)
+			orConditions = append(orConditions, "store_id IN ?")
+			orArgs = append(orArgs, filter.PlaceIds)
 		case enum.LocationTypeWarehouse:
-			query = query.Where("warehouse_id = ?", filter.PlaceId)
+			orConditions = append(orConditions, "warehouse_id IN ?")
+			orArgs = append(orArgs, filter.PlaceIds)
 		}
+	}
+
+	// Apply OR condition if any
+	if len(orConditions) > 0 {
+		condition := "(" + strings.Join(orConditions, " OR ") + ")"
+		query = query.Where(condition, orArgs...)
 	}
 
 	err := query.

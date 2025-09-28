@@ -23,14 +23,14 @@ type PresenceHandler struct {
 func (h *PresenceHandler) SetEndpoint(router *fiber.App) {
 	v1 := router.Group("api/v1/presences")
 
+	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
+	v1.Get("/users/summaries", middleware.Authentication(), h.GetUserPresenceSummaries)
+	v1.Get("/users/works/summaries", middleware.Authentication(), h.GetUserPresenceWorkDetailSummaries)
+
 	v1.Get("/current/me", middleware.Authentication(), h.GetSelfCurrentUserPresence)
 	v1.Get("/users/:userId", middleware.Authentication(), h.GetUserPresence)
 	v1.Get("/me", middleware.Authentication(), h.GetSelfCurrentUserPresences)
 	v1.Patch("/:id", middleware.Authentication(), h.UpdateUserPresence)
-
-	v1.Get("/locations/summaries", middleware.Authentication(), h.GetLocationPresenceSummaries)
-	v1.Get("/users/summaries", middleware.Authentication(), h.GetUserPresenceSummaries)
-	v1.Get("/users/works/summaries", middleware.Authentication(), h.GetUserPresenceWorkDetailSummaries)
 
 	v1.Post("/approval", middleware.Authentication(), h.ApprovalUserPresence)
 	v1.Get("/pending", middleware.Authentication(), h.GetUserPresencePending)
