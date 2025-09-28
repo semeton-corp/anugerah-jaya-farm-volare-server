@@ -218,7 +218,8 @@ func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCage
 	}
 
 	chickenCage.TotalChicken = request.TotalChicken
-
+	chickenCage.IsNeedRoutineVaccine = request.IsNeedRoutineVaccine
+	chickenCage.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	if request.LatestChickenAgeVaccineRoutine != nil {
 		chickenCage.LatestChickenAgeVaccineRoutine = sql.NullInt64{Int64: int64(*request.LatestChickenAgeVaccineRoutine), Valid: true}
 	}

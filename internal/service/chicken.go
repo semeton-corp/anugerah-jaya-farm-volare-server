@@ -151,13 +151,14 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 
 	currentChicken := chickenCage.TotalChicken - request.TotalDeathChicken
 	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
-		TotalChicken: currentChicken,
+		TotalChicken:         currentChicken,
+		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}, userId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	if chickenCage.TotalChicken-request.TotalDeathChicken != 0 {
+	if chickenCage.TotalChicken-request.TotalDeathChicken == 0 {
 		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 			CageId:       chickenCage.Cage.Id,
 			TotalChicken: 0,
@@ -262,7 +263,8 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 
 	currentChicken := chickenCage.TotalChicken + chickenMonitoring.TotalChicken - request.TotalDeathChicken
 	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
-		TotalChicken: currentChicken,
+		TotalChicken:         currentChicken,
+		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}, userId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
@@ -1897,7 +1899,8 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	}
 
 	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
-		TotalChicken: currentChicken,
+		TotalChicken:         currentChicken,
+		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
@@ -2373,7 +2376,8 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
-		TotalChicken: currentChicken,
+		TotalChicken:         currentChicken,
+		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
 	}, userId)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, err
