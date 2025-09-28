@@ -249,19 +249,12 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
-	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
-	chickenMonitoring.TotalFeed = request.TotalFeed
-	chickenMonitoring.Note = request.Note
-	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: userId, Valid: true}
-	chickenMonitoring.ChickenCageId = request.ChickenCageId
-
 	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	currentChicken := chickenCage.TotalChicken + chickenMonitoring.TotalChicken - request.TotalDeathChicken
+	currentChicken := chickenCage.TotalChicken + chickenMonitoring.TotalDeathChicken - request.TotalDeathChicken
 	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
 		TotalChicken:         currentChicken,
 		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
@@ -270,7 +263,15 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	if chickenCage.TotalChicken+chickenMonitoring.TotalChicken-request.TotalDeathChicken != 0 {
+	chickenMonitoring.TotalChicken = currentChicken
+	chickenMonitoring.TotalSickChicken = request.TotalSickChicken
+	chickenMonitoring.TotalDeathChicken = request.TotalDeathChicken
+	chickenMonitoring.TotalFeed = request.TotalFeed
+	chickenMonitoring.Note = request.Note
+	chickenMonitoring.UpdateBy = uuid.NullUUID{UUID: userId, Valid: true}
+	chickenMonitoring.ChickenCageId = request.ChickenCageId
+
+	if chickenCage.TotalChicken-request.TotalDeathChicken == 0 {
 		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 			CageId:       chickenCage.Cage.Id,
 			TotalChicken: 0,
