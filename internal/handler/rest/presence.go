@@ -189,7 +189,7 @@ func (s *PresenceHandler) GetUserPresenceWorkDetailSummaries(c *fiber.Ctx) error
 		return err
 	}
 
-	data, err := s.service.GetUserPresenceWorkDetailSummaries(filter)
+	data, err := s.service.GetUserPresenceWorkSummaries(filter)
 	if err != nil {
 		return err
 	}

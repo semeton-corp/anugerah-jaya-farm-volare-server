@@ -2967,13 +2967,11 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 		return dto.CashflowOverviewResponse{}, err
 	}
 
-	if time.Now().Year() != int(filter.Year) {
-		currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
-		if err != nil {
-			return dto.CashflowOverviewResponse{}, err
-		}
-		cashflowHistories = append(cashflowHistories, currentCashflowHistory)
+	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+	if err != nil {
+		return dto.CashflowOverviewResponse{}, err
 	}
+	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 
 	cashflowByMonth := make(map[int]entity.CashflowHistory)
 	for _, cf := range cashflowHistories {

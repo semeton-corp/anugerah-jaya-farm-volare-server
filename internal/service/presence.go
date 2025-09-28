@@ -32,7 +32,7 @@ type IPresenceService interface {
 
 	GetRoleLocationPresenceSummaries(filter dto.RoleLocationPresenceSummaryFilter) ([]dto.RoleLocationPresenceSummaryResponse, error)
 	GetUserPresenceSummaries(filter dto.GetUserPresenceSummaryFilter) ([]dto.UserPresenceSummaryResponse, error)
-	GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
+	GetUserPresenceWorkSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error)
 	ApprovalUserPresence(request dto.ApprovalPresenceRequest, userId uuid.UUID) ([]dto.PresenceResponse, error)
 
 	GetUserPresencePending(filter dto.GetUserPresencePendingFilter) ([]dto.UserPresencePendingResponse, error)
@@ -363,7 +363,7 @@ func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSum
 	return response, nil
 }
 
-func (s *PresenceService) GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error) {
+func (s *PresenceService) GetUserPresenceWorkSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error) {
 	s.repository.UseTx(false)
 	filter.Date = param.DateParam(time.Now())
 	userPresenceWorkDetailSummaries, err := s.repository.GetUserPresenceWorkDetailSummaries(filter)

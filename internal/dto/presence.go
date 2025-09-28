@@ -91,7 +91,7 @@ type GetUserPresenceWorkDetailSummaryFilter struct {
 	RoleId    uint64                  `query:"roleId" validate:"required"`
 	PlaceType param.LocationTypeParam `query:"placeType" validate:"required"`
 	PlaceId   uint64                  `query:"placeId" validate:"required"`
-	Date      param.DateParam         `query:"date"`
+	Date      param.DateParam         `query:"date" validate:"required"`
 }
 
 type UserPresenceSummaryResponse struct {
