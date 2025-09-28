@@ -542,7 +542,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts(filter dto.GetWa
 		query = query.Where("items.category = ?", filter.ItemCategory.Value())
 	}
 
-	err := query.Order("created_at DESC").Order("days_need * price ASC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
+	err := query.Order("item_id ASC").Order("price * days_need ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +639,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("item_id ASC").Order("total_price ASC").Order("created_at DESC").Find(&data).Error
+	err := query.Order("created_at DESC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -867,7 +867,7 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurements(filter dto.GetWar
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCornProcurements).Error
+	err := query.Preload("Warehouse.Location").Order("created_at DESC").Preload("Supplier").Find(&warehouseItemCornProcurements).Error
 	if err != nil {
 		return nil, err
 	}

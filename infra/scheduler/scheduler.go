@@ -879,44 +879,52 @@ func (s *Scheduler) createNotificationWhen3DaysBeforeDeadlinePaymentDate(tx *gor
 func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 	s.log.Info("check chicken cage if need routine vaccine")
 
-	var chickenCages []entity.ChickenCage
+	var chickenCages []*entity.ChickenCage
 	query := tx.Model(&entity.ChickenCage{})
 	subQuery := tx.Model(&entity.ChickenCage{}).
 		Select("MAX(id)").
 		Group("cage_id")
 	query = query.Where("chicken_cages.id IN (?)", subQuery)
+
 	err := query.
 		Preload("Cage.Location").
 		Preload("ChickenProcurement").
 		Preload("Cage.CagePlacement.User.Role").
 		Order("chicken_cages.created_at DESC").
 		Find(&chickenCages).Error
-
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch chicken cages: %w", err)
 	}
 
 	chickenCageNeedVaccineIds := make([]uint64, 0)
-	notifications := make([]entity.Notification, 0)
+	notifications := make([]*entity.Notification, 0)
 
 	for _, chickenCage := range chickenCages {
-		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
-		var chickenHealthItems []entity.ChickenHealthItem
-		err := tx.Model(&entity.ChickenHealthItem{}).Where("chicken_age = ? AND type = ?", chickenAge, enum.ChickenHealthItemTypeVaccineRoutine).Find(&chickenHealthItems).Error
+		if !chickenCage.ChickenProcurementId.Valid {
+			continue
+		}
+
+		chickenAge := util.GetChickenAgeByChickenCage(chickenCage)
+		var chickenHealthItems []*entity.ChickenHealthItem
+		err := tx.Model(&entity.ChickenHealthItem{}).
+			Where("chicken_age = ? AND type = ?", int64(chickenAge), enum.ChickenHealthItemTypeVaccineRoutine).
+			Find(&chickenHealthItems).Error
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to fetch chicken health items for age %d: %w", chickenAge, err)
 		}
 
 		if len(chickenHealthItems) == 0 {
 			continue
-		} else if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && !chickenCage.IsNeedRoutineVaccine {
+		}
+
+		if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && !chickenCage.IsNeedRoutineVaccine {
 			var vaccineRoutineNames []string
 			for _, chickenHealthItem := range chickenHealthItems {
 				vaccineRoutineNames = append(vaccineRoutineNames, chickenHealthItem.Name)
 			}
 
 			chickenCageNeedVaccineIds = append(chickenCageNeedVaccineIds, chickenCage.Id)
-			notifications = append(notifications, entity.Notification{
+			notifications = append(notifications, &entity.Notification{
 				CageId:               sql.NullInt64{Int64: int64(chickenCage.CageId), Valid: true},
 				NotificationContexts: pq.StringArray{constant.VaccineMonitoringNotificationContext},
 				Description:          fmt.Sprintf(constant.VaccineRoutineNotification, strings.Join(vaccineRoutineNames, ","), chickenCage.Cage.Name),
@@ -925,23 +933,25 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 	}
 
 	if len(chickenCageNeedVaccineIds) > 0 {
-		err := tx.Model(&entity.ChickenCage{}).Where("id IN ?", chickenCageNeedVaccineIds).Updates(map[string]any{
-			"is_need_routine_vaccine": true,
-		}).Error
+		err := tx.Model(&entity.ChickenCage{}).
+			Where("id IN ?", chickenCageNeedVaccineIds).
+			Updates(map[string]any{
+				"is_need_routine_vaccine": true,
+			}).Error
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to update chicken cages vaccine status: %w", err)
 		}
 	}
 
 	if len(notifications) > 0 {
-		err := tx.Model(&entity.Notification{}).CreateInBatches(&notifications, len(notifications)).Error
+		err := tx.Model(&entity.Notification{}).
+			CreateInBatches(notifications, len(notifications)).Error
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create vaccine notifications: %w", err)
 		}
 	}
 
-	s.log.Info(fmt.Sprintf("success check chicken cage if need routine vaccine, total chicken cage need vaccine : %d", len(chickenCageNeedVaccineIds)))
-
+	s.log.Info(fmt.Sprintf("success check chicken cage if need routine vaccine, total chicken cage need vaccine: %d", len(chickenCageNeedVaccineIds)))
 	return nil
 }
 

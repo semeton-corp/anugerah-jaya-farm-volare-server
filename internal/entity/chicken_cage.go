@@ -11,7 +11,7 @@ type ChickenCage struct {
 	Id                             uint64                    `gorm:"primaryKey;autoIncrement"`
 	CageId                         uint64                    `gorm:"bigint;not null"`
 	Cage                           Cage                      `gorm:"foreignKey:CageId;references:Id;constraint:OnDelete:CASCADE"`
-	ChickenProcurementId           uint64                    `gorm:"bigint;default:null"`
+	ChickenProcurementId           sql.NullInt64             `gorm:"bigint;default:null"`
 	ChickenProcurement             ChickenProcurement        `gorm:"foreignKey:ChickenProcurementId;references:Id"`
 	ChickenMonitoring              []ChickenMonitoring       `gorm:"foreignKey:ChickenCageId;references:Id"`
 	ChickenHealthMonitoring        []ChickenHealthMonitoring `gorm:"foreignKey:ChickenCageId;references:Id"`

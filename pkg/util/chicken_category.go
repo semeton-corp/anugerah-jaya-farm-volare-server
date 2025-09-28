@@ -15,7 +15,7 @@ func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.Chick
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.CreatedAt)
+		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
 		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
 
 		if chickenAgeInWeek <= 9 {
@@ -40,7 +40,7 @@ func GetChickenAgeByChickenCage(chickenCage *entity.ChickenCage) uint64 {
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.CreatedAt)
+		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
 		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
 	}
 

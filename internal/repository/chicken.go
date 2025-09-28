@@ -136,6 +136,7 @@ func (r *ChickenRepository) GetChickenMonitoringById(id uint64) (entity.ChickenM
 	var chickenMonitoring entity.ChickenMonitoring
 	err := r.GetDB().
 		Preload("ChickenCage.Cage.Location").
+		Preload("ChickenCage.ChickenProcurement").
 		Preload("ChickenCage.Cage.CagePlacement.User.Role").
 		Where("id = ?", id).First(&chickenMonitoring).Error
 

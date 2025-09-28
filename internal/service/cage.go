@@ -255,7 +255,7 @@ func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, us
 	}
 
 	if request.ChickenProcurementId != nil {
-		chickenCage.ChickenProcurementId = *request.ChickenProcurementId
+		chickenCage.ChickenProcurementId = sql.NullInt64{Int64: int64(*request.ChickenProcurementId), Valid: true}
 	}
 
 	err := s.repository.CreateChickenCage(&chickenCage)
