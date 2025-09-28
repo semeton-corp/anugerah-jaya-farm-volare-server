@@ -615,9 +615,12 @@ type GetWarehouseItemCornProcurementPaymentFilter struct {
 }
 
 type GetWarehouseItemProcurementDraftFilter struct {
-	WarehouseId uint64 `query:"warehouseId"`
+	WarehouseId  uint64                  `query:"warehouseId"`
+	Date         param.DateParam         `query:"date"`
+	ItemCategory param.ItemCategoryParam `query:"itemCategory"`
 }
 
 type GetWarehouseItemCornProcurementDraftFilter struct {
-	WarehouseId uint64 `query:"warehouseId"`
+	WarehouseId uint64          `query:"warehouseId"`
+	Date        param.DateParam `query:"date"`
 }

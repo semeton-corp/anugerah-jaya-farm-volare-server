@@ -528,10 +528,18 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurementDraft(data *entity.W
 
 func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts(filter dto.GetWarehouseItemProcurementDraftFilter) ([]entity.WarehouseItemProcurementDraft, error) {
 	var data []entity.WarehouseItemProcurementDraft
-	query := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{})
+	query := r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).Joins("LEFT JOIN items ON items.id = warehouse_item_procurement_drafts.id")
 
 	if filter.WarehouseId > 0 {
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.ItemCategory.Value().IsValid() {
+		query = query.Where("items.category = ?", filter.ItemCategory.Value())
 	}
 
 	err := query.Order("created_at DESC").Order("days_need * price ASC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
@@ -737,6 +745,10 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurementDrafts(filter dto.G
 
 	if filter.WarehouseId > 0 {
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
 	err := query.Order("price ASC").Order("created_at DESC").Preload("Supplier").Preload("Warehouse.Location").Find(&warehouseItemCornProcurementDrafts).Error
