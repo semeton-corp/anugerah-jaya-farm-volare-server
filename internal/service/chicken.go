@@ -317,9 +317,17 @@ func (c *ChickenService) DeleteChickenMonitoring(id uint64) error {
 
 func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter) (dto.ChickenOverviewResponse, error) {
 	c.repository.UseTx(false)
-
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
+	chickenCages, err := c.cageService.GetChickenCages(dto.GetChickenCageFilter{
+		LocationId: filter.LocationId,
+		CageId:     filter.CageId,
+	})
+	if err != nil {
+		return dto.ChickenOverviewResponse{}, err
+	}
+
+	currChickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
 	currentChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
 		Date:       param.DateParam(today),
 		LocationId: filter.LocationId,
@@ -329,8 +337,11 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		c.log.Error("failed to get chicken monitorings", zap.Error(err))
 		return dto.ChickenOverviewResponse{}, err
 	}
+	for _, chickenMonitoring := range currentChickenMonitorings {
+		currChickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+	}
 
-	currentEggMonitoring, err := c.eggService.GetEggMonitorings(dto.GetEggMonitoringFilter{
+	currentEggMonitorings, err := c.eggService.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		Date:       param.DateParam(today),
 		LocationId: filter.LocationId,
 		CageId:     filter.CageId,
@@ -340,20 +351,26 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	}
 
 	var totalEgg uint64
-	for _, eggMonitoring := range currentEggMonitoring {
+	for _, eggMonitoring := range currentEggMonitorings {
 		totalEgg += eggMonitoring.TotalAllEgg
 	}
 
 	var totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
 	var totalLiveChicken, totalSickChicken, totalDeathChicken uint64
 
-	for _, cm := range currentChickenMonitorings {
-		totalLiveChicken += cm.ChickenCage.TotalChicken - cm.TotalSickChicken
-		totalSickChicken += cm.TotalSickChicken
-		totalDeathChicken += cm.TotalDeathChicken
+	for _, cc := range chickenCages {
+		count := uint64(0)
+		if currChickenMonitoringMap[cc.Id].Id == 0 {
+			totalLiveChicken += cc.TotalChicken
+			count = cc.TotalChicken
+		} else {
+			totalLiveChicken += currChickenMonitoringMap[cc.Id].ChickenCage.TotalChicken - currChickenMonitoringMap[cc.Id].TotalSickChicken
+			totalSickChicken += currChickenMonitoringMap[cc.Id].TotalSickChicken
+			totalDeathChicken += currChickenMonitoringMap[cc.Id].TotalDeathChicken
+			count = currChickenMonitoringMap[cc.Id].TotalChicken
+		}
 
-		chickenCategory := util.GetChickenCategoryByChickenCage(&cm.ChickenCage)
-		count := cm.ChickenCage.TotalChicken
+		chickenCategory := enum.ValueOfChickenCategory(cc.ChickenCategory)
 		switch chickenCategory {
 		case enum.ChickenCategoryDOC:
 			totalDOCChicken += count
