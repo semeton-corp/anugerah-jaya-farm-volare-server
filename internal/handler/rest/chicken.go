@@ -197,7 +197,13 @@ func (h *ChickenHandler) DeleteChickenMonitoring(c *fiber.Ctx) error {
 		return errx.BadRequest("invalid id param")
 	}
 
-	err = h.service.DeleteChickenMonitoring(id)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("failed to get userId from context")
+		return errx.Unauthorized("no userId in context")
+	}
+
+	err = h.service.DeleteChickenMonitoring(id, uuid.MustParse(userId))
 	if err != nil {
 		h.log.Error("failed to delete chicken monitoring", zap.Error(err))
 		return err

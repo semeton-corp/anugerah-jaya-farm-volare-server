@@ -40,7 +40,7 @@ type IChickenService interface {
 	GetChickenMonitorings(filter dto.GetChickenMonitoringFilter) ([]dto.ChickenMonitoringListResponse, error)
 	GetChickenMonitoringById(id uint64) (dto.ChickenMonitoringResponse, error)
 	UpdateChickenMonitoring(id uint64, request dto.UpdateChickenMonitoringRequest, accoundId uuid.UUID) (dto.ChickenMonitoringResponse, error)
-	DeleteChickenMonitoring(id uint64) error
+	DeleteChickenMonitoring(id uint64, userId uuid.UUID) error
 
 	CreateChickenHealthItem(request dto.CreateChickenHealthItemRequest, userId uuid.UUID) (dto.ChickenHealthItemResponse, error)
 	GetChickenHealthItems(filter dto.GetChickenHealthItemFilter) ([]dto.ChickenHealthItemResponse, error)
@@ -308,10 +308,33 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	return mapper.ChickenMonitoringToResponse(&chickenMonitoring), nil
 }
 
-func (c *ChickenService) DeleteChickenMonitoring(id uint64) error {
-	err := c.repository.DeleteChickenMonitoring(id)
+func (c *ChickenService) DeleteChickenMonitoring(id uint64, userId uuid.UUID) error {
+	c.repository.UseTx(true)
+	defer c.repository.Rollback()
+
+	chickenMonitoring, err := c.repository.GetChickenMonitoringById(id)
+	if err != nil {
+		c.log.Error("failed delete chicken monitoring by id", zap.Error(err))
+		return err
+	}
+
+	err = c.repository.DeleteChickenMonitoring(id)
 	if err != nil {
 		c.log.Error("failed to delete chicken monitoring", zap.Error(err))
+		return err
+	}
+
+	_, err = c.cageService.UpdateChickenCage(chickenMonitoring.ChickenCageId, dto.UpdateChickenCageRequest{
+		TotalChicken:         chickenMonitoring.TotalChicken,
+		IsNeedRoutineVaccine: chickenMonitoring.ChickenCage.IsNeedRoutineVaccine,
+	}, userId)
+	if err != nil {
+		return err
+	}
+
+	err = c.repository.Commit()
+	if err != nil {
+		c.log.Error("failed commit transaction", zap.Error(err))
 		return err
 	}
 

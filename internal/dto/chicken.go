@@ -193,6 +193,7 @@ type ChickenProcurementResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                                `json:"isMoreThanDeadlinePaymentDate"`
 	ProcurementStatus             string                              `json:"procurementStatus"`
 	PaidDate                      string                              `json:"paidDate"`
+	Note                          string                              `json:"note"`
 }
 
 type ChickenProcurementListResponse struct {

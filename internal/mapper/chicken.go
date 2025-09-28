@@ -236,6 +236,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 		PaymentType:           data.PaymentType.String(),
 		IsArrived:             data.IsArrived,
 		ProcurementStatus:     data.Status.String(),
+		Note:                  data.Note,
 	}
 
 	if data.DeadlinePaymentDate.Valid {
