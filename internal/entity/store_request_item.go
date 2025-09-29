@@ -17,7 +17,7 @@ type StoreRequestItem struct {
 	StoreId              sql.NullInt64          `gorm:"type:bigint"`
 	Store                Store                  `gorm:"foreignKey:StoreId;references:Id;constraint:OnDelete:CASCADE"`
 	Quantity             float64                `gorm:"type:bigint;not null"`
-	ReceiveQuantity      float64                `gorm:"type:bigint;not null;default:0"`
+	ReceiveQuantity      sql.NullFloat64        `gorm:"type:bigint;not null;default:0"`
 	WarehouseFulfillment float64                `gorm:"type:bigint;not null;default:-1"`
 	Status               enum.RequestItemStatus `gorm:"type:int;not null"`
 	WarehouseNote        string                 `gorm:"type:text"`

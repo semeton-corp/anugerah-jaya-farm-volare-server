@@ -232,6 +232,9 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		PaymentStatus:         data.PaymentStatus.String(),
 		PaymentType:           data.PaymentType.String(),
 	}
+	if data.ReceiveQuantity.Valid {
+		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
+	}
 
 	if data.DeadlinePaymentDate.Valid {
 		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
@@ -370,6 +373,10 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		Discount:                  data.Discount,
 		PaymentStatus:             data.PaymentStatus.String(),
 		PaymentType:               data.PaymentType.String(),
+	}
+
+	if data.ReceiveQuantity.Valid {
+		response.ReceieveQuantity = &data.ReceiveQuantity.Float64
 	}
 
 	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))

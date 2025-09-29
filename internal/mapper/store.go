@@ -31,6 +31,10 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 		WarehouseFulFillment: storeRequestItem.WarehouseFulfillment,
 	}
 
+	if storeRequestItem.ReceiveQuantity.Valid {
+		response.ReceiveQuantity = storeRequestItem.ReceiveQuantity.Float64
+	}
+
 	if storeRequestItem.ReceiveDate.Valid {
 		response.ReceiveDate = storeRequestItem.ReceiveDate.Time.Format("15:04, 02 Jan 2006")
 	} else {

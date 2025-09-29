@@ -78,6 +78,7 @@ type StoreRequestItemResponse struct {
 	ReceiveDate          string            `json:"receiveDate"`
 	IsSorted             bool              `json:"isSorted"`
 	WarehouseFulFillment float64           `json:"warehoseFulFillment"`
+	ReceiveQuantity      float64           `json:"receiveQuantity"`
 	CreatedBy            string            `json:"createdBy,omitempty"`
 }
 

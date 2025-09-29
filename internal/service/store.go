@@ -450,12 +450,12 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item not sent off")
 	}
 
-	storeRequestItem.ReceiveQuantity = request.Quantity
+	storeRequestItem.ReceiveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
 	storeRequestItem.StoreNote = request.StoreNote
 	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	storeRequestItem.ReceiveDate = sql.NullTime{Time: time.Now(), Valid: true}
 
-	if storeRequestItem.ReceiveQuantity != storeRequestItem.Quantity {
+	if storeRequestItem.ReceiveQuantity.Float64 != storeRequestItem.Quantity {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedNotOk
 	} else {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedOk

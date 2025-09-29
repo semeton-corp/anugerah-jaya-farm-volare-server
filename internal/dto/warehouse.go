@@ -136,6 +136,7 @@ type WarehouseItemProcurementResponse struct {
 	PaymentStatus                 string                                    `json:"paymentStatus"`
 	PaymentType                   string                                    `json:"paymentType"`
 	Payments                      []WarehouseItemProcurementPaymentResponse `json:"payments"`
+	ReceiveQuantity               *float64                                  `json:"receiveQuantity"`
 }
 
 type WarehouseItemProcurementPaymentResponse struct {
@@ -463,6 +464,7 @@ type WarehouseItemCornProcurementListResponse struct {
 	Discount                      float64              `json:"discount"`
 	Price                         string               `json:"price"`
 	PaidDate                      string               `json:"paidDate"`
+	ReceiveQuantity               *float64             `json:"recieveQuantity"`
 }
 
 type WarehouseItemCornProcurementListPaginationResponse struct {
@@ -492,6 +494,7 @@ type WarehouseItemCornProcurementResponse struct {
 	PaymentStatus                 string                                        `json:"paymentStatus"`
 	PaymentType                   string                                        `json:"paymentType"`
 	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
+	ReceieveQuantity              *float64                                      `json:"recieveQuantity"`
 }
 
 type WarehouseItemCornResponse struct {

@@ -182,6 +182,7 @@ type ChickenProcurementResponse struct {
 	Cage                          CageResponse                        `json:"cage"`
 	Supplier                      SupplierListResponse                `json:"supplier"`
 	Quantity                      uint64                              `json:"quantity"`
+	ReceiveQuantity               *uint64                             `json:"receiveQuantity"`
 	TotalPrice                    string                              `json:"totalPrice"`
 	EstimationArrivalDate         string                              `json:"estimationArrivalDate"`
 	Payments                      []ChickenProcurementPaymentResponse `json:"payments"`
