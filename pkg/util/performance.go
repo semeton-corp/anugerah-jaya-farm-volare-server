@@ -8,7 +8,11 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-func CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse, dailyWorkUsers dto.DailyWorkUserListPaginationResponse, userPresences dto.PresenceListPaginationResponse) (float64, float64, uint64) {
+func CalculateKPIScoreUserInMonthViaDTO(
+	additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse,
+	dailyWorkUsers dto.DailyWorkUserListPaginationResponse,
+	userPresences dto.PresenceListPaginationResponse,
+) (float64, float64, uint64) {
 	var (
 		totalPresent  uint64  = 0
 		totalOvertime float64 = 0
@@ -16,8 +20,8 @@ func CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers dto.AdditionalWorkUs
 
 		totalWorkDone uint64 = 0
 
-		presenceScore float64 = float64(0)
-		workScore     float64 = float64(0)
+		presenceScore float64 = 0
+		workScore     float64 = 0
 	)
 
 	for _, userPresence := range userPresences.Presences {
@@ -59,22 +63,24 @@ func CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers dto.AdditionalWorkUs
 		}
 	}
 
-	if len(userPresences.Presences) == 0 {
-		presenceScore = 0
-	} else {
-		presenceScore = float64(totalWorkHour) / float64(len(userPresences.Presences)*8) * 100
+	totalPresence := len(userPresences.Presences)
+	if totalPresence > 0 {
+		presenceScore = (float64(totalWorkHour) / float64(totalPresence*8)) * 100
 	}
 
-	if len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers) == 0 {
-		workScore = 0
-	} else {
-		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers.DailyWorkUsers)+len(additionalWorkUsers.AdditionalWorkUsers)) * 100
+	totalWork := len(dailyWorkUsers.DailyWorkUsers) + len(additionalWorkUsers.AdditionalWorkUsers)
+	if totalWork > 0 {
+		workScore = (float64(totalWorkDone) / float64(totalWork)) * 100
 	}
 
-	return presenceScore, workScore, uint64(len(userPresences.Presences)) - totalPresent
+	return presenceScore, workScore, uint64(totalPresence) - totalPresent
 }
 
-func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.AdditionalWorkUser, dailyWorkUsers []entity.DailyWorkUser, userPresences []entity.UserPresence) (float64, float64, uint64) {
+func CalculateKPIScoreUserInMonthViaEntity(
+	additionalWorkUsers []entity.AdditionalWorkUser,
+	dailyWorkUsers []entity.DailyWorkUser,
+	userPresences []entity.UserPresence,
+) (float64, float64, uint64) {
 	var (
 		totalPresent  uint64  = 0
 		totalOvertime float64 = 0
@@ -82,8 +88,8 @@ func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.Addition
 
 		totalWorkDone uint64 = 0
 
-		presenceScore float64 = float64(0)
-		workScore     float64 = float64(0)
+		presenceScore float64 = 0
+		workScore     float64 = 0
 	)
 
 	for _, userPresence := range userPresences {
@@ -92,7 +98,6 @@ func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.Addition
 
 			if !userPresence.EndTime.Time.IsZero() {
 				startTime := userPresence.StartTime.Time
-
 				endTime := userPresence.EndTime.Time
 
 				diffHours := endTime.Sub(*startTime).Hours()
@@ -113,10 +118,7 @@ func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.Addition
 				overtime := float64(0)
 				if extraTime > 0 {
 					overtime = extraTime.Hours()
-				} else {
-					overtime = 0
 				}
-
 				totalOvertime += overtime
 			}
 		}
@@ -134,17 +136,15 @@ func CalculateKPIScoreUserInMonthViaEntity(additionalWorkUsers []entity.Addition
 		}
 	}
 
-	if len(userPresences) == 0 {
-		presenceScore = 0
-	} else {
-		presenceScore = float64(totalWorkHour) / float64(len(userPresences)*8) * 100
+	totalPresence := len(userPresences)
+	if totalPresence > 0 {
+		presenceScore = (float64(totalWorkHour) / float64(totalPresence*8)) * 100
 	}
 
-	if len(dailyWorkUsers)+len(additionalWorkUsers) == 0 {
-		workScore = 0
-	} else {
-		workScore = float64(totalWorkDone) / float64(len(dailyWorkUsers)+len(additionalWorkUsers)) * 100
+	totalWork := len(dailyWorkUsers) + len(additionalWorkUsers)
+	if totalWork > 0 {
+		workScore = (float64(totalWorkDone) / float64(totalWork)) * 100
 	}
 
-	return presenceScore, workScore, uint64(len(userPresences)) - totalPresent
+	return presenceScore, workScore, uint64(totalPresence) - totalPresent
 }

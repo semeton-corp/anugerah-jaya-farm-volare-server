@@ -1638,7 +1638,15 @@ func (s *ChickenService) GetAfkirChickenCustomer(id uint64) (dto.AfkirChickenCus
 		return dto.AfkirChickenCustomerResponse{}, err
 	}
 
-	return mapper.AfkirChickenCustomerToResponse(&data), nil
+	afkirChickenSales := make([]dto.AfkirChickenSaleListResponse, 0)
+	for _, e := range data.AfkirChickenSales {
+		afkirChickenSales = append(afkirChickenSales, mapper.AfkirChickenSaleToListResponse(&e))
+	}
+
+	response := mapper.AfkirChickenCustomerToResponse(&data)
+	response.AfkirChickenSales = afkirChickenSales
+
+	return response, nil
 }
 
 func (s *ChickenService) UpdateAfkirChickenCustomer(id uint64, request dto.UpdateAfkirChickenCustomerRequest, userId uuid.UUID) (dto.AfkirChickenCustomerResponse, error) {
@@ -2863,8 +2871,16 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		return dto.ChickenAndCompanyOverviewResponse{}, err
 	}
 
-	bepGoodEgg := diff.Div(price)
-	rcRatio := diff.Div(totalExpenseProduction).InexactFloat64() * 100.0
+	bepGoodEgg := float64(0)
+	rcRatio := float64(0)
+	if !price.IsZero() {
+		bepGoodEgg = diff.Div(price).InexactFloat64()
+	}
+
+	if !totalExpenseProduction.IsZero() {
+		rcRatio = diff.Div(totalExpenseProduction).InexactFloat64() * 100.0
+	}
+
 	mos := totalIncomeProduction.Sub(diff).Sub(totalIncomeProduction).InexactFloat64()
 
 	incomeAndExpenseGraphs := make([]dto.IncomeAndExpenseBarChartResponse, 0)
@@ -2920,7 +2936,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 			ChickenLayer:     float64(totalLayerChicken),
 			ChickenAfkir:     float64(totalAfkirChicken),
 		},
-		BEPGoodEgg:                           bepGoodEgg.InexactFloat64(),
+		BEPGoodEgg:                           bepGoodEgg,
 		MarginOfSafety:                       mos,
 		RCRatio:                              rcRatio,
 		IncomeAndExpensePerformanceBarCharts: incomeAndExpenseGraphs,
