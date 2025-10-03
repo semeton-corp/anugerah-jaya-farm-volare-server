@@ -31,13 +31,15 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 		Salary:       additionalWork.Salary.String(),
 	}
 
-	switch additionalWork.LocationType {
-	case enum.LocationTypeCage:
-		response.Place = additionalWork.Cage.Name
-	case enum.LocationTypeStore:
-		response.Place = additionalWork.Store.Name
-	case enum.LocationTypeWarehouse:
-		response.Place = additionalWork.Warehouse.Name
+	if additionalWork.LocationType.Valid {
+		switch additionalWork.LocationType.LocationType {
+		case enum.LocationTypeCage:
+			response.Place = additionalWork.Cage.Name
+		case enum.LocationTypeStore:
+			response.Place = additionalWork.Store.Name
+		case enum.LocationTypeWarehouse:
+			response.Place = additionalWork.Warehouse.Name
+		}
 	}
 
 	return response
@@ -64,13 +66,16 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 		RemainingSlot: additionalWork.Slot - uint64(len(additionalWork.AdditionalWorkUsers)),
 	}
 
-	switch additionalWork.LocationType {
-	case enum.LocationTypeCage:
-		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Cage.Name
-	case enum.LocationTypeStore:
-		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Store.Name
-	case enum.LocationTypeWarehouse:
-		response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Warehouse.Name
+	if additionalWork.LocationType.Valid {
+		switch additionalWork.LocationType.LocationType {
+		case enum.LocationTypeCage:
+			response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Cage.Name
+		case enum.LocationTypeStore:
+			response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Store.Name
+		case enum.LocationTypeWarehouse:
+			response.Place = additionalWork.LocationType.String() + ", " + additionalWork.Warehouse.Name
+		}
+
 	}
 
 	if additionalWork.Slot == uint64(len(additionalWork.AdditionalWorkUsers)) {

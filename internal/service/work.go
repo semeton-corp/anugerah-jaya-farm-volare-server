@@ -244,12 +244,6 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	w.repository.UseTx(true)
 	defer w.repository.Rollback()
 
-	locationType := enum.ValueOfLocationType(request.LocationType)
-	if !locationType.IsValid() {
-		w.log.Error("invalid location", zap.String("location", request.LocationType))
-		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
-	}
-
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
 		w.log.Error("invalid salary", zap.String("salary", request.Salary))
@@ -263,25 +257,40 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	}
 
 	additionalWork := entity.AdditionalWork{
-		Name:         request.Name,
-		LocationId:   request.LocationId,
-		LocationType: locationType,
-		Description:  request.Description,
-		Slot:         request.Slot,
-		Salary:       salary,
-		WorkDate:     workDate,
-		CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+		Name:        request.Name,
+		LocationId:  request.LocationId,
+		Description: request.Description,
+		Slot:        request.Slot,
+		Salary:      salary,
+		WorkDate:    workDate,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	if request.PlaceId != nil {
-		switch locationType {
-		case enum.LocationTypeCage:
-			additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
-		case enum.LocationTypeStore:
-			additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
-		case enum.LocationTypeWarehouse:
-			additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+	if request.LocationType != nil {
+		locationType := enum.ValueOfLocationType(*request.LocationType)
+		if !locationType.IsValid() {
+			w.log.Error("invalid location", zap.String("location", *request.LocationType))
+			return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
 		}
+
+		if request.PlaceId != nil {
+			switch locationType {
+			case enum.LocationTypeCage:
+				additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.WarehouseId = sql.NullInt64{}
+				additionalWork.StoreId = sql.NullInt64{}
+			case enum.LocationTypeStore:
+				additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.WarehouseId = sql.NullInt64{}
+				additionalWork.CageId = sql.NullInt64{}
+			case enum.LocationTypeWarehouse:
+				additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.StoreId = sql.NullInt64{}
+				additionalWork.CageId = sql.NullInt64{}
+			}
+		}
+
+		additionalWork.LocationType = datatype.NullLocationType{LocationType: locationType, Valid: true}
 	}
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {
@@ -358,12 +367,6 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 		return dto.AdditionalWorkResponse{}, err
 	}
 
-	locationType := enum.ValueOfLocationType(request.LocationType)
-	if !locationType.IsValid() {
-		w.log.Error("invalid location", zap.String("location", request.LocationType))
-		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
-	}
-
 	salary, err := decimal.NewFromString(request.Salary)
 	if err != nil {
 		w.log.Error("invalid salary", zap.String("salary", request.Salary))
@@ -382,24 +385,33 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 	additionalWork.Slot = request.Slot
 	additionalWork.Salary = salary
 	additionalWork.WorkDate = workDate
-	additionalWork.LocationType = locationType
 	additionalWork.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
-	if request.PlaceId != nil {
-		switch locationType {
-		case enum.LocationTypeCage:
-			additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
-			additionalWork.WarehouseId = sql.NullInt64{}
-			additionalWork.StoreId = sql.NullInt64{}
-		case enum.LocationTypeStore:
-			additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
-			additionalWork.WarehouseId = sql.NullInt64{}
-			additionalWork.CageId = sql.NullInt64{}
-		case enum.LocationTypeWarehouse:
-			additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
-			additionalWork.StoreId = sql.NullInt64{}
-			additionalWork.CageId = sql.NullInt64{}
+	if request.LocationType != nil {
+		locationType := enum.ValueOfLocationType(*request.LocationType)
+		if !locationType.IsValid() {
+			w.log.Error("invalid location", zap.String("location", *request.LocationType))
+			return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid location")
 		}
+
+		if request.PlaceId != nil {
+			switch locationType {
+			case enum.LocationTypeCage:
+				additionalWork.CageId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.WarehouseId = sql.NullInt64{}
+				additionalWork.StoreId = sql.NullInt64{}
+			case enum.LocationTypeStore:
+				additionalWork.StoreId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.WarehouseId = sql.NullInt64{}
+				additionalWork.CageId = sql.NullInt64{}
+			case enum.LocationTypeWarehouse:
+				additionalWork.WarehouseId = sql.NullInt64{Int64: int64(*request.PlaceId), Valid: true}
+				additionalWork.StoreId = sql.NullInt64{}
+				additionalWork.CageId = sql.NullInt64{}
+			}
+		}
+
+		additionalWork.LocationType = datatype.NullLocationType{LocationType: locationType, Valid: true}
 	}
 
 	if err := w.repository.SaveAdditionalWork(&additionalWork); err != nil {
