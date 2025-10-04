@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -22,6 +23,7 @@ type UserSalaryPayment struct {
 	Cashbond             decimal.Decimal    `gorm:"type:decimal;not null"`
 	PaymentProof         string             `gorm:"type:text;not null"`
 	PaymentMethod        enum.PaymentMethod `gorm:"type:int;not null;default:0"`
+	PaymentDate          sql.NullTime       `gorm:"type:date"`
 	IsPaid               bool               `gorm:"type:bool;not null;default:false"`
 	CreatedAt            time.Time          `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy            uuid.NullUUID      `gorm:"type:varchar(255)"`

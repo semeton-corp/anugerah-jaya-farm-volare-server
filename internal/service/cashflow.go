@@ -1853,6 +1853,7 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 	userSalaryPayment.PaymentProof = request.PaymentProof
 	userSalaryPayment.Cashbond = totalCashbond
 	userSalaryPayment.IsPaid = true
+	userSalaryPayment.PaymentDate = sql.NullTime{Time: time.Now(), Valid: true}
 	userSalaryPayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if err := s.repository.UpdateUserSalaryPayment(&userSalaryPayment); err != nil {

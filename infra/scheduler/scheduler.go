@@ -707,7 +707,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 		}
 
 		var warehouseItemProcurementPayments []entity.WarehouseItemProcurementPayment
-		if err := tx.Joins("JOIN chicken_procurements cp ON cp.id = chicken_procurement_payments.chicken_procurement_id").
+		if err := tx.
 			Joins("LEFT JOIN warehouse_item_procurements ON warehouse_item_procurements.id = warehouse_item_procurement_payments.warehouse_item_procurement_id").Joins("LEFT JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id").
 			Where("warehouses.location_id = ? AND warehouse_item_procurement_payments.payment_date BETWEEN ? AND ?", loc.Id, startDate, endDate).
 			Find(&warehouseItemProcurementPayments).Error; err != nil {
@@ -876,7 +876,7 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 			Profit:           totalIncome.Sub(totalExpense),
 			WarehouseEggSale: totalWarehouseEggSale,
 			StoreEggSale:     totalStoreEggSale,
-			CreatedAt:        time.Now(),
+			CreatedAt:        endDate,
 		}
 
 		data = append(data, history)

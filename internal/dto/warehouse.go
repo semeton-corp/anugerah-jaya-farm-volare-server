@@ -495,6 +495,8 @@ type WarehouseItemCornProcurementResponse struct {
 	PaymentType                   string                                        `json:"paymentType"`
 	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
 	ReceieveQuantity              *float64                                      `json:"recieveQuantity"`
+	ExpiredAt                     string                                        `json:"expiredAt"`
+	Date                          string                                        `json:"date"`
 }
 
 type WarehouseItemCornResponse struct {

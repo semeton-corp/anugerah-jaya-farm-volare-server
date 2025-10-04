@@ -373,6 +373,8 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		Discount:                  data.Discount,
 		PaymentStatus:             data.PaymentStatus.String(),
 		PaymentType:               data.PaymentType.String(),
+		ExpiredAt:                 data.ExpiredAt.Format("02 Jan 2006"),
+		Date:                      data.CreatedAt.Format("02 Jan 2006"),
 	}
 
 	if data.ReceiveQuantity.Valid {
