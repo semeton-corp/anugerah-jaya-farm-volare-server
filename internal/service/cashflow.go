@@ -215,7 +215,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		totalUserCashAdvance = totalUserCashAdvance.Add(payment.Nominal)
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryStoreEggSale {
+	if filter.IncomeCategory == constant.IncomeCategoryStoreEggSale {
 		for _, payment := range storeSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.StoreSaleId,
@@ -233,7 +233,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale {
+	if filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale {
 		for _, payment := range warehouseSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.WarehouseSaleId,
@@ -251,7 +251,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale {
+	if filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale {
 		for _, payment := range afkirChickenSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
@@ -269,7 +269,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		}
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryAll || filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment {
+	if filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment {
 		for _, payment := range afkirChickenSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
@@ -761,7 +761,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		totalUserCashAdvance = totalUserCashAdvance.Add(p.Nominal)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement {
 		for _, p := range chickenProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -776,7 +776,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemProcurement {
 		for _, p := range warehouseItemProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -791,7 +791,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemCornProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemCornProcurement {
 		for _, p := range warehouseItemCornProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -806,7 +806,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryStaff {
+	if filter.ExpenseCategory == constant.ExpenseCategoryStaff {
 		for _, p := range userSalaryPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -821,7 +821,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryOperational {
+	if filter.ExpenseCategory == constant.ExpenseCategoryOperational {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryOperational {
 				response := dto.ExpenseListResponse{
@@ -849,7 +849,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryOther {
+	if filter.ExpenseCategory == constant.ExpenseCategoryOther {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryOther {
 				response := dto.ExpenseListResponse{
@@ -877,7 +877,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryTax {
+	if filter.ExpenseCategory == constant.ExpenseCategoryTax {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryTax {
 				response := dto.ExpenseListResponse{
@@ -905,7 +905,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		}
 	}
 
-	if filter.ExpenseCategory == constant.IncomeCategoryAll || filter.ExpenseCategory == constant.ExpenseCategoryUserCashAdvance {
+	if filter.ExpenseCategory == constant.ExpenseCategoryUserCashAdvance {
 		for _, p := range userCashAdvances {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -1419,7 +1419,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.Nominal.Sub(totalCurrentReceieveablesPayment))
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
 		for _, e := range warehouseSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1449,7 +1449,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryStoreEggSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryStoreEggSale {
 		for _, e := range storeSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1479,7 +1479,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
 		for _, e := range afkirChickenSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1509,7 +1509,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		}
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAll || filter.ReceivablesCategory == constant.ReceieveablesCategoryCashAdvance {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryCashAdvance {
 		for _, e := range userCashAdvances {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1945,7 +1945,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 	}
 
 	debtResponses := make([]dto.DebtListResponse, 0)
-	if filter.DebtCategory == constant.DebtCategoryAll || filter.DebtCategory == constant.DebtCategoryWarehouseItemProcurement {
+	if filter.DebtCategory == constant.DebtCategoryWarehouseItemProcurement {
 		for _, e := range warehouseItemProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -1970,7 +1970,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		}
 	}
 
-	if filter.DebtCategory == constant.DebtCategoryAll || filter.DebtCategory == constant.DebtCategoryWarehouseItemCornProcurement {
+	if filter.DebtCategory == constant.DebtCategoryWarehouseItemCornProcurement {
 		for _, e := range warehouseItemCornProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -1995,7 +1995,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		}
 	}
 
-	if filter.DebtCategory == constant.DebtCategoryAll || filter.DebtCategory == constant.DebtCategoryChickenProcurement {
+	if filter.DebtCategory == constant.DebtCategoryChickenProcurement {
 		for _, e := range chickenProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -2169,7 +2169,6 @@ func (s *CashflowService) ExportCashflowSaleToExcel(filter dto.GetCashflowSaleRe
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 	f := excelize.NewFile()
 
-	// ====== Common Styles ======
 	headerStyle, _ := f.NewStyle(&excelize.Style{
 		Font:      &excelize.Font{Bold: true, Size: 12, Color: "FFFFFF"},
 		Fill:      excelize.Fill{Type: "pattern", Color: []string{"4F81BD"}, Pattern: 1},
@@ -2177,7 +2176,7 @@ func (s *CashflowService) ExportCashflowSaleToExcel(filter dto.GetCashflowSaleRe
 		Border:    []excelize.Border{{Type: "bottom", Style: 2, Color: "000000"}},
 	})
 	numStyle, _ := f.NewStyle(&excelize.Style{
-		NumFmt: 3, // #,##0
+		NumFmt: 3,
 	})
 
 	// =============== STORE SALES SHEET ================
