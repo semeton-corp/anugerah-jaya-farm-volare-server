@@ -291,42 +291,58 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
-	query := r.GetDB().Model(&entity.AdditionalWork{})
+	db := r.GetDB().Model(&entity.AdditionalWork{})
 
-	var orConditions []string
-	var orArgs []interface{}
-
-	if filter.LocationId > 0 {
-		orConditions = append(orConditions, "location_id = ?")
-		orArgs = append(orArgs, filter.LocationId)
+	if filter.LocationId == 0 || !filter.LocationType.Value().IsValid() {
+		err := db.
+			Preload("AdditionalWorkUsers.User.Role").
+			Preload("Location").
+			Preload("Cage.CagePlacement").
+			Preload("Warehouse").
+			Preload("Store").
+			Where("deleted_at IS NULL").
+			Order("created_at DESC").
+			Find(&additionalWorks).Error
+		return additionalWorks, err
 	}
 
-	if filter.LocationType.Value().IsValid() {
-		switch filter.LocationType.Value() {
-		case enum.LocationTypeCage:
-			orConditions = append(orConditions, "cage_id IN ?")
-			orArgs = append(orArgs, filter.PlaceIds)
-		case enum.LocationTypeStore:
-			orConditions = append(orConditions, "store_id IN ?")
-			orArgs = append(orArgs, filter.PlaceIds)
-		case enum.LocationTypeWarehouse:
-			orConditions = append(orConditions, "warehouse_id IN ?")
-			orArgs = append(orArgs, filter.PlaceIds)
-		}
+	locationId := filter.LocationId
+	locationType := filter.LocationType.Value()
+
+	typeConditions := []string{}
+	typeArgs := []interface{}{}
+
+	switch locationType {
+	case enum.LocationTypeCage:
+		typeConditions = append(typeConditions, "cage_id IN ?")
+		typeArgs = append(typeArgs, filter.PlaceIds)
+	case enum.LocationTypeStore:
+		typeConditions = append(typeConditions, "store_id IN ?")
+		typeArgs = append(typeArgs, filter.PlaceIds)
+	case enum.LocationTypeWarehouse:
+		typeConditions = append(typeConditions, "warehouse_id IN ?")
+		typeArgs = append(typeArgs, filter.PlaceIds)
 	}
 
-	// Apply OR condition if any
-	if len(orConditions) > 0 {
-		condition := "(" + strings.Join(orConditions, " OR ") + ")"
-		query = query.Where(condition, orArgs...)
+	var condition string
+	var args []interface{}
+
+	if len(typeConditions) > 0 {
+		condition = "( (location_id = ? AND location_type = ?) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
+		args = append(args, locationId, locationType, locationId)
+		args = append(args, typeArgs...)
+	} else {
+		condition = "(location_id = ? AND location_type = ?)"
+		args = append(args, locationId, locationType)
 	}
 
-	err := query.
+	err := db.
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").
 		Preload("Cage.CagePlacement").
 		Preload("Warehouse").
 		Preload("Store").
+		Where(condition, args...).
 		Where("deleted_at IS NULL").
 		Order("created_at DESC").
 		Find(&additionalWorks).Error
