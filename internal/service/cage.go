@@ -3,6 +3,7 @@ package service
 import (
 	"database/sql"
 	"fmt"
+	"math"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -45,6 +46,8 @@ type ICageService interface {
 	ConfirmationChickenCageFeed(chickenCageId uint64, request dto.ConfirmationChickenCageFeedRequest, userId uuid.UUID) (dto.ChickenCageFeedResponse, error)
 
 	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
+
+	ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error
 }
 
 func NewCageService(log *zap.Logger, repository repository.ICageRepository, warehouseService IWarehouseService) ICageService {
@@ -786,7 +789,7 @@ func (s *CageService) GetTotalCageFeedHistory(cageId uint64) (float64, error) {
 }
 
 func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	diff := currentFeeds - latestFeed
@@ -799,39 +802,47 @@ func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds floa
 		CageId: cageId,
 	})
 	if err != nil {
-		s.log.Error("failed get cage feed stocks", zap.Error(err))
+		s.log.Error("failed to get cage feed stocks", zap.Error(err))
 		return err
 	}
 
-	for _, e := range cageFeedStocks {
+	for i := range cageFeedStocks {
+		e := &cageFeedStocks[i]
+
 		if diff == 0 {
 			break
+		}
+
+		if diff > 0 {
+			available := e.TotalFeed - e.UsedFeed
+			if available <= 0 {
+				continue
+			}
+
+			use := math.Min(available, diff)
+			e.UsedFeed += use
+			diff -= use
+
 		} else if diff < 0 {
-			usedTotalFeedUpdated := e.UsedFeed + diff + e.TotalFeed
-			e.UsedFeed = usedTotalFeedUpdated
-			err = s.repository.UpdateCageFeedStock(&e)
-			if err != nil {
-				s.log.Error("failed update cage feed stock", zap.Error(err))
-				return err
-			}
+			reduce := math.Min(e.UsedFeed, -diff)
+			e.UsedFeed -= reduce
+			diff += reduce
+		}
 
-			diff += usedTotalFeedUpdated + e.TotalFeed
-		} else if diff > 0 {
-			usedTotalFeedUpdated := e.UsedFeed + diff - e.TotalFeed
-			e.UsedFeed = usedTotalFeedUpdated
-
-			err = s.repository.UpdateCageFeedStock(&e)
-			if err != nil {
-				s.log.Error("failed update cage feed stock", zap.Error(err))
-				return err
-			}
-
-			diff += usedTotalFeedUpdated + e.TotalFeed
+		if err := s.repository.UpdateCageFeedStock(e); err != nil {
+			s.log.Error("failed to update cage feed stock", zap.Error(err))
+			return err
 		}
 	}
 
-	err = s.repository.Commit()
-	if err != nil {
+	if diff != 0 {
+		s.log.Error("not enough feed stock capacity to adjust completely",
+			zap.Float64("remaining_diff", diff),
+			zap.Uint64("cageId", cageId))
+		return errx.BadRequest(fmt.Sprintf("insufficient feed stock to adjust by %.2f", diff))
+	}
+
+	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}

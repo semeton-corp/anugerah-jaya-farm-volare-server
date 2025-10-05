@@ -144,7 +144,7 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	}
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("02 Jan 2006"))
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
@@ -154,7 +154,7 @@ func (r *WorkRepository) GetDailyWorkUserByUserId(userId uuid.UUID, filter dto.G
 	}
 
 	if filter.Page > 0 {
-		query = query.Offset(int(constant.PaginationDefaultLimit-1) * int(filter.Page)).Limit(int(constant.PaginationDefaultLimit))
+		query = query.Offset(int(filter.Page-1) * int(constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
 	err := query.
@@ -179,11 +179,11 @@ func (r *WorkRepository) CountDailyWorkUserByUserId(userId uuid.UUID, filter dto
 
 	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("daily_work_users.created_at >= ? AND daily_work_users.created_at <= ?", startDate, endDate)
+		query = query.Where("DATE(daily_work_users.created_at) >= ? AND DATE(daily_work_users.created_at) <= ?", startDate, endDate)
 	}
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value().Format("02 Jan 2006"))
+		query = query.Where("DATE(daily_work_users.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
@@ -221,7 +221,13 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 	}
 
 	if filter.IsAdditionalWorkFull {
-		query = query.Where("additional_work_users.is_additional_work_full = ?", filter.IsAdditionalWorkFull)
+		subQuery := r.GetDB().
+			Table("additional_work_users").
+			Select("additional_work_id").
+			Group("additional_work_id").
+			Having("COUNT(*) = (SELECT slot FROM additional_works WHERE id = additional_work_users.additional_work_id)")
+
+		query = query.Where("additional_works.id IN (?)", subQuery)
 	}
 
 	if filter.Page > 0 {
@@ -328,12 +334,12 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	var args []interface{}
 
 	if len(typeConditions) > 0 {
-		condition = "( (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
-		args = append(args, locationId, locationType, locationId)
+		condition = "( (location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
+		args = append(args, locationId, locationId, locationType, locationId)
 		args = append(args, typeArgs...)
 	} else {
-		condition = "(location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)"
-		args = append(args, locationId, locationType)
+		condition = "( (location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) )"
+		args = append(args, locationId, locationId, locationType)
 	}
 
 	err := db.

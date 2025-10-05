@@ -31,7 +31,6 @@ type DailyWorkResponse struct {
 type DailyWorkDetailResponse struct {
 	Id          uint64 `json:"id"`
 	Description string `json:"description"`
-	Date        string `json:"date"`
 	StartTime   string `json:"startTime"`
 	EndTime     string `json:"endTime"`
 }
@@ -98,8 +97,8 @@ type AdditionalWorkUserResponse struct {
 	IsDone         bool                         `json:"isDone"`
 	Note           string                       `json:"note"`
 	AdditionalWork AdditionalWorkDetailResponse `json:"additionalWork"`
-	TakenDate      string                       `json:"finishedAt"`
-	TakenTime      string                       `json:"finishedTime"`
+	TakenDate      string                       `json:"takenDate"`
+	TakenTime      string                       `json:"takenTime"`
 	CreatedAt      time.Time                    `json:"-"`
 }
 
@@ -116,6 +115,7 @@ type DailyWorkUserResponse struct {
 	DailyWork    DailyWorkDetailResponse `json:"dailyWork"`
 	FinishedDate string                  `json:"finishedDate"`
 	FinishedTime string                  `json:"finishedTime"`
+	Date         string                  `json:"date"`
 	CreatedAt    time.Time               `json:"-"`
 	Status       string                  `json:"status"`
 }

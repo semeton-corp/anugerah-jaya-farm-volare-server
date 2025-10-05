@@ -133,6 +133,11 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	err = s.cageService.ReduceCageFeedStocks(0, request.TotalFeed, chickenCage.Cage.Id)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
 	chickenMonitoring := entity.ChickenMonitoring{
 		ChickenCageId:     request.ChickenCageId,
 		TotalChicken:      chickenCage.TotalChicken,
@@ -158,7 +163,7 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	if chickenCage.TotalChicken-request.TotalDeathChicken == 0 {
+	if currentChicken == 0 {
 		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 			CageId:       chickenCage.Cage.Id,
 			TotalChicken: 0,
@@ -250,6 +255,11 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 	}
 
 	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
+	if err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
+	err = s.cageService.ReduceCageFeedStocks(chickenMonitoring.TotalFeed, request.TotalFeed, chickenCage.Cage.Id)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
