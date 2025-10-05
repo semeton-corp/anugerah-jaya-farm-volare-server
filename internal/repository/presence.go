@@ -401,7 +401,7 @@ func (r *PresenceRepository) GetLocationUserPresence(filter dto.GetLocationUserP
 		case enum.LocationTypeWarehouse:
 			query = query.
 				Joins("LEFT JOIN warehouse_placements ON warehouse_placements.user_id = user_presences.user_id").
-				Joins("LEFT JOIN warehouses ON warehouse_placements.store_id = warehouses.id").
+				Joins("LEFT JOIN warehouses ON warehouse_placements.warehouse_id = warehouses.id").
 				Joins("LEFT JOIN users ON user_presences.user_id = users.id").
 				Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM warehouse_placements) AND warehouses.id = ? AND users.role_id = ? AND user_presences.status = ? AND user_presences.submission_presence_status = ?",
 					filter.PlaceId, filter.RoleId, filter.PresenceStatus.Value(), filter.SubmissionPresenceStatus.Value())

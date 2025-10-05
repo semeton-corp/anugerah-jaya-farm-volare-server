@@ -152,7 +152,7 @@ type UserPresencePendingResponse struct {
 type GetUserPresencePendingFilter struct {
 	RoleId                   uint64                              `query:"roleId" validate:"required"`
 	LocationType             param.LocationTypeParam             `query:"locationType" validate:"required"`
-	PlaceId                  uint64                              `json:"placeId" validate:"required"`
+	PlaceId                  uint64                              `query:"placeId" validate:"required"`
 	PresenceStatus           param.PresenceStatusParam           `query:"presenceStatus" validate:"required"`
 	SubmissionPresenceStatus param.SubmissionPresenceStatusParam `query:"submissionPresence" validate:"required"`
 }

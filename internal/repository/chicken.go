@@ -629,7 +629,7 @@ func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurem
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("created_at DESC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
+	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date DESC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
 	if err != nil {
 		return nil, err
 	}

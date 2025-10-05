@@ -699,7 +699,7 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 		}
 	}
 
-	newChickenCages := make([]entity.ChickenCage, 0, len(request.DestinationChickenCages))
+	newChickenCages := make([]entity.ChickenCage, 0)
 	totalMoveChicken := uint64(0)
 
 	for _, dest := range request.DestinationChickenCages {
@@ -718,11 +718,19 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 	sourceChickenCage.TotalChicken -= totalMoveChicken
 	if totalMoveChicken == 0 {
 		sourceCage.IsUsed = false
-	}
 
-	if err := s.repository.UpdateCage(&sourceCage); err != nil {
-		s.log.Error("failed update cage", zap.Error(err))
-		return nil, err
+		if err := s.repository.UpdateCage(&sourceCage); err != nil {
+			s.log.Error("failed update cage", zap.Error(err))
+			return nil, err
+		}
+
+		if err := s.repository.CreateChickenCage(&entity.ChickenCage{
+			CageId:       sourceCage.Id,
+			TotalChicken: 0,
+			CreatedBy:    uuid.NullUUID{UUID: userId, Valid: true},
+		}); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := s.repository.UpdateChickenCage(&sourceChickenCage); err != nil {

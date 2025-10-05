@@ -107,7 +107,7 @@ type LocationTypeParam enum.LocationType
 func (p *LocationTypeParam) UnmarshalText(text []byte) error {
 	parsedFilter := enum.ValueOfLocationType(string(text))
 	if !parsedFilter.IsValid() {
-		return errx.BadRequest("invalid location work type")
+		return errx.BadRequest("invalid location type")
 	}
 
 	*p = LocationTypeParam(parsedFilter)

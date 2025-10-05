@@ -13,6 +13,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/jwt"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/saga"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 	"github.com/spf13/viper"
@@ -47,114 +48,133 @@ func NewAuthenticationService(log *zap.Logger, repository repository.IAuthentica
 }
 
 func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UUID) (dto.SignUpResponse, error) {
-	s.repository.UseTx(true)
-	defer s.repository.Rollback()
+	var (
+		user entity.User
+		Id   uuid.UUID
+		role dto.RoleResponse
+	)
 
-	Id, err := uuid.NewUUID()
-	if err != nil {
-		s.log.Error("failed to generate UUID", zap.Error(err))
-		return dto.SignUpResponse{}, err
-	}
+	saga := saga.Saga{}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		s.log.Error("failed to hash password", zap.Error(err))
-		return dto.SignUpResponse{}, err
-	}
-
-	salary, err := decimal.NewFromString(request.Salary)
-	if err != nil {
-		s.log.Error("failed to parse salary from string", zap.Error(err))
-		return dto.SignUpResponse{}, errx.BadRequest("invalid salary format")
-	}
-
-	salaryInterval := enum.ValueOfSalaryInterval(request.SalaryInterval)
-	if !salaryInterval.IsValid() {
-		s.log.Warn("invalid salary interval", zap.String("salaryInterval", request.SalaryInterval))
-		return dto.SignUpResponse{}, err
-	}
-
-	user := entity.User{
-		Id:             Id,
-		Email:          request.Email,
-		Username:       request.Username,
-		Password:       string(hashedPassword),
-		RoleId:         request.RoleId,
-		PhotoProfile:   "https://www.gravatar.com/avatar/?d=mp",
-		Name:           request.Name,
-		PhoneNumber:    request.PhoneNumber,
-		Address:        request.Address,
-		Salary:         salary,
-		SalaryInterval: salaryInterval,
-		CreatedByOwner: uuid.NullUUID{UUID: userId, Valid: true},
-	}
-
-	if request.LocationId != nil {
-		user.LocationId = sql.NullInt64{Int64: int64(*request.LocationId), Valid: true}
-	}
-
-	if request.PhotoProfile != "" {
-		user.PhotoProfile = request.PhotoProfile
-	}
-
-	if err = s.repository.CreateUser(&user); err != nil {
-		s.log.Error("failed to create user", zap.Error(err))
-		return dto.SignUpResponse{}, err
-	}
-
-	if request.PlacementIds != nil {
-		role, err := s.roleService.GetRoleById(request.RoleId)
+	saga.AddStep("Generate UUID", func() error {
+		var err error
+		Id, err = uuid.NewUUID()
 		if err != nil {
-			return dto.SignUpResponse{}, err
+			return err
+		}
+		return nil
+	}, func() {})
+
+	var hashedPassword []byte
+	saga.AddStep("Hash password", func() error {
+		var err error
+		hashedPassword, err = bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+		return err
+	}, func() {})
+
+	saga.AddStep("Validate salary", func() error {
+		salary, err := decimal.NewFromString(request.Salary)
+		if err != nil {
+			return errx.BadRequest("invalid salary format")
+		}
+
+		salaryInterval := enum.ValueOfSalaryInterval(request.SalaryInterval)
+		if !salaryInterval.IsValid() {
+			return errx.BadRequest("invalid salary interval")
+		}
+
+		user = entity.User{
+			Id:             Id,
+			Email:          request.Email,
+			Username:       request.Username,
+			Password:       string(hashedPassword),
+			RoleId:         request.RoleId,
+			PhotoProfile:   "https://www.gravatar.com/avatar/?d=mp",
+			Name:           request.Name,
+			PhoneNumber:    request.PhoneNumber,
+			Address:        request.Address,
+			Salary:         salary,
+			SalaryInterval: salaryInterval,
+			CreatedByOwner: uuid.NullUUID{UUID: userId, Valid: true},
+		}
+
+		if request.LocationId != nil {
+			user.LocationId = sql.NullInt64{Int64: int64(*request.LocationId), Valid: true}
+		}
+		if request.PhotoProfile != "" {
+			user.PhotoProfile = request.PhotoProfile
+		}
+		return nil
+	}, func() {})
+
+	saga.AddStep("Create user", func() error {
+		if err := s.repository.CreateUser(&user); err != nil {
+			return err
+		}
+		return nil
+	}, func() {
+		_ = s.DeleteUser(Id)
+	})
+
+	saga.AddStep("Get role", func() error {
+		var err error
+		role, err = s.roleService.GetRoleById(request.RoleId)
+		return err
+	}, func() {})
+
+	saga.AddStep("Create placement", func() error {
+		if request.PlacementIds == nil {
+			return nil
 		}
 
 		if slices.Contains(entity.CageLocationTypeList, role.Name) {
-			createCagePlacementRequests := make([]dto.CreateCagePlacementRequest, 0)
+			reqs := make([]dto.CreateCagePlacementRequest, 0)
 			for _, id := range request.PlacementIds {
-				createCagePlacementRequests = append(createCagePlacementRequests, dto.CreateCagePlacementRequest{
+				reqs = append(reqs, dto.CreateCagePlacementRequest{
 					UserId: Id.String(),
 					CageId: id,
 				})
 			}
-
-			_, err := s.placementService.CreateCagePlacementForAuthentication(createCagePlacementRequests, userId, request.RoleId)
-			if err != nil {
-				return dto.SignUpResponse{}, err
-			}
-		} else if slices.Contains(entity.StoreLocationTypeList, role.Name) {
-			if len(request.PlacementIds) > 1 {
-				return dto.SignUpResponse{}, errx.BadRequest("store type must be only 1 placement")
-			}
-
-			_, err := s.placementService.CreateStorePlacementForAuthentication(dto.CreateStorePlacementRequest{
-				UserId:  Id.String(),
-				StoreId: request.PlacementIds[0],
-			}, userId)
-			if err != nil {
-				return dto.SignUpResponse{}, err
-			}
-		} else if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
-			if len(request.PlacementIds) > 1 {
-				return dto.SignUpResponse{}, errx.BadRequest("warehouse type must be only 1 placement")
-			}
-
-			_, err := s.placementService.CreateWarehousePlacementForAuthentication(dto.CreateWarehousePlacementRequest{
-				UserId:      Id.String(),
-				WarehouseId: request.PlacementIds[0],
-			}, userId)
-			if err != nil {
-				return dto.SignUpResponse{}, err
-			}
+			_, err := s.placementService.CreateCagePlacementForAuthentication(reqs, userId, request.RoleId)
+			return err
 		}
+
+		if slices.Contains(entity.StoreLocationTypeList, role.Name) {
+			if len(request.PlacementIds) > 1 {
+				return errx.BadRequest("store type must be only 1 placement")
+			}
+			_, err := s.placementService.CreateStorePlacementForAuthentication(
+				dto.CreateStorePlacementRequest{
+					UserId:  Id.String(),
+					StoreId: request.PlacementIds[0],
+				}, userId)
+			return err
+		}
+
+		if slices.Contains(entity.WarehouseLocationTypeList, role.Name) {
+			if len(request.PlacementIds) > 1 {
+				return errx.BadRequest("warehouse type must be only 1 placement")
+			}
+			_, err := s.placementService.CreateWarehousePlacementForAuthentication(
+				dto.CreateWarehousePlacementRequest{
+					UserId:      Id.String(),
+					WarehouseId: request.PlacementIds[0],
+				}, userId)
+			return err
+		}
+
+		return nil
+	}, func() {
+		s.DeleteUser(Id)
+	})
+
+	if err := saga.Execute(); err != nil {
+		s.log.Error("sign-up saga failed", zap.Error(err))
+		return dto.SignUpResponse{}, err
 	}
 
-	if err = s.repository.Commit(); err != nil {
-		s.log.Error("failed to commit transaction", zap.Error(err))
-	}
-
-	user, err = s.repository.GetUserById(Id)
+	user, err := s.repository.GetUserById(Id)
 	if err != nil {
-		s.log.Error("failed to get user by id", zap.Error(err))
 		return dto.SignUpResponse{}, err
 	}
 

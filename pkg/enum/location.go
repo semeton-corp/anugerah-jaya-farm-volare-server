@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	LocationWorkTypeMap = map[LocationType]string{
+	LocationTypeMap = map[LocationType]string{
 		LocationTypeCage:       "Kandang",
 		LocationTypeStore:      "Toko",
 		LocationTypeWarehouse:  "Gudang",
@@ -22,11 +22,11 @@ var (
 )
 
 func (c LocationType) String() string {
-	return LocationWorkTypeMap[c]
+	return LocationTypeMap[c]
 }
 
 func ValueOfLocationType(value string) LocationType {
-	for k, v := range LocationWorkTypeMap {
+	for k, v := range LocationTypeMap {
 		if v == value {
 			return k
 		}
@@ -35,6 +35,6 @@ func ValueOfLocationType(value string) LocationType {
 }
 
 func (c LocationType) IsValid() bool {
-	_, ok := LocationWorkTypeMap[c]
+	_, ok := LocationTypeMap[c]
 	return ok
 }
