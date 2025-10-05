@@ -329,6 +329,7 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 			users.email AS user_email,
 			roles.name AS role_name,
 			user_presences.status AS presence_status,
+			user_presences.submission_presence_status AS submission_presence_status,
 			user_presences.start_time AS presence_start_time,
 			user_presences.end_time AS presence_end_time,
 			COUNT(DISTINCT additional_work_users.id) AS total_additional_work_users,
@@ -367,7 +368,7 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}
 
-	db = db.Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status, user_presences.start_time, user_presences.end_time`)
+	db = db.Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status, user_presences.start_time, user_presences.end_time, user_presences.submission_presence_status`)
 
 	var results []entity.UserPresenceWorkDetailSummary
 	if err := db.Scan(&results).Error; err != nil {

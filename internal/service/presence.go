@@ -382,13 +382,14 @@ func (s *PresenceService) GetUserPresenceWorkSummaries(filter dto.GetUserPresenc
 		}
 
 		newData := dto.UserPresenceWorkDetailSummaryResponse{
-			UserId:             userPresenceWorkDetailSummary.UserId.String(),
-			UserName:           userPresenceWorkDetailSummary.UserName,
-			UserPhotoProfile:   userPresenceWorkDetailSummary.UserPhotoProfile,
-			UserEmail:          userPresenceWorkDetailSummary.UserEmail,
-			RoleName:           userPresenceWorkDetailSummary.RoleName,
-			PresenceStatus:     userPresenceWorkDetailSummary.PresenceStatus.String(),
-			WorkDonePercentage: workDonePercentage,
+			UserId:                   userPresenceWorkDetailSummary.UserId.String(),
+			UserName:                 userPresenceWorkDetailSummary.UserName,
+			UserPhotoProfile:         userPresenceWorkDetailSummary.UserPhotoProfile,
+			UserEmail:                userPresenceWorkDetailSummary.UserEmail,
+			RoleName:                 userPresenceWorkDetailSummary.RoleName,
+			PresenceStatus:           userPresenceWorkDetailSummary.PresenceStatus.String(),
+			SubmissionPresenceStatus: userPresenceWorkDetailSummary.SubmissionPresenceStatus.String(),
+			WorkDonePercentage:       workDonePercentage,
 		}
 
 		if userPresenceWorkDetailSummary.PresenceStartTime.Time != nil {

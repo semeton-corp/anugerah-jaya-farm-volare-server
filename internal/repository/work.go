@@ -328,11 +328,11 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	var args []interface{}
 
 	if len(typeConditions) > 0 {
-		condition = "( (location_id = ? AND location_type = ?) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
+		condition = "( (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
 		args = append(args, locationId, locationType, locationId)
 		args = append(args, typeArgs...)
 	} else {
-		condition = "(location_id = ? AND location_type = ?)"
+		condition = "(location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)"
 		args = append(args, locationId, locationType)
 	}
 

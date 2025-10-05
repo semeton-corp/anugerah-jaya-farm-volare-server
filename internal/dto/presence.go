@@ -107,15 +107,16 @@ type UserPresenceSummaryResponse struct {
 }
 
 type UserPresenceWorkDetailSummaryResponse struct {
-	UserId             string  `json:"id"`
-	UserName           string  `json:"name"`
-	UserPhotoProfile   string  `json:"photoProfile"`
-	UserEmail          string  `json:"email"`
-	RoleName           string  `json:"roleName"`
-	PresenceStatus     string  `json:"status"`
-	ArrivedTime        string  `json:"arrivedTime"`
-	DepartureTime      string  `json:"departureTime"`
-	WorkDonePercentage float64 `json:"workDonePercentage"`
+	UserId                   string  `json:"id"`
+	UserName                 string  `json:"name"`
+	UserPhotoProfile         string  `json:"photoProfile"`
+	UserEmail                string  `json:"email"`
+	RoleName                 string  `json:"roleName"`
+	PresenceStatus           string  `json:"status"`
+	SubmissionPresenceStatus string  `json:"submissionPresenceStatus"`
+	ArrivedTime              string  `json:"arrivedTime"`
+	DepartureTime            string  `json:"departureTime"`
+	WorkDonePercentage       float64 `json:"workDonePercentage"`
 }
 
 type ApprovalPresenceRequest struct {
