@@ -545,7 +545,7 @@ func (w *WorkService) UpdateAdditionalWorkUser(id uint64, request dto.UpdateAddi
 		return dto.AdditionalWorkUserResponse{}, err
 	}
 
-	if int(additionalWork.Slot) == len(additionalWork.AdditionalWorkUsers) {
+	if int(additionalWork.Slot) > len(additionalWork.AdditionalWorkUsers) {
 		w.log.Warn("additional work must be full taken")
 		return dto.AdditionalWorkUserResponse{}, errx.BadRequest("additional work must be full taken")
 	}
