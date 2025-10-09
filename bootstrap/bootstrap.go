@@ -15,6 +15,7 @@ import (
 	_persistence "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/persistence"
 	_router "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/router"
 	_scheduler "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/scheduler"
+	_storage "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/storage"
 	_validator "github.com/semeton-corp/anugerah-jaya-farm-volare/infra/validator"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/handler/rest"
 	_listener "github.com/semeton-corp/anugerah-jaya-farm-volare/internal/listener"
@@ -34,6 +35,7 @@ type Bootstrap struct {
 	email     _email.IEmail
 	scheduler _scheduler.IScheduler
 	cache     _cache.ICache
+	storage   _storage.IStorage
 	validator *validator.Validate
 }
 
@@ -58,6 +60,7 @@ func New() *Bootstrap {
 	email := _email.New()
 	scheduler := _scheduler.New(db, logger)
 	cache := _cache.New()
+	storage := _storage.New()
 
 	return &Bootstrap{
 		router:    router,
@@ -67,6 +70,7 @@ func New() *Bootstrap {
 		validator: validator,
 		email:     email,
 		scheduler: scheduler,
+		storage:   storage,
 		cache:     cache,
 	}
 }
@@ -143,6 +147,9 @@ func (b *Bootstrap) DepedencyInjection() {
 	notificationService := service.NewNotificationService(b.log, notificationRepository)
 	notificationHandler := rest.NewNotificationHandler(b.log, notificationService, b.validator)
 
+	fileService := service.NewFileService(b.log, b.storage)
+	fileHandler := rest.NewFileHandler(b.log, fileService, b.validator)
+
 	b.handlers = []Handler{
 		authenticationHandler,
 		roleHandler,
@@ -162,6 +169,7 @@ func (b *Bootstrap) DepedencyInjection() {
 		generalHandler,
 		cashflowHandler,
 		notificationHandler,
+		fileHandler,
 	}
 }
 
