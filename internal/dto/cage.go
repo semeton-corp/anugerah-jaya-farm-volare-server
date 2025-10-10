@@ -141,7 +141,14 @@ type GetChickenCageFeedFilter struct {
 }
 
 type ConfirmationChickenCageFeedRequest struct {
-	WarehouseId uint64 `json:"warehouseId"`
+	WarehouseId            uint64                                     `json:"warehouseId"`
+	ChickenCageFeedDetails []ConfirmationChickenCageFeedDetailRequest `json:"chickenCageFeedDetails"`
+}
+
+type ConfirmationChickenCageFeedDetailRequest struct {
+	ItemId   uint64  `json:"itemId"`
+	Category string  `json:"category"`
+	Quantity float64 `json:"quantity"`
 }
 
 type GetCageFeedStockFilter struct {

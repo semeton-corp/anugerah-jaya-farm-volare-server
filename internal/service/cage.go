@@ -618,11 +618,11 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 	}
 
 	requestToWarehouse := make([]dto.ReduceFeedRequest, 0)
-	for _, cageFeedDetail := range cageFeed.CageFeedDetails {
+	for _, cageFeedDetail := range request.ChickenCageFeedDetails {
 		requestToWarehouse = append(requestToWarehouse, dto.ReduceFeedRequest{
 			ItemId:       cageFeedDetail.ItemId,
-			ItemCategory: cageFeedDetail.Item.Category.String(),
-			Quantity:     needCreateFeed * (cageFeedDetail.Percentage / 100.0),
+			ItemCategory: cageFeedDetail.Category,
+			Quantity:     cageFeedDetail.Quantity,
 		})
 	}
 
