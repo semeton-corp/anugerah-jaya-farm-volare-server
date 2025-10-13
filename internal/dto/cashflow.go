@@ -355,8 +355,8 @@ type UserSalaryListPaginationResponse struct {
 }
 
 type UserSalaryDetailResponse struct {
-	PaidDate                 string                           `json:"date,omitempty"`
-	PaidTime                 string                           `json:"time,omitempty"`
+	PaidDate                 string                           `json:"paidDate,omitempty"`
+	PaidTime                 string                           `json:"paidTime,omitempty"`
 	User                     UserListResponse                 `json:"user"`
 	SalaryMonth              string                           `json:"salaryMonth"`
 	AdditionalWorkUsers      []AdditionalWorkUserResponse     `json:"additionalWorkUsers"`

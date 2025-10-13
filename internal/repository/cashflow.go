@@ -721,6 +721,7 @@ func (r *CashflowRepository) UpdateUserSalaryPayment(data *entity.UserSalaryPaym
 		"additional_work_salary": data.AdditionalWorkSalary,
 		"payment_proof":          data.PaymentProof,
 		"payment_method":         data.PaymentMethod,
+		"payment_date":           data.PaymentDate,
 		"is_paid":                data.IsPaid,
 		"updated_by":             data.UpdatedBy,
 	}).Error
