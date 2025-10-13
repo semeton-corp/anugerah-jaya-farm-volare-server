@@ -86,7 +86,7 @@ type CreateWarehouseItemProcurementRequest struct {
 
 type CreateWarehouseItemProcurementPaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -94,7 +94,7 @@ type CreateWarehouseItemProcurementPaymentRequest struct {
 type UpdateWarehouseItemProcurementPaymentRequest struct {
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 }
 
@@ -300,7 +300,7 @@ type UpdateWarehouseSaleRequest struct {
 
 type CreateWarehouseSalePaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -308,7 +308,7 @@ type CreateWarehouseSalePaymentRequest struct {
 type UpdateWarehouseSalePaymentRequest struct {
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 }
 
@@ -525,7 +525,7 @@ type GetWarehouseItemCornProcurementFilter struct {
 
 type CreateWarehouseItemCornProcurementPaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -533,7 +533,7 @@ type CreateWarehouseItemCornProcurementPaymentRequest struct {
 type UpdateWarehouseItemCornProcurementPaymentRequest struct {
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 }
 

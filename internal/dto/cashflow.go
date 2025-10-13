@@ -174,7 +174,7 @@ type UserCashAdvanceResponse struct {
 type CreateUserCashAdvancePaymentRequest struct {
 	UserCashAdvanceId uint64 `json:"userCashAdvanceId"`
 	PaymentDate       string `json:"paymentDate" validate:"required"`
-	Nominal           string `json:"nominal" validate:"required,number"`
+	Nominal           string `json:"nominal" validate:"required"`
 	PaymentProof      string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod     string `json:"paymentMethod" validate:"required,paymentMethod"`
 }

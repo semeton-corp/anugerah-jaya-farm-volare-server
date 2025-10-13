@@ -223,7 +223,7 @@ type UpdateStoreSaleRequest struct {
 
 type CreateStoreSalePaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -231,7 +231,7 @@ type CreateStoreSalePaymentRequest struct {
 type UpdateStoreSalePaymentRequest struct {
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 }
 

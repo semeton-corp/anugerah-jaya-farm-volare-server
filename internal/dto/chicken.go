@@ -231,14 +231,14 @@ type GetChickenProcurementFilter struct {
 
 type CreateChickenProcurementPaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
 
 type UpdateChickenProcurementPaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -420,7 +420,7 @@ type AfkirChickenSaleResponse struct {
 
 type CreateAfkirChickenSalePaymentRequest struct {
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 }
@@ -428,7 +428,7 @@ type CreateAfkirChickenSalePaymentRequest struct {
 type UpdateAfkirChickenSalePaymentRequest struct {
 	PaymentMethod string `json:"paymentMethod" validate:"required,paymentMethod"`
 	PaymentDate   string `json:"paymentDate" validate:"required"`
-	Nominal       string `json:"nominal" validate:"required,number"`
+	Nominal       string `json:"nominal" validate:"required"`
 	PaymentProof  string `json:"paymentProof" validate:"required,url"`
 }
 
