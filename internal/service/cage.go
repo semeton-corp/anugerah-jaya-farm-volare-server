@@ -528,6 +528,8 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 	for i, e := range data {
 		resp := mapper.ChickenCageFeedToListResponse(&e)
 		resp.TotalFeed = (cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed * float64(e.TotalChicken) / 1000.0) - cageFeedStockMap[e.CageId]
+		resp.FeedPerChicken = cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed
+		resp.FeedType = cageFeedsMapByCategory[resp.ChickenCategory].FeedType.String()
 		responses[i] = resp
 	}
 
@@ -549,7 +551,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	needCreateFeed := cageFeed.TotalFeed
+	needCreateFeed := (cageFeed.TotalFeed * float64(chickenCage.TotalChicken)) / 1000.0
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
 		CageId: chickenCage.CageId,
 	})
@@ -558,8 +560,10 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
+	remainingStockFeeds := float64(0)
 	for _, e := range cageFeedStocks {
 		needCreateFeed -= (e.TotalFeed - e.UsedFeed)
+		remainingStockFeeds += (e.TotalFeed - e.UsedFeed)
 	}
 
 	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
@@ -573,7 +577,8 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 
 	response := mapper.ChickenCageFeedToResponse(&chickenCage)
 	response.FeedType = cageFeed.FeedType.String()
-	response.ExpectedTotalFeed = cageFeed.TotalFeed * float64(chickenCage.TotalChicken) / 1000.0
+	response.RemainingTotalFeed = remainingStockFeeds
+	response.FeedPerChicken = cageFeed.TotalFeed
 
 	if needCreateFeed < 0 {
 		response.TotalFeed = 0
@@ -604,7 +609,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		return dto.ChickenCageFeedResponse{}, err
 	}
 
-	needCreateFeed := cageFeed.TotalFeed
+	needCreateFeed := (cageFeed.TotalFeed * float64(chickenCage.TotalChicken)) / 1000.0
 	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
 		CageId: chickenCage.CageId,
 	})

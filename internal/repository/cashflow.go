@@ -53,6 +53,7 @@ type ICashflowRepository interface {
 	CreateUserCashAdvancePaymentBatch(payments *[]entity.UserCashAdvancePayment) error
 	GetUserCashAdvancePayments(filter dto.GetUserCashAdvancePaymentFilter) ([]entity.UserCashAdvancePayment, error)
 	GetUserCashAdvancePayment(id uint64) (entity.UserCashAdvancePayment, error)
+	DeleteUserCashAdvancePayment(id uint64) error
 
 	GetStoreSaleCashflows(filter dto.GetStoreSaleFilter) ([]entity.StoreSale, error)
 	GetWarehouseSaleCashflows(filter dto.GetWarehouseSaleFilter) ([]entity.WarehouseSale, error)
@@ -576,6 +577,10 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 	}
 
 	return data, nil
+}
+
+func (r *CashflowRepository) DeleteUserCashAdvancePayment(id uint64) error {
+	return r.GetDB().Where("id = ?", id).Delete(&entity.UserCashAdvancePayment{}).Error
 }
 
 func (r *CashflowRepository) GetUserCashAdvancePayment(id uint64) (entity.UserCashAdvancePayment, error) {

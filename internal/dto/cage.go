@@ -107,27 +107,29 @@ type CageFeedDetailResponse struct {
 }
 
 type ChickenCageFeedListResponse struct {
-	Cage              CageResponse `json:"cage"`
-	Id                uint64       `json:"id"`
-	ChickenCategory   string       `json:"chickenCategory"`
-	ChickenAge        uint64       `json:"chickenAge"`
-	TotalChicken      uint64       `json:"totalChicken"`
-	ExpectedTotalFeed float64      `json:"expectedTotalFeed"`
-	TotalFeed         float64      `json:"totalFeed"`
-	IsNeedFeed        bool         `json:"isNeedFeed"`
+	Cage            CageResponse `json:"cage"`
+	Id              uint64       `json:"id"`
+	ChickenCategory string       `json:"chickenCategory"`
+	FeedType        string       `json:"feedType"`
+	ChickenAge      uint64       `json:"chickenAge"`
+	TotalChicken    uint64       `json:"totalChicken"`
+	FeedPerChicken  float64      `json:"feedPerChicken"`
+	TotalFeed       float64      `json:"totalFeed"`
+	IsNeedFeed      bool         `json:"isNeedFeed"`
 }
 
 type ChickenCageFeedResponse struct {
-	Cage              CageResponse         `json:"cage"`
-	Id                uint64               `json:"id"`
-	ChickenCategory   string               `json:"chickenCategory"`
-	ChickenAge        uint64               `json:"chickenAge"`
-	TotalChicken      uint64               `json:"totalChicken"`
-	FeedType          string               `json:"feedType"`
-	ExpectedTotalFeed float64              `json:"expectedTotalFeed"`
-	TotalFeed         float64              `json:"totalFeed"`
-	IsNeedFeed        bool                 `json:"isNeedFeed"`
-	FeedDetails       []FeedDetailResponse `json:"feedDetails"`
+	Cage               CageResponse         `json:"cage"`
+	Id                 uint64               `json:"id"`
+	ChickenCategory    string               `json:"chickenCategory"`
+	ChickenAge         uint64               `json:"chickenAge"`
+	TotalChicken       uint64               `json:"totalChicken"`
+	FeedType           string               `json:"feedType"`
+	RemainingTotalFeed float64              `json:"remainingTotalFeed"`
+	FeedPerChicken     float64              `json:"feedPerChicken"`
+	TotalFeed          float64              `json:"totalFeed"`
+	IsNeedFeed         bool                 `json:"isNeedFeed"`
+	FeedDetails        []FeedDetailResponse `json:"feedDetails"`
 }
 
 type FeedDetailResponse struct {

@@ -3,11 +3,11 @@ package mapper
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 )
 
 func CageToResponse(cage *entity.Cage) dto.CageResponse {
@@ -26,26 +26,11 @@ func CageToResponse(cage *entity.Cage) dto.CageResponse {
 
 func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageResponse {
 	var (
-		chickenAgeInWeek uint64
-		chickenCategory  enum.ChickenCategory
-		batchId          string = ""
+		batchId string = ""
 	)
 
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-
 		batchId = fmt.Sprintf("%s-%d", chickenCage.ChickenProcurement.CreatedAt.Format("02012006"), chickenCage.ChickenProcurement.Id)
-		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
-
-		if chickenAgeInWeek <= 9 {
-			chickenCategory = enum.ChickenCategoryDOC
-		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
-			chickenCategory = enum.ChickenCategoryGrower
-		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
-			chickenCategory = enum.ChickenCategoryPreLayer
-		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryLayer
-		}
 	}
 
 	var chickenPic, eggPic string
@@ -63,8 +48,8 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		Cage:                 CageToResponse(&chickenCage.Cage),
 		Id:                   chickenCage.Id,
 		BatchId:              batchId,
-		ChickenAge:           chickenAgeInWeek,
-		ChickenCategory:      chickenCategory.String(),
+		ChickenAge:           util.GetChickenAgeByChickenCage(chickenCage),
+		ChickenCategory:      util.GetChickenCategoryByChickenCage(chickenCage).String(),
 		TotalChicken:         chickenCage.TotalChicken,
 		ChickenPic:           chickenPic,
 		EggPic:               eggPic,
@@ -109,31 +94,11 @@ func CageFeedDetailToResponse(data *entity.CageFeedDetail) dto.CageFeedDetailRes
 }
 
 func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedListResponse {
-	var (
-		chickenAgeInWeek uint64
-		chickenCategory  enum.ChickenCategory
-	)
-
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
-
-		if chickenAgeInWeek <= 9 {
-			chickenCategory = enum.ChickenCategoryDOC
-		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
-			chickenCategory = enum.ChickenCategoryGrower
-		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
-			chickenCategory = enum.ChickenCategoryPreLayer
-		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryLayer
-		}
-	}
-
 	response := dto.ChickenCageFeedListResponse{
 		Id:              chickenCage.Id,
 		Cage:            CageToResponse(&chickenCage.Cage),
-		ChickenCategory: chickenCategory.String(),
-		ChickenAge:      chickenAgeInWeek,
+		ChickenCategory: util.GetChickenCategoryByChickenCage(chickenCage).String(),
+		ChickenAge:      util.GetChickenAgeByChickenCage(chickenCage),
 		TotalChicken:    chickenCage.TotalChicken,
 		IsNeedFeed:      chickenCage.IsNeedFeed,
 	}
@@ -142,31 +107,11 @@ func ChickenCageFeedToListResponse(chickenCage *entity.ChickenCage) dto.ChickenC
 }
 
 func ChickenCageFeedToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageFeedResponse {
-	var (
-		chickenAgeInWeek uint64
-		chickenCategory  enum.ChickenCategory
-	)
-
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.CreatedAt)
-		chickenAgeInWeek = uint64(chickenAge.Hours() / float64((7 * 24)))
-
-		if chickenAgeInWeek <= 9 {
-			chickenCategory = enum.ChickenCategoryDOC
-		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
-			chickenCategory = enum.ChickenCategoryGrower
-		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
-			chickenCategory = enum.ChickenCategoryPreLayer
-		} else if chickenAgeInWeek >= 18 {
-			chickenCategory = enum.ChickenCategoryLayer
-		}
-	}
-
 	response := dto.ChickenCageFeedResponse{
 		Id:              chickenCage.Id,
 		Cage:            CageToResponse(&chickenCage.Cage),
-		ChickenCategory: chickenCategory.String(),
-		ChickenAge:      chickenAgeInWeek,
+		ChickenCategory: util.GetChickenCategoryByChickenCage(chickenCage).String(),
+		ChickenAge:      util.GetChickenAgeByChickenCage(chickenCage),
 		TotalChicken:    chickenCage.TotalChicken,
 		IsNeedFeed:      chickenCage.IsNeedFeed,
 	}

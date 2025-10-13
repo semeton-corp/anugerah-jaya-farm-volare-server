@@ -42,6 +42,7 @@ type ICashflowService interface {
 	GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.UserCashAdvanceSummaryResponse, error)
 	CreateUserCashAdvance(request dto.CreateUserCashAdvanceRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
 	CreateUserCashAdvancePayment(userCashAdvanceId uint64, request dto.CreateUserCashAdvancePaymentRequest, userId uuid.UUID) (dto.UserCashAdvanceResponse, error)
+	DeleteUserCashAdvancePayment(id uint64, userCashAdvanceId uint64, userId uuid.UUID) error
 
 	GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceivablesOverviewResponse, error)
 	GetReceiveables(receieveablesCategory string, id uint64) (dto.ReceivablesResponse, error)
@@ -1330,6 +1331,52 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 	}
 
 	return response, nil
+}
+
+func (s *CashflowService) DeleteUserCashAdvancePayment(id uint64, userCashAdvanceId uint64, userId uuid.UUID) error {
+	s.repository.UseTx(false)
+	defer s.repository.Rollback()
+
+	userCashAdvance, err := s.repository.GetUserCashAdvance(userCashAdvanceId)
+	if err != nil {
+		s.log.Error("failed get user cash advance", zap.Error(err))
+		return err
+	}
+
+	totalPrice := decimal.Zero
+	for _, e := range userCashAdvance.Payments {
+		if e.Id != id {
+			totalPrice = totalPrice.Add(e.Nominal)
+		}
+	}
+
+	userCashAdvance.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	if totalPrice.LessThan(decimal.Zero) {
+		return errx.BadRequest("delete this payment make minus")
+	} else if totalPrice.LessThan(userCashAdvance.Nominal) {
+		userCashAdvance.PaymentStatus = enum.PaymentStatusUnpaid
+		userCashAdvance.PaidDate = sql.NullTime{Valid: false}
+	}
+
+	err = s.repository.UpdateUserCashAdvance(&userCashAdvance)
+	if err != nil {
+		s.log.Error("failed update user cash advance", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.DeleteUserCashAdvancePayment(id)
+	if err != nil {
+		s.log.Error("failed delete user cash advance", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
 }
 
 func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverviewFilter) (dto.ReceivablesOverviewResponse, error) {
@@ -2640,6 +2687,8 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		CompentationSalary:       userSalaryPayment.CompentationSalary.String(),
 		BonusSalary:              totalBonusSalary.String(),
 		AdditionalWorkSalary:     totalAdditonalWorkSalary.String(),
+		IsPaid:                   userSalaryPayment.IsPaid,
+		PaymentProof:             userSalaryPayment.PaymentProof,
 	}, nil
 }
 

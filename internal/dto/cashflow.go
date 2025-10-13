@@ -365,6 +365,8 @@ type UserSalaryDetailResponse struct {
 	BonusSalary              string                           `json:"bonusSalary"`
 	CompentationSalary       string                           `json:"compentationSalary"`
 	AdditionalWorkSalary     string                           `json:"additionalWorkSalary"`
+	IsPaid                   bool                             `json:"isPaid"`
+	PaymentProof             string                           `json:"paymentProof"`
 }
 
 type GetUserSalaryPaymentFilter struct {

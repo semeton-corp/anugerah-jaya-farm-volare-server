@@ -39,6 +39,7 @@ func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/cash-advances/:userId", middleware.Authentication(), h.GetUserCashAdvanceByUserId)
 	v1.Post("/cash-advances", middleware.Authentication(), h.CreateUserCashAdvance)
 	v1.Post("/cash-advances/:id/payments", middleware.Authentication(), h.CreateUserCashAdvancePayment)
+	v1.Post("/cash-advances/:userCashAdvanceId/payments/:id", middleware.Authentication(), h.DeleteUserCashAdvancePayment)
 
 	v1.Get("/receivables/overview", middleware.Authentication(), h.GetReceivablesOverview)
 	v1.Get("/receivables/:category/:id", middleware.Authentication(), h.GetReceivables)
@@ -272,6 +273,32 @@ func (h *CashflowHandler) CreateUserCashAdvancePayment(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusCreated, resp, "success create cash advance payment")
+}
+
+func (h *CashflowHandler) DeleteUserCashAdvancePayment(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid id param", zap.Error(err))
+		return errx.BadRequest("invalid id param")
+	}
+
+	userCashAdvanceId, err := strconv.ParseUint(c.Params("userCashAdvanceId"), 10, 64)
+	if err != nil {
+		h.log.Error("invalid user cash advance id", zap.Error(err))
+		return errx.BadRequest("invalid user cash advance id")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	err = h.service.DeleteUserCashAdvancePayment(id, userCashAdvanceId, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
 
 func (h *CashflowHandler) GetReceivablesOverview(c *fiber.Ctx) error {
