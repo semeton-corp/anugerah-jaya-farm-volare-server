@@ -39,7 +39,7 @@ func (h *CashflowHandler) SetEndpoint(router *fiber.App) {
 	v1.Get("/cash-advances/:userId", middleware.Authentication(), h.GetUserCashAdvanceByUserId)
 	v1.Post("/cash-advances", middleware.Authentication(), h.CreateUserCashAdvance)
 	v1.Post("/cash-advances/:id/payments", middleware.Authentication(), h.CreateUserCashAdvancePayment)
-	v1.Post("/cash-advances/:userCashAdvanceId/payments/:id", middleware.Authentication(), h.DeleteUserCashAdvancePayment)
+	v1.Delete("/cash-advances/:userCashAdvanceId/payments/:id", middleware.Authentication(), h.DeleteUserCashAdvancePayment)
 
 	v1.Get("/receivables/overview", middleware.Authentication(), h.GetReceivablesOverview)
 	v1.Get("/receivables/:category/:id", middleware.Authentication(), h.GetReceivables)

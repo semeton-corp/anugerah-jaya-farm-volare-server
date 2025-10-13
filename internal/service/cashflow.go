@@ -1334,7 +1334,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 }
 
 func (s *CashflowService) DeleteUserCashAdvancePayment(id uint64, userCashAdvanceId uint64, userId uuid.UUID) error {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
 	userCashAdvance, err := s.repository.GetUserCashAdvance(userCashAdvanceId)
