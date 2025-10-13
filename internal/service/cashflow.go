@@ -2595,8 +2595,8 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 	if userSalaryPayment.IsPaid {
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
 		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
-		date = userSalaryPayment.CreatedAt.Format("02 Jan 2006")
-		time = userSalaryPayment.CreatedAt.Format("15:04")
+		date = userSalaryPayment.PaymentDate.Time.Format("02 Jan 2006")
+		time = userSalaryPayment.PaymentDate.Time.Format("15:04")
 	} else {
 		var (
 			withDeleted              = true
@@ -2678,8 +2678,8 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 	return dto.UserSalaryDetailResponse{
 		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
-		Date:                     date,
-		Time:                     time,
+		PaidDate:                 date,
+		PaidTime:                 time,
 		SalaryMonth:              userSalaryPayment.CreatedAt.Format("January"),
 		AdditionalWorkUsers:      additionalWorkUserResponses,
 		UserCashAdvanceSummaries: userCashAdvanceSummaryResponses,
