@@ -326,5 +326,17 @@ func AfkirChickenSalePaymentToResponse(data *entity.AfkirChickenSalePayment) dto
 }
 
 func ChickenPerformanceToResponse(data *entity.ChickenPerformance) dto.ChickenPerformanceResponse {
-	return dto.ChickenPerformanceResponse{}
+	return dto.ChickenPerformanceResponse{
+		CageName:                     data.CageName,
+		ChickenCategory:              data.ChickenCategory.String(),
+		ChickenAge:                   data.ChickenAge,
+		TotalChicken:                 data.TotalChicken,
+		TotalEgg:                     data.TotalEgg,
+		AverageConsumptionPerChicken: data.AverageConsumptionPerChicken,
+		AverageWeightPerEgg:          data.AverageWeightPerEgg,
+		FCR:                          data.FCR,
+		HDP:                          data.HDP,
+		MortalityRate:                data.MortalityRate,
+		Productivity:                 data.Productivity.String(),
+	}
 }
