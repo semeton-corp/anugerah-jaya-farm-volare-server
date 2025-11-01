@@ -78,6 +78,7 @@ type AdditionalWorkUserInformationResponse struct {
 	RoleId   uint64 `json:"roleId"`
 	RoleName string `json:"roleName"`
 	UserName string `json:"userName"`
+	IsDone   bool   `json:"isDone"`
 }
 
 type AdditionalWorkDetailResponse struct {

@@ -92,6 +92,7 @@ type IWarehouseRepository interface {
 	GetWarehouseItemCornProcurements(filter dto.GetWarehouseItemCornProcurementFilter) ([]entity.WarehouseItemCornProcurement, error)
 	DeleteWarehouseItemCornProcurement(id uint64) error
 	CountWarehouseItemCornProcurement(filter dto.GetWarehouseItemCornProcurementFilter) (int64, error)
+	CountQuantityWarehouseItemCornByWarehouseId(warehouseId uint64) (float64, error)
 
 	CreateWarehouseItemCornProcurementPaymentInBatch(data *[]entity.WarehouseItemCornProcurementPayment) error
 	CreateWarehouseItemCornProcurementPayment(data *entity.WarehouseItemCornProcurementPayment) error
@@ -101,7 +102,6 @@ type IWarehouseRepository interface {
 
 	CreateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
 	UpdateWarehouseItemCorn(data *entity.WarehouseItemCorn) error
-	GetCornItemsByWarehouseIdSortedDesc(warehouseId uint64) ([]entity.WarehouseItemCorn, error)
 	GetWarehouseItemCorns(filter dto.GetWarehouseItemCornFilter) ([]entity.WarehouseItemCorn, error)
 
 	GetWarehouseItemCornPrices() ([]entity.WarehouseItemCornPrice, error)
@@ -945,7 +945,19 @@ func (r *WarehouseRepository) GetWarehouseItemCorns(filter dto.GetWarehouseItemC
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Where("quantity <> 0").Preload("Warehouse.Location").Preload("Supplier").Order("created_at DESC").Find(&warehouseItemCorns).Error
+	if filter.FromNewest {
+		query = query.Order("created_at DESC")
+	} else {
+		query = query.Order("created_at ASC")
+	}
+
+	if filter.WithZeroQuantity != nil && *filter.WithZeroQuantity {
+		query = query.Or("quantity = 0")
+	} else {
+		query = query.Where("quantity <> 0")
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("Supplier").Find(&warehouseItemCorns).Error
 	if err != nil {
 		return nil, err
 	}
@@ -988,14 +1000,11 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurementDraftInBatch(data *[
 	return r.GetDB().Model(&entity.WarehouseItemProcurementDraft{}).CreateInBatches(data, len(*data)).Error
 }
 
-func (r *WarehouseRepository) GetCornItemsByWarehouseIdSortedDesc(warehouseId uint64) ([]entity.WarehouseItemCorn, error) {
-	var items []entity.WarehouseItemCorn
-	err := r.db.
-		Where("warehouse_id = ? AND quantity <> 0", warehouseId).
-		Order("order_date DESC").
-		Find(&items).Error
+func (r *WarehouseRepository) CountQuantityWarehouseItemCornByWarehouseId(warehouseId uint64) (float64, error) {
+	var total float64
+	err := r.db.Model(&entity.WarehouseItemCorn{}).Select("SUM(quantity)").Where("warehouse_id = ?", warehouseId).Row().Scan(&total)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return items, nil
+	return total, nil
 }

@@ -57,4 +57,3 @@ func (c *Cache) Subscribe(ctx context.Context, topic string) *redis.PubSub {
 	subscriber := c.client.Subscribe(ctx, topic)
 	return subscriber
 }
-

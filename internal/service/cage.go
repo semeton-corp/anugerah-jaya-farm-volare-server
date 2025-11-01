@@ -631,7 +631,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		})
 	}
 
-	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse, userId)
+	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse, userId, chickenCage.Cage.Name )
 	if err != nil {
 		return dto.ChickenCageFeedResponse{}, err
 	}

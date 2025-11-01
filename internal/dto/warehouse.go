@@ -137,6 +137,7 @@ type WarehouseItemProcurementResponse struct {
 	PaymentType                   string                                    `json:"paymentType"`
 	Payments                      []WarehouseItemProcurementPaymentResponse `json:"payments"`
 	ReceiveQuantity               *float64                                  `json:"receiveQuantity"`
+	Note                          string                                    `json:"note"`
 }
 
 type WarehouseItemProcurementPaymentResponse struct {
@@ -509,7 +510,9 @@ type WarehouseItemCornResponse struct {
 }
 
 type GetWarehouseItemCornFilter struct {
-	WarehouseId uint64 `query:"warehouseId"`
+	WarehouseId      uint64 `query:"warehouseId"`
+	WithZeroQuantity *bool  `query:"WithZeroQuantity"`
+	FromNewest       bool   `query:"fromNewest"`
 }
 
 type GetWarehouseItemCornProcurementFilter struct {

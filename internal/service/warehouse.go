@@ -107,7 +107,7 @@ type IWarehouseService interface {
 	CreateRawFeed(request dto.CreateRawFeedRequest, userId uuid.UUID) error
 	CreateReadyToEatFeed(request dto.CreateReadyToEatFeedRequest, userId uuid.UUID) error
 
-	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID) error
+	ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID, cageName string) error
 }
 
 func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseRepository, cacheService cache.ICache, placementService IPlacementService, itemService IItemService, customerService ICustomerService) IWarehouseService {
@@ -397,17 +397,41 @@ func (s *WarehouseService) UpdateWarehouseItemCorn(id uint64, request dto.Update
 		return dto.WarehouseItemCornResponse{}, err
 	}
 
+	itemCorn, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornResponse{}, err
+	}
+
 	if warehouseItemCorn.Warehouse.CornCapacity < request.Quantity {
 		return dto.WarehouseItemCornResponse{}, errx.BadRequest("quantity is more than max capacity")
 	}
 
+	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       itemCorn.Name,
+		ItemUnit:       itemCorn.Unit,
+		Source:         warehouseItemCorn.Warehouse.Name,
+		Destination:    "-",
+		QuantityBefore: warehouseItemCorn.Quantity,
+		QuantityAfter:  request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStockUpdated,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseItemCornResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
 	warehouseItemCorn.Quantity = request.Quantity
+	warehouseItemCorn.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItemCorn(&warehouseItemCorn)
 	if err != nil {
 		s.log.Error("failed update warehouse item corn", zap.Error(err))
 		return dto.WarehouseItemCornResponse{}, err
 	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonParsed)
 
 	cornItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
 	if err != nil {
@@ -440,8 +464,11 @@ func (s *WarehouseService) GetWarehouseOverview(id uint64) (dto.WarehouseOvervie
 		return dto.WarehouseOverview{}, err
 	}
 
+	withZeroQuantity := false
 	warehouseItemCorns, err := s.repository.GetWarehouseItemCorns(dto.GetWarehouseItemCornFilter{
-		WarehouseId: id,
+		WarehouseId:      id,
+		FromNewest:       true,
+		WithZeroQuantity: &withZeroQuantity,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item corns", zap.Error(err))
@@ -560,8 +587,11 @@ func (s *WarehouseService) GetCornWarehouseItemSummary(warehouseId uint64) (dto.
 		return dto.CornWarehouseItemSummaryResponse{}, err
 	}
 
+	withZeroQuantity := false
 	warehouseItemCorns, err := s.repository.GetWarehouseItemCorns(dto.GetWarehouseItemCornFilter{
-		WarehouseId: warehouseId,
+		WarehouseId:      warehouseId,
+		FromNewest:       true,
+		WithZeroQuantity: &withZeroQuantity,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item corns", zap.Error(err))
@@ -2523,6 +2553,24 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
+	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       warehouseItem.Item.Name,
+		ItemUnit:       warehouseItem.Item.Unit,
+		Source:         warehouseItemProcurement.Supplier.Name,
+		Destination:    warehouseItemProcurement.Warehouse.Name,
+		QuantityBefore: warehouseItem.Quantity,
+		QuantityAfter:  request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusIn,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonParsed)
+
 	err = s.repository.Commit()
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
@@ -3371,6 +3419,35 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
+	itemCorn, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	totalItemCornQuantity, err := s.repository.CountQuantityWarehouseItemCornByWarehouseId(warehouseItemCornProcurement.WarehouseId)
+	if err != nil {
+		s.log.Error("failed to count total item corn quantity", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+		ItemName:       itemCorn.Name,
+		ItemUnit:       itemCorn.Unit,
+		Source:         warehouseItemCornProcurement.Warehouse.Name,
+		Destination:    warehouseItemCornProcurement.Warehouse.Name,
+		QuantityBefore: totalItemCornQuantity,
+		QuantityAfter:  totalItemCornQuantity + request.Quantity,
+		UserId:         userId,
+		Status:         enum.ItemHistoryStatusIn,
+	})
+
+	if err != nil {
+		s.log.Error("failed to parse struct into json", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("failed parsed struct into json")
+	}
+
+	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonParsed)
+
 	err = s.repository.Commit()
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
@@ -3509,21 +3586,33 @@ func (s *WarehouseService) CreateReadyToEatFeed(request dto.CreateReadyToEatFeed
 	return nil
 }
 
-func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID) error {
+func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, request []dto.ReduceFeedRequest, userId uuid.UUID, cageName string) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	for _, r := range request {
-		item, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, r.ItemId)
-		if err != nil {
-			s.log.Error("failed get warehouse item by id and warehouse id", zap.Error(err))
-			return err
-		}
+	warehouseItemHistories := make([]entity.WarehouseItemHistory, 0)
+	warehouse, err := s.repository.GetWarehouseById(warehouseId)
+	if err != nil {
+		s.log.Error("failed get warehouse by id", zap.Error(err))
+		return err
+	}
 
-		if item.Item.Category == enum.ItemCategoryCornMaterial {
-			corns, err := s.repository.GetCornItemsByWarehouseIdSortedDesc(warehouseId)
+	for _, r := range request {
+		withZeroQuantity := false
+		if r.ItemCategory == enum.ItemCategoryCornMaterial.String() {
+			corns, err := s.repository.GetWarehouseItemCorns(dto.GetWarehouseItemCornFilter{
+				WarehouseId:      warehouseId,
+				WithZeroQuantity: &withZeroQuantity,
+				FromNewest:       false,
+			})
 			if err != nil {
 				s.log.Error("failed get corn items", zap.Error(err))
+				return err
+			}
+
+			totalCornQuantity, err := s.repository.CountQuantityWarehouseItemCornByWarehouseId(warehouseId)
+			if err != nil {
+				s.log.Error("failed to count total corn quantity", zap.Error(err))
 				return err
 			}
 
@@ -3547,34 +3636,70 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 					return err
 				}
 			}
-
 			if qtyNeeded > 0 {
 				return errx.BadRequest(fmt.Sprintf(
 					"stok jagung tidak mencukupi, memerlukan %.2f", qtyNeeded,
 				))
 			}
 
-			continue
-		}
+			warehouseItemHistories = append(warehouseItemHistories, entity.WarehouseItemHistory{
+				ItemName:       constant.Corn,
+				ItemUnit:       constant.UnitKg,
+				Source:         warehouse.Name,
+				Destination:    cageName,
+				QuantityBefore: totalCornQuantity,
+				QuantityAfter:  totalCornQuantity - r.Quantity,
+				UserId:         userId,
+				Status:         enum.ItemHistoryStockUpdated,
+			})
+		} else {
+			item, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, r.ItemId)
+			if err != nil {
+				s.log.Error("failed get warehouse item by id and warehouse id", zap.Error(err))
+				return err
+			}
 
-		if item.Quantity < r.Quantity {
-			return errx.BadRequest(fmt.Sprintf(
-				"stok barang dengan id %d tidak cukup memiliki %.2f, sedangkan memerlukan %.2f",
-				r.ItemId, item.Quantity, r.Quantity,
-			))
-		}
+			warehouseItemHistories = append(warehouseItemHistories, entity.WarehouseItemHistory{
+				ItemName:       item.Item.Name,
+				ItemUnit:       item.Item.Unit,
+				Source:         warehouse.Name,
+				Destination:    cageName,
+				QuantityBefore: item.Quantity,
+				QuantityAfter:  item.Quantity - r.Quantity,
+				UserId:         userId,
+				Status:         enum.ItemHistoryStockUpdated,
+			})
 
-		item.Quantity -= r.Quantity
-		item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-		if err := s.repository.UpdateWarehouseItem(&item); err != nil {
-			s.log.Error("failed update warehouse item", zap.Error(err))
-			return err
+			if item.Quantity < r.Quantity {
+				return errx.BadRequest(fmt.Sprintf(
+					"stok barang dengan id %d tidak cukup memiliki %.2f, sedangkan memerlukan %.2f",
+					r.ItemId, item.Quantity, r.Quantity,
+				))
+			}
+
+			item.Quantity -= r.Quantity
+			item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+			if err := s.repository.UpdateWarehouseItem(&item); err != nil {
+				s.log.Error("failed update warehouse item", zap.Error(err))
+				return err
+			}
 		}
 	}
 
 	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed commit transaction", zap.Error(err))
 		return err
+	}
+
+	for _, history := range warehouseItemHistories {
+		jsonParsed, err := json.Marshal(history)
+
+		if err != nil {
+			s.log.Error("failed to parse struct into json", zap.Error(err))
+			return errx.BadRequest("failed parsed struct into json")
+		}
+
+		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonParsed)
 	}
 
 	return nil

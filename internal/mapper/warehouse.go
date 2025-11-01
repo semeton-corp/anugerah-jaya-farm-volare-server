@@ -231,6 +231,7 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		TotalPrice:            data.TotalPrice.String(),
 		PaymentStatus:         data.PaymentStatus.String(),
 		PaymentType:           data.PaymentType.String(),
+		Note:                  data.Note,
 	}
 	if data.ReceiveQuantity.Valid {
 		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
@@ -258,6 +259,10 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
 	} else {
 		response.PaidDate = "-"
+	}
+
+	if data.ReceiveQuantity.Valid {
+		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
 	}
 
 	return response

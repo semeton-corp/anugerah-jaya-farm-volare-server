@@ -50,6 +50,7 @@ func AdditionalWorkUserInformationToResponse(additionalWorkUser *entity.Addition
 		RoleId:   additionalWorkUser.User.RoleId,
 		RoleName: additionalWorkUser.User.Role.Name,
 		UserName: additionalWorkUser.User.Name,
+		IsDone:   additionalWorkUser.IsDone,
 	}
 }
 
