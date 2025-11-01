@@ -1327,11 +1327,6 @@ func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, req
 		return dto.StoreSaleResponse{}, err
 	}
 
-	if storeSale.IsSend {
-		s.log.Error("store sale is already sent", zap.Uint64("id", storeSale.Id))
-		return dto.StoreSaleResponse{}, errx.BadRequest("store sale is already sent")
-	}
-
 	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
 	if !paymentMethod.IsValid() {
 		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
@@ -1421,11 +1416,6 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 	if err != nil {
 		s.log.Error("failed to get store sale by id", zap.Error(err))
 		return err
-	}
-
-	if storeSale.IsSend {
-		s.log.Error("store sale is already sent", zap.Uint64("id", storeSale.Id))
-		return errx.BadRequest("store sale is already sent")
 	}
 
 	totalPayment := decimal.Zero

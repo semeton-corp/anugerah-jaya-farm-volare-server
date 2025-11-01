@@ -115,6 +115,7 @@ type GetChickenOverviewFilter struct {
 	LocationId        uint64                       `query:"locationId"`
 	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime"`
+	Year              int                          `query:"year"`
 }
 
 type ChickenDetailOverview struct {
@@ -309,6 +310,7 @@ type GetChickenAndWarehouseOverviewFilter struct {
 	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime" validate:"required"`
 	WarehouseId       uint64                       `query:"warehouseId"`
+	Year              int                          `query:"year"`
 }
 
 type GetChickenPerformanceOverviewFilter struct {
@@ -359,6 +361,7 @@ type AfkirChickenSaleListResponse struct {
 	DeadlinePaymentDate           string                           `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                             `json:"isMoreThanDeadlinePaymentDate"`
 	PaidDate                      string                           `json:"paidDate"`
+	TakenAt                       string                           `json:"takenAt"`
 }
 
 type AfkirChickenSaleListPaginationResponse struct {
@@ -397,6 +400,7 @@ type CreateAfkirChickenSaleRequest struct {
 	TotalSellChicken       uint64                                 `json:"totalSellChicken" validate:"required"`
 	PricePerChicken        string                                 `json:"pricePerChicken" validate:"required"`
 	PaymentType            string                                 `json:"paymentType" validate:"required,paymentType"`
+	TakenAt                string                                 `json:"takenAt" validate:"required"`
 	Payments               []CreateAfkirChickenSalePaymentRequest `json:"payments"`
 }
 
@@ -416,6 +420,7 @@ type AfkirChickenSaleResponse struct {
 	DeadlinePaymentDate           string                            `json:"deadlinePaymentDate"`
 	IsMoreThanDeadlinePaymentDate bool                              `json:"isMoreThanDeadlinePaymentDate"`
 	PaidDate                      string                            `json:"paidDate"`
+	TakenAt                       string                            `json:"takenAt"`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {

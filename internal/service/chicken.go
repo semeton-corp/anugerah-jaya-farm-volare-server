@@ -429,7 +429,11 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	case enum.OverviewGraphTimeThisMonth:
 		chickenGraphs, err = c.buildMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		chickenGraphs, err = c.buildYearlyGraph(filter.LocationId, filter.CageId)
+		if filter.Year <= 0 {
+			return dto.ChickenOverviewResponse{}, errx.BadRequest("year must be provided and greater than 0")
+		}
+
+		chickenGraphs, err = c.buildYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
 	}
 	if err != nil {
 		return dto.ChickenOverviewResponse{}, err
@@ -645,9 +649,9 @@ func (c *ChickenService) buildMonthlyGraph(locationId uint64, cageId uint64) ([]
 	return graphs, nil
 }
 
-func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64) ([]dto.ChickenGraphResponse, error) {
-	monthMaps := util.GetTwelveMonthRanges(time.Now().Year())
-	startDate, endDate := util.GetStartDateAndEndDateInYear(time.Now().Year())
+func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64, year int) ([]dto.ChickenGraphResponse, error) {
+	monthMaps := util.GetTwelveMonthRanges(year)
+	startDate, endDate := util.GetStartDateAndEndDateInYear(year)
 
 	yearMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
 		StartDate:  param.DateParam(startDate),
@@ -1845,6 +1849,12 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+
+	takenAt, err := time.Parse("02-01-2006", request.TakenAt)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid taken at format")
+	}
+
 	afkirSale := entity.AfkirChickenSale{
 		AfkirChickenCustomerId: request.AfkirChickenCustomerId,
 		ChickenCageId:          request.ChickenCageId,
@@ -1855,6 +1865,7 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
+		TakenAt:                takenAt,
 	}
 
 	payments := make([]entity.AfkirChickenSalePayment, 0, len(request.Payments))
@@ -2672,7 +2683,11 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 	case enum.OverviewGraphTimeThisMonth:
 		chickenGraphs, err = s.buildMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		chickenGraphs, err = s.buildYearlyGraph(filter.LocationId, filter.CageId)
+		if filter.Year <= 0 {
+			return dto.ChickenAndWarehouseOverviewResponse{}, errx.BadRequest("year must be provided for this year graph")
+		}
+
+		chickenGraphs, err = s.buildYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
 	}
 	if err != nil {
 		return dto.ChickenAndWarehouseOverviewResponse{}, err

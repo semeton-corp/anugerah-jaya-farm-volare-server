@@ -113,7 +113,7 @@ func (r *PresenceRepository) GetUserPresencesByUserId(userId uuid.UUID, filter d
 
 	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
+		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", startDate, endDate)
 	}
 
 	if filter.Page > 0 {
@@ -124,7 +124,7 @@ func (r *PresenceRepository) GetUserPresencesByUserId(userId uuid.UUID, filter d
 		query = query.Where("status = ?", filter.PresenceStatus.Value())
 	}
 
-	err := query.Find(&userPresences).Order("created_at DESC").Error
+	err := query.Order("created_at DESC").Find(&userPresences).Error
 	if err != nil {
 		return userPresences, err
 	}

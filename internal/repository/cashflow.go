@@ -549,7 +549,7 @@ func (r *CashflowRepository) GetStoreSaleCashflows(filter dto.GetStoreSaleFilter
 		query = query.Where("store_sales.payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Order("store_sales.payment_status DESC").Order("store_sales.deadline_payment_date ASC").Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
+	err := query.Order("store_sales.payment_status DESC").Order("store_sales.deadline_payment_date ASC").Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Order("created_at DESC").Find(&storeSales).Error
 	if err != nil {
 		return nil, err
 	}
@@ -652,7 +652,7 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 		query = query.Where("afkir_chicken_sales.payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Order("afkir_chicken_sales.payment_status DESC").Order("afkir_chicken_sales.created_at ASC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Find(&afkirChickenSales).Order("created_at DESC").Error
+	err := query.Order("afkir_chicken_sales.payment_status DESC").Order("afkir_chicken_sales.created_at ASC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Order("created_at DESC").Find(&afkirChickenSales).Error
 	if err != nil {
 		return nil, err
 	}

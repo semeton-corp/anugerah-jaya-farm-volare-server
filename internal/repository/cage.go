@@ -241,7 +241,7 @@ func (r *CageRepository) GetChickenCagesByCageIds(cageIds []uint64) ([]entity.Ch
 func (r *CageRepository) GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error) {
 	var chickenCages []entity.ChickenCage
 
-	err := r.GetDB().Model(entity.ChickenCage{}).Where("id IN ?", ids).Preload("ChickenProcurement").Preload("Cage.Location").Preload("Cage.CagePlacement.User.Role").Find(&chickenCages).Order("created_at DESC").Error
+	err := r.GetDB().Model(entity.ChickenCage{}).Where("id IN ?", ids).Preload("ChickenProcurement").Preload("Cage.Location").Preload("Cage.CagePlacement.User.Role").Order("created_at DESC").Find(&chickenCages).Error
 	if err != nil {
 		return nil, err
 	}

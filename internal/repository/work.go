@@ -299,16 +299,18 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	var additionalWorks []entity.AdditionalWork
 	db := r.GetDB().Model(&entity.AdditionalWork{})
 
+	db = db.
+		Preload("AdditionalWorkUsers.User.Role").
+		Preload("Location").
+		Preload("Cage.CagePlacement").
+		Preload("Warehouse").
+		Preload("Store").
+		Where("deleted_at IS NULL").
+		Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id AND awu.is_done = true) < additional_works.slot").
+		Order("created_at DESC")
+
 	if filter.LocationId == 0 || !filter.LocationType.Value().IsValid() {
-		err := db.
-			Preload("AdditionalWorkUsers.User.Role").
-			Preload("Location").
-			Preload("Cage.CagePlacement").
-			Preload("Warehouse").
-			Preload("Store").
-			Where("deleted_at IS NULL").
-			Order("created_at DESC").
-			Find(&additionalWorks).Error
+		err := db.Find(&additionalWorks).Error
 		return additionalWorks, err
 	}
 
@@ -334,28 +336,26 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 	var args []interface{}
 
 	if len(typeConditions) > 0 {
-		condition = "( (location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND (" + strings.Join(typeConditions, " OR ") + ")) )"
+		condition = `( 
+			(location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)
+			OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)
+			OR (location_id = ? AND (` + strings.Join(typeConditions, " OR ") + `))
+		)`
 		args = append(args, locationId, locationId, locationType, locationId)
 		args = append(args, typeArgs...)
 	} else {
-		condition = "( (location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL) )"
+		condition = `( 
+			(location_id = ? AND location_type IS NULL AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)
+			OR (location_id = ? AND location_type = ? AND warehouse_id IS NULL AND store_id IS NULL AND cage_id IS NULL)
+		)`
 		args = append(args, locationId, locationId, locationType)
 	}
 
-	err := db.
-		Preload("AdditionalWorkUsers.User.Role").
-		Preload("Location").
-		Preload("Cage.CagePlacement").
-		Preload("Warehouse").
-		Preload("Store").
-		Where(condition, args...).
-		Where("deleted_at IS NULL").
-		Order("created_at DESC").
-		Find(&additionalWorks).Error
-
+	err := db.Where(condition, args...).Find(&additionalWorks).Error
 	if err != nil {
 		return nil, err
 	}
+
 	return additionalWorks, nil
 }
 

@@ -151,6 +151,7 @@ type GetAdditonalWorkFilter struct {
 	LocationId   uint64                  `query:"locationId"`
 	LocationType param.LocationTypeParam `query:"locationType"`
 	PlaceIds     []uint64                `query:"placeIds"`
+	
 }
 
 type UpdateAdditionalWorkUserRequest struct {

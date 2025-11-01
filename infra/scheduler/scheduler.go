@@ -1041,7 +1041,7 @@ func (s *Scheduler) checkChickenCageIfNeedVaccineRoutine(tx *gorm.DB) error {
 			continue
 		}
 
-		if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) && !chickenCage.IsNeedRoutineVaccine {
+		if chickenAge != uint64(chickenCage.LatestChickenAgeVaccineRoutine.Int64) {
 			var vaccineRoutineNames []string
 			for _, chickenHealthItem := range chickenHealthItems {
 				vaccineRoutineNames = append(vaccineRoutineNames, chickenHealthItem.Name)

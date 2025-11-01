@@ -76,6 +76,7 @@ type GetEggOverviewFilter struct {
 	LocationId        uint64                       `query:"locationId"`
 	CageId            uint64                       `query:"cageId"`
 	OverviewGraphTime param.OverviewGraphTimeParam `query:"overviewGraphTime"`
+	Year              int                          `query:"year"`
 }
 
 type EggOverviewDetailResponse struct {

@@ -1027,11 +1027,6 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 		return dto.WarehouseSaleResponse{}, err
 	}
 
-	if warehouseSale.IsSend {
-		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already sent")
-	}
-
 	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseSale.WarehouseId, warehouseSale.ItemId)
 	if err != nil {
 		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
@@ -1141,11 +1136,6 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
-	}
-
-	if warehouseSale.IsSend {
-		s.log.Error("warehouse sale is already sent", zap.Uint64("id", warehouseSale.Id))
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already sent")
 	}
 
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
@@ -1314,11 +1304,6 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return err
-	}
-
-	if warehouseSale.IsSend {
-		s.log.Error("warehouse sale is already sent", zap.Uint64("id", warehouseSale.Id))
-		return errx.BadRequest("warehouse sale is already sent")
 	}
 
 	totalPayment := decimal.Zero

@@ -424,7 +424,7 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Find(&warehouseSales).Order("created_at DESC").Error
+	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Order("created_at DESC").Find(&warehouseSales).Error
 	if err != nil {
 		return nil, err
 	}
