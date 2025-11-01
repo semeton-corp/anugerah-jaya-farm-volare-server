@@ -631,7 +631,7 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 		})
 	}
 
-	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse, userId, chickenCage.Cage.Name )
+	err = s.warehouseService.ReduceWarehouseItemForFeed(request.WarehouseId, requestToWarehouse, userId, chickenCage.Cage.Name)
 	if err != nil {
 		return dto.ChickenCageFeedResponse{}, err
 	}
@@ -724,7 +724,7 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 	}
 
 	sourceChickenCage.TotalChicken -= totalMoveChicken
-	if totalMoveChicken == 0 {
+	if sourceChickenCage.TotalChicken == 0 {
 		sourceCage.IsUsed = false
 
 		if err := s.repository.UpdateCage(&sourceCage); err != nil {
