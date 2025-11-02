@@ -678,7 +678,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 
 	keys := util.GetSortedKeysInt(weeks)
 	performancesGraphsResponses := make([]dto.PerformanceGraphResponse, 0)
-	for key := range keys {
+	for _, key := range keys {
 		performancesGraphsResponses = append(performancesGraphsResponses, dto.PerformanceGraphResponse{
 			Key:                   fmt.Sprintf("Minggu %d", key),
 			KPIChickenPerformance: kpiChickenPerWeek[key],

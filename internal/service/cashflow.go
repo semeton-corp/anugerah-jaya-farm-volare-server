@@ -2844,15 +2844,18 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 		prevMonth = 12
 		prevYear = filter.Year - 1
 	}
-	prevMonthWeek := util.GetFourWeekRanges(int(prevYear), time.Month(prevYear))
 
-	incomePreviousMonth, err := s.getIncomePerWeek(filter.LocationId, prevMonthWeek, startDate, endDate)
+	prevStartDate, prevEndDate := util.GetStartDateAndEndDateInMonth(int(prevYear), time.Month(prevMonth))
+
+	prevMonthWeek := util.GetFourWeekRanges(int(prevYear), time.Month(prevMonth))
+
+	incomePreviousMonth, err := s.getIncomePerWeek(filter.LocationId, prevMonthWeek, prevStartDate, prevEndDate)
 	if err != nil {
 		s.log.Error("failed get income and receivable per week", zap.Error(err))
 		return dto.CashflowSaleOverviewResponse{}, err
 	}
 
-	expensePreviousMonth, err := s.getExpensePerWeek(filter.LocationId, prevMonthWeek, startDate, endDate)
+	expensePreviousMonth, err := s.getExpensePerWeek(filter.LocationId, prevMonthWeek, prevStartDate, prevEndDate)
 	if err != nil {
 		s.log.Error("failed get expense and debt per week", zap.Error(err))
 		return dto.CashflowSaleOverviewResponse{}, err
@@ -2863,7 +2866,7 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 	totalProfit := decimal.Zero
 	cashflowSaleGraphs := make([]dto.CashflowSaleGraphResponse, 0)
 	keys := util.GetSortedKeysInt(weeks)
-	for key := range keys {
+	for _, key := range keys {
 		cashflowSaleGraphs = append(cashflowSaleGraphs, dto.CashflowSaleGraphResponse{
 			Key:     fmt.Sprintf("Minggu %d", key+1),
 			Income:  income[key].String(),
@@ -3451,13 +3454,6 @@ func (s *CashflowService) getEggWarehouseSaleLocationSummary(locationId uint64, 
 }
 
 func calculateDiff(current, previous decimal.Decimal) (isIncrease bool, percentage float64) {
-	if previous.IsZero() {
-		if current.IsZero() {
-			return false, 0
-		}
-		return current.GreaterThan(decimal.Zero), 100
-	}
-
 	diff := current.Sub(previous)
 	isIncrease = diff.GreaterThan(decimal.Zero)
 

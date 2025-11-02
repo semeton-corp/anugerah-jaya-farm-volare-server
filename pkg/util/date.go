@@ -46,7 +46,7 @@ type DateRange struct {
 func GetFourWeekRanges(year int, month time.Month) map[int]DateRange {
 	weeks := make(map[int]DateRange)
 
-	startOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	startOfMonth := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	nextMonth := startOfMonth.AddDate(0, 1, 0)
 	daysInMonth := int(nextMonth.Sub(startOfMonth).Hours() / 24)
 
@@ -62,6 +62,10 @@ func GetFourWeekRanges(year int, month time.Month) map[int]DateRange {
 		}
 
 		endDate := currentDay.AddDate(0, 0, daysThisWeek-1)
+		endDate = time.Date(
+			endDate.Year(), endDate.Month(), endDate.Day(),
+			23, 59, 59, 0, endDate.Location(),
+		)
 
 		weeks[i] = DateRange{
 			StartDate: currentDay,
@@ -69,7 +73,7 @@ func GetFourWeekRanges(year int, month time.Month) map[int]DateRange {
 			TotalDays: daysThisWeek,
 		}
 
-		currentDay = endDate.AddDate(0, 0, 1)
+		currentDay = endDate.AddDate(0, 0, 1).Truncate(24 * time.Hour)
 	}
 
 	return weeks
@@ -79,8 +83,9 @@ func GetTwelveMonthRanges(year int) map[int]DateRange {
 	months := make(map[int]DateRange)
 
 	for month := time.January; month <= time.December; month++ {
-		start := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		start := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 		end := start.AddDate(0, 1, -1)
+		end = time.Date(end.Year(), end.Month(), end.Day(), 23, 59, 59, 0, end.Location())
 
 		months[int(month)] = DateRange{
 			StartDate: start,
@@ -93,7 +98,7 @@ func GetTwelveMonthRanges(year int) map[int]DateRange {
 }
 
 func TotalDaysInMonth(year int, month time.Month) uint64 {
-	daysInMonth := time.Date(year, month, 0, 0, 0, 0, 0, time.UTC).Day()
+	daysInMonth := time.Date(year, month, 0, 0, 0, 0, 0, time.Local).Day()
 	return uint64(daysInMonth)
 }
 
@@ -118,15 +123,18 @@ func FindMonth(t time.Time, months map[int]DateRange) int {
 func GetStartDateAndEndDateInMonth(year int, month time.Month) (time.Time, time.Time) {
 	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(0, 1, -1)
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, endDate.Location())
+
 	return startDate, endDate
 }
 
 func GetStartDateAndEndDateInYear(year int) (time.Time, time.Time) {
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.Local)
 	endDate := startDate.AddDate(1, 0, -1)
+	endDate = time.Date(endDate.Year(), endDate.Month(), endDate.Day(), 23, 59, 59, 0, endDate.Location())
+
 	return startDate, endDate
 }
-
 func IsSameDate(a, b time.Time) bool {
 	return a.Year() == b.Year() && a.Month() == b.Month() && a.Day() == b.Day()
 }

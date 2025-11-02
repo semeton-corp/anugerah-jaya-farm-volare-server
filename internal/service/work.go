@@ -2,7 +2,6 @@ package service
 
 import (
 	"database/sql"
-	"fmt"
 	"math"
 	"slices"
 	"time"
@@ -229,8 +228,6 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 		w.log.Error("failed to get daily work user", zap.Error(err))
 		return dto.WorkUserResponse{}, err
 	}
-
-	fmt.Println(len(additionalWorkUsers))
 
 	additionalWorkResponse := make([]dto.AdditionalWorkUserResponse, 0)
 	for _, additionalWork := range additionalWorkUsers {

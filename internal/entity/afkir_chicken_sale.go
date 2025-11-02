@@ -24,7 +24,7 @@ type AfkirChickenSale struct {
 	PaymentStatus          enum.PaymentStatus        `gorm:"type:int;not null"`
 	DeadlinePaymentDate    sql.NullTime              `gorm:"type:date"`
 	PaidDate               sql.NullTime              `gorm:"type:date"`
-	TakenAt                time.Time                 `gorm:"type:date;not null"`
+	TakenAt                time.Time                 `gorm:"type:date;not null;default:current_date"`
 	CreatedAt              time.Time                 `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy              uuid.NullUUID             `gorm:"type:varchar(255)"`
 	UpdatedAt              time.Time                 `gorm:"type:timestamp;autoUpdateTime"`

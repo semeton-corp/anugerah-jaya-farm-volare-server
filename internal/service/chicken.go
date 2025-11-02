@@ -566,7 +566,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 	kpiChickenInWeek := make(map[int]float64)
 	keys := util.GetSortedKeysInt(weekRanges)
 
-	for key := range keys {
+	for _, key := range keys {
 		if totalChickenInWeek[key] == 0 {
 			continue
 		}

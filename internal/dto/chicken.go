@@ -471,7 +471,7 @@ type ChickenPerformanceResponse struct {
 	AverageWeightPerEgg          float64 `json:"averageWeightPerEgg"`
 	FCR                          float64 `json:"fcr"`
 	HDP                          float64 `json:"hdp"`
-	MortalityRate                float64 `json:""`
+	MortalityRate                float64 `json:"mortalityRate"`
 	Productivity                 string  `json:"productivity"`
 }
 
