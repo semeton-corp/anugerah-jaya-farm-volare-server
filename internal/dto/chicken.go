@@ -479,4 +479,5 @@ type GetChickenProcurementPaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }

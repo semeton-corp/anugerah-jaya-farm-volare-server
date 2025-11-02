@@ -127,6 +127,10 @@ func (r *CashflowRepository) GetWarehouseSalePayments(filter dto.GetWarehouseSal
 		query = query.Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(warehouse_sale_payments.payment_date) = ?", filter.Date.Value())
+	}
+
 	err := query.Order("warehouse_sale_payments.created_at DESC").Preload("WarehouseSale.Customer").
 		Preload("WarehouseSale.Item").
 		Preload("WarehouseSale.Warehouse.Location").Find(&warehouseSalePayments).Error
@@ -145,6 +149,10 @@ func (r *CashflowRepository) GetStoreSalePayments(filter dto.GetStoreSalePayment
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
 		query = query.Where("DATE(store_sale_payments.payment_date) >= ? AND DATE(store_sale_payments.payment_date) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(store_sale_payments.payment_date) = ?", filter.Date.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -172,6 +180,10 @@ func (r *CashflowRepository) GetAfkirChickenSalePayments(filter dto.GetAfkirChic
 
 	if filter.LocationId > 0 {
 		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sale_payments.payment_date) = ?", filter.Date.Value())
 	}
 
 	err := query.Order("afkir_chicken_sale_payments.created_at DESC").Preload("AfkirChickenSale.AfkirChickenCustomer").
@@ -269,6 +281,10 @@ func (r *CashflowRepository) GetExpenses(filter dto.GetExpenseFilter) ([]entity.
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
 	err := query.Order("created_at DESC").Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -287,6 +303,10 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 
 	if filter.LocationId > 0 {
 		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurement_payments.payment_date) = ?", filter.Date.Value())
 	}
 
 	err := query.Order("chicken_procurement_payments.created_at DESC").
@@ -319,6 +339,10 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 
 	if filter.Page > 0 {
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_salary_payments.created_at) = ?", filter.Date.Value())
 	}
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
@@ -384,6 +408,10 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 		query = query.Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurement_payments.payment_date) = ?", filter.Date.Value())
+	}
+
 	err := query.Order("warehouse_item_procurement_payments.created_at DESC").
 		Preload("WarehouseItemProcurement.Warehouse.Location").
 		Preload("WarehouseItemProcurement.Supplier").
@@ -405,6 +433,10 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 
 	if filter.LocationId > 0 {
 		query = query.Where("warehouses.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurement_payments.payment_date) = ?", filter.Date.Value())
 	}
 
 	err := query.Order("warehouse_item_corn_procurement_payments.created_at DESC").
@@ -569,6 +601,10 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 
 	if filter.LocationId > 0 {
 		query = query.Where("users.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_cash_advance_payments.payment_date) = ?", filter.Date.Value())
 	}
 
 	err := query.Order("user_cash_advance_payments.created_at DESC").Find(&data).Error

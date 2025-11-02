@@ -156,6 +156,7 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 		SaleUnit:      warehouseSale.SaleUnit.String(),
 		PaymentStatus: warehouseSale.PaymentStatus.String(),
 		IsSend:        warehouseSale.IsSend,
+		CreatedAt:     warehouseSale.CreatedAt,
 	}
 
 	if warehouseSale.DeadlinePaymentDate.Valid {

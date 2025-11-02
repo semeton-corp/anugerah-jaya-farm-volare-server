@@ -140,7 +140,7 @@ func (b *Bootstrap) DepedencyInjection() {
 	userService := service.NewUserService(b.log, userRepository, workService, presenceService, chickenService, placementService, cashflowService, roleService)
 	userHandler := rest.NewUserHandler(b.log, userService, b.validator)
 
-	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService)
+	generalService := service.NewGeneralService(b.log, eggService, storeService, warehouseService, chickenService, cageService, cashflowService)
 	generalHandler := rest.NewGeneralHandler(b.log, generalService, b.validator)
 
 	notificationRepository := repository.NewNotificationRepository(b.db)

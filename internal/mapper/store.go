@@ -137,6 +137,7 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 		SaleUnit:      storeSale.SaleUnit.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
+		CreatedAt:     storeSale.CreatedAt,
 	}
 
 	if storeSale.DeadlinePaymentDate.Valid {

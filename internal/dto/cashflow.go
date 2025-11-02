@@ -137,6 +137,7 @@ type GetExpenseFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type CreateUserCashAdvanceRequest struct {
@@ -377,6 +378,7 @@ type GetUserSalaryPaymentFilter struct {
 	Keyword    string          `query:"keyword"`
 	RoleId     uint64          `query:"roleId"`
 	Page       uint64          `query:"page"`
+	Date       param.DateParam `query:"date"`
 }
 
 type CashflowSaleSummaryResponse struct {
@@ -485,6 +487,7 @@ type GetUserCashAdvancePaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type CashflowHistoryResponse struct {

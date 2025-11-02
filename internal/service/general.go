@@ -9,7 +9,6 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
-	"github.com/shopspring/decimal"
 	"go.uber.org/zap"
 )
 
@@ -19,19 +18,23 @@ type GeneralService struct {
 	storeService     IStoreService
 	warehouseService IWarehouseService
 	chickenService   IChickenService
+	cageService      ICageService
+	cashflowService  ICashflowService
 }
 
 type IGeneralService interface {
 	GetGeneralOverview() (dto.GeneralOverview, error)
 }
 
-func NewGeneralService(log *zap.Logger, eggService IEggService, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService) IGeneralService {
+func NewGeneralService(log *zap.Logger, eggService IEggService, storeService IStoreService, warehouseService IWarehouseService, chickenService IChickenService, cageService ICageService, cashflowService ICashflowService) IGeneralService {
 	return &GeneralService{
 		log:              log,
 		eggService:       eggService,
 		storeService:     storeService,
 		warehouseService: warehouseService,
 		chickenService:   chickenService,
+		cageService:      cageService,
+		cashflowService:  cashflowService,
 	}
 }
 
@@ -44,7 +47,7 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 	}
 
 	storeSales, err := s.storeService.GetStoreSales(dto.GetStoreSaleFilter{
-		Date: param.DateParam(time.Now()),
+		Date: param.DateParam(time.Now().AddDate(0, 0, -1)),
 	})
 	if err != nil {
 		return dto.GeneralOverview{}, err
@@ -64,6 +67,11 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 		return dto.GeneralOverview{}, err
 	}
 
+	chickenCages, err := s.cageService.GetChickenCages(dto.GetChickenCageFilter{})
+	if err != nil {
+		return dto.GeneralOverview{}, err
+	}
+
 	warehouseItems, err := s.warehouseService.GetWarehouseItems(dto.GetWarehouseItemFilter{})
 	if err != nil {
 		return dto.GeneralOverview{}, err
@@ -74,8 +82,8 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 		return dto.GeneralOverview{}, err
 	}
 
-	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	startDate := endDate.AddDate(0, 0, -6)
+	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 23, 59, 59, 0, time.Local)
+	startDate := endDate.AddDate(0, 0, -6).Truncate(24 * time.Hour)
 
 	storeSaleInAWeek, err := s.storeService.GetStoreSales(dto.GetStoreSaleFilter{
 		StartDate: param.DateParam(startDate),
@@ -129,7 +137,18 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 	totalDeatchChicken := uint64(0)
 	totalSickChicken := uint64(0)
 
+	chickenMonitoringMap := make(map[uint64]dto.ChickenMonitoringListResponse)
 	for _, chickenMonitoring := range chickenMonitorings {
+		chickenMonitoringMap[chickenMonitoring.ChickenCage.Id] = chickenMonitoring
+	}
+
+	for _, chickenCage := range chickenCages {
+		chickenMonitoring, exists := chickenMonitoringMap[chickenCage.Id]
+		if !exists {
+			totalLiveChicken += chickenCage.TotalChicken
+			continue
+		}
+
 		totalSickChicken += chickenMonitoring.TotalSickChicken
 		totalLiveChicken += chickenMonitoring.TotalLiveChicken
 		totalDeatchChicken += chickenMonitoring.TotalDeathChicken
@@ -163,15 +182,13 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 		})
 	}
 
-	income := decimal.Zero
-	profit := decimal.Zero
-
-	for _, storeSale := range storeSales.StoreSales {
-		income = income.Add(storeSale.TotalPrice)
+	income, err := s.cashflowService.GetTotalIncomeProductionInDay(time.Now())
+	if err != nil {
+		return dto.GeneralOverview{}, err
 	}
-
-	for _, warehouseSale := range warehouseSales.WarehouseSales {
-		income = income.Add(warehouseSale.TotalPrice)
+	expense, err := s.cashflowService.GetTotalExpenseProductionInDay(time.Now())
+	if err != nil {
+		return dto.GeneralOverview{}, err
 	}
 
 	totalSafeStockStoreItem := uint64(0)
@@ -216,9 +233,13 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 
 	saleSummary := dto.SaleSummaryResponse{
 		Income: income.String(),
-		Profit: profit.String(),
+		Profit: income.Sub(expense).String(),
 	}
-	chickenSummary := dto.ChickenSummaryResponse{}
+	chickenSummary := dto.ChickenSummaryResponse{
+		TotalLiveChicken:  totalLiveChicken,
+		TotalSickChicken:  totalSickChicken,
+		TotalDeathChicken: totalDeatchChicken,
+	}
 
 	return dto.GeneralOverview{
 		EggSummary:                 eggSummary,

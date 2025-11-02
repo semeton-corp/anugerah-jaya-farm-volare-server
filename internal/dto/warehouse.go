@@ -594,6 +594,7 @@ type GetWarehouseSalePaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type GetStoreSalePaymentFilter struct {
@@ -602,24 +603,28 @@ type GetStoreSalePaymentFilter struct {
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
 	StoreId    uint64          `query:"storeId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type GetAfkirChickenSalePaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type GetWarehouseItemProcurementPaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type GetWarehouseItemCornProcurementPaymentFilter struct {
 	StartDate  param.DateParam `query:"startDate"`
 	EndDate    param.DateParam `query:"endDate"`
 	LocationId uint64          `query:"locationId"`
+	Date       param.DateParam `query:"date"`
 }
 
 type GetWarehouseItemProcurementDraftFilter struct {

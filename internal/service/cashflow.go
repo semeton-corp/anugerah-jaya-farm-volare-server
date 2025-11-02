@@ -62,7 +62,9 @@ type ICashflowService interface {
 	GetCashflowOverview(filter dto.GetCashflowOverviewFilter) (dto.CashflowOverviewResponse, error)
 
 	GetTotalIncomeProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
+	GetTotalIncomeProductionInDay(date time.Time) (decimal.Decimal, error)
 	GetTotalExpenseProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
+	GetTotalExpenseProductionInDay(date time.Time) (decimal.Decimal, error)
 
 	GetCashflowHistories(filter dto.GetCashflowHistoryFilter) ([]dto.CashflowHistoryResponse, error)
 }
@@ -499,6 +501,75 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	return totalExpenseProduction, nil
 }
 
+func (s *CashflowService) GetTotalExpenseProductionInDay(date time.Time) (decimal.Decimal, error) {
+	s.repository.UseTx(false)
+
+	totalExpenseProduction := decimal.Zero
+
+	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item procuremet payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, warehouseItemProcurementPayment := range warehouseItemProcurementPayments {
+		totalExpenseProduction = totalExpenseProduction.Add(warehouseItemProcurementPayment.Nominal)
+	}
+
+	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, warehouseItemCornProcurementPayment := range warehouseItemCornProcurementPayments {
+		totalExpenseProduction = totalExpenseProduction.Add(warehouseItemCornProcurementPayment.Nominal)
+	}
+
+	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get chicken procurement payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, chickenProcurementPayment := range chickenProcurementPayments {
+		totalExpenseProduction = totalExpenseProduction.Add(chickenProcurementPayment.Nominal)
+	}
+
+	expenses, err := s.repository.GetExpenses(dto.GetExpenseFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get expenses", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, expense := range expenses {
+		totalExpenseProduction = totalExpenseProduction.Add(expense.Nominal)
+	}
+
+	isPaid := true
+	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
+		Date:   param.DateParam(date),
+		IsPaid: &isPaid,
+	})
+	if err != nil {
+		return decimal.Zero, err
+	}
+	for _, salary := range userSalaryPayments {
+		total := salary.BaseSalary.
+			Add(salary.BonusSalary).
+			Add(salary.CompentationSalary).
+			Add(salary.AdditionalWorkSalary).
+			Add(salary.Cashbond)
+		totalExpenseProduction = totalExpenseProduction.Add(total)
+	}
+
+	return totalExpenseProduction, nil
+}
+
 func (s *CashflowService) GetTotalIncomeProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error) {
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
 
@@ -544,6 +615,59 @@ func (s *CashflowService) GetTotalIncomeProductionInMonth(month enum.Month, year
 	userCashAdvancePayments, err := s.repository.GetUserCashAdvancePayments(dto.GetUserCashAdvancePaymentFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advance payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, userCashAdvancePayment := range userCashAdvancePayments {
+		totalIncomeProduction = totalIncomeProduction.Add(userCashAdvancePayment.Nominal)
+	}
+
+	return totalIncomeProduction, nil
+}
+
+func (s *CashflowService) GetTotalIncomeProductionInDay(date time.Time) (decimal.Decimal, error) {
+	s.repository.UseTx(false)
+
+	totalIncomeProduction := decimal.Zero
+
+	storeSalePayments, err := s.repository.GetStoreSalePayments(dto.GetStoreSalePaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get store sale payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+
+	for _, storeSalePayment := range storeSalePayments {
+		totalIncomeProduction = totalIncomeProduction.Add(storeSalePayment.Nominal)
+	}
+
+	warehouseSalePayments, err := s.repository.GetWarehouseSalePayments(dto.GetWarehouseSalePaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get warehouse sale payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, warehouseSalePayment := range warehouseSalePayments {
+		totalIncomeProduction = totalIncomeProduction.Add(warehouseSalePayment.Nominal)
+	}
+
+	afkirChickenSalePayments, err := s.repository.GetAfkirChickenSalePayments(dto.GetAfkirChickenSalePaymentFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale payments", zap.Error(err))
+		return decimal.Zero, err
+	}
+	for _, afkirChickenSalePayment := range afkirChickenSalePayments {
+		totalIncomeProduction = totalIncomeProduction.Add(afkirChickenSalePayment.Nominal)
+	}
+
+	userCashAdvancePayments, err := s.repository.GetUserCashAdvancePayments(dto.GetUserCashAdvancePaymentFilter{
+		Date: param.DateParam(date),
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advance payments", zap.Error(err))
