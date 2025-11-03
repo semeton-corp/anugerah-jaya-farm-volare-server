@@ -358,6 +358,10 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		return dto.StoreRequestItemResponse{}, err
 	}
 
+	if warehouseItem.Quantity < (request.Quantity * float64(constant.TotalEggPerIkat)) {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("insufficient stock for request item")
+	}
+
 	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is in another status")
 	} else if storeRequestItem.Status != enum.RequestItemStatusPending {
@@ -400,7 +404,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		Source:         storeRequestItem.Warehouse.Name,
 		Destination:    storeRequestItem.Store.Name,
 		QuantityBefore: warehouseItem.Quantity,
-		QuantityAfter:  request.Quantity,
+		QuantityAfter:  warehouseItem.Quantity - (request.Quantity * float64(constant.TotalEggPerIkat)),
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusOut,
 	})
@@ -419,7 +423,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 	}
 
 	_, err = s.warehouseService.UpdateWarehouseItem(storeRequestItem.WarehouseId, storeRequestItem.ItemId, dto.UpdateWarehouseItemRequest{
-		Quantity: warehouseItem.Quantity - request.Quantity,
+		Quantity: warehouseItem.Quantity - (request.Quantity * float64(constant.TotalEggPerIkat)),
 	}, userId)
 	if err != nil {
 		return dto.StoreRequestItemResponse{}, err
