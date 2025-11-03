@@ -467,7 +467,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	storeItem.Quantity += request.Quantity
+	storeItem.Quantity += request.Quantity * float64(constant.TotalEggPerIkat)
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
