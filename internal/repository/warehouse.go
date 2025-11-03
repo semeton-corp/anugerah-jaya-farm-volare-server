@@ -542,7 +542,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurementDrafts(filter dto.GetWa
 		query = query.Where("items.category = ?", filter.ItemCategory.Value())
 	}
 
-	err := query.Order("item_id ASC").Order("price * days_need ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
+	err := query.Order("item_id ASC").Order("price ASC").Order("created_at DESC").Preload("Warehouse.Location").Preload("Item").Preload("Supplier").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

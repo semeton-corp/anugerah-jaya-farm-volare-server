@@ -1901,7 +1901,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
+	estimationArrivalDate, err := time.Parse("02-01-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
