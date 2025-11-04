@@ -28,6 +28,7 @@ func New() *validator.Validate {
 	validate.RegisterValidation("approvalStatus", ValidationApprovalStatus)
 	validate.RegisterValidation("locationType", ValidationLocationType)
 	validate.RegisterValidation("storeCashflowCategory", ValidationStoreCashflowCategory)
+	validate.RegisterValidation("additionalWorkStatus", ValidationAdditionalWorkStatus)
 
 	return validate
 }
@@ -246,6 +247,16 @@ func ValidationStoreCashflowCategory(fl validator.FieldLevel) bool {
 	storeCashflowCategory := fl.Field().String()
 	switch storeCashflowCategory {
 	case "Pendapatan", "Piutang":
+		return true
+	default:
+		return false
+	}
+}
+
+func ValidationAdditionalWorkStatus(fl validator.FieldLevel) bool {
+	additionalWorkStatus := fl.Field().String()
+	switch additionalWorkStatus {
+	case "Belum Terpenuhi", "Sudah Terpenuhi", "Semua":
 		return true
 	default:
 		return false

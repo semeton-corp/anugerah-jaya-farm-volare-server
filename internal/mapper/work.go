@@ -79,9 +79,9 @@ func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.Add
 	}
 
 	if additionalWork.Slot == uint64(len(additionalWork.AdditionalWorkUsers)) {
-		response.Status = constant.AdditionalWorkFullWorker
+		response.Status = constant.AdditionalWorkStatusFullWorker
 	} else {
-		response.Status = constant.AdditionalWorkNeedWorker
+		response.Status = constant.AdditionalWorkStatusNeedWorker
 	}
 
 	return response

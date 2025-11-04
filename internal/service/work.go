@@ -515,17 +515,6 @@ func (w *WorkService) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter, curr
 		}
 	}
 
-	if filter.Status == constant.AdditionalWorkAvailable {
-		availableAdditionalWorkResponse := make([]dto.AdditionalWorkListResponse, 0)
-		for _, additionalWorkResponse := range additionalWorkResponses {
-			if additionalWorkResponse.RemainingSlot > 0 {
-				availableAdditionalWorkResponse = append(availableAdditionalWorkResponse, additionalWorkResponse)
-			}
-		}
-
-		return availableAdditionalWorkResponse, nil
-	}
-
 	return additionalWorkResponses, nil
 }
 

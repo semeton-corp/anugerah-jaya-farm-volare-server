@@ -297,9 +297,9 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
-	db := r.GetDB().Model(&entity.AdditionalWork{})
+	query := r.GetDB().Model(&entity.AdditionalWork{})
 
-	db = db.
+	query = query.
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").
 		Preload("Cage.CagePlacement").
@@ -307,11 +307,18 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 		Preload("Store").
 		Where("deleted_at IS NULL").
 		Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id AND awu.is_done = true) < additional_works.slot").
-		Order("created_at DESC")
+		Order("work_date ASC")
 
 	if filter.LocationId == 0 || !filter.LocationType.Value().IsValid() {
-		err := db.Find(&additionalWorks).Error
+		err := query.Find(&additionalWorks).Error
 		return additionalWorks, err
+	}
+
+	switch filter.Status {
+	case constant.AdditionalWorkFilterAvailable:
+		query = query.Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id) < additional_works.slot")
+	case constant.AdditionalWorkFilterFull:
+		query = query.Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id) = additional_works.slot")
 	}
 
 	locationId := filter.LocationId
@@ -351,7 +358,7 @@ func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) (
 		args = append(args, locationId, locationId, locationType)
 	}
 
-	err := db.Where(condition, args...).Find(&additionalWorks).Error
+	err := query.Where(condition, args...).Find(&additionalWorks).Error
 	if err != nil {
 		return nil, err
 	}

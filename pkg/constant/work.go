@@ -5,10 +5,12 @@ const (
 	AdditionalWorkStatusNotProgress = "Belum Diproses"
 	AdditionalWorkStatusDone        = "Selesai"
 
-	AdditionalWorkNeedWorker = "Kurang Pekerja"
-	AdditionalWorkFullWorker = "Pekerja Terpenuhi"
+	AdditionalWorkStatusNeedWorker = "Kurang Pekerja"
+	AdditionalWorkStatusFullWorker = "Pekerja Terpenuhi"
 
-	AdditionalWorkAvailable = "Available"
+	AdditionalWorkFilterAvailable = "Belum Terpenuhi"
+	AdditionalWorkFilterFull      = "Sudah Terpenuhi"
+	AdditionalWorkFilterAll       = "Semua"
 
 	DailyWorkDone    = "Selesai"
 	DailyWorkLate    = "Terlambat"
