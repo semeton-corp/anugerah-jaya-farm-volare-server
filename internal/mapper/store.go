@@ -26,7 +26,7 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 		Item:                 ItemToResponse(&storeRequestItem.Item),
 		Quantity:             storeRequestItem.Quantity,
 		Status:               storeRequestItem.Status.String(),
-		RequestDate:          storeRequestItem.CreatedAt.Format("15:04, 02 Jan 2006"),
+		RequestDate:          storeRequestItem.CreatedAt.Format("15:04, 02-01-2006"),
 		IsSorted:             storeRequestItem.IsSorted,
 		WarehouseFulFillment: storeRequestItem.WarehouseFulfillment,
 	}
@@ -36,7 +36,7 @@ func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.S
 	}
 
 	if storeRequestItem.ReceiveDate.Valid {
-		response.ReceiveDate = storeRequestItem.ReceiveDate.Time.Format("15:04, 02 Jan 2006")
+		response.ReceiveDate = storeRequestItem.ReceiveDate.Time.Format("15:04, 02-01-2006")
 	} else {
 		response.ReceiveDate = "-"
 	}
@@ -68,7 +68,7 @@ func StoreItemToResponse(storeItem *entity.StoreItem) dto.StoreItemResponse {
 func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	response := dto.StoreSaleResponse{
 		Id:         storeSale.Id,
-		SendDate:   storeSale.SendDate.Format("02 Jan 2006"),
+		SendDate:   storeSale.SendDate.Format("02-01-2006"),
 		Customer:   CustomerToResponse(&storeSale.Customer),
 		Price:      storeSale.Price.String(),
 		TotalPrice: storeSale.TotalPrice.String(),
@@ -94,7 +94,7 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	}
 
 	if storeSale.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(storeSale.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -106,7 +106,7 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 	}
 
 	if storeSale.PaidDate.Valid {
-		response.PaidDate = storeSale.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = storeSale.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -121,15 +121,15 @@ func StoreSalePaymentToResponse(storeSalePayment *entity.StoreSalePayment) dto.S
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
 	}
 }
 
 func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListResponse {
 	response := dto.StoreSaleListResponse{
 		Id:            storeSale.Id,
-		OrderDate:     storeSale.CreatedAt.Format("02 Jan 2006"),
-		SendDate:      storeSale.SendDate.Format("02 Jan 2006"),
+		OrderDate:     storeSale.CreatedAt.Format("02-01-2006"),
+		SendDate:      storeSale.SendDate.Format("02-01-2006"),
 		Customer:      CustomerToResponse(&storeSale.Customer),
 		Item:          ItemToResponse(&storeSale.Item),
 		Store:         StoreToResponse(&storeSale.Store),
@@ -141,7 +141,7 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 	}
 
 	if storeSale.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = storeSale.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(storeSale.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -153,7 +153,7 @@ func StoreSaleToListResponse(storeSale *entity.StoreSale) dto.StoreSaleListRespo
 	}
 
 	if storeSale.PaidDate.Valid {
-		response.PaidDate = storeSale.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = storeSale.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}

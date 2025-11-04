@@ -297,35 +297,45 @@ func (r *WorkRepository) DeleteAdditionalWork(id uint64) error {
 
 func (r *WorkRepository) GetAdditionalWorks(filter dto.GetAdditonalWorkFilter) ([]entity.AdditionalWork, error) {
 	var additionalWorks []entity.AdditionalWork
-	query := r.GetDB().Model(&entity.AdditionalWork{})
+	db := r.GetDB().Model(&entity.AdditionalWork{})
 
-	query = query.
+	query := db.
 		Preload("AdditionalWorkUsers.User.Role").
 		Preload("Location").
 		Preload("Cage.CagePlacement").
 		Preload("Warehouse").
 		Preload("Store").
 		Where("deleted_at IS NULL").
-		Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id AND awu.is_done = true) < additional_works.slot").
 		Order("work_date ASC")
+
+	switch filter.Status {
+	case constant.AdditionalWorkFilterAvailable:
+		query = query.Where(`
+			(SELECT COUNT(*) FROM additional_work_users awu 
+				WHERE awu.additional_work_id = additional_works.id) < additional_works.slot
+			AND (SELECT COUNT(*) FROM additional_work_users awu 
+				WHERE awu.additional_work_id = additional_works.id AND awu.is_done = true) < additional_works.slot
+		`)
+
+	case constant.AdditionalWorkFilterFull:
+		query = query.Where(`
+			(SELECT COUNT(*) FROM additional_work_users awu 
+				WHERE awu.additional_work_id = additional_works.id) = additional_works.slot
+			AND (SELECT COUNT(*) FROM additional_work_users awu 
+				WHERE awu.additional_work_id = additional_works.id AND awu.is_done = true) < additional_works.slot
+		`)
+	}
 
 	if filter.LocationId == 0 || !filter.LocationType.Value().IsValid() {
 		err := query.Find(&additionalWorks).Error
 		return additionalWorks, err
 	}
 
-	switch filter.Status {
-	case constant.AdditionalWorkFilterAvailable:
-		query = query.Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id) < additional_works.slot")
-	case constant.AdditionalWorkFilterFull:
-		query = query.Where("(SELECT COUNT(*) FROM additional_work_users awu WHERE awu.additional_work_id = additional_works.id) = additional_works.slot")
-	}
-
 	locationId := filter.LocationId
 	locationType := filter.LocationType.Value()
 
 	typeConditions := []string{}
-	typeArgs := []interface{}{}
+	typeArgs := []any{}
 
 	switch locationType {
 	case enum.LocationTypeCage:
@@ -415,7 +425,7 @@ func (r *WorkRepository) GetAdditionalWorkUserById(id uint64) (entity.Additional
 }
 
 func (r *WorkRepository) UpdateAdditionalWorkUser(data *entity.AdditionalWorkUser) error {
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"is_done":     data.IsDone,
 		"note":        data.Note,
 		"finished_at": data.FinishedAt,
@@ -430,7 +440,7 @@ func (r *WorkRepository) UpdateAdditionalWorkUser(data *entity.AdditionalWorkUse
 }
 
 func (r *WorkRepository) UpdateDailyWorkUser(dwu *entity.DailyWorkUser) error {
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"is_done":     dwu.IsDone,
 		"note":        dwu.Note,
 		"finished_at": dwu.FinishedAt,

@@ -44,7 +44,7 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 	}
 
 	if warehouseItem.ExpiredAt.Valid {
-		response.ExpiredAt = warehouseItem.ExpiredAt.Time.Format("02 Jan 2006")
+		response.ExpiredAt = warehouseItem.ExpiredAt.Time.Format("02-01-2006")
 	}
 
 	return response
@@ -53,11 +53,11 @@ func WarehouseItemToResponse(warehouseItem *entity.WarehouseItem) dto.WarehouseI
 func WarehouseItemCornToResponse(warehouseItemCorn *entity.WarehouseItemCorn, cornItem *dto.ItemResponse) dto.WarehouseItemCornResponse {
 	return dto.WarehouseItemCornResponse{
 		Id:        warehouseItemCorn.Id,
-		OrderDate: warehouseItemCorn.OrderDate.Format("02 Jan 2006"),
+		OrderDate: warehouseItemCorn.OrderDate.Format("02-01-2006"),
 		Quantity:  warehouseItemCorn.Quantity,
 		Item:      *cornItem,
 		Supplier:  SupplierToListResponse(&warehouseItemCorn.Supplier),
-		ExpiredAt: warehouseItemCorn.ExpiredAt.Format("02 Jan 2006"),
+		ExpiredAt: warehouseItemCorn.ExpiredAt.Format("02-01-2006"),
 	}
 }
 
@@ -94,7 +94,7 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleResponse {
 	response := dto.WarehouseSaleResponse{
 		Id:         warehouseSale.Id,
-		SendDate:   warehouseSale.SendDate.Format("02 Jan 2006"),
+		SendDate:   warehouseSale.SendDate.Format("02-01-2006"),
 		Customer:   CustomerToResponse(&warehouseSale.Customer),
 		Price:      warehouseSale.Price.String(),
 		TotalPrice: warehouseSale.TotalPrice.String(),
@@ -113,7 +113,7 @@ func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseS
 	}
 
 	if warehouseSale.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(warehouseSale.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -125,7 +125,7 @@ func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseS
 	}
 
 	if warehouseSale.PaidDate.Valid {
-		response.PaidDate = warehouseSale.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = warehouseSale.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -140,15 +140,15 @@ func WarehouseSalePaymentToResponse(warehouseSalePayment *entity.WarehouseSalePa
 		Nominal:       warehouseSalePayment.Nominal.String(),
 		PaymentProof:  warehouseSalePayment.PaymentProof,
 		PaymentMethod: warehouseSalePayment.PaymentMethod.String(),
-		Date:          warehouseSalePayment.PaymentDate.Format("02 Jan 2006"),
+		Date:          warehouseSalePayment.PaymentDate.Format("02-01-2006"),
 	}
 }
 
 func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleListResponse {
 	response := dto.WarehouseSaleListResponse{
 		Id:            warehouseSale.Id,
-		OrderDate:     warehouseSale.CreatedAt.Format("02 Jan 2006"),
-		SendDate:      warehouseSale.SendDate.Format("02 Jan 2006"),
+		OrderDate:     warehouseSale.CreatedAt.Format("02-01-2006"),
+		SendDate:      warehouseSale.SendDate.Format("02-01-2006"),
 		Customer:      CustomerToResponse(&warehouseSale.Customer),
 		Item:          ItemToResponse(&warehouseSale.Item),
 		Warehouse:     WarehouseToResponse(&warehouseSale.Warehouse),
@@ -160,7 +160,7 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 	}
 
 	if warehouseSale.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = warehouseSale.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(warehouseSale.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -172,7 +172,7 @@ func WarehouseSaleToListResponse(warehouseSale *entity.WarehouseSale) dto.Wareho
 	}
 
 	if warehouseSale.PaidDate.Valid {
-		response.PaidDate = warehouseSale.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = warehouseSale.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -204,7 +204,7 @@ func WarehouseSaleQueueToResponse(storeSaleQueue *entity.WarehouseSaleQueue) dto
 func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcurementDraft) dto.WarehouseItemProcurementDraftResponse {
 	return dto.WarehouseItemProcurementDraftResponse{
 		Id:            data.Id,
-		InputDate:     data.CreatedAt.Format("02 Jan 2006"),
+		InputDate:     data.CreatedAt.Format("02-01-2006"),
 		Warehouse:     WarehouseToResponse(&data.Warehouse),
 		Item:          ItemToResponse(&data.Item),
 		Supplier:      SupplierToListResponse(&data.Supplier),
@@ -219,14 +219,14 @@ func WarehouseItemProcurementDraftToResponse(data *entity.WarehouseItemProcureme
 func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementResponse {
 	response := dto.WarehouseItemProcurementResponse{
 		Id:                    data.Id,
-		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		OrderDate:             data.CreatedAt.Format("02-01-2006"),
 		Warehouse:             WarehouseToResponse(&data.Warehouse),
 		Item:                  ItemToResponse(&data.Item),
 		Supplier:              SupplierToListResponse(&data.Supplier),
 		IsArrived:             data.IsArrived,
 		Quantity:              data.Quantity,
 		ProcurementStatus:     data.Status.String(),
-		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02-01-2006"),
 		Price:                 data.Price.String(),
 		DaysNeed:              data.DaysNeed,
 		TotalPrice:            data.TotalPrice.String(),
@@ -239,7 +239,7 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -251,13 +251,13 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 	}
 
 	if data.ExpiredAt.Valid {
-		response.ExpiredAt = data.ExpiredAt.Time.Format("02 Jan 2006")
+		response.ExpiredAt = data.ExpiredAt.Time.Format("02-01-2006")
 	} else {
 		response.ExpiredAt = "-"
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -272,19 +272,19 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcurement) dto.WarehouseItemProcurementListResponse {
 	response := dto.WarehouseItemProcurementListResponse{
 		Id:                    data.Id,
-		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		OrderDate:             data.CreatedAt.Format("02-01-2006"),
 		Warehouse:             WarehouseToResponse(&data.Warehouse),
 		Item:                  ItemToResponse(&data.Item),
 		Supplier:              SupplierToListResponse(&data.Supplier),
 		IsArrived:             data.IsArrived,
 		Quantity:              data.Quantity,
 		ProcurementStatus:     data.Status.String(),
-		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02-01-2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -296,13 +296,13 @@ func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcuremen
 	}
 
 	if data.ExpiredAt.Valid {
-		response.ExpiredAt = data.ExpiredAt.Time.Format("02 Jan 2006")
+		response.ExpiredAt = data.ExpiredAt.Time.Format("02-01-2006")
 	} else {
 		response.ExpiredAt = "-"
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -317,14 +317,14 @@ func WarehouseItemProcurementPaymentToResponse(storeSalePayment *entity.Warehous
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
 	}
 }
 
 func WarehouseItemCornProcurementDraftToResponse(data *entity.WarehouseItemCornProcurementDraft, cornItem dto.ItemResponse) dto.WarehouseItemCornProcurementDraftResponse {
 	response := dto.WarehouseItemCornProcurementDraftResponse{
 		Id:            data.Id,
-		InputDate:     data.CreatedAt.Format("02 Jan 2006"),
+		InputDate:     data.CreatedAt.Format("02-01-2006"),
 		Warehouse:     WarehouseToResponse(&data.Warehouse),
 		Supplier:      SupplierToListResponse(&data.Supplier),
 		Item:          cornItem,
@@ -359,7 +359,7 @@ func WarehouseItemCornProcurementPaymentToResponse(storeSalePayment *entity.Ware
 		Nominal:       storeSalePayment.Nominal.String(),
 		PaymentProof:  storeSalePayment.PaymentProof,
 		PaymentMethod: storeSalePayment.PaymentMethod.String(),
-		Date:          storeSalePayment.PaymentDate.Format("02 Jan 2006"),
+		Date:          storeSalePayment.PaymentDate.Format("02-01-2006"),
 	}
 }
 
@@ -379,8 +379,8 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 		Discount:                  data.Discount,
 		PaymentStatus:             data.PaymentStatus.String(),
 		PaymentType:               data.PaymentType.String(),
-		ExpiredAt:                 data.ExpiredAt.Format("02 Jan 2006"),
-		Date:                      data.CreatedAt.Format("02 Jan 2006"),
+		ExpiredAt:                 data.ExpiredAt.Format("02-01-2006"),
+		Date:                      data.CreatedAt.Format("02-01-2006"),
 	}
 
 	if data.ReceiveQuantity.Valid {
@@ -391,7 +391,7 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -403,7 +403,7 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -414,7 +414,7 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornProcurement, cornItem *dto.ItemResponse) dto.WarehouseItemCornProcurementListResponse {
 	response := dto.WarehouseItemCornProcurementListResponse{
 		Id:                data.Id,
-		OrderDate:         data.CreatedAt.Format("02 Jan 2006"),
+		OrderDate:         data.CreatedAt.Format("02-01-2006"),
 		Warehouse:         WarehouseToResponse(&data.Warehouse),
 		Supplier:          SupplierToListResponse(&data.Supplier),
 		Item:              *cornItem,
@@ -430,7 +430,7 @@ func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornPr
 	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -442,7 +442,7 @@ func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornPr
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}

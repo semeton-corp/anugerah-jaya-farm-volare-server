@@ -151,6 +151,11 @@ func (h *WorkHandler) GetAdditionalWorks(c *fiber.Ctx) error {
 		return err
 	}
 
+	if err := h.validator.Struct(&filter); err != nil {
+		h.log.Error("error validation", zap.Error(err))
+		return errx.BadRequest("error validation")
+	}
+
 	res, err := h.service.GetAdditionalWorks(filter, uuid.MustParse(userId))
 	if err != nil {
 		return err

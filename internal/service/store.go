@@ -1661,7 +1661,7 @@ func (s *StoreService) buildStoreOverviewWeeklyGraph(storeId uint64, itemId uint
 			}
 		}
 		graphs = append(graphs, dto.StoreGraphResponse{
-			Key:   day.Format("02 Jan 2006"),
+			Key:   day.Format("02-01-2006"),
 			Value: itemSale,
 		})
 	}
@@ -2209,7 +2209,7 @@ func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto
 			storeCashflows = append(storeCashflows, dto.StoreCashflowListResponse{
 				ParentId:     payment.StoreSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				Date:         payment.PaymentDate.Format("02-01-2006"),
 				PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
 				Category:     constant.IncomeCategoryStoreEggSale,
 				ItemName:     payment.StoreSale.Item.Name,
@@ -2257,7 +2257,7 @@ func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto
 		for _, e := range storeSales {
 			receieveable := dto.StoreCashflowListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.ReceieveablesCategoryStoreEggSale,
 				PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
 				Name:                e.Customer.Name,
@@ -2267,7 +2267,7 @@ func (s *StoreService) GetStoreCashflows(filter dto.GetStoreCashflowFilter) (dto
 			}
 
 			if e.PaidDate.Valid {
-				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+				receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 			} else {
 				receieveable.PaidDate = "-"
 			}

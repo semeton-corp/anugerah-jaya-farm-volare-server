@@ -48,7 +48,7 @@ func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHe
 		Type:           chickenHealthMonitoring.Type.String(),
 		Dose:           chickenHealthMonitoring.Dose,
 		Unit:           chickenHealthMonitoring.Unit,
-		CreatedAt:      chickenHealthMonitoring.CreatedAt.Format("02 Jan 2006"),
+		CreatedAt:      chickenHealthMonitoring.CreatedAt.Format("02-01-2006"),
 	}
 
 	if chickenHealthMonitoring.Disease.Valid {
@@ -111,7 +111,7 @@ func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto
 		Supplier:   SupplierToResponse(&data.Supplier),
 		Quantity:   data.Quantity,
 		TotalPrice: data.TotalPrice.String(),
-		InputDate:  data.CreatedAt.Format("02 Jan 2006"),
+		InputDate:  data.CreatedAt.Format("02-01-2006"),
 	}
 }
 
@@ -145,18 +145,18 @@ func AfkirChickenCustomerToResponse(data *entity.AfkirChickenCustomer) dto.Afkir
 func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleListResponse {
 	response := dto.AfkirChickenSaleListResponse{
 		Id:                   data.Id,
-		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
+		SellDate:             data.CreatedAt.Format("02-01-2006"),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
 		ChickenAge:           data.ChickenAge,
 		TotalSellChicken:     data.TotalSellChicken,
 		PricePerChicken:      data.PricePerChicken.String(),
 		TotalPrice:           data.TotalPrice.String(),
 		PaymentStatus:        data.PaymentStatus.String(),
-		TakenAt:              data.TakenAt.Format("02 Jan 2006"),
+		TakenAt:              data.TakenAt.Format("02-01-2006"),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -168,7 +168,7 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -179,7 +179,7 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenSaleResponse {
 	response := dto.AfkirChickenSaleResponse{
 		Id:                   data.Id,
-		SellDate:             data.CreatedAt.Format("02 Jan 2006"),
+		SellDate:             data.CreatedAt.Format("02-01-2006"),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
 		ChickenCage:          ChickenCageToResponse(&data.ChickenCage),
 		ChickenAge:           data.ChickenAge,
@@ -188,11 +188,11 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 		TotalPrice:           data.PricePerChicken.Mul(decimal.NewFromUint64(data.TotalSellChicken)).String(),
 		PaymentStatus:        data.PaymentStatus.String(),
 		PaymentType:          data.PaymentType.String(),
-		TakenAt:              data.TakenAt.Format("02 Jan 2006"),
+		TakenAt:              data.TakenAt.Format("02-01-2006"),
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -204,7 +204,7 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -215,7 +215,7 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.AfkirChickenSaleDraftResponse {
 	return dto.AfkirChickenSaleDraftResponse{
 		Id:                   data.Id,
-		InputDate:            data.CreatedAt.Format("02 Jan 2006"),
+		InputDate:            data.CreatedAt.Format("02-01-2006"),
 		ChickenCage:          ChickenCageToResponse(&data.ChickenCage),
 		AfkirChickenCustomer: AfkirChickenCustomerToListResponse(&data.AfkirChickenCustomer),
 		TotalSellChicken:     data.TotalSellChicken,
@@ -228,11 +228,11 @@ func AfkirChickenSaleDraftToResponse(data *entity.AfkirChickenSaleDraft) dto.Afk
 func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenProcurementResponse {
 	response := dto.ChickenProcurementResponse{
 		Id:                    data.Id,
-		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		OrderDate:             data.CreatedAt.Format("02-01-2006"),
 		Quantity:              data.Quantity,
 		Cage:                  CageToResponse(&data.Cage),
 		Supplier:              SupplierToListResponse(&data.Supplier),
-		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02-01-2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
 		TotalPrice:            data.TotalPrice.String(),
 		PaymentType:           data.PaymentType.String(),
@@ -242,7 +242,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -254,7 +254,7 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -270,11 +270,11 @@ func ChickenProcurementToResponse(data *entity.ChickenProcurement) dto.ChickenPr
 func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.ChickenProcurementListResponse {
 	response := dto.ChickenProcurementListResponse{
 		Id:                    data.Id,
-		OrderDate:             data.CreatedAt.Format("02 Jan 2006"),
+		OrderDate:             data.CreatedAt.Format("02-01-2006"),
 		Cage:                  CageToResponse(&data.Cage),
 		Quantity:              data.Quantity,
 		Supplier:              SupplierToListResponse(&data.Supplier),
-		EstimationArrivalDate: data.EstimationArrivalDate.Format("02 Jan 2006"),
+		EstimationArrivalDate: data.EstimationArrivalDate.Format("02-01-2006"),
 		PaymentStatus:         data.PaymentStatus.String(),
 		IsArrived:             data.IsArrived,
 		PaymentType:           data.PaymentType.String(),
@@ -283,7 +283,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 	}
 
 	if data.DeadlinePaymentDate.Valid {
-		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02 Jan 2006")
+		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
 		if time.Now().After(data.DeadlinePaymentDate.Time) {
 			response.IsMoreThanDeadlinePaymentDate = true
 		} else {
@@ -295,7 +295,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 	}
 
 	if data.PaidDate.Valid {
-		response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
 	}
@@ -307,7 +307,7 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment) dto.ChickenProcurementPaymentResponse {
 	return dto.ChickenProcurementPaymentResponse{
 		Id:            data.Id,
-		Date:          data.PaymentDate.Format("02 Jan 2006"),
+		Date:          data.PaymentDate.Format("02-01-2006"),
 		Nominal:       data.Nominal.String(),
 		PaymentMethod: data.PaymentMethod.String(),
 		PaymentProof:  data.PaymentProof,
@@ -318,7 +318,7 @@ func ChickenProcurementPaymentToResponse(data *entity.ChickenProcurementPayment)
 func AfkirChickenSalePaymentToResponse(data *entity.AfkirChickenSalePayment) dto.AfkirChickenSalePaymentResponse {
 	return dto.AfkirChickenSalePaymentResponse{
 		Id:            data.Id,
-		Date:          data.PaymentDate.Format("02 Jan 2006"),
+		Date:          data.PaymentDate.Format("02-01-2006"),
 		Nominal:       data.Nominal.String(),
 		PaymentMethod: data.PaymentMethod.String(),
 		PaymentProof:  data.PaymentProof,

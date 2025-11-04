@@ -412,7 +412,7 @@ func (r *CashflowRepository) GetWarehouseItemProcurementPayments(filter dto.GetW
 		query = query.Where("DATE(warehouse_item_procurement_payments.payment_date) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("warehouse_item_procurement_payments.created_at DESC").
+	err := query.Order("warehouse_item_procurement_payments.payment_date DESC").
 		Preload("WarehouseItemProcurement.Warehouse.Location").
 		Preload("WarehouseItemProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -439,7 +439,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 		query = query.Where("DATE(warehouse_item_corn_procurement_payments.payment_date) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("warehouse_item_corn_procurement_payments.created_at DESC").
+	err := query.Order("warehouse_item_corn_procurement_payments.payment_date DESC").
 		Preload("WarehouseItemCornProcurement.Warehouse.Location").
 		Preload("WarehouseItemCornProcurement.Supplier").
 		Preload("CreatedByUser").
@@ -607,7 +607,7 @@ func (r *CashflowRepository) GetUserCashAdvancePayments(filter dto.GetUserCashAd
 		query = query.Where("DATE(user_cash_advance_payments.payment_date) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("user_cash_advance_payments.created_at DESC").Find(&data).Error
+	err := query.Order("user_cash_advance_payments.created_at DESC").Preload("UserCashAdvance.User.Location").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

@@ -604,7 +604,7 @@ func (c *ChickenService) buildWeeklyGraph(locationId uint64, cageId uint64) ([]d
 			}
 		}
 		graphs = append(graphs, dto.ChickenGraphResponse{
-			Key:          day.Format("02 Jan 2006"),
+			Key:          day.Format("02-01-2006"),
 			SickChicken:  sickSum,
 			DeathChicken: deathSum,
 		})
@@ -2920,7 +2920,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 
 	for _, cashflowHistory := range cashflowHistories {
 		incomeAndExpenseGraphs = append(incomeAndExpenseGraphs, dto.IncomeAndExpenseBarChartResponse{
-			Key:     cashflowHistory.CreatedAt.Format("January"),
+			Key:     util.MapEngMonthToIndoMonth[cashflowHistory.CreatedAt.Format("January")],
 			Income:  cashflowHistory.Income,
 			Expense: cashflowHistory.Cash,
 		})

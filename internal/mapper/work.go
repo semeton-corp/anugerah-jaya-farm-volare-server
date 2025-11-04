@@ -24,7 +24,7 @@ func AdditionalWorkToResponse(additionalWork *entity.AdditionalWork) dto.Additio
 		Description:  additionalWork.Description,
 		Location:     LocationToResponse(&additionalWork.Location),
 		LocationType: additionalWork.LocationType.String(),
-		Date:         additionalWork.WorkDate.Format("02 Jan 2006"),
+		Date:         additionalWork.WorkDate.Format("02-01-2006"),
 		Time:         additionalWork.WorkDate.Format("15:04"),
 		Slot:         additionalWork.Slot,
 		Salary:       additionalWork.Salary.String(),
@@ -58,7 +58,7 @@ func AdditionalWorkUserInformationToResponse(additionalWorkUser *entity.Addition
 func AdditionalWorkToListResponse(additionalWork *entity.AdditionalWork) dto.AdditionalWorkListResponse {
 	response := dto.AdditionalWorkListResponse{
 		Id:            additionalWork.Id,
-		Date:          additionalWork.WorkDate.Format("02 Jan 2006"),
+		Date:          additionalWork.WorkDate.Format("02-01-2006"),
 		Time:          additionalWork.WorkDate.Format("15:04"),
 		Name:          additionalWork.Name,
 		Description:   additionalWork.Description,
@@ -93,7 +93,7 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 		IsDone:    dailyWorkUser.IsDone,
 		DailyWork: DailyWorkDetailToResponse(&dailyWorkUser.DailyWork),
 		Note:      dailyWorkUser.Note,
-		Date:      dailyWorkUser.CreatedAt.Format("02 Jan 2006"),
+		Date:      dailyWorkUser.CreatedAt.Format("02-01-2006"),
 		CreatedAt: dailyWorkUser.CreatedAt,
 	}
 
@@ -116,7 +116,7 @@ func DailyWorkUserToResponse(dailyWorkUser *entity.DailyWorkUser) dto.DailyWorkU
 		finished := dailyWorkUser.FinishedAt.Time
 		start := dailyWorkUser.DailyWork.StartTime.Time
 
-		response.FinishedDate = finished.Format("02 Jan 2006")
+		response.FinishedDate = finished.Format("02-01-2006")
 		response.FinishedTime = finished.Format("15:04")
 
 		if finished.Hour() < start.Hour() || (finished.Hour() == start.Hour() && finished.Minute() <= start.Minute()) {
@@ -142,7 +142,7 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 			Id:          additionalWorkUser.AdditionalWork.Id,
 			Name:        additionalWorkUser.AdditionalWork.Name,
 			Description: additionalWorkUser.AdditionalWork.Description,
-			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("02 Jan 2006"),
+			Date:        additionalWorkUser.AdditionalWork.CreatedAt.Format("02-01-2006"),
 			Time:        additionalWorkUser.AdditionalWork.CreatedAt.Format("15:04"),
 			Salary:      additionalWorkUser.AdditionalWork.Salary.String(),
 			Location:    LocationToResponse(&additionalWorkUser.AdditionalWork.Location),
@@ -161,7 +161,7 @@ func AdditionalWorkUserToResponse(additionalWorkUser *entity.AdditionalWorkUser)
 
 	if additionalWorkUser.TakenAt.Valid {
 		taken := additionalWorkUser.TakenAt.Time
-		response.TakenDate = taken.Format("02 Jan 2006")
+		response.TakenDate = taken.Format("02-01-2006")
 		response.TakenTime = taken.Format("15:04")
 	} else {
 		response.TakenDate = "-"

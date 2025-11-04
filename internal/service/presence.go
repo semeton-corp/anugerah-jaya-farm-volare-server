@@ -473,7 +473,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
 				Id:           e.Id,
-				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Date:         e.CreatedAt.Format("02-01-2006"),
 				Name:         e.User.Name,
 				Status:       e.Status.String(),
 				Evidence:     e.Evidence.String,
@@ -499,7 +499,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
 				Id:           e.Id,
-				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Date:         e.CreatedAt.Format("02-01-2006"),
 				Name:         e.User.Name,
 				Status:       e.Status.String(),
 				Evidence:     e.Evidence.String,
@@ -525,7 +525,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
 				Id:           e.Id,
-				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Date:         e.CreatedAt.Format("02-01-2006"),
 				Name:         e.User.Name,
 				Status:       e.Status.String(),
 				Evidence:     e.Evidence.String,
@@ -551,7 +551,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
 				Id:           e.Id,
-				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Date:         e.CreatedAt.Format("02-01-2006"),
 				Name:         e.User.Name,
 				Status:       e.Status.String(),
 				Evidence:     e.Evidence.String,
@@ -576,7 +576,7 @@ func (s *PresenceService) GetUserPresencePending(filter dto.GetUserPresencePendi
 		for _, e := range userPresences {
 			responses = append(responses, dto.UserPresencePendingResponse{
 				Id:           e.Id,
-				Date:         e.CreatedAt.Format("02 Jan 2006"),
+				Date:         e.CreatedAt.Format("02-01-2006"),
 				Name:         e.User.Name,
 				Status:       e.Status.String(),
 				Evidence:     e.Evidence.String,

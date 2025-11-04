@@ -95,7 +95,7 @@ func (s *CashflowService) GetIncomeStoreSalePayments(filter dto.GetStoreSalePaym
 		incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 			ParentId:     payment.StoreSaleId,
 			Id:           payment.Id,
-			Date:         payment.PaymentDate.Format("02 Jan 2006"),
+			Date:         payment.PaymentDate.Format("02-01-2006"),
 			PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
 			Category:     constant.IncomeCategoryStoreEggSale,
 			ItemName:     payment.StoreSale.Item.Name,
@@ -123,7 +123,7 @@ func (s *CashflowService) GetReceiveablesStoreSale(filter dto.GetStoreSaleFilter
 	for _, e := range storeSales {
 		receieveable := dto.ReceivablesListResponse{
 			Id:                  e.Id,
-			DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			Category:            constant.ReceieveablesCategoryStoreEggSale,
 			PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
 			Name:                e.Customer.Name,
@@ -133,7 +133,7 @@ func (s *CashflowService) GetReceiveablesStoreSale(filter dto.GetStoreSaleFilter
 		}
 
 		if e.PaidDate.Valid {
-			receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+			receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 		} else {
 			receieveable.PaidDate = "-"
 		}
@@ -224,7 +224,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.StoreSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				Date:         payment.PaymentDate.Format("02-01-2006"),
 				PlaceName:    payment.StoreSale.Store.Location.Name + " - " + payment.StoreSale.Store.Name,
 				Category:     constant.IncomeCategoryStoreEggSale,
 				ItemName:     payment.StoreSale.Item.Name,
@@ -244,7 +244,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.WarehouseSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				Date:         payment.PaymentDate.Format("02-01-2006"),
 				PlaceName:    payment.WarehouseSale.Warehouse.Location.Name + " - " + payment.WarehouseSale.Warehouse.Name,
 				Category:     constant.IncomeCategoryWarehouseEggSale,
 				ItemName:     payment.WarehouseSale.Item.Name,
@@ -264,7 +264,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				Date:         payment.PaymentDate.Format("02-01-2006"),
 				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Location.Name + " - " + payment.AfkirChickenSale.ChickenCage.Cage.Name,
 				Category:     constant.IncomeCategoryAfkirChickenSale,
 				ItemName:     constant.AfkirChicken,
@@ -284,7 +284,7 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.UserCashAdvanceId,
 				Id:           payment.Id,
-				Date:         payment.PaymentDate.Format("02 Jan 2006"),
+				Date:         payment.PaymentDate.Format("02-01-2006"),
 				PlaceName:    payment.UserCashAdvance.User.Location.Name,
 				Category:     constant.IncomeCategoryUserCashAdvancePayment,
 				ItemName:     constant.IncomeNameUserCashAdvance,
@@ -334,7 +334,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		return dto.IncomeResponse{
 			ParentId:            payment.WarehouseSaleId,
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Date:                payment.PaymentDate.Format("02-01-2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            constant.IncomeCategoryWarehouseEggSale,
 			PlaceName:           payment.WarehouseSale.Warehouse.Name,
@@ -361,7 +361,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		return dto.IncomeResponse{
 			ParentId:            payment.StoreSaleId,
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Date:                payment.PaymentDate.Format("02-01-2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            constant.IncomeCategoryStoreEggSale,
 			PlaceName:           payment.StoreSale.Store.Name,
@@ -388,7 +388,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		return dto.IncomeResponse{
 			ParentId:            payment.AfkirChickenSaleId,
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Date:                payment.PaymentDate.Format("02-01-2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            constant.IncomeCategoryAfkirChickenSale,
 			PlaceName:           payment.AfkirChickenSale.ChickenCage.Cage.Name,
@@ -415,7 +415,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 		return dto.IncomeResponse{
 			ParentId:            payment.UserCashAdvance.Id,
 			Id:                  payment.Id,
-			Date:                payment.PaymentDate.Format("02 Jan 2006"),
+			Date:                payment.PaymentDate.Format("02-01-2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
 			Category:            constant.IncomeCategoryAfkirChickenSale,
 			PlaceName:           payment.UserCashAdvance.User.Location.Name,
@@ -761,7 +761,7 @@ func (s *CashflowService) CreateExpense(request dto.CreateExpenseRequest, userId
 
 	response := dto.ExpenseResponse{
 		Id:                  data.Id,
-		Date:                data.CreatedAt.Format("02 Jan 2006"),
+		Date:                data.CreatedAt.Format("02-01-2006"),
 		Time:                data.CreatedAt.Format("15:04"),
 		Category:            data.ExpenseCategory.String(),
 		Name:                data.Name,
@@ -901,7 +901,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		for _, p := range chickenProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
-				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Date:         p.PaymentDate.Format("02-01-2006"),
 				Category:     constant.ExpenseCategoryChickenProcurement,
 				Name:         constant.ExpenseTransactionNameChickenProcurement,
 				PlaceName:    p.ChickenProcurement.Cage.Location.Name + " - " + p.ChickenProcurement.Cage.Name,
@@ -918,7 +918,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		for _, p := range warehouseItemProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
-				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Date:         p.PaymentDate.Format("02-01-2006"),
 				Category:     constant.ExpenseCategoryWarehouseItemProcurement,
 				Name:         constant.ExpenseTransactionNameWarehouseItemProcurement,
 				PlaceName:    p.WarehouseItemProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemProcurement.Warehouse.Name,
@@ -935,7 +935,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		for _, p := range warehouseItemCornProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
-				Date:         p.PaymentDate.Format("02 Jan 2006"),
+				Date:         p.PaymentDate.Format("02-01-2006"),
 				Category:     constant.ExpenseCategoryWarehouseItemCornProcurement,
 				Name:         constant.ExpenseTransactionNameWarehouseItemCornProcurement,
 				PlaceName:    p.WarehouseItemCornProcurement.Warehouse.Location.Name + " - " + p.WarehouseItemCornProcurement.Warehouse.Name,
@@ -952,7 +952,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		for _, p := range userSalaryPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
-				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Date:         p.CreatedAt.Format("02-01-2006"),
 				Category:     constant.ExpenseCategoryStaff,
 				Name:         constant.ExpenseTransactionNameSalary,
 				PlaceName:    p.User.Location.Name,
@@ -970,7 +970,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			if p.ExpenseCategory == enum.ExpenseCategoryOperational {
 				response := dto.ExpenseListResponse{
 					Id:           p.Id,
-					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Date:         p.CreatedAt.Format("02-01-2006"),
 					Category:     p.ExpenseCategory.String(),
 					Name:         p.Name,
 					PlaceName:    p.Location.Name,
@@ -1000,7 +1000,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			if p.ExpenseCategory == enum.ExpenseCategoryOther {
 				response := dto.ExpenseListResponse{
 					Id:           p.Id,
-					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Date:         p.CreatedAt.Format("02-01-2006"),
 					Category:     p.ExpenseCategory.String(),
 					Name:         p.Name,
 					PlaceName:    p.Location.Name,
@@ -1030,7 +1030,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			if p.ExpenseCategory == enum.ExpenseCategoryTax {
 				response := dto.ExpenseListResponse{
 					Id:           p.Id,
-					Date:         p.CreatedAt.Format("02 Jan 2006"),
+					Date:         p.CreatedAt.Format("02-01-2006"),
 					Category:     p.ExpenseCategory.String(),
 					Name:         p.Name,
 					PlaceName:    p.Location.Name,
@@ -1059,7 +1059,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		for _, p := range userCashAdvances {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
-				Date:         p.CreatedAt.Format("02 Jan 2006"),
+				Date:         p.CreatedAt.Format("02-01-2006"),
 				Category:     constant.ExpenseCategoryUserCashAdvance,
 				Name:         constant.ExpenseTransactionNameSalary,
 				PlaceName:    p.User.Location.Name,
@@ -1329,7 +1329,7 @@ func (s *CashflowService) GetUserCashAdvanceByUserId(userId uuid.UUID) ([]dto.Us
 
 		response = append(response, dto.UserCashAdvanceSummaryResponse{
 			Id:                            e.Id,
-			DeadlinePaymentDate:           e.DeadlinePaymentDate.Format("02 Jan 2006"),
+			DeadlinePaymentDate:           e.DeadlinePaymentDate.Format("02-01-2006"),
 			Nominal:                       e.Nominal.String(),
 			RemainingPayment:              e.Nominal.Sub(currentPayment).String(),
 			IsMoreThanDeadlinePaymentDate: isMoreThanDeadlinePaymentDate,
@@ -1384,7 +1384,7 @@ func (s *CashflowService) CreateUserCashAdvance(request dto.CreateUserCashAdvanc
 		Id:                      data.Id,
 		User:                    mapper.UserToListResponse(&data.User),
 		Nominal:                 data.Nominal.String(),
-		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02-01-2006"),
 		PaymentStatus:           data.PaymentStatus.String(),
 		UserCashAdvancePayments: userCashAdvancePayments,
 		RemainingPayment:        remainingPayment.String(),
@@ -1476,7 +1476,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 		Id:                      data.Id,
 		User:                    mapper.UserToListResponse(&data.User),
 		Nominal:                 data.Nominal.String(),
-		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02 Jan 2006"),
+		DeadlinePaymentDate:     data.DeadlinePaymentDate.Format("02-01-2006"),
 		PaymentStatus:           data.PaymentStatus.String(),
 		UserCashAdvancePayments: userCashAdvancePayments,
 		RemainingPayment:        remainingPayment.String(),
@@ -1638,7 +1638,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		for _, e := range warehouseSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.ReceieveablesCategoryWarehouseEggSale,
 				PlaceName:           e.Warehouse.Location.Name + " - " + e.Warehouse.Name,
 				Name:                e.Customer.Name,
@@ -1648,7 +1648,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 			}
 
 			if e.PaidDate.Valid {
-				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+				receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 			} else {
 				receieveable.PaidDate = "-"
 			}
@@ -1671,7 +1671,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		for _, e := range storeSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.ReceieveablesCategoryStoreEggSale,
 				PlaceName:           e.Store.Location.Name + " - " + e.Store.Name,
 				Name:                e.Customer.Name,
@@ -1681,7 +1681,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 			}
 
 			if e.PaidDate.Valid {
-				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+				receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 			} else {
 				receieveable.PaidDate = "-"
 			}
@@ -1704,7 +1704,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		for _, e := range afkirChickenSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.ReceieveablesCategoryAfkirChickenSale,
 				PlaceName:           e.ChickenCage.Cage.Location.Name + " - " + e.ChickenCage.Cage.Name,
 				Name:                e.AfkirChickenCustomer.Name,
@@ -1714,7 +1714,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 			}
 
 			if e.PaidDate.Valid {
-				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+				receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 			} else {
 				receieveable.PaidDate = "-"
 			}
@@ -1737,7 +1737,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		for _, e := range userCashAdvances {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Format("02-01-2006"),
 				Category:            constant.ReceieveablesCategoryCashAdvance,
 				PlaceName:           e.User.Location.Name,
 				Name:                e.User.Name,
@@ -1747,7 +1747,7 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 			}
 
 			if e.PaidDate.Valid {
-				receieveable.PaidDate = e.PaidDate.Time.Format("02 Jan 2006")
+				receieveable.PaidDate = e.PaidDate.Time.Format("02-01-2006")
 			} else {
 				receieveable.PaidDate = "-"
 			}
@@ -1800,7 +1800,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		for _, e := range data.Payments {
 			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -1813,7 +1813,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 
 		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
-			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Date:                  data.CreatedAt.Format("02-01-2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
 			Category:              constant.ReceieveablesCategoryWarehouseEggSale,
 			PlaceName:             data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
@@ -1823,13 +1823,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
-			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
 		}
 
 		if data.PaidDate.Valid {
-			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+			response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 		} else {
 			response.PaidDate = "-"
 		}
@@ -1847,7 +1847,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		for _, e := range data.Payments {
 			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -1860,7 +1860,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 
 		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
-			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Date:                  data.CreatedAt.Format("02-01-2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
 			Category:              constant.ReceieveablesCategoryStoreEggSale,
 			PlaceName:             data.Store.Location.Name + " - " + data.Store.Name,
@@ -1870,13 +1870,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
-			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
 		}
 
 		if data.PaidDate.Valid {
-			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+			response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 		} else {
 			response.PaidDate = "-"
 		}
@@ -1894,7 +1894,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		for _, e := range data.Payments {
 			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -1907,7 +1907,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 
 		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
-			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Date:                  data.CreatedAt.Format("02-01-2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
 			Category:              constant.ReceieveablesCategoryAfkirChickenSale,
 			PlaceName:             data.ChickenCage.Cage.Location.Name + " - " + data.ChickenCage.Cage.Name,
@@ -1917,13 +1917,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           data.PaymentType.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
-			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
 		}
 
 		if data.PaidDate.Valid {
-			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+			response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 		} else {
 			response.PaidDate = "-"
 		}
@@ -1942,7 +1942,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 		for _, e := range data.Payments {
 			paymentResponse := dto.ReceievablesPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -1955,7 +1955,7 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 
 		response := dto.ReceivablesResponse{
 			Id:                    data.Id,
-			Date:                  data.CreatedAt.Format("02 Jan 2006"),
+			Date:                  data.CreatedAt.Format("02-01-2006"),
 			Time:                  data.CreatedAt.Format("15:04"),
 			Category:              constant.ReceieveablesCategoryCashAdvance,
 			PlaceName:             data.User.Location.Name,
@@ -1965,13 +1965,13 @@ func (s *CashflowService) GetReceiveables(receieveablesCategory string, id uint6
 			RemainingPayment:      totalRemainingPayment.String(),
 			PaymentType:           enum.PaymentTypeinstallment.String(),
 			PaymentStatus:         data.PaymentStatus.String(),
-			DeadlinePaymentDate:   data.DeadlinePaymentDate.Format("02 Jan 2006"),
+			DeadlinePaymentDate:   data.DeadlinePaymentDate.Format("02-01-2006"),
 			InputBy:               data.CreatedByUser.Name,
 			ReceieveablesPayments: paymentResponses,
 		}
 
 		if data.PaidDate.Valid {
-			response.PaidDate = data.PaidDate.Time.Format("02 Jan 2006")
+			response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 		} else {
 			response.PaidDate = "-"
 		}
@@ -2191,7 +2191,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, e := range warehouseItemProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.DebtCategoryWarehouseItemProcurement,
 				PlaceName:           e.Warehouse.Location.Name + " - " + e.Warehouse.Name,
 				TransactionName:     constant.DebtTransactionNameWarehouseItemProcurement,
@@ -2219,7 +2219,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, e := range warehouseItemCornProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.DebtCategoryWarehouseItemCornProcurement,
 				PlaceName:           e.Warehouse.Location.Name + " - " + e.Warehouse.Name,
 				TransactionName:     constant.DebtTransactionNameWarehouseItemCornProcurement,
@@ -2247,7 +2247,7 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, e := range chickenProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
-				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+				DeadlinePaymentDate: e.DeadlinePaymentDate.Time.Format("02-01-2006"),
 				Category:            constant.DebtCategoryChickenProcurement,
 				PlaceName:           e.Cage.Location.Name + " - " + e.Cage.Name,
 				TransactionName:     constant.DebtTransactionNameChickenProcurement,
@@ -2303,7 +2303,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 		for _, e := range data.Payments {
 			paymentResponse := dto.DebtPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -2316,7 +2316,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 
 		return dto.DebtResponse{
 			Id:                  data.Id,
-			Date:                data.CreatedAt.Format("02 Jan 2006"),
+			Date:                data.CreatedAt.Format("02-01-2006"),
 			Time:                data.CreatedAt.Format("15:04"),
 			Category:            constant.DebtCategoryChickenProcurement,
 			PlaceName:           data.Cage.Location.Name + " - " + data.Cage.Name,
@@ -2327,7 +2327,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			RemainingPayment:    totalRemainingPayment.String(),
 			PaymentType:         data.PaymentType.String(),
 			PaymentStatus:       data.PaymentStatus.String(),
-			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:             data.CreatedByUser.Name,
 			DebtPayments:        paymentResponses,
 		}, nil
@@ -2343,7 +2343,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 		for _, e := range data.Payments {
 			paymentResponse := dto.DebtPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -2356,7 +2356,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 
 		return dto.DebtResponse{
 			Id:                  data.Id,
-			Date:                data.CreatedAt.Format("02 Jan 2006"),
+			Date:                data.CreatedAt.Format("02-01-2006"),
 			Time:                data.CreatedAt.Format("15:04"),
 			Category:            constant.DebtCategoryWarehouseItemProcurement,
 			PlaceName:           data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
@@ -2367,7 +2367,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			RemainingPayment:    totalRemainingPayment.String(),
 			PaymentType:         data.PaymentType.String(),
 			PaymentStatus:       data.PaymentStatus.String(),
-			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:             data.CreatedByUser.Name,
 			DebtPayments:        paymentResponses,
 		}, nil
@@ -2384,7 +2384,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 		for _, e := range data.Payments {
 			paymentResponse := dto.DebtPaymentResponse{
 				Id:            e.Id,
-				Date:          e.PaymentDate.Format("02 Jan 2006"),
+				Date:          e.PaymentDate.Format("02-01-2006"),
 				Nominal:       e.Nominal.String(),
 				PaymentMethod: e.PaymentMethod.String(),
 				PaymentProof:  e.PaymentProof,
@@ -2397,7 +2397,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 
 		return dto.DebtResponse{
 			Id:                  data.Id,
-			Date:                data.CreatedAt.Format("02 Jan 2006"),
+			Date:                data.CreatedAt.Format("02-01-2006"),
 			Time:                data.CreatedAt.Format("15:04"),
 			Category:            constant.DebtCategoryWarehouseItemCornProcurement,
 			PlaceName:           data.Warehouse.Location.Name + " - " + data.Warehouse.Name,
@@ -2408,7 +2408,7 @@ func (s *CashflowService) GetDebt(debtCategory string, id uint64) (dto.DebtRespo
 			PaymentType:         data.PaymentType.String(),
 			PaymentStatus:       data.PaymentStatus.String(),
 			TransactionName:     constant.DebtTransactionNameWarehouseItemCornProcurement,
-			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02 Jan 2006"),
+			DeadlinePaymentDate: data.DeadlinePaymentDate.Time.Format("02-01-2006"),
 			InputBy:             data.CreatedByUser.Name,
 			DebtPayments:        paymentResponses,
 		}, nil
@@ -2801,7 +2801,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 	if userSalaryPayment.IsPaid {
 		totalAdditonalWorkSalary = totalAdditonalWorkSalary.Add(userSalaryPayment.AdditionalWorkSalary)
 		totalBonusSalary = totalBonusSalary.Add(userSalaryPayment.BonusSalary)
-		date = userSalaryPayment.PaymentDate.Time.Format("02 Jan 2006")
+		date = userSalaryPayment.PaymentDate.Time.Format("02-01-2006")
 		time = userSalaryPayment.PaymentDate.Time.Format("15:04")
 	} else {
 		var (
@@ -2812,7 +2812,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(userSalaryPayment.UserId,
 			dto.GetAdditionalWorkUserFilter{
-				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
+				Month:       param.MonthParam(enum.ValueOfMonth(util.MapEngMonthToIndoMonth[userSalaryPayment.CreatedAt.Format("Januari")])),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
 				WithDeleted: &withDeleted,
 			})
@@ -2836,7 +2836,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		userPresences, err := s.presenceService.GetUserPresencesByUserId(userSalaryPayment.UserId,
 			dto.GetPresenceFilter{
-				Month: param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
+				Month: param.MonthParam(enum.ValueOfMonth(util.MapEngMonthToIndoMonth[userSalaryPayment.CreatedAt.Format("January")])),
 				Year:  uint64(userSalaryPayment.CreatedAt.Year()),
 			})
 		if err != nil {
@@ -2845,7 +2845,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(userSalaryPayment.UserId,
 			dto.GetDailyWorkUserFilter{
-				Month:       param.MonthParam(enum.ValueOfMonth(userSalaryPayment.CreatedAt.Format("January"))),
+				Month:       param.MonthParam(enum.ValueOfMonth(util.MapEngMonthToIndoMonth[userSalaryPayment.CreatedAt.Format("January")])),
 				Year:        uint64(userSalaryPayment.CreatedAt.Year()),
 				WithDeleted: &withDeleted,
 			})
@@ -2886,7 +2886,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
 		PaidDate:                 date,
 		PaidTime:                 time,
-		SalaryMonth:              userSalaryPayment.CreatedAt.Format("January"),
+		SalaryMonth:              userSalaryPayment.CreatedAt.Format("Jan"),
 		AdditionalWorkUsers:      additionalWorkUserResponses,
 		UserCashAdvanceSummaries: userCashAdvanceSummaryResponses,
 		BaseSalary:               userSalaryPayment.BaseSalary.String(),
@@ -3291,7 +3291,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 		})
 
 		eggSaleCashflowGraphs = append(eggSaleCashflowGraphs, dto.EggSaleCashflowGraphResponse{
-			Key:              cf.CreatedAt.Format("January"),
+			Key:              util.MapEngMonthToIndoMonth[cf.CreatedAt.Format("January")],
 			WarehouseEggSale: cf.WarehouseEggSale.String(),
 			StoreEggSale:     cf.StoreEggSale.String(),
 		})

@@ -15,7 +15,7 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 		PhotoProfile:   user.PhotoProfile,
 		PhoneNumber:    user.PhoneNumber,
 		Salary:         user.Salary.String(),
-		CreatedAt:      user.CreatedAt.Format("02 Jan 2006"),
+		CreatedAt:      user.CreatedAt.Format("02-01-2006"),
 		Role:           RoleToResponse(&user.Role),
 		Location:       LocationToResponse(&user.Location),
 		SalaryInterval: user.SalaryInterval.String(),

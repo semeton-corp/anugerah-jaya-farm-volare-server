@@ -510,7 +510,7 @@ func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphRespo
 			}
 		}
 		graphs = append(graphs, dto.EggGraphResponse{
-			Key:        day.Format("02 Jan 2006"),
+			Key:        day.Format("02-01-2006"),
 			GoodEgg:    good,
 			CrackedEgg: cracked,
 			RejectEgg:  reject,
