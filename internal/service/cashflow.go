@@ -192,33 +192,34 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 		return dto.IncomeOverviewResponse{}, err
 	}
 
-	totalPayment := decimal.Zero
+	totalResponse := decimal.Zero
+	totalIncome := decimal.Zero
 	totalWarehouseSalePayment := decimal.Zero
 	totalStoreSalePayment := decimal.Zero
 	totalAfkirChickenSalePayment := decimal.Zero
 	totalUserCashAdvance := decimal.Zero
 
 	for _, payment := range storeSalePayments {
-		totalPayment = totalPayment.Add(payment.Nominal)
+		totalIncome = totalIncome.Add(payment.Nominal)
 		totalStoreSalePayment = totalStoreSalePayment.Add(payment.Nominal)
 	}
 
 	for _, payment := range warehouseSalePayments {
-		totalPayment = totalPayment.Add(payment.Nominal)
+		totalIncome = totalIncome.Add(payment.Nominal)
 		totalWarehouseSalePayment = totalWarehouseSalePayment.Add(payment.Nominal)
 	}
 
 	for _, payment := range afkirChickenSalePayments {
-		totalPayment = totalPayment.Add(payment.Nominal)
+		totalIncome = totalIncome.Add(payment.Nominal)
 		totalAfkirChickenSalePayment = totalAfkirChickenSalePayment.Add(payment.Nominal)
 	}
 
 	for _, payment := range userCashAdvancePayments {
-		totalPayment = totalPayment.Add(payment.Nominal)
+		totalIncome = totalIncome.Add(payment.Nominal)
 		totalUserCashAdvance = totalUserCashAdvance.Add(payment.Nominal)
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryStoreEggSale {
+	if filter.IncomeCategory == constant.IncomeCategoryStoreEggSale || filter.IncomeCategory == constant.IncomeCategoryAll {
 		for _, payment := range storeSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.StoreSaleId,
@@ -234,9 +235,11 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				PaymentProof: payment.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalStoreSalePayment)
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale {
+	if filter.IncomeCategory == constant.IncomeCategoryWarehouseEggSale || filter.IncomeCategory == constant.IncomeCategoryAll {
 		for _, payment := range warehouseSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.WarehouseSaleId,
@@ -252,9 +255,11 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				PaymentProof: payment.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalWarehouseSalePayment)
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale {
+	if filter.IncomeCategory == constant.IncomeCategoryAfkirChickenSale || filter.IncomeCategory == constant.IncomeCategoryAll {
 		for _, payment := range afkirChickenSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
@@ -270,9 +275,11 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				PaymentProof: payment.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalAfkirChickenSalePayment)
 	}
 
-	if filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment {
+	if filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment || filter.IncomeCategory == constant.IncomeCategoryAll {
 		for _, payment := range afkirChickenSalePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
 				ParentId:     payment.AfkirChickenSaleId,
@@ -288,17 +295,19 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 				PaymentProof: payment.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalUserCashAdvance)
 	}
 
 	warehouseEggSalePercentage := 0.0
 	storeEggSalePercentage := 0.0
 	afkirChickenSalePercentage := 0.0
 	userCashAdvanceSalePercentage := 0.0
-	if !totalPayment.IsZero() {
-		warehouseEggSalePercentage = totalWarehouseSalePayment.Div(totalPayment).InexactFloat64() * 100.0
-		storeEggSalePercentage = totalStoreSalePayment.Div(totalPayment).InexactFloat64() * 100.0
-		afkirChickenSalePercentage = totalAfkirChickenSalePayment.Div(totalPayment).InexactFloat64() * 100.0
-		userCashAdvanceSalePercentage = totalUserCashAdvance.Div(totalPayment).InexactFloat64() * 100.0
+	if !totalIncome.IsZero() {
+		warehouseEggSalePercentage = totalWarehouseSalePayment.Div(totalIncome).InexactFloat64() * 100.0
+		storeEggSalePercentage = totalStoreSalePayment.Div(totalIncome).InexactFloat64() * 100.0
+		afkirChickenSalePercentage = totalAfkirChickenSalePayment.Div(totalIncome).InexactFloat64() * 100.0
+		userCashAdvanceSalePercentage = totalUserCashAdvance.Div(totalIncome).InexactFloat64() * 100.0
 	}
 
 	return dto.IncomeOverviewResponse{
@@ -308,7 +317,8 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 			AfkirChickenSalePercentage: afkirChickenSalePercentage,
 			UserCashAdvancePercentage:  userCashAdvanceSalePercentage,
 		},
-		Incomes: incomeResponses,
+		Incomes:      incomeResponses,
+		TotalIncomes: totalResponse.String(),
 	}, nil
 }
 
@@ -838,7 +848,8 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 		return dto.ExpenseOverviewResponse{}, err
 	}
 
-	totalPayment := decimal.Zero
+	totalResponse := decimal.Zero
+	totalExpense := decimal.Zero
 	totalChickenProcurement := decimal.Zero
 	totalWarehouseItemProcurement := decimal.Zero
 	totalWarehouseItemCornProcurement := decimal.Zero
@@ -849,12 +860,12 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	totalUserCashAdvance := decimal.Zero
 
 	for _, p := range chickenProcurementPayments {
-		totalPayment = totalPayment.Add(p.Nominal)
+		totalExpense = totalExpense.Add(p.Nominal)
 		totalChickenProcurement = totalChickenProcurement.Add(p.Nominal)
 	}
 
 	for _, p := range expensePayments {
-		totalPayment = totalPayment.Add(p.Nominal)
+		totalExpense = totalExpense.Add(p.Nominal)
 		switch p.ExpenseCategory {
 		case enum.ExpenseCategoryOperational:
 			totalOperational = totalOperational.Add(p.Nominal)
@@ -866,27 +877,27 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	}
 
 	for _, p := range warehouseItemProcurementPayments {
-		totalPayment = totalPayment.Add(p.Nominal)
+		totalExpense = totalExpense.Add(p.Nominal)
 		totalWarehouseItemProcurement = totalWarehouseItemProcurement.Add(p.Nominal)
 	}
 
 	for _, p := range warehouseItemCornProcurementPayments {
-		totalPayment = totalPayment.Add(p.Nominal)
+		totalExpense = totalExpense.Add(p.Nominal)
 		totalWarehouseItemCornProcurement = totalWarehouseItemCornProcurement.Add(p.Nominal)
 	}
 
 	for _, p := range userSalaryPayments {
 		totalSalary := p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary)
-		totalPayment = totalPayment.Add(totalSalary)
+		totalExpense = totalExpense.Add(totalSalary)
 		totalWarehouseItemProcurement = totalWarehouseItemProcurement.Add(totalSalary)
 	}
 
 	for _, p := range userCashAdvances {
-		totalPayment = totalPayment.Add(p.Nominal)
+		totalExpense = totalExpense.Add(p.Nominal)
 		totalUserCashAdvance = totalUserCashAdvance.Add(p.Nominal)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryChickenProcurement || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range chickenProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -899,9 +910,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				PaymentProof: p.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalChickenProcurement)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemProcurement || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range warehouseItemProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -914,9 +927,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				PaymentProof: p.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalWarehouseItemProcurement)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemCornProcurement {
+	if filter.ExpenseCategory == constant.ExpenseCategoryWarehouseItemCornProcurement || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range warehouseItemCornProcurementPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -929,9 +944,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				PaymentProof: p.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalWarehouseItemCornProcurement)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryStaff {
+	if filter.ExpenseCategory == constant.ExpenseCategoryStaff || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range userSalaryPayments {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -944,9 +961,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				PaymentProof: p.PaymentProof,
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalUserSalary)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryOperational {
+	if filter.ExpenseCategory == constant.ExpenseCategoryOperational || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryOperational {
 				response := dto.ExpenseListResponse{
@@ -972,9 +991,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				expenseResponses = append(expenseResponses, response)
 			}
 		}
+
+		totalResponse = totalResponse.Add(totalOperational)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryOther {
+	if filter.ExpenseCategory == constant.ExpenseCategoryOther || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryOther {
 				response := dto.ExpenseListResponse{
@@ -1000,9 +1021,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				expenseResponses = append(expenseResponses, response)
 			}
 		}
+
+		totalResponse = totalResponse.Add(totalOther)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryTax {
+	if filter.ExpenseCategory == constant.ExpenseCategoryTax || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range expensePayments {
 			if p.ExpenseCategory == enum.ExpenseCategoryTax {
 				response := dto.ExpenseListResponse{
@@ -1028,9 +1051,11 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				expenseResponses = append(expenseResponses, response)
 			}
 		}
+
+		totalResponse = totalResponse.Add(totalTax)
 	}
 
-	if filter.ExpenseCategory == constant.ExpenseCategoryUserCashAdvance {
+	if filter.ExpenseCategory == constant.ExpenseCategoryUserCashAdvance || filter.ExpenseCategory == constant.ExpenseCategoryAll {
 		for _, p := range userCashAdvances {
 			expenseResponses = append(expenseResponses, dto.ExpenseListResponse{
 				Id:           p.Id,
@@ -1043,6 +1068,8 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				PaymentProof: "-",
 			})
 		}
+
+		totalResponse = totalResponse.Add(totalUserCashAdvance)
 	}
 
 	staffPercentage := 0.0
@@ -1054,15 +1081,15 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	userCashAdvancePercentage := 0.0
 	taxPercentage := 0.0
 
-	if !totalPayment.IsZero() {
-		staffPercentage = totalUserSalary.Div(totalPayment).InexactFloat64() * 100.0
-		chickenProcurementPercentage = totalChickenProcurement.Div(totalPayment).InexactFloat64() * 100.0
-		warehouseItemProcurementPercentage = totalWarehouseItemProcurement.Div(totalPayment).InexactFloat64() * 100.0
-		warehouseItemCornProcurementPercentage = totalWarehouseItemCornProcurement.Div(totalPayment).InexactFloat64() * 100.0
-		operationalPercentage = totalOperational.Div(totalPayment).InexactFloat64() * 100.0
-		otherPercentage = totalOther.Div(totalPayment).InexactFloat64() * 100.0
-		userCashAdvancePercentage = totalUserCashAdvance.Div(totalPayment).InexactFloat64() * 100.0
-		taxPercentage = totalTax.Div(totalPayment).InexactFloat64() * 100.0
+	if !totalExpense.IsZero() {
+		staffPercentage = totalUserSalary.Div(totalExpense).InexactFloat64() * 100.0
+		chickenProcurementPercentage = totalChickenProcurement.Div(totalExpense).InexactFloat64() * 100.0
+		warehouseItemProcurementPercentage = totalWarehouseItemProcurement.Div(totalExpense).InexactFloat64() * 100.0
+		warehouseItemCornProcurementPercentage = totalWarehouseItemCornProcurement.Div(totalExpense).InexactFloat64() * 100.0
+		operationalPercentage = totalOperational.Div(totalExpense).InexactFloat64() * 100.0
+		otherPercentage = totalOther.Div(totalExpense).InexactFloat64() * 100.0
+		userCashAdvancePercentage = totalUserCashAdvance.Div(totalExpense).InexactFloat64() * 100.0
+		taxPercentage = totalTax.Div(totalExpense).InexactFloat64() * 100.0
 	}
 
 	return dto.ExpenseOverviewResponse{
@@ -1076,7 +1103,8 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 			UserCashAdvancePercentage:              userCashAdvancePercentage,
 			TaxPercentage:                          taxPercentage,
 		},
-		Expenses: expenseResponses,
+		Expenses:     expenseResponses,
+		TotalExpense: totalResponse.String(),
 	}, nil
 }
 
@@ -1546,51 +1574,67 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 		return dto.ReceivablesOverviewResponse{}, err
 	}
 
-	totalPayment := decimal.Zero
-	totalReceivablesPayment := decimal.Zero
-	totalRemainingReceieveablesPayment := decimal.Zero
+	totalPricePayment := decimal.Zero
+
+	totalPaidReceivablesStoreSale := decimal.Zero
+	totalReceivablesStoreSale := decimal.Zero
+
+	totalPaidReceivablesWarehouseSale := decimal.Zero
+	totalReceivablesWarehouseSale := decimal.Zero
+
+	totalPaidReceivablesAfkirChickenSale := decimal.Zero
+	totalReceivablesAfkirChickenSale := decimal.Zero
+
+	totalPaidReceivablesUserCashAdvance := decimal.Zero
+	totalReceivablesUserCashAdvance := decimal.Zero
 
 	for _, e := range storeSales {
-		totalPayment = totalPayment.Add(e.TotalPrice)
-		totalCurrentReceieveablesPayment := decimal.Zero
+		totalPricePayment = totalPricePayment.Add(e.TotalPrice)
+		totalCurrentPayment := decimal.Zero
 		for _, p := range e.Payments {
-			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+			totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
 		}
-		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
-		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+		totalPaidReceivablesStoreSale = totalPaidReceivablesStoreSale.Add(totalCurrentPayment)
+		totalReceivablesStoreSale = totalReceivablesStoreSale.Add(e.TotalPrice.Sub(totalCurrentPayment))
 	}
 
 	for _, e := range warehouseSales {
-		totalPayment = totalPayment.Add(e.TotalPrice)
-		totalCurrentReceieveablesPayment := decimal.Zero
+		totalPricePayment = totalPricePayment.Add(e.TotalPrice)
+		totalCurrentPayment := decimal.Zero
 		for _, p := range e.Payments {
-			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+			totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
 		}
-		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
-		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+		totalPaidReceivablesWarehouseSale = totalPaidReceivablesWarehouseSale.Add(totalCurrentPayment)
+		totalReceivablesWarehouseSale = totalReceivablesWarehouseSale.Add(e.TotalPrice.Sub(totalCurrentPayment))
 	}
 
 	for _, e := range afkirChickenSales {
-		totalPayment = totalPayment.Add(e.TotalPrice)
-		totalCurrentReceieveablesPayment := decimal.Zero
+		totalPricePayment = totalPricePayment.Add(e.TotalPrice)
+		totalCurrentPayment := decimal.Zero
 		for _, p := range e.Payments {
-			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+			totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
 		}
-		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
-		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.TotalPrice.Sub(totalCurrentReceieveablesPayment))
+		totalPaidReceivablesAfkirChickenSale = totalPaidReceivablesAfkirChickenSale.Add(totalCurrentPayment)
+		totalReceivablesAfkirChickenSale = totalReceivablesAfkirChickenSale.Add(e.TotalPrice.Sub(totalCurrentPayment))
 	}
 
 	for _, e := range userCashAdvances {
-		totalPayment = totalPayment.Add(e.Nominal)
-		totalCurrentReceieveablesPayment := decimal.Zero
+		totalPricePayment = totalPricePayment.Add(e.Nominal)
+		totalCurrentPayment := decimal.Zero
 		for _, p := range e.Payments {
-			totalCurrentReceieveablesPayment = totalCurrentReceieveablesPayment.Add(p.Nominal)
+			totalCurrentPayment = totalCurrentPayment.Add(p.Nominal)
 		}
-		totalReceivablesPayment = totalReceivablesPayment.Add(totalCurrentReceieveablesPayment)
-		totalRemainingReceieveablesPayment = totalRemainingReceieveablesPayment.Add(e.Nominal.Sub(totalCurrentReceieveablesPayment))
+		totalPaidReceivablesUserCashAdvance = totalPaidReceivablesUserCashAdvance.Add(totalCurrentPayment)
+		totalReceivablesUserCashAdvance = totalReceivablesUserCashAdvance.Add(e.Nominal.Sub(totalCurrentPayment))
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryWarehouseEggSale {
+	totalPaidReceivablesPayment := totalPaidReceivablesStoreSale.Add(totalPaidReceivablesWarehouseSale).Add(totalPaidReceivablesAfkirChickenSale).Add(totalPaidReceivablesUserCashAdvance)
+	totalReceivablesPayment := totalReceivablesStoreSale.Add(totalReceivablesWarehouseSale).Add(totalReceivablesAfkirChickenSale).Add(totalReceivablesUserCashAdvance)
+
+	totalPaidReceivablesResponse := decimal.Zero
+	totalReceivablesResponse := decimal.Zero
+
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryWarehouseEggSale || filter.ReceivablesCategory == constant.ReceieveablesCategoryAll {
 		for _, e := range warehouseSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1618,9 +1662,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 
 			receieveables = append(receieveables, receieveable)
 		}
+
+		totalPaidReceivablesResponse = totalPaidReceivablesResponse.Add(totalPaidReceivablesWarehouseSale)
+		totalReceivablesResponse = totalReceivablesResponse.Add(totalReceivablesWarehouseSale)
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryStoreEggSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryStoreEggSale || filter.ReceivablesCategory == constant.ReceieveablesCategoryAll {
 		for _, e := range storeSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1648,9 +1695,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 
 			receieveables = append(receieveables, receieveable)
 		}
+
+		totalPaidReceivablesResponse = totalPaidReceivablesResponse.Add(totalPaidReceivablesStoreSale)
+		totalReceivablesResponse = totalReceivablesResponse.Add(totalReceivablesStoreSale)
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAfkirChickenSale {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryAfkirChickenSale || filter.ReceivablesCategory == constant.ReceieveablesCategoryAll {
 		for _, e := range afkirChickenSales {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1678,9 +1728,12 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 
 			receieveables = append(receieveables, receieveable)
 		}
+
+		totalPaidReceivablesResponse = totalPaidReceivablesResponse.Add(totalPaidReceivablesAfkirChickenSale)
+		totalReceivablesResponse = totalReceivablesResponse.Add(totalReceivablesAfkirChickenSale)
 	}
 
-	if filter.ReceivablesCategory == constant.ReceieveablesCategoryCashAdvance {
+	if filter.ReceivablesCategory == constant.ReceieveablesCategoryCashAdvance || filter.ReceivablesCategory == constant.ReceieveablesCategoryAll {
 		for _, e := range userCashAdvances {
 			receieveable := dto.ReceivablesListResponse{
 				Id:                  e.Id,
@@ -1708,13 +1761,16 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 
 			receieveables = append(receieveables, receieveable)
 		}
+
+		totalPaidReceivablesResponse = totalPaidReceivablesResponse.Add(totalPaidReceivablesUserCashAdvance)
+		totalReceivablesResponse = totalReceivablesResponse.Add(totalReceivablesUserCashAdvance)
 	}
 
 	paidPercentage := 0.0
 	unpaidPercentage := 0.0
-	if !totalPayment.IsZero() {
-		paidPercentage = totalReceivablesPayment.Div(totalPayment).InexactFloat64() * 100.0
-		unpaidPercentage = totalRemainingReceieveablesPayment.Div(totalPayment).InexactFloat64() * 100.0
+	if !totalPricePayment.IsZero() {
+		paidPercentage = totalPaidReceivablesPayment.Div(totalPricePayment).InexactFloat64() * 100.0
+		unpaidPercentage = totalReceivablesPayment.Div(totalPricePayment).InexactFloat64() * 100.0
 	}
 
 	return dto.ReceivablesOverviewResponse{
@@ -1722,7 +1778,9 @@ func (s *CashflowService) GetReceiveablesOverview(filter dto.GetReceivablesOverv
 			PaidPercentage:   paidPercentage,
 			UnpaidPercentage: unpaidPercentage,
 		},
-		Receivables: receieveables,
+		Receivables:          receieveables,
+		TotalPaidReceivables: totalPaidReceivablesResponse.String(),
+		TotalReceivables:     totalReceivablesResponse.String(),
 	}, nil
 }
 
@@ -2082,8 +2140,15 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 	}
 
 	totalPayment := decimal.Zero
-	totalPaidDebtPayment := decimal.Zero
-	totalRemainingDebtPayment := decimal.Zero
+
+	totalPaidDebtWarehouseItemProcurement := decimal.Zero
+	totalDebtWarehouseItemProcurement := decimal.Zero
+
+	totalPaidDebtWarehouseItemCornProcurement := decimal.Zero
+	totalDebtWarehouseItemCornProcurement := decimal.Zero
+
+	totalPaidDebtChickenProcurement := decimal.Zero
+	totalDebtChickenProcurement := decimal.Zero
 
 	for _, e := range warehouseItemProcurements {
 		totalPayment = totalPayment.Add(e.TotalPrice)
@@ -2091,8 +2156,8 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
-		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
+		totalPaidDebtWarehouseItemProcurement = totalPaidDebtWarehouseItemProcurement.Add(totalCurrentDebtPayment)
+		totalDebtWarehouseItemProcurement = totalDebtWarehouseItemProcurement.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
 	for _, e := range warehouseItemCornProcurements {
@@ -2101,8 +2166,8 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
-		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
+		totalPaidDebtWarehouseItemCornProcurement = totalPaidDebtWarehouseItemCornProcurement.Add(totalCurrentDebtPayment)
+		totalDebtWarehouseItemCornProcurement = totalDebtWarehouseItemCornProcurement.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
 	for _, e := range chickenProcurements {
@@ -2111,12 +2176,18 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 		for _, p := range e.Payments {
 			totalCurrentDebtPayment = totalCurrentDebtPayment.Add(p.Nominal)
 		}
-		totalPaidDebtPayment = totalPaidDebtPayment.Add(totalCurrentDebtPayment)
-		totalRemainingDebtPayment = totalRemainingDebtPayment.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
+		totalPaidDebtChickenProcurement = totalPaidDebtChickenProcurement.Add(totalCurrentDebtPayment)
+		totalDebtChickenProcurement = totalDebtChickenProcurement.Add(e.TotalPrice.Sub(totalCurrentDebtPayment))
 	}
 
+	totalPaidDebtResponse := decimal.Zero
+	totalDebtResponse := decimal.Zero
+
+	totalPaidDebtPayment := totalPaidDebtWarehouseItemProcurement.Add(totalPaidDebtWarehouseItemCornProcurement).Add(totalPaidDebtChickenProcurement)
+	totalDebtPayment := totalDebtWarehouseItemProcurement.Add(totalDebtWarehouseItemCornProcurement).Add(totalDebtChickenProcurement)
+
 	debtResponses := make([]dto.DebtListResponse, 0)
-	if filter.DebtCategory == constant.DebtCategoryWarehouseItemProcurement {
+	if filter.DebtCategory == constant.DebtCategoryWarehouseItemProcurement || filter.DebtCategory == constant.DebtCategoryAll {
 		for _, e := range warehouseItemProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -2139,9 +2210,12 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 
 			debtResponses = append(debtResponses, response)
 		}
+
+		totalPaidDebtResponse = totalPaidDebtResponse.Add(totalPaidDebtWarehouseItemProcurement)
+		totalDebtResponse = totalDebtResponse.Add(totalDebtWarehouseItemProcurement)
 	}
 
-	if filter.DebtCategory == constant.DebtCategoryWarehouseItemCornProcurement {
+	if filter.DebtCategory == constant.DebtCategoryWarehouseItemCornProcurement || filter.DebtCategory == constant.DebtCategoryAll {
 		for _, e := range warehouseItemCornProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -2164,9 +2238,12 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 
 			debtResponses = append(debtResponses, response)
 		}
+
+		totalPaidDebtResponse = totalPaidDebtResponse.Add(totalPaidDebtWarehouseItemCornProcurement)
+		totalDebtResponse = totalDebtResponse.Add(totalDebtWarehouseItemCornProcurement)
 	}
 
-	if filter.DebtCategory == constant.DebtCategoryChickenProcurement {
+	if filter.DebtCategory == constant.DebtCategoryChickenProcurement || filter.DebtCategory == constant.DebtCategoryAll {
 		for _, e := range chickenProcurements {
 			response := dto.DebtListResponse{
 				Id:                  e.Id,
@@ -2189,13 +2266,16 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 
 			debtResponses = append(debtResponses, response)
 		}
+
+		totalPaidDebtResponse = totalPaidDebtResponse.Add(totalPaidDebtChickenProcurement)
+		totalDebtResponse = totalDebtResponse.Add(totalDebtChickenProcurement)
 	}
 
 	paidPercentage := 0.0
 	unpaidPercentage := 0.0
 	if !totalPayment.IsZero() {
 		paidPercentage = totalPaidDebtPayment.Div(totalPayment).InexactFloat64() * 100.0
-		unpaidPercentage = totalRemainingDebtPayment.Div(totalPayment).InexactFloat64() * 100.0
+		unpaidPercentage = totalDebtPayment.Div(totalPayment).InexactFloat64() * 100.0
 	}
 
 	return dto.DebtOverviewResponse{
@@ -2203,7 +2283,9 @@ func (s *CashflowService) GetDebtOverview(filter dto.GetDebtOverviewFilter) (dto
 			PaidPercentage:   paidPercentage,
 			UnpaidPercentage: unpaidPercentage,
 		},
-		Debts: debtResponses,
+		Debts:         debtResponses,
+		TotalPaidDebt: totalPaidDebtResponse.String(),
+		TotalDebt:     totalDebtResponse.String(),
 	}, nil
 }
 

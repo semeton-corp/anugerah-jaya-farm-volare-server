@@ -598,7 +598,7 @@ func (r *ChickenRepository) UpdateAfkirChickenSalePayment(data *entity.AfkirChic
 }
 
 func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale) error {
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"afkir_chicken_customer_id": data.AfkirChickenCustomerId,
 		"chicken_cage_id":           data.ChickenCageId,
 		"total_sell_chicken":        data.TotalSellChicken,
@@ -629,7 +629,7 @@ func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurem
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date DESC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
+	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date ASC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
 	if err != nil {
 		return nil, err
 	}

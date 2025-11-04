@@ -49,8 +49,9 @@ type IncomeResponse struct {
 }
 
 type IncomeOverviewResponse struct {
-	IncomePie IncomePieResponse    `json:"incomePie"`
-	Incomes   []IncomeListResponse `json:"incomes"`
+	IncomePie    IncomePieResponse    `json:"incomePie"`
+	TotalIncomes string               `json:"totalIncomes"`
+	Incomes      []IncomeListResponse `json:"incomes"`
 }
 
 type GetIncomeOverviewFilter struct {
@@ -97,8 +98,9 @@ type ExpenseResponse struct {
 }
 
 type ExpenseOverviewResponse struct {
-	ExpensePie ExpensePieResponse    `json:"expensePie"`
-	Expenses   []ExpenseListResponse `json:"expenses"`
+	ExpensePie   ExpensePieResponse    `json:"expensePie"`
+	TotalExpense string                `json:"totalExpense"`
+	Expenses     []ExpenseListResponse `json:"expenses"`
 }
 
 type GetExpenseOverviewFilter struct {
@@ -237,8 +239,10 @@ type ReceivablesPieResponse struct {
 }
 
 type ReceivablesOverviewResponse struct {
-	ReceivablesPie ReceivablesPieResponse    `json:"receivablesPie"`
-	Receivables    []ReceivablesListResponse `json:"receivables"`
+	ReceivablesPie       ReceivablesPieResponse    `json:"receivablesPie"`
+	TotalReceivables     string                    `json:"totalReceivables"`
+	TotalPaidReceivables string                    `json:"totalPaidReceivables"`
+	Receivables          []ReceivablesListResponse `json:"receivables"`
 }
 
 type UserSalaryPaymentResponse struct {
@@ -316,8 +320,10 @@ type DebtPieResponse struct {
 }
 
 type DebtOverviewResponse struct {
-	DebtPie DebtPieResponse    `json:"debtPie"`
-	Debts   []DebtListResponse `json:"debts"`
+	DebtPie       DebtPieResponse    `json:"debtPie"`
+	TotalPaidDebt string             `json:"totalPaidDebt"`
+	TotalDebt     string             `json:"totalDebt"`
+	Debts         []DebtListResponse `json:"debts"`
 }
 
 type UserSalarySummaryResponse struct {

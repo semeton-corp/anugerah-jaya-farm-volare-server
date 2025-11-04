@@ -639,7 +639,7 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date DESC").Find(&data).Error
+	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date ASC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
