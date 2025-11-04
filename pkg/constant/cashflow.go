@@ -7,6 +7,8 @@ const (
 	IncomeCategoryUserCashAdvancePayment string = "Pembayaran Pinjaman Pegawai"
 	IncomeCategoryAll                    string = "Semua"
 
+	IncomeNameUserCashAdvance string = "Pinjaman Pegawai"
+
 	ExpenseCategoryOperational                  string = "Operasional"
 	ExpenseCategoryChickenProcurement           string = "Pengadaan Ayam DOC"
 	ExpenseCategoryWarehouseItemProcurement     string = "Pengadaan Barang"

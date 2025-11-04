@@ -280,17 +280,17 @@ func (s *CashflowService) GetIncomeOverview(filter dto.GetIncomeOverviewFilter) 
 	}
 
 	if filter.IncomeCategory == constant.IncomeCategoryUserCashAdvancePayment || filter.IncomeCategory == constant.IncomeCategoryAll {
-		for _, payment := range afkirChickenSalePayments {
+		for _, payment := range userCashAdvancePayments {
 			incomeResponses = append(incomeResponses, dto.IncomeListResponse{
-				ParentId:     payment.AfkirChickenSaleId,
+				ParentId:     payment.UserCashAdvanceId,
 				Id:           payment.Id,
 				Date:         payment.PaymentDate.Format("02 Jan 2006"),
-				PlaceName:    payment.AfkirChickenSale.ChickenCage.Cage.Location.Name + " - " + payment.AfkirChickenSale.ChickenCage.Cage.Name,
-				Category:     constant.IncomeCategoryAfkirChickenSale,
-				ItemName:     constant.AfkirChicken,
-				ItemUnit:     constant.AfkirChickenUnitEkor,
-				Quantity:     float64(payment.AfkirChickenSale.TotalSellChicken),
-				CustomerName: payment.AfkirChickenSale.AfkirChickenCustomer.Name,
+				PlaceName:    payment.UserCashAdvance.User.Location.Name,
+				Category:     constant.IncomeCategoryUserCashAdvancePayment,
+				ItemName:     constant.IncomeNameUserCashAdvance,
+				ItemUnit:     "-",
+				Quantity:     0,
+				CustomerName: payment.UserCashAdvance.User.Name,
 				Nominal:      payment.Nominal.String(),
 				PaymentProof: payment.PaymentProof,
 			})
@@ -3230,6 +3230,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 	if err != nil {
 		return dto.CashflowOverviewResponse{}, err
 	}
+
 	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
 
 	cashflowByMonth := make(map[int]entity.CashflowHistory)
