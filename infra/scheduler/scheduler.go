@@ -191,6 +191,17 @@ func (s *Scheduler) InitScheduler() {
 
 	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.createNotificationAfkirChickenSaleWillTaken(tx)
+			if err != nil {
+				s.log.Error("failed to create notification item arrive", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createNotificationItemArrive(tx)
 			if err != nil {
 				s.log.Error("failed to create notification item arrive", zap.Error(err))
@@ -1265,6 +1276,37 @@ func (s *Scheduler) createNotificationItemArrive(tx *gorm.DB) error {
 	}
 
 	s.log.Info(fmt.Sprintf("success create %d notification for item arrive", len(notifications)))
+	return nil
+}
+
+func (s *Scheduler) createNotificationAfkirChickenSaleWillTaken(tx *gorm.DB) error {
+	s.log.Info("create notification afkir chicken sale will taken")
+
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local).AddDate(0, 0, 1)
+	var afkirChickenSales []entity.AfkirChickenSale
+	err := tx.Model(&entity.AfkirChickenSale{}).Where("DATE(taken_at) = ?", today).Preload("ChickenCage.Cage").Find(&afkirChickenSales).Error
+	if err != nil {
+		return err
+	}
+
+	// Todo : Implement for spesific user Id
+	notifications := make([]entity.Notification, 0)
+	for _, afkirChickenSale := range afkirChickenSales {
+		notifications = append(notifications, entity.Notification{
+			CageId:               sql.NullInt64{Int64: int64(afkirChickenSale.ChickenCage.CageId), Valid: true},
+			Description:          fmt.Sprintf(constant.WorkAfkirChickenTakenTommorow, afkirChickenSale.ChickenCage.Cage.Name),
+			NotificationContexts: pq.StringArray{constant.AfkirChickenSaleNotificationContext, constant.WorkNotificationContext},
+		})
+	}
+
+	if len(notifications) > 0 {
+		err = tx.Model(&entity.Notification{}).CreateInBatches(&notifications, 10).Error
+		if err != nil {
+			return err
+		}
+	}
+
+	s.log.Info(fmt.Sprintf("success create %d notification afkir chicken sale will taken", len(notifications)))
 	return nil
 }
 

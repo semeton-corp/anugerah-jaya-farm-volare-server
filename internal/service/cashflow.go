@@ -2859,7 +2859,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 			totalDayInMonth := util.TotalDaysInMonth(userSalaryPayment.CreatedAt.Year(), userSalaryPayment.CreatedAt.Month())
 			salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
 			reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
-			bonusSalary = bonusSalary.Add(reduceSalaryCauseNotPresent)
+			bonusSalary = bonusSalary.Sub(reduceSalaryCauseNotPresent)
 		}
 
 		if presenceScore*0.6 == 60 {
@@ -2869,7 +2869,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
 		if kpiPerformance >= constant.KPIScoreGood {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
-		} else if kpiPerformance <= constant.KPIScoreMid {
+		} else if kpiPerformance >= constant.KPIScoreMid && kpiPerformance < constant.KPIScoreGood {
 			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		}
 

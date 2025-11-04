@@ -211,7 +211,7 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 
 	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
+		query = query.Where("DATE(additional_work_users.created_at) >= ? AND DATE(additional_work_users.created_at) <= ?", startDate, endDate)
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {

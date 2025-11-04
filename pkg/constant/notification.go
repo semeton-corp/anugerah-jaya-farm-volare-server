@@ -16,6 +16,7 @@ const (
 
 	WorkChickenArriveNotification = "Ayam DOC kandang %s akan sampai hari ini"
 	WorkItemArriveNotification    = "Barang %s akan sampai hari ini"
+	WorkAfkirChickenTakenTommorow = "Ayam Afkir kandang %s akan diambil besok"
 
 	KPIPerformanceUserBadNotification    = "Skor KPI kerja %s rendah, perhatikan presensi dan penyelesaian tugas hariannya"
 	KPIPerformanceChickenBadNotification = "Skor KPI ayam rendah, lebih perhatikan kesehatan ayamnya pada kandang %s"
