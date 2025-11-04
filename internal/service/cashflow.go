@@ -3226,12 +3226,14 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 		return dto.CashflowOverviewResponse{}, err
 	}
 
-	currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
-	if err != nil {
-		return dto.CashflowOverviewResponse{}, err
-	}
+	if filter.Year == uint64(time.Now().Year()) {
+		currentCashflowHistory, err := s.getCashflowHistoryInMonth(filter.LocationId, filter.Year, enum.Month(time.Now().Month()))
+		if err != nil {
+			return dto.CashflowOverviewResponse{}, err
+		}
 
-	cashflowHistories = append(cashflowHistories, currentCashflowHistory)
+		cashflowHistories = append(cashflowHistories, currentCashflowHistory)
+	}
 
 	cashflowByMonth := make(map[int]entity.CashflowHistory)
 	for _, cf := range cashflowHistories {
@@ -3666,7 +3668,7 @@ func calculateDiff(current, previous decimal.Decimal) (isIncrease bool, percenta
 
 	denom := previous.Abs()
 	if denom.IsZero() {
-		return isIncrease, 0
+		return isIncrease, 100
 	}
 
 	percent := diff.Div(denom).Mul(decimal.NewFromInt(100))
