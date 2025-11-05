@@ -2868,7 +2868,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		if kpiPerformance >= constant.KPIScoreGood {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		} else if kpiPerformance >= constant.KPIScoreMid && kpiPerformance < constant.KPIScoreGood {
-			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
+			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		}
 
 		userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
@@ -2884,7 +2884,7 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		User:                     mapper.UserToListResponse(&userSalaryPayment.User),
 		PaidDate:                 date,
 		PaidTime:                 time,
-		SalaryMonth:              userSalaryPayment.CreatedAt.Format("Jan"),
+		SalaryMonth:              util.MapEngMonthToIndoMonth[userSalaryPayment.CreatedAt.Format("January")],
 		AdditionalWorkUsers:      additionalWorkUserResponses,
 		UserCashAdvanceSummaries: userCashAdvanceSummaryResponses,
 		BaseSalary:               userSalaryPayment.BaseSalary.String(),

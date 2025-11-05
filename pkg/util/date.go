@@ -98,7 +98,7 @@ func GetTwelveMonthRanges(year int) map[int]DateRange {
 }
 
 func TotalDaysInMonth(year int, month time.Month) uint64 {
-	daysInMonth := time.Date(year, month, 0, 0, 0, 0, 0, time.Local).Day()
+	daysInMonth := time.Date(year, month+1, 0, 0, 0, 0, 0, time.Local).Day()
 	return uint64(daysInMonth)
 }
 
