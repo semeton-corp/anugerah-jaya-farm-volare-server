@@ -2855,12 +2855,10 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 
 		presenceScore, workScore, totalNotPresent := util.CalculateKPIScoreUserInMonthViaDTO(additionalWorkUsers, dailyWorkUsers, userPresences)
 
-		if userSalaryPayment.User.Role.Name == constant.RolePekerjaKandang {
-			totalDayInMonth := util.TotalDaysInMonth(userSalaryPayment.CreatedAt.Year(), userSalaryPayment.CreatedAt.Month())
-			salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
-			reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
-			bonusSalary = bonusSalary.Sub(reduceSalaryCauseNotPresent)
-		}
+		totalDayInMonth := util.TotalDaysInMonth(userSalaryPayment.CreatedAt.Year(), userSalaryPayment.CreatedAt.Month())
+		salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
+		reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
+		bonusSalary = bonusSalary.Sub(reduceSalaryCauseNotPresent)
 
 		if presenceScore*0.6 == 60 {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusFullPresent))
