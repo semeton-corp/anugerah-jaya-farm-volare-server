@@ -88,6 +88,7 @@ type IChickenService interface {
 	CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error)
 	GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleResponse, error)
+	ConfirmationTakeAfkirChickenSale(id uint64) error
 
 	CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
@@ -2061,6 +2062,26 @@ func (s *ChickenService) GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleRes
 	resp.Payments = resPayments
 
 	return resp, nil
+}
+
+func (s *ChickenService) ConfirmationTakeAfkirChickenSale(id uint64) error {
+	s.repository.UseTx(false)
+
+	afkirChickenSale, err := s.repository.GetAfkirChickenSale(id)
+	if err != nil {
+		s.log.Error("failed get afkir chicken sale", zap.Error(err))
+		return err
+	}
+
+	afkirChickenSale.IsTaken = true
+
+	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
+	if err != nil {
+		s.log.Error("failed update afkir chicken sale", zap.Error(err))
+		return err
+	}
+
+	return err
 }
 
 func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error) {

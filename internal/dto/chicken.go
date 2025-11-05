@@ -362,6 +362,7 @@ type AfkirChickenSaleListResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                             `json:"isMoreThanDeadlinePaymentDate"`
 	PaidDate                      string                           `json:"paidDate"`
 	TakenAt                       string                           `json:"takenAt"`
+	IsTaken                       bool                             `json:"isTaken"`
 }
 
 type AfkirChickenSaleListPaginationResponse struct {
@@ -421,6 +422,7 @@ type AfkirChickenSaleResponse struct {
 	IsMoreThanDeadlinePaymentDate bool                              `json:"isMoreThanDeadlinePaymentDate"`
 	PaidDate                      string                            `json:"paidDate"`
 	TakenAt                       string                            `json:"takenAt"`
+	IsTaken                       bool                              `json:"isTaken"`
 }
 
 type CreateAfkirChickenSalePaymentRequest struct {

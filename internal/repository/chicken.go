@@ -608,6 +608,8 @@ func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale
 		"payment_type":              data.PaymentType,
 		"payment_status":            data.PaymentStatus,
 		"deadline_payment_date":     data.DeadlinePaymentDate,
+		"taken_at":                  data.TakenAt,
+		"is_taken":                  data.IsTaken,
 		"updated_by":                data.UpdatedBy,
 	}
 

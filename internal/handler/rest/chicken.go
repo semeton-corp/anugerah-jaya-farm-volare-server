@@ -77,6 +77,7 @@ func (h *ChickenHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/afkir/sales", middleware.Authentication(), h.CreateAfkirChickenSale)
 	v1.Get("/afkir/sales", middleware.Authentication(), h.GetAfkirChickenSales)
 	v1.Get("/afkir/sales/:id", middleware.Authentication(), h.GetAfkirChickenSale)
+	v1.Patch("/afkir/sales/:id/confirmations", middleware.Authentication(), h.ConfirmationTakeAfkirChickenSale)
 
 	v1.Post("/afkir/sales/:afkirChickenSaleId/payments", middleware.Authentication(), h.CreateAfkirChickenSalePayment)
 	v1.Put("/afkir/sales/:afkirChickenSaleId/payments/:id", middleware.Authentication(), h.UpdateAfkirChickenSalePayment)
@@ -983,6 +984,21 @@ func (h *ChickenHandler) GetAfkirChickenSale(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, data, "success get afkir chicken sale")
+}
+
+func (h *ChickenHandler) ConfirmationTakeAfkirChickenSale(c *fiber.Ctx) error {
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Error("failed parse id", zap.Error(err))
+		return err
+	}
+
+	err = h.service.ConfirmationTakeAfkirChickenSale(id)
+	if err != nil {
+		return err
+	}
+
+	return response.NoContentResponse(c)
 }
 
 func (h *ChickenHandler) CreateAfkirChickenSalePayment(c *fiber.Ctx) error {

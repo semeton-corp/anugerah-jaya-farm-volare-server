@@ -153,6 +153,7 @@ func AfkirChickenSaleToListResponse(data *entity.AfkirChickenSale) dto.AfkirChic
 		TotalPrice:           data.TotalPrice.String(),
 		PaymentStatus:        data.PaymentStatus.String(),
 		TakenAt:              data.TakenAt.Format("02-01-2006"),
+		IsTaken:              data.IsTaken,
 	}
 
 	if data.DeadlinePaymentDate.Valid {
@@ -189,6 +190,7 @@ func AfkirChickenSaleToResponse(data *entity.AfkirChickenSale) dto.AfkirChickenS
 		PaymentStatus:        data.PaymentStatus.String(),
 		PaymentType:          data.PaymentType.String(),
 		TakenAt:              data.TakenAt.Format("02-01-2006"),
+		IsTaken:              data.IsTaken,
 	}
 
 	if data.DeadlinePaymentDate.Valid {
