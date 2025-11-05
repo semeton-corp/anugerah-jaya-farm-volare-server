@@ -530,7 +530,7 @@ func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleF
 		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
 	}
 
-	err := query.Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
+	err := query.Order("is_taken ASC").Order("paid_date DESC").Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
