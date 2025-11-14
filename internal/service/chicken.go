@@ -1313,6 +1313,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	chickenProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	chickenProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	chickenProcurement.IsArrived = true
+	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if chickenProcurement.Quantity != request.Quantity {
 		chickenProcurement.Status = enum.ProcurementStatusArrivedNotOk

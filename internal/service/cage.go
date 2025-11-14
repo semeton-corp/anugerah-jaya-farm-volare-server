@@ -659,6 +659,8 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 }
 
 func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
+	// jadi kalau pindah semua ayam di kandang sebelumnya masih nyantol, perlu dibuatin chicken cages baru
+
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 

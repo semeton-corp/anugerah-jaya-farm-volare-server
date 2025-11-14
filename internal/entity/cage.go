@@ -1,10 +1,12 @@
 package entity
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"gorm.io/gorm"
 )
 
 type Cage struct {
@@ -20,4 +22,10 @@ type Cage struct {
 	CreatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
 	UpdatedAt       time.Time            `gorm:"type:timestamp;autoUpdateTime"`
 	UpdatedBy       uuid.NullUUID        `gorm:"type:varchar(255)"`
+	DeletedAt       gorm.DeletedAt       `gorm:"type:timestamp;index"`
+}
+
+func (c *Cage) BeforeDelete(tx *gorm.DB) error {
+	// Append timestamp to name to make it available for reuse
+	return tx.Model(c).Update("name", fmt.Sprintf("%s_deleted_%d", c.Name, time.Now().Unix())).Error
 }

@@ -23,11 +23,20 @@ func New(log *zap.Logger) *gorm.DB {
 		viper.GetString("database.timezone"),
 	)
 
+	gormLoggerConfig := _logger.Config{
+		LogLevel:      logger.Warn,
+		SlowThreshold: viper.GetDuration("database.slow_threshold"),
+	}
+
+	if gormLoggerConfig.SlowThreshold == 0 {
+		gormLoggerConfig.SlowThreshold = 200 * time.Millisecond
+	}
+
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger:      _logger.NewZapGormLogger(log, logger.Warn),
+		Logger:      _logger.NewZapGormLogger(log, gormLoggerConfig),
 		PrepareStmt: true,
 		NowFunc: func() time.Time {
-			return time.Now().Local()
+			return time.Now().UTC()
 		},
 		TranslateError: true,
 	})
