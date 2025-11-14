@@ -163,7 +163,8 @@ func (s *CageService) UpdateCage(id uint64, request dto.UpdateCageRequest, userI
 }
 
 func (s *CageService) DeleteCage(id uint64) error {
-	s.repository.UseTx(false)
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
 
 	cage, err := s.repository.GetCageById(id)
 	if err != nil {
@@ -175,9 +176,23 @@ func (s *CageService) DeleteCage(id uint64) error {
 		return errx.BadRequest("cage is in used, please make cage empty first")
 	}
 
+	// Soft delete related chicken cages first
+	err = s.repository.DeleteChickenCageByCageId(id)
+	if err != nil {
+		s.log.Error("failed to delete chicken cages", zap.Error(err))
+		return err
+	}
+
+	// Then delete the cage (this will trigger BeforeDelete hook for name update)
 	err = s.repository.DeleteCage(id)
 	if err != nil {
 		s.log.Error("failed to delete cage", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 

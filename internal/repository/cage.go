@@ -36,6 +36,7 @@ type ICageRepository interface {
 	GetChickenCagesByCageIds(ids []uint64) ([]entity.ChickenCage, error)
 	GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error)
 	GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error)
+	DeleteChickenCageByCageId(cageId uint64) error
 
 	CreateCageFeed(data *entity.CageFeed) error
 	GetCageFeeds() ([]entity.CageFeed, error)
@@ -268,6 +269,10 @@ func (r *CageRepository) UpdateChickenCage(chickenCage *entity.ChickenCage) erro
 
 func (r *CageRepository) CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error {
 	return r.GetDB().Model(&entity.ChickenCage{}).CreateInBatches(&chickenCage, len(*chickenCage)).Error
+}
+
+func (r *CageRepository) DeleteChickenCageByCageId(cageId uint64) error {
+	return r.GetDB().Where("cage_id = ?", cageId).Delete(&entity.ChickenCage{}).Error
 }
 
 func (r *CageRepository) CreateCageFeed(data *entity.CageFeed) error {
