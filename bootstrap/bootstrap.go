@@ -182,8 +182,8 @@ func (b *Bootstrap) Run() {
 	b.scheduler.InitScheduler()
 	b.scheduler.Start()
 
-	// b.log.Info("running database migrations...")
-	// _persistence.Migrate(b.db)
+	b.log.Info("running database migrations...")
+	_persistence.Migrate(b.db)
 	// _persistence.Rollback(b.db)
 
 	warehouseListener := _listener.NewWarehouseListener(b.cache, b.db, b.log)
