@@ -27,5 +27,5 @@ type Cage struct {
 
 func (c *Cage) BeforeDelete(tx *gorm.DB) error {
 	// Append timestamp to name to make it available for reuse
-	return tx.Model(c).Update("name", fmt.Sprintf("%s_deleted_%d", c.Name, time.Now().Unix())).Error
+	return tx.Model(&Cage{}).Where("id = ?", c.Id).Update("name", fmt.Sprintf("%s_deleted_%d", c.Name, time.Now().Unix())).Error
 }
