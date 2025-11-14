@@ -3186,7 +3186,7 @@ func (s *CashflowService) GetCashflowHistories(filter dto.GetCashflowHistoryFilt
 				Debt:             decimal.Zero,
 				WarehouseEggSale: decimal.Zero,
 				StoreEggSale:     decimal.Zero,
-				CreatedAt:        time.Date(int(filter.Year), time.Month(month), 1, 0, 0, 0, 0, time.UTC),
+				CreatedAt:        time.Date(int(filter.Year), time.Month(month), 1, 0, 0, 0, 0, time.Local),
 			}
 		}
 
@@ -3276,7 +3276,7 @@ func (s *CashflowService) GetCashflowOverview(filter dto.GetCashflowOverviewFilt
 				Debt:             decimal.Zero,
 				WarehouseEggSale: decimal.Zero,
 				StoreEggSale:     decimal.Zero,
-				CreatedAt:        time.Date(int(filter.Year), time.Month(month), 1, 0, 0, 0, 0, time.UTC),
+				CreatedAt:        time.Date(int(filter.Year), time.Month(month), 1, 0, 0, 0, 0, time.Local),
 			}
 		}
 

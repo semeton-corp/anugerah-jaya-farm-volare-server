@@ -40,7 +40,7 @@ func (timeOnly *TimeOnly) Scan(value interface{}) error {
 	}
 	switch v := value.(type) {
 	case time.Time:
-		t := time.Date(0, 1, 1, v.Hour(), v.Minute(), v.Second(), v.Nanosecond(), time.UTC)
+		t := time.Date(0, 1, 1, v.Hour(), v.Minute(), v.Second(), v.Nanosecond(), time.Local)
 		timeOnly.Time = &t
 		return nil
 	case []byte:
@@ -86,7 +86,7 @@ func (timeOnly *TimeOnly) UnmarshalJSON(bs []byte) error {
 		timeOnly.Time = nil
 		return nil
 	}
-	t, err := time.ParseInLocation("15:04", *s, time.UTC)
+	t, err := time.ParseInLocation("15:04", *s, time.Local)
 	if err != nil {
 		return err
 	}

@@ -134,6 +134,7 @@ func (r *CageRepository) UpdateCage(cage *entity.Cage) error {
 	return r.GetDB().Model(&entity.Cage{}).Where("id = ?", cage.Id).Updates(map[string]interface{}{
 		"location_id":      cage.LocationId,
 		"name":             cage.Name,
+		"capacity":         cage.Capacity,
 		"chicken_category": cage.ChickenCategory,
 		"is_used":          cage.IsUsed,
 		"updated_by":       cage.UpdatedBy,

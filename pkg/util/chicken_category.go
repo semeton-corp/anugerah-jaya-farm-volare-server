@@ -9,40 +9,28 @@ import (
 )
 
 func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.ChickenCategory {
-	var (
-		chickenAgeInWeek uint64
-		chickenCategory  enum.ChickenCategory = enum.ChickenCategoryUnknown
-	)
+	chickenAgeInWeek := GetChickenAgeByChickenCage(chickenCage)
 
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
-		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
-
-		if chickenAgeInWeek <= 9 {
-			chickenCategory = enum.ChickenCategoryDOC
-		} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
-			chickenCategory = enum.ChickenCategoryGrower
-		} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
-			chickenCategory = enum.ChickenCategoryPreLayer
-		} else if chickenAgeInWeek >= 18 && chickenAgeInWeek < 90 {
-			chickenCategory = enum.ChickenCategoryLayer
-		} else if chickenAgeInWeek >= 90 {
-			chickenCategory = enum.ChickenCategoryAfkir
-		}
+	if chickenAgeInWeek <= 9 {
+		return enum.ChickenCategoryDOC
+	} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
+		return enum.ChickenCategoryGrower
+	} else if chickenAgeInWeek >= 16 && chickenAgeInWeek <= 17 {
+		return enum.ChickenCategoryPreLayer
+	} else if chickenAgeInWeek >= 18 && chickenAgeInWeek < 90 {
+		return enum.ChickenCategoryLayer
+	} else if chickenAgeInWeek >= 90 {
+		return enum.ChickenCategoryAfkir
 	}
 
-	return chickenCategory
+	return enum.ChickenCategoryUnknown
 }
 
 func GetChickenAgeByChickenCage(chickenCage *entity.ChickenCage) uint64 {
-	var (
-		chickenAgeInWeek uint64
-	)
-
 	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Since(chickenCage.ChickenProcurement.CreatedAt)
-		chickenAgeInWeek = uint64(math.Floor(chickenAge.Hours() / float64((7 * 24))))
+		chickenAge := time.Now().UTC().Add(time.Hour * 7).Sub(chickenCage.ChickenProcurement.CreatedAt)
+		chickenAgeInWeek := uint64(math.Floor(math.Abs(chickenAge.Hours()) / float64(7*24)))
+		return chickenAgeInWeek
 	}
-
-	return chickenAgeInWeek
+	return 0
 }

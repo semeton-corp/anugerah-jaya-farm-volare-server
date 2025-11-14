@@ -290,7 +290,7 @@ func (s *Scheduler) checkForgottenUserPresence(tx *gorm.DB) error {
 		return err
 	}
 
-	endTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.UTC)
+	endTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.Local)
 
 	for _, userPresence := range userPresences {
 		userPresence.Status = enum.PresenceStatusPresent
