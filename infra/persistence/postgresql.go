@@ -36,7 +36,7 @@ func New(log *zap.Logger) *gorm.DB {
 		Logger:      _logger.NewZapGormLogger(log, gormLoggerConfig),
 		PrepareStmt: true,
 		NowFunc: func() time.Time {
-			return time.Now().UTC()
+			return time.Now().Local()
 		},
 		TranslateError: true,
 	})

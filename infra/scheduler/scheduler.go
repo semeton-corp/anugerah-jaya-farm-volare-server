@@ -68,7 +68,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("01 00 * * *", func() {
+	s.cron.AddFunc("* * * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createUserPresence(tx)
 			if err != nil {
@@ -1192,7 +1192,7 @@ func (s *Scheduler) createNotificationWarehouseItemInDangerStatus(tx *gorm.DB) e
 		}
 	}
 
-	s.log.Error(fmt.Sprintf("success create %d notification if warehouse item in danger status", len(notifications)))
+	s.log.Info(fmt.Sprintf("success create %d notification if warehouse item in danger status", len(notifications)))
 	return nil
 }
 
@@ -1229,7 +1229,7 @@ func (s *Scheduler) createNotificationStoreItemGoodEggInDanger(tx *gorm.DB) erro
 		}
 	}
 
-	s.log.Error(fmt.Sprintf("success create %d notification store item good egg in danger", len(notifications)))
+	s.log.Info(fmt.Sprintf("success create %d notification store item good egg in danger", len(notifications)))
 
 	return nil
 }
