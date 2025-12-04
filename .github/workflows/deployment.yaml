@@ -33,5 +33,4 @@ jobs:
           command_timeout: 60m
           script: |
             cd ./Anugerah-Jaya-Farm-Volare
-            make compose-down
-            make compose-up
+            docker compose --env-file compose.env up -d --build --force-recreate --remove-orphans

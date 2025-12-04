@@ -1,2 +1,3 @@
 protect compose.env
 protect env.yaml
+exclude .git/
