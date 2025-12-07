@@ -176,7 +176,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 
 	user, err := s.repository.GetUserById(id)
 	if err != nil {
-		return dto.UserOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, err
 	}
 
 	withDeleted := true
@@ -187,7 +187,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			WithDeleted: &withDeleted,
 		})
 	if err != nil {
-		return dto.UserOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, err
 	}
 
 	dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(id,
@@ -197,7 +197,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			WithDeleted: &withDeleted,
 		})
 	if err != nil {
-		return dto.UserOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, err
 	}
 
 	userPresences, err := s.presenceService.GetUserPresencesByUserId(id,
@@ -206,7 +206,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			Year:  filter.Year,
 		})
 	if err != nil {
-		return dto.UserOverviewResponse{}, nil
+		return dto.UserOverviewResponse{}, err
 	}
 
 	totalPresentWeek := make(map[int]uint64)
@@ -278,7 +278,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 
 			salary, err := decimal.NewFromString(additionalWorkUser.AdditionalWork.Salary)
 			if err != nil {
-				return dto.UserOverviewResponse{}, nil
+				return dto.UserOverviewResponse{}, err
 			}
 
 			additionalWorkSalary = additionalWorkSalary.Add(salary)
@@ -411,7 +411,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		return dto.UserOverviewResponse{}, err
 	}
 
-	overviewResponse := dto.UserOverviewResponse{
+	return dto.UserOverviewResponse{
 		User:                    mapper.UserToResponse(&user),
 		UseCashAdvances:         userCashAdvances,
 		UserInformation:         userInformation,
@@ -420,9 +420,7 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		UserPresenceInformation: userPresenceInformation,
 		UserSalaryInformation:   userSalaryInformation,
 		UserWorkInformation:     userWorkInformation,
-	}
-
-	return overviewResponse, nil
+	}, nil
 }
 
 func (s *UserService) GetUserOverviewList(filter dto.GetUserOverviewListFilter) (dto.UserListOverviewPaginationResponse, error) {

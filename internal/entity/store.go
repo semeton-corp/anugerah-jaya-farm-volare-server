@@ -12,6 +12,7 @@ type Store struct {
 	LocationId     uint64           `gorm:"type:bigint;not null"`
 	Location       Location         `gorm:"foreignKey:LocationId;references:Id;constraint:OnDelete:CASCADE;onUpdate:CASCADE"`
 	StorePlacement []StorePlacement `gorm:"foreingKey:StoreId;references:Id"`
+	StoreItems     []StoreItem      `gorm:"foreignKey:StoreId;references:Id"`
 	CreatedAt      time.Time        `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy      uuid.NullUUID    `gorm:"type:varchar(255)"`
 	UpdatedAt      time.Time        `gorm:"type:timestamp;autoUpdateTime"`

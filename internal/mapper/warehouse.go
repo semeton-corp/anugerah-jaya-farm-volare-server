@@ -17,11 +17,25 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 		Id:           warehouse.Id,
 		Name:         warehouse.Name,
 		CornCapacity: warehouse.CornCapacity,
-		Location: dto.LocationResponse{
-			Id:   warehouse.Location.Id,
-			Name: warehouse.Location.Name,
-		},
+		Location:     LocationToResponse(&warehouse.Location),
+	}
+}
+
+func WarehouseDetailToResponse(warehouse *entity.Warehouse) dto.WarehouseDetailResponse {
+	isItemsEmpty := true
+	for _, e := range warehouse.WarehouseItems {
+		if e.Quantity != 0 {
+			isItemsEmpty = false
+		}
+	}
+
+	return dto.WarehouseDetailResponse{
+		Id:            warehouse.Id,
+		Name:          warehouse.Name,
+		Location:      LocationToResponse(&warehouse.Location),
+		CornCapacity:  warehouse.CornCapacity,
 		TotalEmployee: uint64(len(warehouse.WarehousePlacement)),
+		IsItemsEmpty:  isItemsEmpty,
 	}
 }
 

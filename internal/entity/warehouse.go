@@ -12,6 +12,7 @@ type Warehouse struct {
 	Location           Location             `gorm:"foreignKey:LocationId;references:Id;constraint:OnDelete:CASCADE"`
 	Name               string               `gorm:"type:varchar(255);not null"`
 	WarehousePlacement []WarehousePlacement `gorm:"foreignKey:WarehouseId;references:Id"`
+	WarehouseItems     []WarehouseItem      `gorm:"foreignKey:WarehouseId;references:Id"`
 	CornCapacity       float64              `gorm:"type:decimal;not null;default:0"`
 	CreatedAt          time.Time            `gorm:"type:timestamp;autoCreateTime"`
 	CreatedBy          uuid.NullUUID        `gorm:"type:varchar(255)"`

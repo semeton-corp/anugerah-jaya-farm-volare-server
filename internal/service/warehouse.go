@@ -33,11 +33,11 @@ type WarehouseService struct {
 }
 
 type IWarehouseService interface {
-	GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseResponse, error)
+	GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseDetailResponse, error)
 	CreateWarehouse(request dto.CreateWarehouseRequest, userId uuid.UUID) (dto.WarehouseResponse, error)
 	DeleteWarehouse(id uint64) error
 	UpdateWarehouse(id uint64, request dto.UpdateWarehouseRequest, userId uuid.UUID) (dto.WarehouseResponse, error)
-	GetWarehouseDetailById(id uint64) (dto.WarehouseDetailResponse, error)
+	GetWarehouseWithUsersById(id uint64) (dto.WarehouseWithUsersResponse, error)
 	GetWarehouseOverview(id uint64) (dto.WarehouseOverview, error)
 
 	CreateWarehouseItem(request dto.CreateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error)
@@ -121,18 +121,18 @@ func NewWarehouseService(log *zap.Logger, repository repository.IWarehouseReposi
 	}
 }
 
-func (s *WarehouseService) GetWarehouseDetailById(id uint64) (dto.WarehouseDetailResponse, error) {
+func (s *WarehouseService) GetWarehouseWithUsersById(id uint64) (dto.WarehouseWithUsersResponse, error) {
 	s.repository.UseTx(false)
 
 	warehouse, err := s.repository.GetWarehouseById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse by id")
-		return dto.WarehouseDetailResponse{}, err
+		return dto.WarehouseWithUsersResponse{}, err
 	}
 
 	warehousePlacements, err := s.placementService.GetWarehousePlacementByWarehouseId(id)
 	if err != nil {
-		return dto.WarehouseDetailResponse{}, err
+		return dto.WarehouseWithUsersResponse{}, err
 	}
 
 	userResponses := make([]dto.UserListResponse, 0)
@@ -140,7 +140,7 @@ func (s *WarehouseService) GetWarehouseDetailById(id uint64) (dto.WarehouseDetai
 		userResponses = append(userResponses, e.User)
 	}
 
-	return dto.WarehouseDetailResponse{
+	return dto.WarehouseWithUsersResponse{
 		Id:       warehouse.Id,
 		Name:     warehouse.Name,
 		Location: mapper.LocationToResponse(&warehouse.Location),
@@ -261,7 +261,7 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, u
 	return mapper.WarehouseToResponse(&warehouse), nil
 }
 
-func (s *WarehouseService) GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseResponse, error) {
+func (s *WarehouseService) GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.WarehouseDetailResponse, error) {
 	s.repository.UseTx(false)
 
 	warehouses, err := s.repository.GetWarehouses(filter)
@@ -270,9 +270,9 @@ func (s *WarehouseService) GetWarehouses(filter dto.GetWarehouseFilter) ([]dto.W
 		return nil, err
 	}
 
-	warehouseResponses := make([]dto.WarehouseResponse, 0, len(warehouses))
+	warehouseResponses := make([]dto.WarehouseDetailResponse, 0, len(warehouses))
 	for _, warehouse := range warehouses {
-		warehouseResponses = append(warehouseResponses, mapper.WarehouseToResponse(&warehouse))
+		warehouseResponses = append(warehouseResponses, mapper.WarehouseDetailToResponse(&warehouse))
 	}
 
 	return warehouseResponses, nil

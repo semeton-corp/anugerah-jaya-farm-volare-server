@@ -22,13 +22,20 @@ type GetStoreFilter struct {
 }
 
 type StoreResponse struct {
-	Id            uint64           `json:"id"`
-	Name          string           `json:"name"`
-	Location      LocationResponse `json:"location"`
-	TotalEmployee uint64           `json:"totalEmployee"`
+	Id       uint64           `json:"id"`
+	Name     string           `json:"name"`
+	Location LocationResponse `json:"location"`
 }
 
 type StoreDetailResponse struct {
+	Id            uint64           `json:"id"`
+	Name          string           `json:"name"`
+	Location      LocationResponse `json:"location"`
+	IsItemsEmpty  bool             `json:"isItemsEmpty"`
+	TotalEmployee uint64           `json:"totalEmployee"`
+}
+
+type StoreWithUsersResponse struct {
 	Id       uint64             `json:"id"`
 	Name     string             `json:"name"`
 	Location LocationResponse   `json:"location"`

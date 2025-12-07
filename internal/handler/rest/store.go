@@ -82,7 +82,7 @@ func (h *StoreHandler) GetStoreDetail(c *fiber.Ctx) error {
 		return err
 	}
 
-	data, err := h.service.GetStoreDetailById(id)
+	data, err := h.service.GetStoreWithUsersById(id)
 	if err != nil {
 		return err
 	}

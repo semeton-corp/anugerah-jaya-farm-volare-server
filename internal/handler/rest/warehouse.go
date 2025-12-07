@@ -128,7 +128,7 @@ func (h *WarehouseHandler) GetWarehouseDetail(c *fiber.Ctx) error {
 		return err
 	}
 
-	data, err := h.service.GetWarehouseDetailById(id)
+	data, err := h.service.GetWarehouseWithUsersById(id)
 	if err != nil {
 		return err
 	}

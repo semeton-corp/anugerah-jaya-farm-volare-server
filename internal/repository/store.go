@@ -122,7 +122,7 @@ func (r *StoreRepository) DeleteStore(id uint64) error {
 
 func (r *StoreRepository) GetStoreById(id uint64) (entity.Store, error) {
 	var data entity.Store
-	err := r.GetDB().Model(&entity.Store{}).Preload("Location").Where("id = ?", id).First(&data).Error
+	err := r.GetDB().Model(&entity.Store{}).Preload("StorePlacement").Preload("Location").Where("id = ?", id).First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Store{}, errx.BadRequest("store not found")
@@ -141,7 +141,7 @@ func (r *StoreRepository) GetStores(filter dto.GetStoreFilter) ([]entity.Store, 
 		query = query.Where("location_id = ?", filter.LocationId)
 	}
 
-	err := query.Order("created_at DESC").Preload("StorePlacement").Preload("Location").Find(&stores).Error
+	err := query.Order("created_at DESC").Preload("StorePlacement").Preload("StoreItems").Preload("Location").Find(&stores).Error
 	if err != nil {
 		return nil, err
 	}

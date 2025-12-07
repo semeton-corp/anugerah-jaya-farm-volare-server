@@ -38,8 +38,8 @@ type IStoreService interface {
 	CreateStore(request dto.CreateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error)
 	UpdateStore(id uint64, request dto.UpdateStoreRequest, userId uuid.UUID) (dto.StoreResponse, error)
 	DeleteStore(id uint64) error
-	GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error)
-	GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error)
+	GetStores(filter dto.GetStoreFilter) ([]dto.StoreDetailResponse, error)
+	GetStoreWithUsersById(id uint64) (dto.StoreWithUsersResponse, error)
 	GetStoreOverview(filter dto.GetStoreOverviewFilter) (dto.StoreOverview, error)
 
 	CreateStoreRequestItem(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error)
@@ -204,7 +204,7 @@ func (s *StoreService) DeleteStore(id uint64) error {
 	return nil
 }
 
-func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse, error) {
+func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreDetailResponse, error) {
 	s.repository.UseTx(false)
 
 	stores, err := s.repository.GetStores(filter)
@@ -213,26 +213,26 @@ func (s *StoreService) GetStores(filter dto.GetStoreFilter) ([]dto.StoreResponse
 		return nil, err
 	}
 
-	storeResponses := make([]dto.StoreResponse, len(stores))
+	storeResponses := make([]dto.StoreDetailResponse, len(stores))
 	for i, store := range stores {
-		storeResponses[i] = mapper.StoreToResponse(&store)
+		storeResponses[i] = mapper.StoreDetailToResponse(&store)
 	}
 
 	return storeResponses, nil
 }
 
-func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, error) {
+func (s *StoreService) GetStoreWithUsersById(id uint64) (dto.StoreWithUsersResponse, error) {
 	s.repository.UseTx(false)
 
 	store, err := s.repository.GetStoreById(id)
 	if err != nil {
 		s.log.Error("failed to get store by id", zap.Error(err))
-		return dto.StoreDetailResponse{}, err
+		return dto.StoreWithUsersResponse{}, err
 	}
 
 	storePlacements, err := s.placementService.GetStorePlacementByStoreId(id)
 	if err != nil {
-		return dto.StoreDetailResponse{}, err
+		return dto.StoreWithUsersResponse{}, err
 	}
 
 	userResponses := make([]dto.UserListResponse, 0)
@@ -240,7 +240,7 @@ func (s *StoreService) GetStoreDetailById(id uint64) (dto.StoreDetailResponse, e
 		userResponses = append(userResponses, e.User)
 	}
 
-	return dto.StoreDetailResponse{
+	return dto.StoreWithUsersResponse{
 		Id:       store.Id,
 		Name:     store.Name,
 		Location: mapper.LocationToResponse(&store.Location),

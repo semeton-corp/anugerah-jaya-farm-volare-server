@@ -11,10 +11,26 @@ import (
 
 func StoreToResponse(store *entity.Store) dto.StoreResponse {
 	return dto.StoreResponse{
+		Id:       store.Id,
+		Name:     store.Name,
+		Location: LocationToResponse(&store.Location),
+	}
+}
+
+func StoreDetailToResponse(store *entity.Store) dto.StoreDetailResponse {
+	isItemsEmpty := true
+	for _, e := range store.StoreItems {
+		if e.Quantity != 0 {
+			isItemsEmpty = false
+		}
+	}
+
+	return dto.StoreDetailResponse{
 		Id:            store.Id,
 		Name:          store.Name,
 		Location:      LocationToResponse(&store.Location),
 		TotalEmployee: uint64(len(store.StorePlacement)),
+		IsItemsEmpty:  isItemsEmpty,
 	}
 }
 
