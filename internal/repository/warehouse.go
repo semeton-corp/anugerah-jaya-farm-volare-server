@@ -143,7 +143,7 @@ func (r *WarehouseRepository) GetDB() *gorm.DB {
 
 func (r *WarehouseRepository) GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error) {
 	var warehouses []entity.Warehouse
-	query := r.GetDB().Preload("WarehousePlacement").Preload("WarehouseItems").Preload("Location")
+	query := r.GetDB().Preload("WarehousePlacement").Preload("WarehouseItems").Preload("WarehouseItemCorns").Preload("Location")
 
 	if filter.LocationId > 0 {
 		query = query.Where("location_id = ?", filter.LocationId)
@@ -163,7 +163,7 @@ func (r *WarehouseRepository) CreateWarehouse(warehouse *entity.Warehouse) error
 
 func (r *WarehouseRepository) GetWarehouseById(id uint64) (entity.Warehouse, error) {
 	var warehouse entity.Warehouse
-	err := r.GetDB().Model(&entity.Warehouse{}).Preload("WarehouseItems").Preload("WarehousePlacement").Preload("Location").Where("id = ?", id).First(&warehouse).Error
+	err := r.GetDB().Model(&entity.Warehouse{}).Preload("WarehouseItems").Preload("WarehousePlacement").Preload("WarehouseItemCorns").Preload("Location").Where("id = ?", id).First(&warehouse).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Warehouse{}, errx.NotFound("warehouse not found")

@@ -18,10 +18,11 @@ func StoreToResponse(store *entity.Store) dto.StoreResponse {
 }
 
 func StoreDetailToResponse(store *entity.Store) dto.StoreDetailResponse {
-	isItemsEmpty := true
+	isItemsEmpty := false
 	for _, e := range store.StoreItems {
-		if e.Quantity != 0 {
+		if e.Quantity == 0 {
 			isItemsEmpty = false
+			break
 		}
 	}
 
