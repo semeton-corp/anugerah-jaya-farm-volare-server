@@ -1,17 +1,17 @@
-name: 🚀 Deploy AJF Application
+name: Deploy AJF Application
 on:
   push:
     branches: [master]
 
 jobs:
   build-and-deploy:
-    name: 🚢 Deploy AJF Application
+    name: Deploy AJF Application
     runs-on: ubuntu-latest
     steps:
-      - name: 🛒 Checkout code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: rsync deployments
+      - name: Rsync deployments
         uses: burnett01/rsync-deployments@7.0.2
         with:
           switches: -avzr --delete --filter='merge .rsync-filter'
@@ -21,7 +21,7 @@ jobs:
           remote_user: "${{ secrets.VM_USERNAME }}"
           remote_key: "${{ secrets.VM_PRIVATE_KEY }}"
 
-      - name: 🖥️ Run compose up on Remote VM
+      - name: Run compose up on Remote VM
         uses: appleboy/ssh-action@master
         with:
           host: "${{ secrets.VM_HOST }}"
