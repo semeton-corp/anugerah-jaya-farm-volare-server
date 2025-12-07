@@ -1,8 +1,6 @@
 package mapper
 
 import (
-	"fmt"
-
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 )
@@ -22,7 +20,7 @@ func UserToResponse(user *entity.User) dto.UserResponse {
 		Location:       LocationToResponse(&user.Location),
 		SalaryInterval: user.SalaryInterval.String(),
 	}
-	fmt.Println("success parsing user")
+
 	return response
 }
 

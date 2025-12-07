@@ -509,7 +509,7 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 	hdpRate := float64(0)
 	kpiChicken := float64(0)
 
-	if totalChicken != 0 || totalChicken-totalDeathChicken > 0 {
+	if totalChicken != 0 && totalChicken-totalDeathChicken > 0 {
 		mortalityRate = float64(totalDeathChicken) / float64(totalChicken)
 		hdpRate = float64(totalEgg) / float64((totalChicken - totalDeathChicken))
 		kpiChicken = ((mortalityRate + hdpRate) / 2) * 100
@@ -568,7 +568,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 	keys := util.GetSortedKeysInt(weekRanges)
 
 	for _, key := range keys {
-		if totalChickenInWeek[key] == 0 {
+		if totalChickenInWeek[key] == 0 || totalChickenInWeek[key]-totalDeathChickenInWeek[key] == 0 {
 			continue
 		}
 

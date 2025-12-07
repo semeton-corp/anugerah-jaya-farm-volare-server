@@ -173,13 +173,11 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	s.repository.UseTx(false)
 
 	weeks := util.GetFourWeekRanges(int(filter.Year), time.Month(filter.Month))
-	fmt.Println("week : ", weeks)
 
 	user, err := s.repository.GetUserById(id)
 	if err != nil {
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("user : ", user)
 
 	withDeleted := true
 	additionalWorkUsers, err := s.workService.GetAdditionalWorkUserByUserId(id,
@@ -191,7 +189,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	if err != nil {
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("additionalWorkUsers : ", additionalWorkUsers)
 
 	dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(id,
 		dto.GetDailyWorkUserFilter{
@@ -202,7 +199,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	if err != nil {
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("dailyWorkUsers : ", dailyWorkUsers)
 
 	userPresences, err := s.presenceService.GetUserPresencesByUserId(id,
 		dto.GetPresenceFilter{
@@ -212,7 +208,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	if err != nil {
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("userPresences : ", userPresences)
 
 	totalPresentWeek := make(map[int]uint64)
 	totalWorkHourWeek := make(map[int]uint64)
@@ -295,7 +290,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 		s.log.Error("failed get role by name", zap.Error(err))
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("cageStaffRole : ", cageStaffRole)
 
 	var presenceScore float64
 	if len(userPresences.Presences) == 0 {
@@ -305,7 +299,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	}
 
 	workPresence := totalWorkHour / float64(8*util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month)))
-	fmt.Println("workPresences : ", workPresence)
 
 	totalSalary := user.Salary.Add(additionalWorkSalary)
 	userInformation := dto.UserInformationResponse{
@@ -341,8 +334,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			return dto.UserOverviewResponse{}, err
 		}
 
-		fmt.Println("userSalary : ", userSalary)
-
 		userSalaryInformation = dto.UserSalaryInformationResponse{
 			BaseSalary:           userSalary.BaseSalary.String(),
 			AdditionalWorkSalary: userSalary.AdditionalWorkSalary.String(),
@@ -366,7 +357,6 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 
 		kpiPerformances = append(kpiPerformances, kpiPerformance)
 	}
-	fmt.Println("kpiPerformance : ", kpiPerformances)
 
 	if user.RoleId != cageStaffRole.Id {
 		chickenKpi, err := s.chickenService.GetKPIScoreChickenInMonth(uint64(user.LocationId.Int64), filter.Month.Value(), filter.Year)
@@ -415,13 +405,11 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 			placements = append(placements, fmt.Sprintf("%s - %s", enum.LocationTypeStore.String(), e.Store.Name))
 		}
 	}
-	fmt.Println("placements : ", placements)
 
 	userCashAdvances, err := s.cashflowService.GetUserCashAdvanceByUserId(user.Id)
 	if err != nil {
 		return dto.UserOverviewResponse{}, err
 	}
-	fmt.Println("userCashAdvances : ", userCashAdvances)
 
 	return dto.UserOverviewResponse{
 		User:                    mapper.UserToResponse(&user),
@@ -675,8 +663,11 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 		}
 
 		for key, value := range weeks {
-			presenceScore := float64(totalPresentWeek[key]) / float64(value.TotalDays) * 100
-			workScore := float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
+			var presenceScore, workScore float64
+			if value.TotalDays > 0 {
+				presenceScore = float64(totalPresentWeek[key]) / float64(value.TotalDays) * 100
+				workScore = float64(totalWorkHourWeek[key]) / float64(8*value.TotalDays) * 100
+			}
 
 			if kpiUserPerWeek[key] == 0 {
 				kpiUserPerWeek[key] = (presenceScore * 0.6) + (workScore * 0.4)
