@@ -68,7 +68,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("* * * * *", func() {
+	s.cron.AddFunc("01 00 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createUserPresence(tx)
 			if err != nil {
