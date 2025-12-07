@@ -140,11 +140,21 @@ func (s *WarehouseService) GetWarehouseWithUsersById(id uint64) (dto.WarehouseWi
 		userResponses = append(userResponses, e.User)
 	}
 
+	isItemsEmpty := true
+	for _, e := range warehouse.WarehouseItems {
+		if e.Quantity != 0 {
+			isItemsEmpty = false
+		}
+	}
+
 	return dto.WarehouseWithUsersResponse{
-		Id:       warehouse.Id,
-		Name:     warehouse.Name,
-		Location: mapper.LocationToResponse(&warehouse.Location),
-		Users:    userResponses,
+		Id:            warehouse.Id,
+		Name:          warehouse.Name,
+		Location:      mapper.LocationToResponse(&warehouse.Location),
+		CornCapacity:  warehouse.CornCapacity,
+		TotalEmployee: uint64(len(warehouse.WarehousePlacement)),
+		IsItemsEmpty:  isItemsEmpty,
+		Users:         userResponses,
 	}, nil
 }
 

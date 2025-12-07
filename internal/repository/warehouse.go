@@ -163,7 +163,7 @@ func (r *WarehouseRepository) CreateWarehouse(warehouse *entity.Warehouse) error
 
 func (r *WarehouseRepository) GetWarehouseById(id uint64) (entity.Warehouse, error) {
 	var warehouse entity.Warehouse
-	err := r.GetDB().Model(&entity.Warehouse{}).Preload("Location").Where("id = ?", id).First(&warehouse).Error
+	err := r.GetDB().Model(&entity.Warehouse{}).Preload("WarehouseItems").Preload("WarehousePlacement").Preload("Location").Where("id = ?", id).First(&warehouse).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Warehouse{}, errx.NotFound("warehouse not found")

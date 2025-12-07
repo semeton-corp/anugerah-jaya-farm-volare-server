@@ -240,11 +240,20 @@ func (s *StoreService) GetStoreWithUsersById(id uint64) (dto.StoreWithUsersRespo
 		userResponses = append(userResponses, e.User)
 	}
 
+	isItemsEmpty := true
+	for _, e := range store.StoreItems {
+		if e.Quantity != 0 {
+			isItemsEmpty = false
+		}
+	}
+
 	return dto.StoreWithUsersResponse{
-		Id:       store.Id,
-		Name:     store.Name,
-		Location: mapper.LocationToResponse(&store.Location),
-		Users:    userResponses,
+		Id:            store.Id,
+		Name:          store.Name,
+		Location:      mapper.LocationToResponse(&store.Location),
+		Users:         userResponses,
+		IsItemsEmpty:  isItemsEmpty,
+		TotalEmployee: uint64(len(store.StorePlacement)),
 	}, nil
 }
 

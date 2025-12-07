@@ -49,10 +49,13 @@ type WarehouseDetailResponse struct {
 }
 
 type WarehouseWithUsersResponse struct {
-	Id       uint64             `json:"id"`
-	Name     string             `json:"name"`
-	Location LocationResponse   `json:"location"`
-	Users    []UserListResponse `json:"users"`
+	Id            uint64             `json:"id"`
+	Name          string             `json:"name"`
+	Location      LocationResponse   `json:"location"`
+	CornCapacity  float64            `json:"cornCapacity"`
+	IsItemsEmpty  bool               `json:"isItemsEmpty"`
+	TotalEmployee uint64             `json:"totalEmployee"`
+	Users         []UserListResponse `json:"users"`
 }
 
 type CreateWarehouseItemRequest struct {
