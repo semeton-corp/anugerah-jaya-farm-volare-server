@@ -285,7 +285,7 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
 		Where(`DATE(user_presences.created_at) >= ? AND DATE(user_presences.created_at) <= ?`, startDate, endDate).
 		Where("roles.id = ?", filter.RoleId).
-		Group(`users.id, users.name, users.photo_profile, users.email, roles.name, user_presences.status`)
+		Group(`users.id, users.name, users.photo_profile, users.email, roles.name`)
 
 	switch filter.PlaceType.Value() {
 	case enum.LocationTypeCage:

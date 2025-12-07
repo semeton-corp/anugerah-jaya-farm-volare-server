@@ -18,7 +18,7 @@ type Role struct {
 
 var (
 	CageLocationTypeList      = []string{constant.RolePekerjaKandang, constant.RolePekerjaTelur}
-	SiteLocationTypeList      = []string{"Kepala Kandang"}
-	StoreLocationTypeList     = []string{"Pekerja Toko"}
-	WarehouseLocationTypeList = []string{"Pekerja Gudang"}
+	SiteLocationTypeList      = []string{constant.RoleKepalaKandang}
+	StoreLocationTypeList     = []string{constant.RolePekerjaToko}
+	WarehouseLocationTypeList = []string{constant.RolePekerjaGudang}
 )

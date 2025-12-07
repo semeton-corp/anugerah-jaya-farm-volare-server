@@ -112,7 +112,7 @@ type StoreItemResponse struct {
 }
 
 type UpdateStoreItemRequest struct {
-	Quantity float64 `json:"quantity" validate:"required"`
+	Quantity float64 `json:"quantity" validate:"min=0"`
 }
 
 type StoreItemOverview struct {

@@ -65,7 +65,7 @@ type CreateWarehouseItemRequest struct {
 }
 
 type UpdateWarehouseItemRequest struct {
-	Quantity float64 `json:"quantity" validate:"required"`
+	Quantity float64 `json:"quantity" validate:"min=0"`
 }
 
 type UpdateWarehouseItemCornRequest struct {
