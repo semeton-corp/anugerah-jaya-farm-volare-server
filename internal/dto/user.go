@@ -42,6 +42,7 @@ type GetUserListFilter struct {
 }
 
 type GetUserOverviewListFilter struct {
+	LocationId     uint64   `query:"locationId"`
 	Page           uint64   `query:"page"`
 	Keyword        string   `query:"keyword"`
 	RoleId         uint64   `query:"roleId"`

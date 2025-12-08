@@ -168,6 +168,10 @@ func (r *UserRepository) GetUserOverviewLists(filter *dto.GetUserOverviewListFil
 		query = query.Where("role_id NOT IN ?", filter.ExcludeRoleIds)
 	}
 
+	if filter.LocationId != 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
 	err := query.Preload("Role").Find(&users).Error
 	if err != nil {
 		return nil, err
