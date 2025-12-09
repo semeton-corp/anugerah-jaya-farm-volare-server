@@ -3412,6 +3412,12 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
+	totalItemCornQuantity, err := s.repository.CountQuantityWarehouseItemCornByWarehouseId(warehouseItemCornProcurement.WarehouseId)
+	if err != nil {
+		s.log.Error("failed to count total item corn quantity", zap.Error(err))
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
 	err = s.repository.CreateWarehouseItemCorn(&warehouseItemCorn)
 	if err != nil {
 		s.log.Error("failed create warehouse item corn", zap.Error(err))
@@ -3426,12 +3432,6 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 
 	itemCorn, err := s.itemService.GetItemByNameAndUnitAndType(constant.Corn, constant.UnitKg, enum.ItemCategoryCornMaterial)
 	if err != nil {
-		return dto.WarehouseItemCornProcurementResponse{}, err
-	}
-
-	totalItemCornQuantity, err := s.repository.CountQuantityWarehouseItemCornByWarehouseId(warehouseItemCornProcurement.WarehouseId)
-	if err != nil {
-		s.log.Error("failed to count total item corn quantity", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 

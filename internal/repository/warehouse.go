@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"errors"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
@@ -1001,10 +1002,15 @@ func (r *WarehouseRepository) CreateWarehouseItemProcurementDraftInBatch(data *[
 }
 
 func (r *WarehouseRepository) CountQuantityWarehouseItemCornByWarehouseId(warehouseId uint64) (float64, error) {
-	var total float64
+	var total sql.NullFloat64
 	err := r.db.Model(&entity.WarehouseItemCorn{}).Select("SUM(quantity)").Where("warehouse_id = ?", warehouseId).Row().Scan(&total)
 	if err != nil {
 		return 0, err
 	}
-	return total, nil
+
+	if total.Valid {
+		return total.Float64, nil
+	}
+
+	return 0, nil
 }
