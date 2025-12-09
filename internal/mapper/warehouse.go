@@ -22,18 +22,18 @@ func WarehouseToResponse(warehouse *entity.Warehouse) dto.WarehouseResponse {
 }
 
 func WarehouseDetailToResponse(warehouse *entity.Warehouse) dto.WarehouseDetailResponse {
-	isItemsEmpty := false
+	isItemsEmpty := true
 	for _, e := range warehouse.WarehouseItems {
-		if e.Quantity == 0 {
-			isItemsEmpty = true
+		if e.Quantity != 0 {
+			isItemsEmpty = false
 			break
 		}
 	}
 
 	if !isItemsEmpty {
 		for _, e := range warehouse.WarehouseItemCorns {
-			if e.Quantity == 0 {
-				isItemsEmpty = true
+			if e.Quantity != 0 {
+				isItemsEmpty = false
 				break
 			}
 		}

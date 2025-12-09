@@ -140,18 +140,18 @@ func (s *WarehouseService) GetWarehouseWithUsersById(id uint64) (dto.WarehouseWi
 		userResponses = append(userResponses, e.User)
 	}
 
-	isItemsEmpty := false
+	isItemsEmpty := true
 	for _, e := range warehouse.WarehouseItems {
-		if e.Quantity == 0 {
-			isItemsEmpty = true
+		if e.Quantity != 0 {
+			isItemsEmpty = false
 			break
 		}
 	}
 
-	if !isItemsEmpty {
+	if isItemsEmpty {
 		for _, e := range warehouse.WarehouseItemCorns {
-			if e.Quantity == 0 {
-				isItemsEmpty = true
+			if e.Quantity != 0 {
+				isItemsEmpty = false
 				break
 			}
 		}

@@ -240,9 +240,9 @@ func (s *StoreService) GetStoreWithUsersById(id uint64) (dto.StoreWithUsersRespo
 		userResponses = append(userResponses, e.User)
 	}
 
-	isItemsEmpty := false
+	isItemsEmpty := true
 	for _, e := range store.StoreItems {
-		if e.Quantity == 0 {
+		if e.Quantity != 0 {
 			isItemsEmpty = false
 			break
 		}
