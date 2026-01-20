@@ -187,10 +187,10 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 	switch filter.LocationType.Value() {
 	case enum.LocationTypeCage:
 		query = query.Table("locations").
-			Select(`roles.id AS role_id, roles.name AS role_name, 
-			        locations.id AS place_id, locations.name AS place_name, 
-			        users.id AS user_id, 
-			        user_presences.status AS presence_status, 
+			Select(`roles.id AS role_id, roles.name AS role_name,
+			        locations.id AS place_id, locations.name AS place_name,
+			        users.id AS user_id,
+			        user_presences.status AS presence_status,
 			        user_presences.submission_presence_status as submission_presence_status`).
 			Joins("LEFT JOIN users ON locations.id = users.location_id").
 			Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
@@ -199,10 +199,10 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 
 	case enum.LocationTypeStore:
 		query = query.Table("stores").
-			Select(`roles.id AS role_id, roles.name AS role_name, 
-			        stores.id AS place_id, stores.name AS place_name, 
-			        user_presences.user_id AS user_id, 
-			        user_presences.status AS presence_status, 
+			Select(`roles.id AS role_id, roles.name AS role_name,
+			        stores.id AS place_id, stores.name AS place_name,
+			        user_presences.user_id AS user_id,
+			        user_presences.status AS presence_status,
 			        user_presences.submission_presence_status as submission_presence_status`).
 			Joins("LEFT JOIN store_placements ON store_placements.store_id = stores.id").
 			Joins("LEFT JOIN user_presences ON store_placements.user_id = user_presences.user_id").
@@ -212,10 +212,10 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 
 	case enum.LocationTypeWarehouse:
 		query = query.Table("warehouses").
-			Select(`roles.id AS role_id, roles.name AS role_name, 
-			        warehouses.id AS place_id, warehouses.name AS place_name, 
-			        user_presences.user_id AS user_id, 
-			        user_presences.status AS presence_status, 
+			Select(`roles.id AS role_id, roles.name AS role_name,
+			        warehouses.id AS place_id, warehouses.name AS place_name,
+			        user_presences.user_id AS user_id,
+			        user_presences.status AS presence_status,
 			        user_presences.submission_presence_status as submission_presence_status`).
 			Joins("LEFT JOIN warehouse_placements ON warehouse_placements.warehouse_id = warehouses.id").
 			Joins("LEFT JOIN user_presences ON warehouse_placements.user_id = user_presences.user_id").
@@ -225,10 +225,10 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 
 	case enum.LocationTypeSite:
 		query = query.Table("locations").
-			Select(`roles.id AS role_id, roles.name AS role_name, 
-			        locations.id AS place_id, locations.name AS place_name, 
-			        users.id AS user_id, 
-			        user_presences.status AS presence_status, 
+			Select(`roles.id AS role_id, roles.name AS role_name,
+			        locations.id AS place_id, locations.name AS place_name,
+			        users.id AS user_id,
+			        user_presences.status AS presence_status,
 			        user_presences.submission_presence_status as submission_presence_status`).
 			Joins("LEFT JOIN users ON locations.id = users.location_id").
 			Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
@@ -237,10 +237,10 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 
 	case enum.LocationTypeUnassigned:
 		query = query.Table("locations").
-			Select(`roles.id AS role_id, roles.name AS role_name, 
-			        locations.id AS place_id, locations.name AS place_name, 
-			        users.id AS user_id, 
-			        user_presences.status AS presence_status, 
+			Select(`roles.id AS role_id, roles.name AS role_name,
+			        locations.id AS place_id, locations.name AS place_name,
+			        users.id AS user_id,
+			        user_presences.status AS presence_status,
 			        user_presences.submission_presence_status as submission_presence_status`).
 			Joins("LEFT JOIN users ON locations.id = users.location_id").
 			Joins("LEFT JOIN user_presences ON users.id = user_presences.user_id").
@@ -322,6 +322,7 @@ func (r *PresenceRepository) GetUserPresenceSummaries(filter dto.GetUserPresence
 
 func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]entity.UserPresenceWorkDetailSummary, error) {
 	db := r.GetDB().Table("users").
+		// Note : i think it can just need to get the not finished additional work
 		Select(`
 			users.id AS user_id,
 			users.name AS user_name,
@@ -339,8 +340,9 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 		`).
 		Joins(`LEFT JOIN roles ON users.role_id = roles.id`).
 		Joins(`LEFT JOIN additional_work_users ON additional_work_users.user_id = users.id`).
-		Joins(`LEFT JOIN daily_work_users ON daily_work_users.user_id = users.id`).
-		Joins(`LEFT JOIN user_presences ON user_presences.user_id = users.id 
+		Joins(`LEFT JOIN daily_work_users ON daily_work_users.user_id = users.id
+			AND DATE(daily_work_users.created_at) = ?`, filter.Date.Value()).
+		Joins(`LEFT JOIN user_presences ON user_presences.user_id = users.id
 			AND DATE(user_presences.created_at) = ?`, filter.Date.Value()).
 		Where("roles.id = ?", filter.RoleId)
 
@@ -363,7 +365,10 @@ func (r *PresenceRepository) GetUserPresenceWorkDetailSummaries(filter dto.GetUs
 			Where("users.location_id = ? AND roles.name = 'Kepala Kandang'", filter.PlaceId)
 	case enum.LocationTypeUnassigned:
 		db = db.
-			Where("users.location_id = ? AND roles.name NOT IN ('Kepala Kandang', 'Owner') AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM warehouse_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM store_placements) AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM cage_placements)", filter.PlaceId)
+			Where(`users.location_id = ? AND roles.name NOT IN ('Kepala Kandang', 'Owner')
+				AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM warehouse_placements)
+				AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM store_placements)
+				AND user_presences.user_id NOT IN (SELECT DISTINCT user_id FROM cage_placements)`, filter.PlaceId)
 	default:
 		return nil, fmt.Errorf("unsupported place type: %s", filter.PlaceType.Value().String())
 	}

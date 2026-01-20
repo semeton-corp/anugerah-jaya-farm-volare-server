@@ -365,7 +365,7 @@ func (s *PresenceService) GetUserPresenceSummaries(filter dto.GetUserPresenceSum
 
 func (s *PresenceService) GetUserPresenceWorkSummaries(filter dto.GetUserPresenceWorkDetailSummaryFilter) ([]dto.UserPresenceWorkDetailSummaryResponse, error) {
 	s.repository.UseTx(false)
-	filter.Date = param.DateParam(time.Now())
+
 	userPresenceWorkDetailSummaries, err := s.repository.GetUserPresenceWorkDetailSummaries(filter)
 	if err != nil {
 		s.log.Error("failed to get user presence work detail summaries", zap.Error(err))
