@@ -211,6 +211,17 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
+	s.cron.AddFunc("01 00 * * *", func() {
+		s.db.Transaction(func(tx *gorm.DB) error {
+			err := s.refreshChickenCageNeedFeed(tx)
+			if err != nil {
+				s.log.Error("failed to refresh chicken cage need feed", zap.Error(err))
+				return err
+			}
+			return nil
+		})
+	})
+
 	s.cron.AddFunc("01 00 1 * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createCashflowHistoryMonthly(tx)
@@ -1383,6 +1394,38 @@ func (s *Scheduler) createNotificationWhenKPIPerformanceUserBad(tx *gorm.DB) err
 	}
 
 	s.log.Info(fmt.Sprintf("create %d notifications for bad KPI performance", len(notifications)))
+	return nil
+}
+
+func (s *Scheduler) refreshNeedFeed(tx *gorm.DB) error {
+	s.log.Info("refresh need feed...")
+
+	var chickenCages []*entity.ChickenCage
+	query := tx.Model(&entity.ChickenCage{})
+	subQuery := tx.Model(&entity.ChickenCage{}).
+		Select("MAX(id)").
+		Group("cage_id")
+	query = query.Where("chicken_cages.id IN (?)", subQuery)
+
+	err := query.
+		Preload("Cage.Location").
+		Preload("ChickenProcurement").
+		Preload("Cage.CagePlacement.User.Role").
+		Order("chicken_cages.created_at DESC").
+		Find(&chickenCages).Error
+	if err != nil {
+		return fmt.Errorf("failed to fetch chicken cages: %w", err)
+	}
+
+	for _, chickenCage := range chickenCages {
+		chickenCage.IsNeedFeed = true
+	}
+
+	if err := tx.Save(&chickenCages).Error; err != nil {
+		return err
+	}
+
+	s.log.Info("success refresh need feed chicken cage")
 	return nil
 }
 

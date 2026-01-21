@@ -100,16 +100,17 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 		}
 	}
 
+	if filter.UserIds != nil {
+		ors = append(ors, "user_id IN ?")
+		args = append(args, filter.UserIds)
+	}
+
 	if len(ors) > 0 {
 		db = db.Where(strings.Join(ors, " OR "), args...)
 	}
 
 	if filter.IsMarked != nil {
 		db = db.Where("is_marked = ?", *filter.IsMarked)
-	}
-
-	if filter.UserIds != nil {
-		db = db.Where("user_id IN ?", filter.UserIds)
 	}
 
 	err := db.Order("created_at DESC").Find(&data).Error

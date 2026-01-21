@@ -122,9 +122,10 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 	switch status {
 	case enum.PresenceStatusPresent:
-		// if time.Now().After(time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 17, 0, 0, 0, time.Local)) && request.StartTime != "" && userPresence.StartTime.Time == nil {
-		// 	return dto.PresenceResponse{}, errx.BadRequest("can't presence start more than 17.00 PM")
-		// }
+		returnTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 16, 0, 0, 0, time.Local)
+		if time.Now().After(returnTime) && request.StartTime != "" && userPresence.StartTime.Time == nil {
+			return dto.PresenceResponse{}, errx.BadRequest("can't presence start more than 16.00 PM")
+		}
 
 		if !util.IsWithinRadius(userPresence.User.Location.Longitude, userPresence.User.Location.Latitude, request.Longitude, request.Latitude, constant.RadiusPresence) {
 			return dto.PresenceResponse{}, errx.BadRequest("location is not within the allowed radius")
@@ -139,6 +140,14 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 				return dto.PresenceResponse{}, errx.BadRequest("invalid time format")
 			}
 
+			currTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), timeParsed.Hour(), timeParsed.Minute(), timeParsed.Second(), timeParsed.Nanosecond(), time.Local)
+			minPresenceTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 5, 0, 0, 0, time.Local)
+			maxPresenceTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 8, 0, 0, 0, time.Local)
+
+			if currTime.Before(minPresenceTime) || currTime.After(maxPresenceTime) {
+				return dto.PresenceResponse{}, errx.BadRequest("presence time must be between 05.00 AM and 08.00 AM")
+			}
+
 			timez = datatype.TimeOnly{Time: &timeParsed}
 			userPresence.StartTime = timez
 		} else if request.EndTime != "" {
@@ -151,6 +160,13 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 			userPresence.EndTime = timez
 		}
 	case enum.PresenceStatusSick, enum.PresenceStatusPermission:
+		currTime := time.Now()
+		maxPresenceSickOrPermissionTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 9, 0, 0, 0, time.Local)
+
+		if currTime.After(maxPresenceSickOrPermissionTime) {
+			return dto.PresenceResponse{}, errx.BadRequest("presence time for sick or permission must be before 09.00 AM")
+		}
+
 		userPresence.Status = status
 		userPresence.Evidence = sql.NullString{String: request.Evidence, Valid: true}
 		userPresence.Note = sql.NullString{String: request.Note, Valid: true}
@@ -416,15 +432,15 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 
 	switch request.ApprovalStatus {
 	case constant.ApprovalStatusAccepted:
-		err := s.repository.UpdateSubmissionPresenceStatusUserIds(request.UserPresenceIds, enum.SubmissionPresenceStatusAccepted)
+		err := s.repository.UpdateSubmissionPresenceStatusUserByIds(request.UserPresenceIds, enum.SubmissionPresenceStatusAccepted)
 		if err != nil {
 			s.log.Error("failed update submission presence status by ids", zap.Error(err))
 			return nil, err
 		}
 	case constant.ApprovalStatusRejected:
-		err := s.repository.UpdateSubmissionPresenceStatusUserIds(request.UserPresenceIds, enum.SubmissionPresenceStatusRejected)
+		err := s.repository.UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(request.UserPresenceIds, enum.PresenceStatusAlpha, enum.SubmissionPresenceStatusRejected)
 		if err != nil {
-			s.log.Error("failed update submission presence status by ids", zap.Error(err))
+			s.log.Error("failed update presence status and submission presence status by ids", zap.Error(err))
 			return nil, err
 		}
 	}
