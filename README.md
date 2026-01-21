@@ -17,7 +17,7 @@ A backend server for managing poultry farm operations, built with Go and Fiber f
 - **Database**: PostgreSQL with [GORM](https://gorm.io/) ORM
 - **Cache**: Redis
 - **Authentication**: JWT (JSON Web Tokens)
-- **Storage**: AWS S3
+- **Storage**: S3 Biznet Gio
 - **Logging**: Uber Zap with Lumberjack for log rotation
 - **Configuration**: Viper
 - **Excel Export**: Excelize
@@ -29,7 +29,7 @@ A backend server for managing poultry farm operations, built with Go and Fiber f
 - Docker and Docker Compose
 - PostgreSQL
 - Redis
-- AWS S3 account (for file storage)
+- S3
 
 ## Getting Started
 
