@@ -5,7 +5,7 @@ import "time"
 type SignUpRequest struct {
 	Email          string   `json:"email" validate:"required,email"`
 	Username       string   `json:"username" validate:"required"`
-	LocationId     *uint64  `json:"locationId"`
+	LocationId     uint64   `json:"locationId" validate:"required"`
 	RoleId         uint64   `json:"roleId" validate:"required"`
 	PlacementIds   []uint64 `json:"placementIds"`
 	PhotoProfile   string   `json:"photoProfile"`

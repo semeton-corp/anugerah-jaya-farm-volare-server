@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"slices"
 
 	"github.com/google/uuid"
@@ -96,11 +95,9 @@ func (s *AuthenticationService) SignUp(request dto.SignUpRequest, userId uuid.UU
 			Salary:         salary,
 			SalaryInterval: salaryInterval,
 			CreatedByOwner: uuid.NullUUID{UUID: userId, Valid: true},
+			LocationId:     request.LocationId,
 		}
 
-		if request.LocationId != nil {
-			user.LocationId = sql.NullInt64{Int64: int64(*request.LocationId), Valid: true}
-		}
 		if request.PhotoProfile != "" {
 			user.PhotoProfile = request.PhotoProfile
 		}

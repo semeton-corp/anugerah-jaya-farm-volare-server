@@ -359,14 +359,14 @@ func (s *UserService) GetUserOverview(id uuid.UUID, filter dto.GetUserOverviewFi
 	}
 
 	if user.RoleId != cageStaffRole.Id {
-		chickenKpi, err := s.chickenService.GetKPIScoreChickenInMonth(uint64(user.LocationId.Int64), filter.Month.Value(), filter.Year)
+		chickenKpi, err := s.chickenService.GetKPIScoreChickenInMonth(uint64(user.LocationId), filter.Month.Value(), filter.Year)
 		if err != nil {
 			return dto.UserOverviewResponse{}, err
 		}
 
 		userInformation.ChickenKpiScore = chickenKpi
 
-		chickenKpiPerWeek, err := s.chickenService.GetKPIScoreChickenPerWeek(uint64(user.LocationId.Int64), filter.Month.Value(), filter.Year)
+		chickenKpiPerWeek, err := s.chickenService.GetKPIScoreChickenPerWeek(uint64(user.LocationId), filter.Month.Value(), filter.Year)
 		if err != nil {
 			return dto.UserOverviewResponse{}, err
 		}

@@ -2866,6 +2866,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		s.log.Error("failed get chicken monitorings", zap.Error(err))
 		return dto.ChickenAndCompanyOverviewResponse{}, err
 	}
+
 	for _, chickenMonitoring := range chickenMonitorings {
 		chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 	}

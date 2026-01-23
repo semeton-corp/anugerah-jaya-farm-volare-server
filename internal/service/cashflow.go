@@ -3072,7 +3072,7 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 	keys := util.GetSortedKeysInt(weeks)
 	for _, key := range keys {
 		cashflowSaleGraphs = append(cashflowSaleGraphs, dto.CashflowSaleGraphResponse{
-			Key:     fmt.Sprintf("Minggu %d", key+1),
+			Key:     fmt.Sprintf("Minggu %d", key),
 			Income:  income[key].String(),
 			Expense: expense[key].String(),
 			Profit:  income[key].Sub(expense[key]).String(),
@@ -3086,6 +3086,7 @@ func (s *CashflowService) GetCashflowSaleOverview(filter dto.GetCashflowSaleOver
 	totalPreviousMonthIncome := decimal.Zero
 	totalPreviousMonthExpense := decimal.Zero
 	totalPreviousMonthProfit := decimal.Zero
+
 	for _, key := range keys {
 		totalPreviousMonthIncome = totalPreviousMonthIncome.Add(incomePreviousMonth[key])
 		totalPreviousMonthExpense = totalPreviousMonthExpense.Add(expensePreviousMonth[key])
@@ -3553,15 +3554,15 @@ func (s *CashflowService) buildEggSaleOverviewMonthlyGraph(locationId uint64, it
 		}
 	}
 
-	for _, warehosueSale := range monthWarehosueSales {
-		week := util.FindWeek(warehosueSale.CreatedAt, weekMaps)
+	for _, warehouseSale := range monthWarehosueSales {
+		week := util.FindWeek(warehouseSale.CreatedAt, weekMaps)
 		if week > 0 {
-			if warehosueSale.SaleUnit.String() == constant.UnitKg {
-				itemSales[week] += warehosueSale.Quantity
-			} else if warehosueSale.SaleUnit.String() == constant.UnitIkat {
-				itemSales[week] += warehosueSale.Quantity * float64(constant.TotalEggPerIkat)
-			} else if warehosueSale.SaleUnit.String() == constant.UnitPlastik {
-				itemSales[week] += warehosueSale.Quantity
+			if warehouseSale.SaleUnit.String() == constant.UnitKg {
+				itemSales[week] += warehouseSale.Quantity
+			} else if warehouseSale.SaleUnit.String() == constant.UnitIkat {
+				itemSales[week] += warehouseSale.Quantity * float64(constant.TotalEggPerIkat)
+			} else if warehouseSale.SaleUnit.String() == constant.UnitPlastik {
+				itemSales[week] += warehouseSale.Quantity
 			}
 		}
 	}
