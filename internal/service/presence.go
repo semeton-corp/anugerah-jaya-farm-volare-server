@@ -142,10 +142,10 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 
 			currTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), timeParsed.Hour(), timeParsed.Minute(), timeParsed.Second(), timeParsed.Nanosecond(), time.Local)
 			minPresenceTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 5, 0, 0, 0, time.Local)
-			maxPresenceTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 8, 0, 0, 0, time.Local)
+			maxPresenceTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 7, 0, 0, 0, time.Local)
 
 			if currTime.Before(minPresenceTime) || currTime.After(maxPresenceTime) {
-				return dto.PresenceResponse{}, errx.BadRequest("presence time must be between 05.00 AM and 08.00 AM")
+				return dto.PresenceResponse{}, errx.BadRequest("presence time must be between 05.00 AM and 07.00 AM")
 			}
 
 			timez = datatype.TimeOnly{Time: &timeParsed}
@@ -161,10 +161,10 @@ func (s *PresenceService) UpdateUserPresence(id uint64, request dto.UpdateUserPr
 		}
 	case enum.PresenceStatusSick, enum.PresenceStatusPermission:
 		currTime := time.Now()
-		maxPresenceSickOrPermissionTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 9, 0, 0, 0, time.Local)
+		maxPresenceSickOrPermissionTime := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 8, 0, 0, 0, time.Local)
 
 		if currTime.After(maxPresenceSickOrPermissionTime) {
-			return dto.PresenceResponse{}, errx.BadRequest("presence time for sick or permission must be before 09.00 AM")
+			return dto.PresenceResponse{}, errx.BadRequest("presence time for sick or permission must be before 08.00 AM")
 		}
 
 		userPresence.Status = status

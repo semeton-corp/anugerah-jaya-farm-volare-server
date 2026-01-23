@@ -2564,7 +2564,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		Source:         warehouseItemProcurement.Supplier.Name,
 		Destination:    warehouseItemProcurement.Warehouse.Name,
 		QuantityBefore: warehouseItem.Quantity,
-		QuantityAfter:  request.Quantity,
+		QuantityAfter:  request.Quantity + warehouseItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})

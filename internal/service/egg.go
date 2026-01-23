@@ -95,7 +95,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		CreatedBy:             uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
-	if eggMonitoring.TotalGoodEgg == 0 {
+	if eggMonitoring.TotalGoodEgg != 0 {
 		goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return dto.EggMonitoringResponse{}, err
@@ -131,7 +131,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		}
 	}
 
-	if eggMonitoring.TotalCrackedEgg == 0 {
+	if eggMonitoring.TotalCrackedEgg != 0 {
 		crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return dto.EggMonitoringResponse{}, err

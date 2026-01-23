@@ -143,10 +143,10 @@ The application uses a YAML configuration file (`env.yaml`) with the following s
 
 The project uses Air for hot reloading during development. Configuration is in `.air.toml`.
 
-## 📝 License
+## License
 
 Copyright © 2025 Semeton Corp
 
-## 👥 Authors
+## Authors
 
 - **Indra** - [@indrabrata](https://github.com/indrabrata)
