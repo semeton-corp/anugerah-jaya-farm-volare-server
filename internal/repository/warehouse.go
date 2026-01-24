@@ -29,10 +29,11 @@ type IWarehouseRepository interface {
 	GetWarehouses(filter dto.GetWarehouseFilter) ([]entity.Warehouse, error)
 
 	CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error
-	FirstOrCreateWarehouseItem(warehouseItem *entity.WarehouseItem) (entity.WarehouseItem, error)
+	FirstOrCreateWarehouseItem(warehouseItem entity.WarehouseItem) (entity.WarehouseItem, error)
 	CreateWarehouseItemInBatch(warehouseItems *[]entity.WarehouseItem) error
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error)
+	GetWarehouseItemByWarehouseIdAndItemIds(warehouseId uint64, itemIds []uint64) ([]entity.WarehouseItem, error)
 	GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error)
 	UpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error
 	DeleteWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) error
@@ -258,6 +259,18 @@ func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemId(warehouseId
 	return warehouseItem, nil
 }
 
+func (r *WarehouseRepository) GetWarehouseItemByWarehouseIdAndItemIds(warehouseId uint64, itemIds []uint64) ([]entity.WarehouseItem, error) {
+	var warehouseItems []entity.WarehouseItem
+	err := r.GetDB().Preload("Warehouse.Location").Preload("Item").Where("warehouse_id = ? AND item_id IN ?", warehouseId, itemIds).Find(&warehouseItems).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return []entity.WarehouseItem{}, errx.NotFound("warehouse item not found")
+		}
+		return []entity.WarehouseItem{}, err
+	}
+	return warehouseItems, nil
+}
+
 func (r *WarehouseRepository) UpdateWarehouseItem(data *entity.WarehouseItem) error {
 	updates := map[string]interface{}{
 		"quantity":   data.Quantity,
@@ -287,13 +300,17 @@ func (r *WarehouseRepository) GetWarehouseItemByNameAndUnitAndType(name string, 
 	return item, nil
 }
 
-func (r *WarehouseRepository) FirstOrCreateWarehouseItem(warehouseItem *entity.WarehouseItem) (entity.WarehouseItem, error) {
-	err := r.GetDB().Model(&entity.WarehouseItem{}).FirstOrCreate(warehouseItem, &entity.WarehouseItem{ItemId: warehouseItem.ItemId, WarehouseId: warehouseItem.WarehouseId}).Error
+func (r *WarehouseRepository) FirstOrCreateWarehouseItem(warehouseItem entity.WarehouseItem) (entity.WarehouseItem, error) {
+	err := r.GetDB().Model(&entity.WarehouseItem{}).
+		Where(entity.WarehouseItem{ItemId: warehouseItem.ItemId, WarehouseId: warehouseItem.WarehouseId}).
+		Preload("Item").
+		FirstOrCreate(&warehouseItem).
+		Error
 	if err != nil {
 		return entity.WarehouseItem{}, err
 	}
 
-	return *warehouseItem, nil
+	return warehouseItem, nil
 }
 
 func (r *WarehouseRepository) GetWarehouseItemHistories(filter dto.GetWarehouseItemHistoryFilter) ([]entity.WarehouseItemHistory, error) {

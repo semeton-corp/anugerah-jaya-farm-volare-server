@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -2537,7 +2538,8 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		WarehouseId: warehouseItemProcurement.WarehouseId,
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	}
-	warehouseItem, err = s.repository.FirstOrCreateWarehouseItem(&warehouseItem)
+
+	warehouseItem, err = s.repository.FirstOrCreateWarehouseItem(warehouseItem)
 	if err != nil {
 		s.log.Error("failed first or create warehouse item", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, err
@@ -2561,7 +2563,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 	jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       warehouseItem.Item.Name,
 		ItemUnit:       warehouseItem.Item.Unit,
-		Source:         warehouseItemProcurement.Supplier.Name,
+		Source:         warehouseItem.Item.Name,
 		Destination:    warehouseItemProcurement.Warehouse.Name,
 		QuantityBefore: warehouseItem.Quantity,
 		QuantityAfter:  request.Quantity + warehouseItem.Quantity,
@@ -3602,6 +3604,27 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 		return err
 	}
 
+	itemIds := make([]uint64, 0)
+	for _, r := range request {
+		if r.ItemCategory != enum.ItemCategoryCornMaterial.String() {
+			itemIds = append(itemIds, r.ItemId)
+		}
+	}
+
+	itemMap := make(map[uint64]entity.WarehouseItem)
+	items, err := s.repository.GetWarehouseItemByWarehouseIdAndItemIds(warehouseId, itemIds)
+	if err != nil {
+		s.log.Error("failed get warehouse item by warehouse id and item id", zap.Error(err))
+		return err
+	}
+
+	for _, item := range items {
+		itemMap[item.ItemId] = item
+	}
+
+	errorStockNotEnough := make([]string, 0)
+	itemAndReduceQuantityMap := make(map[uint64]float64)
+
 	for _, r := range request {
 		withZeroQuantity := false
 		if r.ItemCategory == enum.ItemCategoryCornMaterial.String() {
@@ -3658,36 +3681,44 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 				Status:         enum.ItemHistoryStockUpdated,
 			})
 		} else {
-			item, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, r.ItemId)
-			if err != nil {
+			item, ok := itemMap[r.ItemId]
+			if !ok {
 				s.log.Error("failed get warehouse item by id and warehouse id", zap.Error(err))
 				return err
 			}
 
-			warehouseItemHistories = append(warehouseItemHistories, entity.WarehouseItemHistory{
-				ItemName:       item.Item.Name,
-				ItemUnit:       item.Item.Unit,
-				Source:         warehouse.Name,
-				Destination:    cageName,
-				QuantityBefore: item.Quantity,
-				QuantityAfter:  item.Quantity - r.Quantity,
-				UserId:         userId,
-				Status:         enum.ItemHistoryStockUpdated,
-			})
-
 			if item.Quantity < r.Quantity {
-				return errx.BadRequest(fmt.Sprintf(
-					"stok barang dengan id %d tidak cukup memiliki %.2f, sedangkan memerlukan %.2f",
-					r.ItemId, item.Quantity, r.Quantity,
+				errorStockNotEnough = append(errorStockNotEnough, fmt.Sprintf(
+					"stok barang %s tidak cukup memiliki %.2f, sedangkan memerlukan %.2f",
+					item.Item.Name, item.Quantity, r.Quantity,
 				))
+			} else {
+				warehouseItemHistories = append(warehouseItemHistories, entity.WarehouseItemHistory{
+					ItemName:       item.Item.Name,
+					ItemUnit:       item.Item.Unit,
+					Source:         warehouse.Name,
+					Destination:    cageName,
+					QuantityBefore: item.Quantity,
+					QuantityAfter:  item.Quantity - r.Quantity,
+					UserId:         userId,
+					Status:         enum.ItemHistoryStockUpdated,
+				})
 			}
 
-			item.Quantity -= r.Quantity
-			item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-			if err := s.repository.UpdateWarehouseItem(&item); err != nil {
-				s.log.Error("failed update warehouse item", zap.Error(err))
-				return err
-			}
+			itemAndReduceQuantityMap[item.ItemId] = r.Quantity
+		}
+	}
+
+	if len(errorStockNotEnough) > 0 {
+		return fmt.Errorf("stock not enough: %s", strings.Join(errorStockNotEnough, ", "))
+	}
+
+	for _, item := range items {
+		item.Quantity -= itemAndReduceQuantityMap[item.ItemId]
+		item.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+		if err := s.repository.UpdateWarehouseItem(&item); err != nil {
+			s.log.Error("failed update warehouse item", zap.Error(err))
+			return err
 		}
 	}
 
@@ -3696,6 +3727,7 @@ func (s *WarehouseService) ReduceWarehouseItemForFeed(warehouseId uint64, reques
 		return err
 	}
 
+	// Todo : it can be optimized by just sending in array to the queue
 	for _, history := range warehouseItemHistories {
 		jsonParsed, err := json.Marshal(history)
 
