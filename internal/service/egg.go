@@ -463,15 +463,15 @@ func (s *EggService) GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (
 	eggGraphs := make([]dto.EggGraphResponse, 0)
 	switch filter.OverviewGraphTime.Value() {
 	case enum.OverviewGraphTimeThisWeek:
-		eggGraphs, err = s.buildEggWeeklyGraph(filter.LocationId)
+		eggGraphs, err = s.buildEggWeeklyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisMonth:
-		eggGraphs, err = s.buildEggMonthlyGraph(filter.LocationId)
+		eggGraphs, err = s.buildEggMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
 		if filter.Year <= 0 {
 			return dto.EggOverviewResponse{}, errx.BadRequest("year must be provided and greater than 0")
 		}
 
-		eggGraphs, err = s.buildEggYearlyGraph(filter.LocationId, filter.Year)
+		eggGraphs, err = s.buildEggYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
 	}
 	if err != nil {
 		return dto.EggOverviewResponse{}, err
@@ -485,12 +485,13 @@ func (s *EggService) GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (
 	return eggOverview, nil
 }
 
-func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
+func (s *EggService) buildEggWeeklyGraph(locationId uint64, cageId uint64) ([]dto.EggGraphResponse, error) {
 	endDate := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	startDate := endDate.AddDate(0, 0, -6)
 
 	weekEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		LocationId: locationId,
+		CageId:     cageId,
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 	})
@@ -519,12 +520,13 @@ func (s *EggService) buildEggWeeklyGraph(locationId uint64) ([]dto.EggGraphRespo
 	return graphs, nil
 }
 
-func (s *EggService) buildEggMonthlyGraph(locationId uint64) ([]dto.EggGraphResponse, error) {
+func (s *EggService) buildEggMonthlyGraph(locationId uint64, cageId uint64) ([]dto.EggGraphResponse, error) {
 	weekMaps := util.GetFourWeekRanges(time.Now().Year(), time.Now().Month())
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(time.Now().Year(), time.Now().Month())
 
 	monthEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		LocationId: locationId,
+		CageId:     cageId,
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 	})
@@ -556,12 +558,13 @@ func (s *EggService) buildEggMonthlyGraph(locationId uint64) ([]dto.EggGraphResp
 	return graphs, nil
 }
 
-func (s *EggService) buildEggYearlyGraph(locationId uint64, year int) ([]dto.EggGraphResponse, error) {
+func (s *EggService) buildEggYearlyGraph(locationId uint64, cageId uint64, year int) ([]dto.EggGraphResponse, error) {
 	monthMaps := util.GetTwelveMonthRanges(year)
 	startDate, endDate := util.GetStartDateAndEndDateInYear(year)
 
 	yearEggs, err := s.repository.GetEggMonitorings(dto.GetEggMonitoringFilter{
 		LocationId: locationId,
+		CageId:     cageId,
 		StartDate:  param.DateParam(startDate),
 		EndDate:    param.DateParam(endDate),
 	})
