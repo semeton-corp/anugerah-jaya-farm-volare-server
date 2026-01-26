@@ -157,13 +157,15 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 
 	currentChicken := chickenCage.TotalChicken - request.TotalDeathChicken
 	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
-		TotalChicken:         currentChicken,
-		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
+		TotalChicken:                   currentChicken,
+		LatestChickenAgeVaccineRoutine: chickenCage.LatestChickenAgeVaccineRoutine,
+		IsNeedRoutineVaccine:           chickenCage.IsNeedRoutineVaccine,
 	}, userId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	// Note : if there is no left chicken the chicken is empty so we need to create new chicken cage and update the is used in the cage
 	if currentChicken == 0 {
 		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 			CageId:       chickenCage.Cage.Id,
@@ -364,7 +366,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		return dto.ChickenOverviewResponse{}, err
 	}
 
-	currChickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
+	currentChickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
 	currentChickenMonitorings, err := c.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
 		Date:       param.DateParam(today),
 		LocationId: filter.LocationId,
@@ -375,7 +377,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		return dto.ChickenOverviewResponse{}, err
 	}
 	for _, chickenMonitoring := range currentChickenMonitorings {
-		currChickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+		currentChickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 	}
 
 	currentEggMonitorings, err := c.eggService.GetEggMonitorings(dto.GetEggMonitoringFilter{
@@ -396,16 +398,10 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	var totalLiveChicken, totalSickChicken, totalDeathChicken uint64
 
 	for _, cc := range chickenCages {
-		count := uint64(0)
-		if currChickenMonitoringMap[cc.Id].Id == 0 {
-			totalLiveChicken += cc.TotalChicken
-			count = cc.TotalChicken
-		} else {
-			totalLiveChicken += currChickenMonitoringMap[cc.Id].ChickenCage.TotalChicken - currChickenMonitoringMap[cc.Id].TotalSickChicken
-			totalSickChicken += currChickenMonitoringMap[cc.Id].TotalSickChicken
-			totalDeathChicken += currChickenMonitoringMap[cc.Id].TotalDeathChicken
-			count = currChickenMonitoringMap[cc.Id].TotalChicken
-		}
+		totalLiveChicken += cc.TotalChicken
+		count := cc.TotalChicken
+		totalSickChicken += currentChickenMonitoringMap[cc.Id].TotalSickChicken
+		totalDeathChicken += currentChickenMonitoringMap[cc.Id].TotalDeathChicken
 
 		chickenCategory := enum.ValueOfChickenCategory(cc.ChickenCategory)
 		switch chickenCategory {
@@ -430,11 +426,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	case enum.OverviewGraphTimeThisMonth:
 		chickenGraphs, err = c.buildMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		if filter.Year <= 0 {
-			return dto.ChickenOverviewResponse{}, errx.BadRequest("year must be provided and greater than 0")
-		}
-
-		chickenGraphs, err = c.buildYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
+		chickenGraphs, err = c.buildYearlyGraph(filter.LocationId, filter.CageId)
 	}
 	if err != nil {
 		return dto.ChickenOverviewResponse{}, err
@@ -650,7 +642,8 @@ func (c *ChickenService) buildMonthlyGraph(locationId uint64, cageId uint64) ([]
 	return graphs, nil
 }
 
-func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64, year int) ([]dto.ChickenGraphResponse, error) {
+func (c *ChickenService) buildYearlyGraph(locationId uint64, cageId uint64) ([]dto.ChickenGraphResponse, error) {
+	year := time.Now().Year()
 	monthMaps := util.GetTwelveMonthRanges(year)
 	startDate, endDate := util.GetStartDateAndEndDateInYear(year)
 
@@ -832,7 +825,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 	if chickenHealthMonitoringType == enum.ChickenHealthItemTypeVaccineRoutine {
 		_, err = s.cageService.UpdateChickenCage(chickenCage.Id, dto.UpdateChickenCageRequest{
 			TotalChicken:                   chickenCage.TotalChicken,
-			LatestChickenAgeVaccineRoutine: &chickenCage.ChickenAge,
+			LatestChickenAgeVaccineRoutine: chickenCage.LatestChickenAgeVaccineRoutine,
 			IsNeedRoutineVaccine:           false,
 		}, userId)
 		if err != nil {
@@ -2705,11 +2698,7 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 	case enum.OverviewGraphTimeThisMonth:
 		chickenGraphs, err = s.buildMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		if filter.Year <= 0 {
-			return dto.ChickenAndWarehouseOverviewResponse{}, errx.BadRequest("year must be provided for this year graph")
-		}
-
-		chickenGraphs, err = s.buildYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
+		chickenGraphs, err = s.buildYearlyGraph(filter.LocationId, filter.CageId)
 	}
 	if err != nil {
 		return dto.ChickenAndWarehouseOverviewResponse{}, err
@@ -2872,24 +2861,23 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 	}
 
 	for _, chickenCage := range chickenCages {
-		totalChicken += chickenMonitoringMap[chickenCage.Id].TotalChicken
+		totalChicken += chickenCage.TotalChicken
 		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
 		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
 		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
 		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
 
-		count := chickenMonitoringMap[chickenCage.Id].TotalChicken
 		switch chickenCage.ChickenCategory {
 		case enum.ChickenCategoryDOC.String():
-			totalDOCChicken += count
+			totalDOCChicken += chickenCage.TotalChicken
 		case enum.ChickenCategoryGrower.String():
-			totalGrowerChicken += count
+			totalGrowerChicken += chickenCage.TotalChicken
 		case enum.ChickenCategoryPreLayer.String():
-			totalPreLayerChicken += count
+			totalPreLayerChicken += chickenCage.TotalChicken
 		case enum.ChickenCategoryLayer.String():
-			totalLayerChicken += count
+			totalLayerChicken += chickenCage.TotalChicken
 		case enum.ChickenCategoryAfkir.String():
-			totalAfkirChicken += count
+			totalAfkirChicken += chickenCage.TotalChicken
 		}
 	}
 

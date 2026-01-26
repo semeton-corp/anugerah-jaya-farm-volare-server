@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Note : field TotalChicken  is total chicken in chicken cage when chicken monitoring inserted
+// Note : field TotalChicken is total chicken in chicken cage when chicken monitoring inserted
 type ChickenMonitoring struct {
 	Id                uint64        `gorm:"primaryKey;autoIncrement"`
 	ChickenCageId     uint64        `gorm:"bigint;not null"`

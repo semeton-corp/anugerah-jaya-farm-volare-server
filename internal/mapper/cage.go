@@ -60,6 +60,10 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		response.ChickenProcurementId = uint64(chickenCage.ChickenProcurementId.Int64)
 	}
 
+	if chickenCage.LatestChickenAgeVaccineRoutine.Valid {
+		response.LatestChickenAgeVaccineRoutine = &chickenCage.LatestChickenAgeVaccineRoutine.Int64
+	}
+
 	return response
 }
 

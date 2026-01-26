@@ -33,9 +33,9 @@ type GetCageFilter struct {
 }
 
 type UpdateChickenCageRequest struct {
-	TotalChicken                   uint64  `json:"totalChicken" validate:"required"`
-	LatestChickenAgeVaccineRoutine *uint64 `json:"latestChickenAgeVaccineRoutine"`
-	IsNeedRoutineVaccine           bool    `json:"isNeedRoutineVaccine"`
+	TotalChicken                   uint64 `json:"totalChicken" validate:"required"`
+	LatestChickenAgeVaccineRoutine *int64 `json:"latestChickenAgeVaccineRoutine"`
+	IsNeedRoutineVaccine           bool   `json:"isNeedRoutineVaccine"`
 }
 
 type CreateChickenCageRequest struct {
@@ -45,16 +45,17 @@ type CreateChickenCageRequest struct {
 }
 
 type ChickenCageResponse struct {
-	Cage                 CageResponse `json:"cage"`
-	Id                   uint64       `json:"id"`
-	ChickenProcurementId uint64       `json:"chickenProcurementId"`
-	BatchId              string       `json:"batchId"`
-	ChickenCategory      string       `json:"chickenCategory"`
-	ChickenAge           uint64       `json:"chickenAge"`
-	TotalChicken         uint64       `json:"totalChicken"`
-	ChickenPic           string       `json:"chickenPic"`
-	EggPic               string       `json:"eggPic"`
-	IsNeedRoutineVaccine bool         `json:"isNeedRoutineVaccine"`
+	Cage                           CageResponse `json:"cage"`
+	Id                             uint64       `json:"id"`
+	ChickenProcurementId           uint64       `json:"chickenProcurementId"`
+	BatchId                        string       `json:"batchId"`
+	ChickenCategory                string       `json:"chickenCategory"`
+	ChickenAge                     uint64       `json:"chickenAge"`
+	TotalChicken                   uint64       `json:"totalChicken"`
+	ChickenPic                     string       `json:"chickenPic"`
+	EggPic                         string       `json:"eggPic"`
+	IsNeedRoutineVaccine           bool         `json:"isNeedRoutineVaccine"`
+	LatestChickenAgeVaccineRoutine *int64       `json:"-"`
 }
 
 type GetChickenCageFilter struct {

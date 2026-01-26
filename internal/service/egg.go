@@ -467,11 +467,7 @@ func (s *EggService) GetEggMonitoringOverview(filter dto.GetEggOverviewFilter) (
 	case enum.OverviewGraphTimeThisMonth:
 		eggGraphs, err = s.buildEggMonthlyGraph(filter.LocationId, filter.CageId)
 	case enum.OverviewGraphTimeThisYear:
-		if filter.Year <= 0 {
-			return dto.EggOverviewResponse{}, errx.BadRequest("year must be provided and greater than 0")
-		}
-
-		eggGraphs, err = s.buildEggYearlyGraph(filter.LocationId, filter.CageId, filter.Year)
+		eggGraphs, err = s.buildEggYearlyGraph(filter.LocationId, filter.CageId)
 	}
 	if err != nil {
 		return dto.EggOverviewResponse{}, err
@@ -558,7 +554,8 @@ func (s *EggService) buildEggMonthlyGraph(locationId uint64, cageId uint64) ([]d
 	return graphs, nil
 }
 
-func (s *EggService) buildEggYearlyGraph(locationId uint64, cageId uint64, year int) ([]dto.EggGraphResponse, error) {
+func (s *EggService) buildEggYearlyGraph(locationId uint64, cageId uint64) ([]dto.EggGraphResponse, error) {
+	year := time.Now().Year()
 	monthMaps := util.GetTwelveMonthRanges(year)
 	startDate, endDate := util.GetStartDateAndEndDateInYear(year)
 

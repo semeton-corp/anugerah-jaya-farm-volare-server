@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Note : TotalChicken is newest total chicken in that cage
 type ChickenCage struct {
 	Id                             uint64                    `gorm:"primaryKey;autoIncrement"`
 	CageId                         uint64                    `gorm:"bigint;not null"`
