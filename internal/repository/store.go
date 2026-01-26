@@ -201,11 +201,17 @@ func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFil
 
 func (r *StoreRepository) UpdateStoreRequestItem(storeRequestItem *entity.StoreRequestItem) error {
 	return r.GetDB().Model(entity.StoreRequestItem{}).Where("id = ?", storeRequestItem.Id).Updates(map[string]any{
-		"quantity":       storeRequestItem.Quantity,
-		"updated_by":     storeRequestItem.UpdatedBy,
-		"status":         storeRequestItem.Status,
-		"warehouse_note": storeRequestItem.WarehouseNote,
-		"store_note":     storeRequestItem.StoreNote,
+		"store_id":              storeRequestItem.StoreId,
+		"warehouse_id":          storeRequestItem.WarehouseId,
+		"item_id":               storeRequestItem.ItemId,
+		"quantity":              storeRequestItem.Quantity,
+		"warehouse_fulfillment": storeRequestItem.WarehouseFulfillment,
+		"received_quantity":     storeRequestItem.ReceiveQuantity,
+		"updated_by":            storeRequestItem.UpdatedBy,
+		"status":                storeRequestItem.Status,
+		"is_sorted":             storeRequestItem.IsSorted,
+		"warehouse_note":        storeRequestItem.WarehouseNote,
+		"store_note":            storeRequestItem.StoreNote,
 	}).Error
 }
 
@@ -456,6 +462,14 @@ func (r *StoreRepository) CountTotalStoreRequestItem(filter dto.GetStoreRequestI
 	query := r.GetDB()
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.StoreId > 0 {
+		query = query.Where("store_id = ?", filter.StoreId)
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_id = ?", filter.WarehouseId)
 	}
 
 	err := query.Model(&entity.StoreRequestItem{}).Count(&totalData).Error

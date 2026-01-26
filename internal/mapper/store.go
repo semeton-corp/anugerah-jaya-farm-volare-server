@@ -37,15 +37,18 @@ func StoreDetailToResponse(store *entity.Store) dto.StoreDetailResponse {
 
 func StoreRequestItemToResponse(storeRequestItem *entity.StoreRequestItem) dto.StoreRequestItemResponse {
 	response := dto.StoreRequestItemResponse{
-		Id:                   storeRequestItem.Id,
-		Warehouse:            WarehouseToResponse(&storeRequestItem.Warehouse),
-		Store:                StoreToResponse(&storeRequestItem.Store),
-		Item:                 ItemToResponse(&storeRequestItem.Item),
-		Quantity:             storeRequestItem.Quantity,
-		Status:               storeRequestItem.Status.String(),
-		RequestDate:          storeRequestItem.CreatedAt.Format("15:04, 02-01-2006"),
-		IsSorted:             storeRequestItem.IsSorted,
-		WarehouseFulFillment: storeRequestItem.WarehouseFulfillment,
+		Id:          storeRequestItem.Id,
+		Warehouse:   WarehouseToResponse(&storeRequestItem.Warehouse),
+		Store:       StoreToResponse(&storeRequestItem.Store),
+		Item:        ItemToResponse(&storeRequestItem.Item),
+		Quantity:    storeRequestItem.Quantity,
+		Status:      storeRequestItem.Status.String(),
+		RequestDate: storeRequestItem.CreatedAt.Format("15:04, 02-01-2006"),
+		IsSorted:    storeRequestItem.IsSorted,
+	}
+
+	if storeRequestItem.WarehouseFulfillment.Valid {
+		response.WarehouseFulFillment = storeRequestItem.WarehouseFulfillment.Float64
 	}
 
 	if storeRequestItem.ReceiveQuantity.Valid {

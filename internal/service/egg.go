@@ -246,6 +246,7 @@ func (s *EggService) GetEggMonitorings(filter dto.GetEggMonitoringFilter) ([]dto
 	return eggMonitoringResponses, nil
 }
 
+// Todo : how to handle the store request item when the data is updated?
 func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitoringRequest, userId uuid.UUID) (dto.EggMonitoringResponse, error) {
 	s.repository.UseTx(false)
 
@@ -264,7 +265,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	eggMonitoring.TotalWeightGoodEgg = request.TotalWeightGoodEgg
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
-	if eggMonitoring.TotalGoodEgg == 0 {
+	if eggMonitoring.TotalGoodEgg != 0 {
 		goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return dto.EggMonitoringResponse{}, err
@@ -300,7 +301,7 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		}
 	}
 
-	if eggMonitoring.TotalCrackedEgg == 0 {
+	if eggMonitoring.TotalCrackedEgg != 0 {
 		crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return dto.EggMonitoringResponse{}, err

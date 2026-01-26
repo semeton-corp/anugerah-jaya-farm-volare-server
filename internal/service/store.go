@@ -378,14 +378,14 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item not pending")
 	}
 
+	storeRequestItem.WarehouseFulfillment = sql.NullFloat64{Float64: request.Quantity, Valid: true}
+	storeRequestItem.WarehouseNote = request.WarehouseNote
+	storeRequestItem.Status = enum.RequestItemStatusSentOff
+	storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
+	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
 	if storeRequestItem.Quantity > request.Quantity {
 		remainingQuantity := storeRequestItem.Quantity - request.Quantity
-
-		storeRequestItem.WarehouseFulfillment = request.Quantity
-		storeRequestItem.WarehouseNote = request.WarehouseNote
-		storeRequestItem.Status = enum.RequestItemStatusSentOff
-		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
-		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 		newStoreRequestItem := entity.StoreRequestItem{
 			WarehouseId: storeRequestItem.WarehouseId,
@@ -401,11 +401,6 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 			s.log.Error("failed to create store request item", zap.Error(err))
 			return dto.StoreRequestItemResponse{}, err
 		}
-	} else {
-		storeRequestItem.WarehouseFulfillment = request.Quantity
-		storeRequestItem.Status = enum.RequestItemStatusSentOff
-		storeRequestItem.StoreId = sql.NullInt64{Int64: int64(request.StoreId), Valid: true}
-		storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	}
 
 	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
