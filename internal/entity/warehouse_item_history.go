@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
+// Note : why not the id saved? because when the item changed or updated i think it will make confussion, that's why i just saved the name instead of the id
 type WarehouseItemHistory struct {
 	Id             uint64                 `gorm:"primaryKey;autoIncrement"`
 	ItemName       string                 `gorm:"type:varchar(255)"`

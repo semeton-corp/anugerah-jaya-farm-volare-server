@@ -57,7 +57,7 @@ func EggMonitoringToListResponse(eggMonitoring *entity.EggMonitoring) dto.EggMon
 	if eggMonitoring.TotalGoodEgg == 0 {
 		response.AverageWeight = 0
 	} else {
-		response.AverageWeight = float64(uint64(eggMonitoring.TotalWeightGoodEgg*1000.0/float64(eggMonitoring.TotalGoodEgg)*100)) / 100.0
+		response.AverageWeight = float64(uint64((eggMonitoring.TotalWeightGoodEgg * 1000.0) / float64(eggMonitoring.TotalGoodEgg)))
 	}
 
 	if response.TotalAllEgg == 0 {

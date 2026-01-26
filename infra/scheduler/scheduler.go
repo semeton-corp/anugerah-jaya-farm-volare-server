@@ -398,13 +398,18 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	for _, chickenCage := range chickenCages {
 		avgConsumption := 0.0
 		if chickenCage.TotalChicken > 0 {
-			avgConsumption = chickenMonitorinMap[chickenCage.Id].TotalFeed / float64(chickenCage.TotalChicken)
+			avgConsumption = (chickenMonitorinMap[chickenCage.Id].TotalFeed * 1000) / float64(chickenCage.TotalChicken)
+		}
+
+		isGetFeed := false
+		if chickenMonitorinMap[chickenCage.Id].TotalFeed > 0 {
+			isGetFeed = true
 		}
 
 		totalEggCount := eggMonitoringMap[chickenCage.Id].TotalGoodEgg + eggMonitoringMap[chickenCage.Id].TotalCrackedEgg
 		avgWeight := 0.0
 		if totalEggCount > 0 {
-			avgWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg + eggMonitoringMap[chickenCage.Id].TotalWeightCrackedEgg) / float64(totalEggCount)
+			avgWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg * 1000) / float64(totalEggCount)
 		}
 
 		mortality := 0.0
@@ -502,7 +507,9 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 
 		newData := entity.ChickenPerformance{
+			ChickenCageId:                chickenCage.Id,
 			CageName:                     chickenCage.Cage.Name,
+			LocationId:                   chickenCage.Cage.LocationId,
 			ChickenCategory:              chickenCategory,
 			ChickenAge:                   chickenAge,
 			TotalChicken:                 chickenCage.TotalChicken,
@@ -512,6 +519,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			MortalityRate:                mortality,
 			FCR:                          fcr,
 			HDP:                          hdp,
+			IsGetFeed:                    isGetFeed,
 		}
 
 		if chickenAge >= 90 {
