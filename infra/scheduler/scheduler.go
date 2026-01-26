@@ -112,7 +112,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("0 18 * * *", func() {
+	s.cron.AddFunc("0 21 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createKpiChickenCage(tx)
 			if err != nil {

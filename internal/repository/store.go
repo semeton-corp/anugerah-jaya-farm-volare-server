@@ -206,7 +206,7 @@ func (r *StoreRepository) UpdateStoreRequestItem(storeRequestItem *entity.StoreR
 		"item_id":               storeRequestItem.ItemId,
 		"quantity":              storeRequestItem.Quantity,
 		"warehouse_fulfillment": storeRequestItem.WarehouseFulfillment,
-		"received_quantity":     storeRequestItem.ReceiveQuantity,
+		"receive_quantity":      storeRequestItem.ReceiveQuantity,
 		"updated_by":            storeRequestItem.UpdatedBy,
 		"status":                storeRequestItem.Status,
 		"is_sorted":             storeRequestItem.IsSorted,
