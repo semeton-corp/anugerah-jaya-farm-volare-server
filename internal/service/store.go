@@ -368,6 +368,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		return dto.StoreRequestItemResponse{}, err
 	}
 
+	// Note : it times with total egg per ikat because the quantity is in ikat unit
 	if warehouseItem.Quantity < (request.Quantity * float64(constant.TotalEggPerIkat)) {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insufficient stock for request item")
 	}
@@ -453,6 +454,12 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, err
 	}
 
+	if !storeRequestItem.WarehouseFulfillment.Valid {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("need warehouse fulfillment first")
+	} else if storeRequestItem.WarehouseFulfillment.Float64 < request.Quantity {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("warehouse fulfillment quantity is less than requested quantity")
+	}
+
 	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is in another status")
 	} else if storeRequestItem.Status != enum.RequestItemStatusSentOff {
@@ -464,7 +471,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 	storeRequestItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	storeRequestItem.ReceiveDate = sql.NullTime{Time: time.Now(), Valid: true}
 
-	if storeRequestItem.ReceiveQuantity.Float64 != storeRequestItem.Quantity {
+	if storeRequestItem.ReceiveQuantity.Float64 != storeRequestItem.WarehouseFulfillment.Float64 {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedNotOk
 	} else {
 		storeRequestItem.Status = enum.RequestItemStatusArrivedOk

@@ -101,18 +101,7 @@ func (s *Scheduler) InitScheduler() {
 		})
 	})
 
-	s.cron.AddFunc("0 0 1 * *", func() {
-		s.db.Transaction(func(tx *gorm.DB) error {
-			err := s.refreshChickenCageNeedFeed(tx)
-			if err != nil {
-				s.log.Error("failed to refresh chicken cage need feed", zap.Error(err))
-				return err
-			}
-			return nil
-		})
-	})
-
-	s.cron.AddFunc("0 21 * * *", func() {
+	s.cron.AddFunc("30 20 * * *", func() {
 		s.db.Transaction(func(tx *gorm.DB) error {
 			err := s.createKpiChickenCage(tx)
 			if err != nil {
