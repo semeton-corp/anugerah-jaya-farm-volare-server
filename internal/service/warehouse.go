@@ -682,30 +682,6 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	var customerId uint64
-	if request.CustomerType == constant.OldCustomerType {
-		if request.CustomerId < 1 {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
-		}
-		customerId = request.CustomerId
-	} else {
-		customer := dto.CreateCustomerRequest{
-			Name:        request.CustomerName,
-			PhoneNumber: request.CustomerPhoneNumber,
-		}
-		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
-		}
-		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
-		}
-		resp, err := s.customerService.CreateCustomer(customer, userId)
-		if err != nil {
-			return dto.WarehouseSaleResponse{}, err
-		}
-		customerId = resp.Id
-	}
-
 	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(request.WarehouseId, request.ItemId)
 	if err != nil {
 		s.log.Error("failed to get warehouse item by warehouse id and item id", zap.Error(err))
@@ -769,7 +745,6 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		IsSend:        false,
 		SaleUnit:      saleUnit,
 		PaymentType:   paymentType,
-		CustomerId:    customerId,
 		PaymentStatus: enum.PaymentStatusNotPaid,
 		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -805,16 +780,6 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		}
 	}
 
-	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
-		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
-	}
-
-	err = s.repository.CreateWarehouseSale(&warehouseSale)
-	if err != nil {
-		s.log.Error("failed to create warehouse sale", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, err
-	}
-
 	payments := make([]entity.WarehouseSalePayment, 0, len(request.Payments))
 	for _, paymentReq := range request.Payments {
 		paymentMethod := enum.ValueOfPaymentMethod(paymentReq.PaymentMethod)
@@ -842,12 +807,62 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		})
 	}
 
+	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
+	}
+
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		warehouseSale.CustomerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer, userId)
+		if err != nil {
+			return dto.WarehouseSaleResponse{}, err
+		}
+
+		warehouseSale.CustomerId = resp.Id
+	}
+
+	err = s.repository.CreateWarehouseSale(&warehouseSale)
+	if err != nil {
+		s.log.Error("failed to create warehouse sale", zap.Error(err))
+		if err := s.customerService.DeleteCustomer(warehouseSale.CustomerId); err != nil {
+			s.log.Error("failed to delete customer", zap.Error(err))
+		}
+		return dto.WarehouseSaleResponse{}, err
+	}
+
 	if len(payments) > 0 {
 		err = s.repository.CreateWarehouseSalePaymentInBatch(&payments)
 		if err != nil {
 			s.log.Error("failed to create warehouse sale payment in batch", zap.Error(err))
+			if err := s.customerService.DeleteCustomer(warehouseSale.CustomerId); err != nil {
+				s.log.Error("failed to delete customer", zap.Error(err))
+			}
 			return dto.WarehouseSaleResponse{}, err
 		}
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
 	}
 
 	warehouseSale, err = s.repository.GetWarehouseSaleById(warehouseSale.Id)
@@ -873,12 +888,6 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 	}
 
 	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonWarehouseHistoryParsed)
-
-	err = s.repository.Commit()
-	if err != nil {
-		s.log.Error("failed to commit transaction", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, err
-	}
 
 	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 	remainingPayment := warehouseSale.TotalPrice
@@ -1586,35 +1595,6 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
-	var customerId uint64
-	if request.CustomerType == constant.OldCustomerType {
-		if request.CustomerId < 1 {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
-		}
-
-		customerId = request.CustomerId
-	} else {
-		customer := dto.CreateCustomerRequest{
-			Name:        request.CustomerName,
-			PhoneNumber: request.CustomerPhoneNumber,
-		}
-
-		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
-		}
-
-		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
-		}
-
-		resp, err := s.customerService.CreateCustomer(customer, userId)
-		if err != nil {
-			return dto.WarehouseSaleResponse{}, err
-		}
-
-		customerId = resp.Id
-	}
-
 	err := s.repository.DeleteWarehouseSaleQueue(id)
 	if err != nil {
 		return dto.WarehouseSaleResponse{}, err
@@ -1683,7 +1663,6 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		IsSend:        false,
 		SaleUnit:      saleUnit,
 		PaymentType:   paymentType,
-		CustomerId:    customerId,
 		PaymentStatus: enum.PaymentStatusNotPaid,
 		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1696,34 +1675,6 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid nominal format")
 		}
 		totalPayment = totalPayment.Add(nominal)
-	}
-
-	if paymentType == enum.PaymentTypePaidOff {
-		if !warehouseSale.TotalPrice.Equal(totalPayment) {
-			s.log.Error("nominal is not equal to total price")
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
-		}
-		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
-		warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else {
-		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
-		} else if totalPayment.Equal(warehouseSale.TotalPrice) {
-			warehouseSale.PaymentStatus = enum.PaymentStatusPaid
-			warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-		} else {
-			warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
-		}
-	}
-
-	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
-		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
-	}
-
-	err = s.repository.CreateWarehouseSale(&warehouseSale)
-	if err != nil {
-		s.log.Error("failed to create warehouse sale", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, err
 	}
 
 	payments := make([]entity.WarehouseSalePayment, 0, len(request.Payments))
@@ -1753,12 +1704,80 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		})
 	}
 
+	if paymentType == enum.PaymentTypePaidOff {
+		if !warehouseSale.TotalPrice.Equal(totalPayment) {
+			s.log.Error("nominal is not equal to total price")
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
+		}
+		warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+		warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
+	} else {
+		if totalPayment.GreaterThan(warehouseSale.TotalPrice) {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
+		} else if totalPayment.Equal(warehouseSale.TotalPrice) {
+			warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+			warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
+		} else {
+			warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
+		}
+	}
+
+	if warehouseSale.PaymentStatus != enum.PaymentStatusPaid {
+		warehouseSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
+	}
+
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		warehouseSale.CustomerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer, userId)
+		if err != nil {
+			return dto.WarehouseSaleResponse{}, err
+		}
+
+		warehouseSale.CustomerId = resp.Id
+	}
+
+	err = s.repository.CreateWarehouseSale(&warehouseSale)
+	if err != nil {
+		s.log.Error("failed to create warehouse sale", zap.Error(err))
+		if err := s.customerService.DeleteCustomer(warehouseSale.CustomerId); err != nil {
+			s.log.Error("failed to delete customer", zap.Error(err))
+		}
+		return dto.WarehouseSaleResponse{}, err
+	}
+
 	if len(payments) > 0 {
 		err = s.repository.CreateWarehouseSalePaymentInBatch(&payments)
 		if err != nil {
 			s.log.Error("failed to create warehouse sale payment in batch", zap.Error(err))
+			if err := s.customerService.DeleteCustomer(warehouseSale.CustomerId); err != nil {
+				s.log.Error("failed to delete customer", zap.Error(err))
+			}
 			return dto.WarehouseSaleResponse{}, err
 		}
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
 	}
 
 	warehouseSale, err = s.repository.GetWarehouseSaleById(warehouseSale.Id)
@@ -1784,12 +1803,6 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 	}
 
 	s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, jsonWarehouseHistoryParsed)
-
-	err = s.repository.Commit()
-	if err != nil {
-		s.log.Error("failed to commit transaction", zap.Error(err))
-		return dto.WarehouseSaleResponse{}, err
-	}
 
 	warehouseSalePayments := make([]dto.WarehouseSalePaymentResponse, len(warehouseSale.Payments))
 	remainingPayment := warehouseSale.TotalPrice
