@@ -380,11 +380,16 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	if err != nil {
 		return err
 	}
+
 	for _, chickenMonitoring := range chickenMonitorings {
 		chickenMonitorinMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 	}
 
 	for _, chickenCage := range chickenCages {
+		if !chickenCage.Cage.IsUsed {
+			continue
+		}
+
 		avgConsumption := 0.0
 		if chickenCage.TotalChicken > 0 {
 			avgConsumption = (chickenMonitorinMap[chickenCage.Id].TotalFeed * 1000) / float64(chickenCage.TotalChicken)
@@ -395,10 +400,10 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			isGetFeed = true
 		}
 
-		totalEggCount := eggMonitoringMap[chickenCage.Id].TotalGoodEgg + eggMonitoringMap[chickenCage.Id].TotalCrackedEgg
-		avgWeight := 0.0
-		if totalEggCount > 0 {
-			avgWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg * 1000) / float64(totalEggCount)
+		totalGoodEggCount := eggMonitoringMap[chickenCage.Id].TotalGoodEgg
+		avgGoodEggWeight := 0.0
+		if totalGoodEggCount > 0 {
+			avgGoodEggWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg * 1000) / float64(totalGoodEggCount)
 		}
 
 		mortality := 0.0
@@ -408,12 +413,12 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		fcr := 0.0
 		if chickenCage.TotalChicken > 0 {
-			fcr = float64(totalEggCount) / float64(chickenCage.TotalChicken) * 100.0
+			fcr = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(totalGoodEggCount) * 100.0
 		}
 
 		hdp := 0.0
-		if totalEggCount > 0 {
-			hdp = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(totalEggCount) * 100.0
+		if totalGoodEggCount > 0 {
+			hdp = float64(totalGoodEggCount) / float64(chickenCage.TotalChicken) * 100.0
 		}
 
 		var goodEgg entity.Item
@@ -489,6 +494,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		if err != nil {
 			return err
 		}
+
 		totalDayInMonth := util.TotalDaysInMonth(today.Year(), today.Month())
 		totalExpensePerDay := totalExpenseProduction.Div(decimal.NewFromUint64(totalDayInMonth))
 
@@ -502,9 +508,9 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			ChickenCategory:              chickenCategory,
 			ChickenAge:                   chickenAge,
 			TotalChicken:                 chickenCage.TotalChicken,
-			TotalEgg:                     totalEggCount,
+			TotalEgg:                     totalGoodEggCount,
 			AverageConsumptionPerChicken: avgConsumption,
-			AverageWeightPerEgg:          avgWeight,
+			AverageWeightPerEgg:          avgGoodEggWeight,
 			MortalityRate:                mortality,
 			FCR:                          fcr,
 			HDP:                          hdp,

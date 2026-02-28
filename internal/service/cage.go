@@ -539,13 +539,17 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 		cageFeedsMapByCategory[e.ChickenCategory.String()] = e
 	}
 
-	responses := make([]dto.ChickenCageFeedListResponse, len(data))
-	for i, e := range data {
+	responses := make([]dto.ChickenCageFeedListResponse, 0)
+	for _, e := range data {
+		if !e.Cage.IsUsed {
+			continue
+		}
+
 		resp := mapper.ChickenCageFeedToListResponse(&e)
 		resp.TotalFeed = (cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed * float64(e.TotalChicken) / 1000.0) - cageFeedStockMap[e.CageId]
 		resp.FeedPerChicken = cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed
 		resp.FeedType = cageFeedsMapByCategory[resp.ChickenCategory].FeedType.String()
-		responses[i] = resp
+		responses = append(responses, resp)
 	}
 
 	return responses, nil
