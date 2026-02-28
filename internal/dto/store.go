@@ -186,6 +186,7 @@ type StoreSaleResponse struct {
 	Customer                      CustomerResponse           `json:"customer"`
 	WarehouseItem                 ItemResponse               `json:"item"`
 	Store                         StoreResponse              `json:"store"`
+	Discount                      float64                    `json:"discount"`
 	Quantity                      float64                    `json:"quantity"`
 	SaleUnit                      string                     `json:"saleUnit"`
 	PaymentType                   string                     `json:"paymentType"`

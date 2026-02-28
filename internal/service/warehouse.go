@@ -1285,7 +1285,7 @@ func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) erro
 
 	if warehouseSale.IsSend {
 		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
-		return errx.BadRequest("store sale already send")
+		return errx.BadRequest("warehouse sale already send")
 	}
 
 	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseSale.WarehouseId, warehouseSale.ItemId)

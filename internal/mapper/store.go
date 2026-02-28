@@ -111,6 +111,7 @@ func StoreSaleToResponse(storeSale *entity.StoreSale) dto.StoreSaleResponse {
 		PaymentType:   storeSale.PaymentType.String(),
 		PaymentStatus: storeSale.PaymentStatus.String(),
 		IsSend:        storeSale.IsSend,
+		Discount:      storeSale.Discount,
 	}
 
 	if storeSale.DeadlinePaymentDate.Valid {

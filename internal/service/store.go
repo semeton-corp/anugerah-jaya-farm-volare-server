@@ -402,10 +402,10 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 			s.log.Error("failed to create store request item", zap.Error(err))
 			return dto.StoreRequestItemResponse{}, err
 		}
-
-		// Note : Update the current store request item quantity
-		storeRequestItem.Quantity = request.Quantity
 	}
+
+	// Note : Update the current store request item quantity
+	storeRequestItem.Quantity = request.Quantity
 
 	jsonWarehouseHistoryParsed, err := json.Marshal(entity.WarehouseItemHistory{
 		ItemName:       storeRequestItem.Item.Name,
