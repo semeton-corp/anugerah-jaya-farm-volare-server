@@ -932,6 +932,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		if request.CustomerId < 1 {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
 		}
+
 		storeSale.CustomerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
@@ -951,6 +952,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}
+
 		storeSale.CustomerId = resp.Id
 	}
 
@@ -1013,6 +1015,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	for i := range payments {
 		payments[i].StoreSaleId = storeSale.Id
 	}
+
 	if len(payments) > 0 {
 		err = s.repository.CreateStoreSalePaymentInBatch(&payments)
 		if err != nil {
@@ -1990,6 +1993,33 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
+	var customerId uint64
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+		customerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer, userId)
+		if err != nil {
+			return dto.StoreSaleResponse{}, err
+		}
+		customerId = resp.Id
+	}
+
 	err := s.repository.DeleteStoreSaleQueue(id)
 	if err != nil {
 		return dto.StoreSaleResponse{}, err
@@ -2060,34 +2090,8 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		SaleUnit:      saleUnit,
 		PaymentType:   paymentType,
 		PaymentStatus: enum.PaymentStatusNotPaid,
-
-		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
-	}
-
-	if request.CustomerType == constant.OldCustomerType {
-		if request.CustomerId < 1 {
-			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
-		}
-		storeSale.CustomerId = request.CustomerId
-	} else {
-		customer := dto.CreateCustomerRequest{
-			Name:        request.CustomerName,
-			PhoneNumber: request.CustomerPhoneNumber,
-		}
-
-		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
-			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
-		}
-
-		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
-			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
-		}
-
-		resp, err := s.customerService.CreateCustomer(customer, userId)
-		if err != nil {
-			return dto.StoreSaleResponse{}, err
-		}
-		storeSale.CustomerId = resp.Id
+		CustomerId:    customerId,
+		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	payments := make([]entity.StoreSalePayment, 0, len(request.Payments))
@@ -2148,6 +2152,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	for i := range payments {
 		payments[i].StoreSaleId = storeSale.Id
 	}
+
 	if len(payments) > 0 {
 		err = s.repository.CreateStoreSalePaymentInBatch(&payments)
 		if err != nil {
