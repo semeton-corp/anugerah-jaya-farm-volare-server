@@ -861,6 +861,35 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
+	var customerId uint64
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		customerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
+			return dto.StoreSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer, userId)
+		if err != nil {
+			return dto.StoreSaleResponse{}, err
+		}
+
+		customerId = resp.Id
+	}
+
 	storeItem, err := s.repository.GetStoreItemByStoreIdAndItemId(request.StoreId, request.ItemId)
 	if err != nil {
 		s.log.Error("failed to get store item by store id and item id", zap.Error(err))
@@ -924,6 +953,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		IsSend:        false,
 		SaleUnit:      saleUnit,
 		PaymentType:   paymentType,
+		CustomerId:    customerId,
 		PaymentStatus: enum.PaymentStatusNotPaid,
 		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
 	}
@@ -1998,6 +2028,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		if request.CustomerId < 1 {
 			return dto.StoreSaleResponse{}, errx.BadRequest("customer id is required")
 		}
+
 		customerId = request.CustomerId
 	} else {
 		customer := dto.CreateCustomerRequest{
@@ -2017,6 +2048,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		if err != nil {
 			return dto.StoreSaleResponse{}, err
 		}
+
 		customerId = resp.Id
 	}
 

@@ -1586,6 +1586,35 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
+	var customerId uint64
+	if request.CustomerType == constant.OldCustomerType {
+		if request.CustomerId < 1 {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
+		}
+
+		customerId = request.CustomerId
+	} else {
+		customer := dto.CreateCustomerRequest{
+			Name:        request.CustomerName,
+			PhoneNumber: request.CustomerPhoneNumber,
+		}
+
+		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
+		}
+
+		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
+			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
+		}
+
+		resp, err := s.customerService.CreateCustomer(customer, userId)
+		if err != nil {
+			return dto.WarehouseSaleResponse{}, err
+		}
+
+		customerId = resp.Id
+	}
+
 	err := s.repository.DeleteWarehouseSaleQueue(id)
 	if err != nil {
 		return dto.WarehouseSaleResponse{}, err
@@ -1654,35 +1683,9 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		IsSend:        false,
 		SaleUnit:      saleUnit,
 		PaymentType:   paymentType,
+		CustomerId:    customerId,
 		PaymentStatus: enum.PaymentStatusNotPaid,
 		CreatedBy:     uuid.NullUUID{UUID: userId, Valid: true},
-	}
-
-	if request.CustomerType == constant.OldCustomerType {
-		if request.CustomerId < 1 {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer id is required")
-		}
-		warehouseSale.CustomerId = request.CustomerId
-	} else {
-		customer := dto.CreateCustomerRequest{
-			Name:        request.CustomerName,
-			PhoneNumber: request.CustomerPhoneNumber,
-		}
-		if request.CustomerName == "" || request.CustomerPhoneNumber == "" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer name and customer phone number is required")
-		}
-		if len(request.CustomerPhoneNumber) < 2 || request.CustomerPhoneNumber[:2] != "08" {
-			return dto.WarehouseSaleResponse{}, errx.BadRequest("customer phone number must be in valid format 08")
-		}
-		resp, err := s.customerService.CreateCustomer(customer, userId)
-		if err != nil {
-			return dto.WarehouseSaleResponse{}, err
-		}
-		warehouseSale.CustomerId = resp.Id
-	}
-
-	if len(request.Payments) == 0 {
-		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouseSalePayment is required")
 	}
 
 	totalPayment := decimal.Zero
