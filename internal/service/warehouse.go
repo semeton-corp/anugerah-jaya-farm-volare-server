@@ -848,6 +848,10 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, err
 	}
 
+	for i := range payments {
+		payments[i].WarehouseSaleId = warehouseSale.Id
+	}
+
 	if len(payments) > 0 {
 		err = s.repository.CreateWarehouseSalePaymentInBatch(&payments)
 		if err != nil {
@@ -1761,6 +1765,10 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 			s.log.Error("failed to delete customer", zap.Error(err))
 		}
 		return dto.WarehouseSaleResponse{}, err
+	}
+
+	for i := range payments {
+		payments[i].WarehouseSaleId = warehouseSale.Id
 	}
 
 	if len(payments) > 0 {
