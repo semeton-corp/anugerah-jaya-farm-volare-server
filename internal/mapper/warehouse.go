@@ -122,6 +122,7 @@ func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseS
 		Customer:   CustomerToResponse(&warehouseSale.Customer),
 		Price:      warehouseSale.Price.String(),
 		TotalPrice: warehouseSale.TotalPrice.String(),
+		Discount:   warehouseSale.Discount,
 		WarehouseItem: dto.ItemResponse{
 			Id:       warehouseSale.Item.Id,
 			Name:     warehouseSale.Item.Name,

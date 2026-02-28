@@ -271,6 +271,7 @@ type WarehouseSaleResponse struct {
 	PaymentType                   string                         `json:"paymentType"`
 	PaymentStatus                 string                         `json:"paymentStatus"`
 	Price                         string                         `json:"price"`
+	Discount                      float64                        `json:"discount"`
 	TotalPrice                    string                         `json:"totalPrice"`
 	IsSend                        bool                           `json:"isSend"`
 	Payments                      []WarehouseSalePaymentResponse `json:"payments"`
