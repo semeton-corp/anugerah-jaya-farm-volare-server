@@ -2524,17 +2524,20 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 		if err != nil {
 			return nil, err
 		}
-		totalDayInMonth := util.TotalDaysInMonth(today.Year(), today.Month())
+
+		totalDayInMonth := util.TotalDaysInMonthUntilNow(today.Year(), today.Month())
 		totalExpensePerDay := totalExpensePerMonth.Div(decimal.NewFromUint64(totalDayInMonth))
 
 		goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return nil, err
 		}
+
 		itemPriceGoodEgg, err := s.itemService.GetItemPriceByItemIdAndSaleUnit(goodEgg.Id, enum.SaleUnitKg.String())
 		if err != nil {
 			return nil, err
 		}
+
 		price, err := decimal.NewFromString(itemPriceGoodEgg.Price)
 		if err != nil {
 			return nil, errx.BadRequest("invalid egg item price")
@@ -2615,7 +2618,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			}
 
 			if response.TotalEgg > 0 {
-				response.FCR = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(response.TotalEgg)
+				response.FCR = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg)
 			} else {
 				response.FCR = 0
 			}

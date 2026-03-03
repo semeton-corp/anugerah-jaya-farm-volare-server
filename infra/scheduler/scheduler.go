@@ -413,7 +413,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		fcr := 0.0
 		if chickenCage.TotalChicken > 0 {
-			fcr = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(totalGoodEggCount) * 100.0
+			fcr = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg) * 100.0
 		}
 
 		hdp := 0.0
@@ -433,10 +433,8 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			return err
 		}
 
-		getTotalExpenseProductionInMonth := func(db *gorm.DB, month enum.Month, year uint64) (decimal.Decimal, error) {
+		getTotalExpenseProduction := func(db *gorm.DB, startDate time.Time, endDate time.Time) (decimal.Decimal, error) {
 			totalExpenseProduction := decimal.Zero
-			startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
-
 			var warehouseItemProcurements []entity.WarehouseItemProcurement
 			if err := db.Where("DATE(deadline_payment_date) BETWEEN ? AND ?", startDate, endDate).
 				Find(&warehouseItemProcurements).Error; err != nil {
@@ -490,13 +488,16 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			return totalExpenseProduction, nil
 		}
 
-		totalExpenseProduction, err := getTotalExpenseProductionInMonth(tx, enum.Month(time.Now().Month()), uint64(time.Now().Year()))
+		currYear := time.Now().Year()
+		currMonth := time.Month(enum.Month(time.Now().Month()))
+		startDate, endDate := util.GetStartDateAndEndDateInMonth(currYear, currMonth)
+		totalExpenseProduction, err := getTotalExpenseProduction(tx, startDate, endDate)
 		if err != nil {
 			return err
 		}
 
-		totalDayInMonth := util.TotalDaysInMonth(today.Year(), today.Month())
-		totalExpensePerDay := totalExpenseProduction.Div(decimal.NewFromUint64(totalDayInMonth))
+		totalDayInMonth := util.TotalDaysInMonthUntilNow(currYear, currMonth)
+		totalExpensePerDay := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(totalDayInMonth)))
 
 		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
 		chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)

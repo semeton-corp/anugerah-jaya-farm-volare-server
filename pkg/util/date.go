@@ -102,6 +102,14 @@ func TotalDaysInMonth(year int, month time.Month) uint64 {
 	return uint64(daysInMonth)
 }
 
+func TotalDaysInMonthUntilNow(year int, month time.Month) uint64 {
+	currentDate := time.Now()
+	startDate := time.Date(year, month, 1, 0, 0, 0, 0, time.Local)
+
+	days := currentDate.Sub(startDate).Hours() / 24
+	return uint64(days)
+}
+
 func FindWeek(t time.Time, weeks map[int]DateRange) int {
 	for i, week := range weeks {
 		if !t.Before(week.StartDate) && !t.After(week.EndDate) {
