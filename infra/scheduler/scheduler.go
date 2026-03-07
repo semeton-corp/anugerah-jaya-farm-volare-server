@@ -408,7 +408,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		mortality := 0.0
 		if chickenCage.TotalChicken > 0 {
-			mortality = float64(chickenMonitorinMap[chickenCage.Id].TotalDeathChicken) / float64(chickenCage.TotalChicken)
+			mortality = float64(chickenMonitorinMap[chickenCage.Id].TotalDeathChicken) / float64(chickenMonitorinMap[chickenCage.Id].TotalChicken)
 		}
 
 		fcr := 0.0
