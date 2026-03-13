@@ -678,8 +678,6 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 }
 
 func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error) {
-	// jadi kalau pindah semua ayam di kandang sebelumnya masih nyantol, perlu dibuatin chicken cages baru
-
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -706,18 +704,29 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 		return nil, err
 	}
 
-	for _, chickenCage := range destinationChickenCages {
-		if chickenCage.Cage.IsUsed {
-			return nil, errx.BadRequest(fmt.Sprintf("cage with id %d is used", chickenCage.Cage.Id))
-		}
-	}
-
 	destinationCages, err := s.repository.GetCagesByIds(destinationCageIds)
 	if err != nil {
 		s.log.Error("failed get cages by ids", zap.Error(err))
 		return nil, err
 	}
 
+	destinationCagesMapById := make(map[uint64]entity.Cage)
+	for _, dest := range destinationCages {
+		destinationCagesMapById[dest.Id] = dest
+	}
+
+	destinationChickenCagesMapByCageId := make(map[uint64]entity.ChickenCage)
+	for _, dest := range destinationChickenCages {
+		destinationChickenCagesMapByCageId[dest.CageId] = dest
+	}
+
+	for _, chickenCage := range destinationChickenCages {
+		if chickenCage.Cage.IsUsed && chickenCage.ChickenProcurementId != sourceChickenCage.ChickenProcurementId {
+			return nil, errx.BadRequest(fmt.Sprintf("cage with id %d is used and not suitable batch id", chickenCage.Cage.Id))
+		}
+	}
+
+	// Note : n+1 query
 	for _, destinationCage := range destinationCages {
 		destinationCage.IsUsed = true
 
@@ -729,15 +738,32 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 	}
 
 	newChickenCages := make([]entity.ChickenCage, 0)
+	updateChickenCages := make([]entity.ChickenCage, 0)
 	totalMoveChicken := uint64(0)
 
-	for _, dest := range request.DestinationChickenCages {
-		newChickenCages = append(newChickenCages, entity.ChickenCage{
-			CageId:               dest.DestinationCageId,
-			TotalChicken:         dest.TotalChicken,
-			ChickenProcurementId: sourceChickenCage.ChickenProcurementId,
-		})
-		totalMoveChicken += dest.TotalChicken
+	for _, request := range request.DestinationChickenCages {
+		if destinationChickenCagesMapByCageId[request.DestinationCageId].ChickenProcurementId == sourceChickenCage.ChickenProcurementId {
+			updateChickenCage := destinationChickenCagesMapByCageId[request.DestinationCageId]
+			updateChickenCage.TotalChicken += request.TotalChicken
+			updateChickenCages = append(updateChickenCages, updateChickenCage)
+
+			if updateChickenCage.TotalChicken > destinationCagesMapById[request.DestinationCageId].Capacity {
+				return nil, errx.BadRequest(fmt.Sprintf("total chicken for cage id %d is more than capacity", request.DestinationCageId))
+			}
+		} else {
+			newChickenCage := entity.ChickenCage{
+				CageId:               request.DestinationCageId,
+				TotalChicken:         request.TotalChicken,
+				ChickenProcurementId: sourceChickenCage.ChickenProcurementId,
+			}
+			newChickenCages = append(newChickenCages, newChickenCage)
+
+			if newChickenCage.TotalChicken > destinationCagesMapById[request.DestinationCageId].Capacity {
+				return nil, errx.BadRequest(fmt.Sprintf("total chicken for cage id %d is more than capacity", request.DestinationCageId))
+			}
+		}
+
+		totalMoveChicken += request.TotalChicken
 	}
 
 	if sourceChickenCage.TotalChicken < totalMoveChicken {
@@ -767,9 +793,21 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 		return nil, err
 	}
 
-	if err := s.repository.CreateChickenCageInBatch(&newChickenCages); err != nil {
-		s.log.Error("failed create chicken cage in batch", zap.Error(err))
-		return nil, err
+	if len(newChickenCages) > 0 {
+		if err := s.repository.CreateChickenCageInBatch(&newChickenCages); err != nil {
+			s.log.Error("failed create chicken cage in batch", zap.Error(err))
+			return nil, err
+		}
+	}
+
+	if len(updateChickenCages) > 0 {
+		// Note : n+1 query problem
+		for _, updateChickenCage := range updateChickenCages {
+			if err := s.repository.UpdateChickenCage(&updateChickenCage); err != nil {
+				s.log.Error("failed to update chicken cage", zap.Error(err))
+				return nil, err
+			}
+		}
 	}
 
 	if err := s.repository.Commit(); err != nil {
@@ -779,6 +817,10 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 
 	chickenCageIds := make([]uint64, len(newChickenCages))
 	for i, cc := range newChickenCages {
+		chickenCageIds[i] = cc.Id
+	}
+
+	for i, cc := range updateChickenCages {
 		chickenCageIds[i] = cc.Id
 	}
 

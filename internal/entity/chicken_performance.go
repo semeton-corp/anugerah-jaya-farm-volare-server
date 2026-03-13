@@ -7,7 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
-// Todo : maybe in the future we can use the cage name froom chicken cage
+// Todo : maybe in the future we can use the cage name from chicken cage
 type ChickenPerformance struct {
 	Id                           uint64                   `gorm:"primaryKey:autoIncrement"`
 	ChickenCageId                uint64                   `gorm:"type:bigint;not null"`

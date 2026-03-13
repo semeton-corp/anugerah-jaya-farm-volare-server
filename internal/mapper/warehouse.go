@@ -114,7 +114,7 @@ func WarehouseItemHistoryToListResponse(warehouseItemHistory *entity.WarehouseIt
 	}
 }
 
-// Note : without payments, payment payment
+// Note : without payments
 func WarehouseSaleToResponse(warehouseSale *entity.WarehouseSale) dto.WarehouseSaleResponse {
 	response := dto.WarehouseSaleResponse{
 		Id:         warehouseSale.Id,
