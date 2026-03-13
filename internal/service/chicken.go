@@ -2617,7 +2617,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				response.HDP = 0
 			}
 
-			if response.TotalEgg > 0 {
+			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
 				response.FCR = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg)
 			} else {
 				response.FCR = 0
@@ -2751,8 +2751,8 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		totalChicken += chickenCage.TotalChicken
 		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
 		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
-		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
-		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
+		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg
 
 		count := chickenCage.TotalChicken
 		switch chickenCage.ChickenCategory {
@@ -2781,7 +2781,7 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 
 	avgFCR := 0.0
 	if totalEgg > 0 {
-		avgFCR = totalFeed / float64(totalEgg)
+		avgFCR = totalFeed / float64(totalWeightEgg)
 	}
 
 	avgHDP := 0.0
@@ -2867,8 +2867,8 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		totalChicken += chickenCage.TotalChicken
 		totalFeed += chickenMonitoringMap[chickenCage.Id].TotalFeed
 		totalDeathChicken += chickenMonitoringMap[chickenCage.Id].TotalDeathChicken
-		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetCrackedEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg + (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
-		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg
+		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
+		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg
 
 		switch chickenCage.ChickenCategory {
 		case enum.ChickenCategoryDOC.String():
