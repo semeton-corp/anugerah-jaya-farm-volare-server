@@ -338,7 +338,6 @@ func (s *Scheduler) refreshChickenCageNeedFeed(tx *gorm.DB) error {
 	return nil
 }
 
-// Todo : check this!!!
 func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	s.log.Info("create kpi performance chicken cage")
 
@@ -412,7 +411,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		}
 
 		fcr := 0.0
-		if chickenCage.TotalChicken > 0 {
+		if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
 			fcr = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg) * 100.0
 		}
 
