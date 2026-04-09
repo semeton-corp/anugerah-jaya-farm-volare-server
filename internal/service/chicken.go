@@ -2920,11 +2920,15 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		rcRatio = diff.Div(totalExpenseProduction).InexactFloat64() * 100.0
 	}
 
-	mos := totalIncomeProduction.Sub(diff).Sub(totalIncomeProduction).InexactFloat64()
+	mos := float64(0)
+	if !totalIncomeProduction.IsZero() {
+		actualMinBep := totalIncomeProduction.Sub(diff)
+		mos = actualMinBep.Div(totalIncomeProduction).InexactFloat64() * 100.0
+	}
 
 	incomeAndExpenseGraphs := make([]dto.IncomeAndExpenseBarChartResponse, 0)
 	cashflowHistories, err := s.cashflowService.GetCashflowHistories(dto.GetCashflowHistoryFilter{
-		Year:       uint64(time.Now().Year()),
+		Year:       filter.Year,
 		LocationId: filter.LocationId,
 	})
 
