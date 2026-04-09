@@ -1249,18 +1249,21 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid sale unit")
 	}
 
-	realQuantity := request.Quantity
-	tempStoreSaleQuantity := storeSale.Quantity
+	reqQuantity := request.Quantity
 	if saleUnit == enum.SaleUnitIkat {
-		realQuantity *= float64(constant.TotalEggPerIkat)
-		tempStoreSaleQuantity *= float64(constant.TotalEggPerIkat)
+		reqQuantity *= float64(constant.TotalEggPerIkat)
 	}
 
-	if storeItem.Quantity+tempStoreSaleQuantity < realQuantity {
+	currQuantity := storeSale.Quantity
+	if storeSale.SaleUnit == enum.SaleUnitIkat {
+		currQuantity *= float64(constant.TotalEggPerIkat)
+	}
+
+	if storeItem.Quantity+currQuantity < reqQuantity {
 		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
-	storeItem.Quantity += storeSale.Quantity - realQuantity
+	storeItem.Quantity += (storeSale.Quantity + currQuantity) - reqQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
@@ -1281,6 +1284,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 	storeSale.TotalPrice = totalPrice.Sub(discountPrice)
 	storeSale.Price = price
 	storeSale.Discount = request.Discount
+	storeSale.SaleUnit = saleUnit
 
 	totalPayment := decimal.Zero
 	for _, payment := range storeSale.Payments {
