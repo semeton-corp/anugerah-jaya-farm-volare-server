@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type WarehouseRepository struct {
@@ -32,6 +33,7 @@ type IWarehouseRepository interface {
 	FirstOrCreateWarehouseItem(warehouseItem entity.WarehouseItem) (entity.WarehouseItem, error)
 	CreateWarehouseItemInBatch(warehouseItems *[]entity.WarehouseItem) error
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]entity.WarehouseItem, error)
+	CreateOrUpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (entity.WarehouseItem, error)
 	GetWarehouseItemByWarehouseIdAndItemIds(warehouseId uint64, itemIds []uint64) ([]entity.WarehouseItem, error)
 	GetWarehouseItemCorn(id uint64) (entity.WarehouseItemCorn, error)
@@ -196,6 +198,26 @@ func (r *WarehouseRepository) DeleteWarehouse(id uint64) error {
 
 func (r *WarehouseRepository) CreateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
 	if err := r.GetDB().Create(warehouseItem).Error; err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errx.BadRequest("warehouse item already exists")
+		} else if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return errx.BadRequest("invalid warehouse or item")
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (r *WarehouseRepository) CreateOrUpdateWarehouseItem(warehouseItem *entity.WarehouseItem) error {
+	if err := r.GetDB().Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "warehouse_id"}, {Name: "item_id"}},
+		DoUpdates: clause.Assignments(map[string]interface{}{
+			"quantity":   warehouseItem.Quantity,
+			"expired_at": warehouseItem.ExpiredAt,
+			"updated_by": warehouseItem.UpdatedBy,
+		}),
+	}).Create(warehouseItem).Error; err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			return errx.BadRequest("warehouse item already exists")
 		} else if errors.Is(err, gorm.ErrForeignKeyViolated) {

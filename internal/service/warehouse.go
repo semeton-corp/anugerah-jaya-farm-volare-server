@@ -45,6 +45,7 @@ type IWarehouseService interface {
 	GetWarehouseItems(filter dto.GetWarehouseItemFilter) ([]dto.WarehouseItemResponse, error)
 	GetWarehouseItemByWarehouseIdAndItemId(warehouseId uint64, itemId uint64) (dto.WarehouseItemResponse, error)
 	UpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error)
+	CreateOrUpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error)
 	UpdateWarehouseItemCorn(id uint64, request dto.UpdateWarehouseItemCornRequest, userId uuid.UUID) (dto.WarehouseItemCornResponse, error)
 	DeleteWarehouseItem(warehouseId uint64, itemId uint64) error
 	GetEggWarehouseItemSummary(warehouseId uint64) ([]dto.EggWarehouseItemSummaryResponse, error)
@@ -236,6 +237,11 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, u
 		return dto.WarehouseResponse{}, err
 	}
 
+	readyToEatFeed, err := s.itemService.GetItemByNameAndUnitAndType(constant.ReadyToEatFeed, constant.UnitKg, enum.ItemCategoryReadyToEatFeed)
+	if err != nil {
+		return dto.WarehouseResponse{}, err
+	}
+
 	warehouseItems := make([]entity.WarehouseItem, 0)
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
@@ -258,6 +264,12 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, u
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      cornItem.Id,
+		Quantity:    0,
+	})
+
+	warehouseItems = append(warehouseItems, entity.WarehouseItem{
+		WarehouseId: warehouse.Id,
+		ItemId:      readyToEatFeed.Id,
 		Quantity:    0,
 	})
 
@@ -324,6 +336,34 @@ func (s *WarehouseService) CreateWarehouseItem(request dto.CreateWarehouseItemRe
 	err := s.repository.CreateWarehouseItem(&stockWarehouseItem)
 	if err != nil {
 		s.log.Error("failed to create warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
+	}
+
+	stockWarehouseItem, err = s.repository.GetWarehouseItemByWarehouseIdAndItemId(
+		stockWarehouseItem.WarehouseId,
+		stockWarehouseItem.ItemId,
+	)
+	if err != nil {
+		s.log.Error("failed to get warehouse item", zap.Error(err))
+		return dto.WarehouseItemResponse{}, err
+	}
+
+	return mapper.WarehouseItemToResponse(&stockWarehouseItem), nil
+}
+
+func (s *WarehouseService) CreateOrUpdateWarehouseItem(warehouseId uint64, itemId uint64, request dto.UpdateWarehouseItemRequest, userId uuid.UUID) (dto.WarehouseItemResponse, error) {
+	s.repository.UseTx(false)
+
+	stockWarehouseItem := entity.WarehouseItem{
+		WarehouseId: warehouseId,
+		ItemId:      itemId,
+		Quantity:    request.Quantity,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
+	}
+
+	err := s.repository.CreateOrUpdateWarehouseItem(&stockWarehouseItem)
+	if err != nil {
+		s.log.Error("failed to create or update warehouse item", zap.Error(err))
 		return dto.WarehouseItemResponse{}, err
 	}
 

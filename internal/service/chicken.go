@@ -175,6 +175,11 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 			return dto.ChickenMonitoringResponse{}, err
 		}
 
+		err = s.cageService.MoveCageFeedStocksIntoWarehouse(chickenCage.Cage.Id, userId)
+		if err != nil {
+			return dto.ChickenMonitoringResponse{}, err
+		}
+
 		isUsed := false
 		_, err = s.cageService.UpdateCage(chickenCage.Cage.Id, dto.UpdateCageRequest{
 			Name:            chickenCage.Cage.Name,

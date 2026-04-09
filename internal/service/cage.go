@@ -10,6 +10,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/mapper"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
@@ -20,6 +21,7 @@ type CageService struct {
 	log              *zap.Logger
 	repository       repository.ICageRepository
 	warehouseService IWarehouseService
+	itemService      IItemService
 }
 
 type ICageService interface {
@@ -48,13 +50,16 @@ type ICageService interface {
 	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 
 	ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error
+
+	MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid.UUID) error
 }
 
-func NewCageService(log *zap.Logger, repository repository.ICageRepository, warehouseService IWarehouseService) ICageService {
+func NewCageService(log *zap.Logger, repository repository.ICageRepository, warehouseService IWarehouseService, itemService IItemService) ICageService {
 	return &CageService{
 		log:              log,
 		repository:       repository,
 		warehouseService: warehouseService,
+		itemService:      itemService,
 	}
 }
 
@@ -774,6 +779,11 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 	if sourceChickenCage.TotalChicken == 0 {
 		sourceCage.IsUsed = false
 
+		err := s.MoveCageFeedStocksIntoWarehouse(sourceCage.Id, userId)
+		if err != nil {
+			return nil, err
+		}
+
 		if err := s.repository.UpdateCage(&sourceCage); err != nil {
 			s.log.Error("failed update cage", zap.Error(err))
 			return nil, err
@@ -912,6 +922,52 @@ func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds floa
 
 	if err := s.repository.Commit(); err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (s *CageService) MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid.UUID) error {
+	cageFeedStocks, err := s.repository.GetCageFeedStocks(dto.GetCageFeedStockFilter{
+		CageId: cageId,
+	})
+	if err != nil {
+		s.log.Error("failed to get cage feed stocks", zap.Error(err))
+		return err
+	}
+
+	totalCurrentFeed := float64(0)
+	for _, e := range cageFeedStocks {
+		totalCurrentFeed += e.TotalFeed - e.UsedFeed
+	}
+
+	cage, err := s.repository.GetCageById(cageId)
+	if err != nil {
+		return err
+	}
+
+	readyToEatFeed, err := s.itemService.GetItemByNameAndUnitAndType(constant.ReadyToEatFeed, constant.UnitKg, enum.ItemCategoryReadyToEatFeed)
+	if err != nil {
+		return err
+	}
+
+	warehouses, err := s.warehouseService.GetWarehouses(dto.GetWarehouseFilter{
+		LocationId: cage.LocationId,
+	})
+	if err != nil {
+		return err
+	}
+
+	warehouseId := uint64(0)
+	if len(warehouses) > 0 {
+		warehouseId = warehouses[0].Id
+	}
+
+	_, err = s.warehouseService.CreateOrUpdateWarehouseItem(warehouseId, readyToEatFeed.Id, dto.UpdateWarehouseItemRequest{
+		Quantity: totalCurrentFeed,
+	}, userId)
+	if err != nil {
 		return err
 	}
 
