@@ -79,7 +79,7 @@ type WarehouseSendUnknownStoreRequestItem struct {
 type StoreRequestItemResponse struct {
 	Id                   uint64            `json:"id"`
 	Warehouse            WarehouseResponse `json:"warehouse"`
-	Store                StoreResponse     `json:"store"`
+	Store                StoreResponse     `json:"store,omitzero"`
 	Item                 ItemResponse      `json:"item"`
 	Quantity             float64           `json:"quantity"`
 	Status               string            `json:"status"`

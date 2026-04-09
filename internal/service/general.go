@@ -47,7 +47,7 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 	}
 
 	storeSales, err := s.storeService.GetStoreSales(dto.GetStoreSaleFilter{
-		Date: param.DateParam(time.Now().AddDate(0, 0, -1)),
+		Date: param.DateParam(time.Now()),
 	})
 	if err != nil {
 		return dto.GeneralOverview{}, err

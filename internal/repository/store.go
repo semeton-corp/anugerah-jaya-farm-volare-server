@@ -192,7 +192,13 @@ func (r *StoreRepository) GetStoreRequestItems(filter dto.GetStoreRequestItemFil
 		query = query.Offset(int((filter.Page - 1) * constant.PaginationDefaultLimit)).Limit(int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Store.Location").Preload("Item").Find(&storeRequestItems).Order("created_at ASC").Error
+	err := query.
+		Order("created_at ASC").
+		Preload("Warehouse.Location").
+		Preload("Store.Location").
+		Preload("Item").
+		Find(&storeRequestItems).Error
+
 	if err != nil {
 		return nil, err
 	}
@@ -389,7 +395,7 @@ func (r *StoreRepository) GetStoreSales(filter dto.GetStoreSaleFilter) ([]entity
 		query = query.Where("payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Find(&storeSales).Order("created_at DESC").Error
+	err := query.Preload("Store.Location").Preload("Customer").Preload("Item").Preload("Payments").Order("created_at DESC").Find(&storeSales).Error
 	if err != nil {
 		return nil, err
 	}
