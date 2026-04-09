@@ -362,7 +362,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	notifications := make([]entity.Notification, 0)
 
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
-	chickenMonitorinMap := make(map[uint64]entity.ChickenMonitoring)
+	chickenMonitoringMap := make(map[uint64]entity.ChickenMonitoring)
 	eggMonitoringMap := make(map[uint64]entity.EggMonitoring)
 
 	var eggMonitorings []entity.EggMonitoring
@@ -381,7 +381,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 	}
 
 	for _, chickenMonitoring := range chickenMonitorings {
-		chickenMonitorinMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
+		chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 	}
 
 	for _, chickenCage := range chickenCages {
@@ -391,11 +391,11 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		avgConsumption := 0.0
 		if chickenCage.TotalChicken > 0 {
-			avgConsumption = (chickenMonitorinMap[chickenCage.Id].TotalFeed * 1000) / float64(chickenCage.TotalChicken)
+			avgConsumption = (chickenMonitoringMap[chickenCage.Id].TotalFeed * 1000) / float64(chickenCage.TotalChicken)
 		}
 
 		isGetFeed := false
-		if chickenMonitorinMap[chickenCage.Id].TotalFeed > 0 {
+		if chickenMonitoringMap[chickenCage.Id].TotalFeed > 0 {
 			isGetFeed = true
 		}
 
@@ -406,13 +406,13 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		}
 
 		mortality := 0.0
-		if chickenCage.TotalChicken > 0 {
-			mortality = float64(chickenMonitorinMap[chickenCage.Id].TotalDeathChicken) / float64(chickenMonitorinMap[chickenCage.Id].TotalChicken)
+		if chickenMonitoringMap[chickenCage.Id].TotalChicken > 0 {
+			mortality = float64(chickenMonitoringMap[chickenCage.Id].TotalDeathChicken) / float64(chickenMonitoringMap[chickenCage.Id].TotalChicken)
 		}
 
 		fcr := 0.0
 		if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
-			fcr = float64(chickenMonitorinMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg) * 100.0
+			fcr = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg) * 100.0
 		}
 
 		hdp := 0.0
