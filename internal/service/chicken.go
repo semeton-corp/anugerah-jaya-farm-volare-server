@@ -2428,7 +2428,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
-	takenAt, err := time.Parse("02-01-2026", request.TakenAt)
+	takenAt, err := time.Parse("02-01-2006", request.TakenAt)
 	if err != nil {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid taken at format")
 	}
