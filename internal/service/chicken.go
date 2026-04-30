@@ -2611,14 +2611,6 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			return nil, err
 		}
 
-		totalExpensePerMonth, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(today.Month()), uint64(today.Year()))
-		if err != nil {
-			return nil, err
-		}
-
-		totalDayInMonth := util.TotalDaysInMonthUntilNow(today.Year(), today.Month())
-		totalExpensePerDay := totalExpensePerMonth.Div(decimal.NewFromUint64(totalDayInMonth))
-
 		goodEgg, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return nil, err
@@ -2710,12 +2702,20 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			if chickenCage.ChickenAge >= 90 {
 				response.Productivity = enum.ChickenProductivityAfkir.String()
 			} else {
-				totalPrice := decimal.Zero
-				if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
-					totalPrice = price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
+				totalExpenseProduction, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(today.Month()), uint64(today.Year()))
+				if err != nil {
+					return nil, err
 				}
 
-				if totalPrice.Sub(totalExpensePerDay).GreaterThanOrEqual(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
+				budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(chickenCage.FirstTotalChicken)).Mul(decimal.NewFromUint64(chickenCage.ChickenAge * 7)))
+				budgetCage := budgetPerChicken.Mul(decimal.NewFromUint64(chickenCage.TotalChicken))
+
+				totalIncomeFromGoodEgg := decimal.Zero
+				if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
+					totalIncomeFromGoodEgg = price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
+				}
+
+				if totalIncomeFromGoodEgg.Sub(budgetCage).GreaterThan(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
 					response.Productivity = enum.ChickenProductivityProductive.String()
 				} else {
 					response.Productivity = enum.ChickenProductivityAfkir.String()

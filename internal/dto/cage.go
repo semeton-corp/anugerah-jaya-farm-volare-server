@@ -56,6 +56,7 @@ type ChickenCageResponse struct {
 	EggPic                         string       `json:"eggPic"`
 	IsNeedRoutineVaccine           bool         `json:"isNeedRoutineVaccine"`
 	LatestChickenAgeVaccineRoutine *int64       `json:"-"`
+	FirstTotalChicken              uint64       `json:"-"`
 }
 
 type GetChickenCageFilter struct {

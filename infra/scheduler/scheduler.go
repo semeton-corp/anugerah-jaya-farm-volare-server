@@ -384,6 +384,11 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 	}
 
+	totalChickenPopulation := uint64(0)
+	for _, chickenCage := range chickenCages {
+		totalChickenPopulation += chickenCage.TotalChicken
+	}
+
 	for _, chickenCage := range chickenCages {
 		if !chickenCage.Cage.IsUsed {
 			continue
@@ -484,17 +489,6 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			return totalExpenseProduction, nil
 		}
 
-		currYear := time.Now().Year()
-		currMonth := time.Month(enum.Month(time.Now().Month()))
-		startDate, endDate := util.GetStartDateAndEndDateInMonth(currYear, currMonth)
-		totalExpenseProduction, err := getTotalExpenseProduction(tx, startDate, endDate)
-		if err != nil {
-			return err
-		}
-
-		totalDayInMonth := util.TotalDaysInMonthUntilNow(currYear, currMonth)
-		totalExpensePerDay := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(totalDayInMonth)))
-
 		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
 		chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 
@@ -516,16 +510,29 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		if chickenAge >= 90 {
 			newData.Productivity = enum.ChickenProductivityAfkir
+		} else if chickenCategory == enum.ChickenCategoryDOC || chickenCategory == enum.ChickenCategoryGrower {
+			newData.Productivity = enum.ChickenProductivityNotClassified
 		} else {
 			var (
-				totalPrice = decimal.Zero
+				totalIncomeFromGoodEgg = decimal.Zero
 			)
 
-			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
-				totalPrice = goodEggItemPrice.Price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
+			currYear := time.Now().Year()
+			currMonth := time.Month(enum.Month(time.Now().Month()))
+			startDate, endDate := util.GetStartDateAndEndDateInMonth(currYear, currMonth)
+			totalExpenseProduction, err := getTotalExpenseProduction(tx, startDate, endDate)
+			if err != nil {
+				return err
 			}
 
-			if totalPrice.Sub(totalExpensePerDay).GreaterThanOrEqual(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
+			budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(chickenCage.ChickenProcurement.ReceiveQuantity.Int64)).Mul(decimal.NewFromUint64(chickenAge * 7)))
+			budgetCage := budgetPerChicken.Mul(decimal.NewFromUint64(chickenCage.TotalChicken))
+
+			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
+				totalIncomeFromGoodEgg = goodEggItemPrice.Price.Mul(decimal.NewFromFloat(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg))
+			}
+
+			if totalIncomeFromGoodEgg.Sub(budgetCage).GreaterThan(decimal.NewFromInt(constant.MinProfitForCageNotAfkir)) {
 				newData.Productivity = enum.ChickenProductivityProductive
 			} else {
 				newData.Productivity = enum.ChickenProductivityAfkir

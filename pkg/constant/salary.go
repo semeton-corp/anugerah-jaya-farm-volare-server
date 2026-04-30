@@ -6,5 +6,5 @@ const (
 	BonusGoodPerformancePercentage = 0.15
 	BonusBadPerformancePercentage  = 0.1
 
-	MinProfitForCageNotAfkir = 200_000
+	MinProfitForCageNotAfkir = 100_000
 )

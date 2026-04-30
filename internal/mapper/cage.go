@@ -54,6 +54,7 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		ChickenPic:           chickenPic,
 		EggPic:               eggPic,
 		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
+		FirstTotalChicken:    uint64(chickenCage.ChickenProcurement.ReceiveQuantity.Int64),
 	}
 
 	if chickenCage.ChickenProcurementId.Valid {
