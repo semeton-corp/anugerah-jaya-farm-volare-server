@@ -2428,6 +2428,10 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+	takenAt, err := time.Parse("02-01-2026", request.TakenAt)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("invalid taken at format")
+	}
 
 	dateNow := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	afkirSale := entity.AfkirChickenSale{
@@ -2439,6 +2443,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		ChickenAge:             chickenCage.ChickenAge,
 		PaymentStatus:          enum.PaymentStatusNotPaid,
 		PaymentType:            paymentType,
+		TakenAt:                takenAt,
 		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
