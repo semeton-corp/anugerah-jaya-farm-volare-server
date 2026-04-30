@@ -13,6 +13,7 @@ type ChickenMonitoring struct {
 	ChickenCage       ChickenCage   `gorm:"foreignKey:ChickenCageId;references:Id;constraint:OnDelete:CASCADE"`
 	TotalChicken      uint64        `gorm:"bigint;not null;default:0"`
 	TotalDeathChicken uint64        `gorm:"type:bigint;not null;default:0"`
+	MortalityRate     float64       `gorm:"type:decimal;not null;default:0"`
 	TotalSickChicken  uint64        `gorm:"type:bigint;not null"`
 	TotalFeed         float64       `gorm:"type:decimal;not null"`
 	Note              string        `gorm:"type:text"`

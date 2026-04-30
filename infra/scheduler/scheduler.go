@@ -405,10 +405,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			avgGoodEggWeight = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg * 1000) / float64(totalGoodEggCount)
 		}
 
-		mortality := 0.0
-		if chickenMonitoringMap[chickenCage.Id].TotalChicken > 0 {
-			mortality = float64(chickenMonitoringMap[chickenCage.Id].TotalDeathChicken) / float64(chickenMonitoringMap[chickenCage.Id].TotalChicken)
-		}
+		mortality := chickenMonitoringMap[chickenCage.Id].MortalityRate
 
 		fcr := 0.0
 		if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
@@ -416,7 +413,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		}
 
 		hdp := 0.0
-		if totalGoodEggCount > 0 {
+		if chickenCage.TotalChicken > 0 {
 			hdp = float64(totalGoodEggCount) / float64(chickenCage.TotalChicken) * 100.0
 		}
 

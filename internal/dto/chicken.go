@@ -104,11 +104,12 @@ type ChickenHealthMonitoringDetailResponse struct {
 }
 
 type GetChickenMonitoringFilter struct {
-	Date       param.DateParam `query:"date"`
-	LocationId uint64          `query:"locationId"`
-	CageId     uint64
-	StartDate  param.DateParam
-	EndDate    param.DateParam
+	Date          param.DateParam `query:"date"`
+	LocationId    uint64          `query:"locationId"`
+	CageId        uint64
+	ChickenCageId uint64
+	StartDate     param.DateParam
+	EndDate       param.DateParam
 }
 
 type GetChickenOverviewFilter struct {

@@ -152,7 +152,9 @@ func (r *ChickenRepository) GetChickenMonitoringById(id uint64) (entity.ChickenM
 func (r *ChickenRepository) UpdateChickenMonitoring(chickenMonitoring *entity.ChickenMonitoring) error {
 	return r.GetDB().Model(&entity.ChickenMonitoring{}).Where("id = ?", chickenMonitoring.Id).Updates(map[string]interface{}{
 		"chicken_cage_id":     chickenMonitoring.ChickenCageId,
+		"total_chicken":       chickenMonitoring.TotalChicken,
 		"total_death_chicken": chickenMonitoring.TotalDeathChicken,
+		"mortality_rate":      chickenMonitoring.MortalityRate,
 		"total_sick_chicken":  chickenMonitoring.TotalSickChicken,
 		"total_feed":          chickenMonitoring.TotalFeed,
 		"note":                chickenMonitoring.Note,
@@ -171,6 +173,10 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 
 	if !filter.Date.Value().IsZero() {
 		query = query.Where("DATE(chicken_monitorings.created_at) = ?", filter.Date.Value())
+	}
+
+	if filter.ChickenCageId > 0 {
+		query = query.Where("chicken_monitorings.chicken_cage_id = ?", filter.ChickenCageId)
 	}
 
 	if filter.LocationId > 0 {
