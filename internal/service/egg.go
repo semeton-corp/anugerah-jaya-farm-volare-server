@@ -167,7 +167,7 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 
 		_, err = s.storeService.CreateStoreRequestItemFromEggMonitoring(dto.CreateStoreRequestItemRequest{
 			WarehouseId: request.WarehouseId,
-			Quantity:    math.Ceil(float64(request.TotalWeightCrackedEgg) / float64(constant.TotalEggPerIkat)),
+			Quantity:    float64(request.TotalWeightCrackedEgg),
 			ItemId:      crackedEggItem.Id,
 		}, userId)
 		if err != nil {

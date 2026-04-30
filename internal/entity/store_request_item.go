@@ -8,6 +8,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
 
+// Note : Quantity field is in KG
 type StoreRequestItem struct {
 	Id                   uint64                 `gorm:"primaryKey;autoIncrement"`
 	WarehouseId          uint64                 `gorm:"type:bigint;not null"`

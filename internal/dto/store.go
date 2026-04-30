@@ -44,7 +44,7 @@ type StoreWithUsersResponse struct {
 	Users         []UserListResponse `json:"users"`
 }
 
-// Note : the quantity in this request should be ikat
+// Note : the quantity in this request should be kg
 type CreateStoreRequestItemRequest struct {
 	StoreId     uint64  `json:"storeId" validate:"required,number"`
 	ItemId      uint64  `json:"itemId" validate:"required,number"`

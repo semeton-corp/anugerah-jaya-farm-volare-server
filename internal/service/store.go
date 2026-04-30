@@ -266,7 +266,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	if warehouseItem.Quantity < request.Quantity*float64(constant.TotalEggPerIkat) && warehouseItem.Item.Unit == constant.UnitKg {
+	if warehouseItem.Quantity < request.Quantity && warehouseItem.Item.Unit == constant.UnitKg {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insuficcient stock for request item")
 	}
 
@@ -288,6 +288,7 @@ func (s *StoreService) CreateStoreRequestItem(request dto.CreateStoreRequestItem
 	return s.GetStoreRequestItemById(storeRequestItem.Id)
 }
 
+// TODO : this function can be merge with CreateStoreRequestItem
 func (s *StoreService) CreateStoreRequestItemFromEggMonitoring(request dto.CreateStoreRequestItemRequest, userId uuid.UUID) (dto.StoreRequestItemResponse, error) {
 	s.repository.UseTx(false)
 
@@ -368,8 +369,7 @@ func (s *StoreService) WarehouseConfirmationStoreRequestItem(id uint64, request 
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	// Note : it times with total egg per ikat because the quantity is in ikat unit
-	if warehouseItem.Quantity < (request.Quantity * float64(constant.TotalEggPerIkat)) {
+	if warehouseItem.Quantity < request.Quantity {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("insufficient stock for request item")
 	}
 
@@ -459,8 +459,6 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 
 	if !storeRequestItem.WarehouseFulfillment.Valid {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("need warehouse fulfillment first")
-	} else if storeRequestItem.WarehouseFulfillment.Float64 < request.Quantity {
-		return dto.StoreRequestItemResponse{}, errx.BadRequest("warehouse fulfillment quantity is less than requested quantity")
 	}
 
 	if storeRequestItem.Status == enum.RequestItemStatusCanceled || storeRequestItem.Status == enum.RequestItemStatusRejected || storeRequestItem.Status == enum.RequestItemStatusArrivedNotOk || storeRequestItem.Status == enum.RequestItemStatusArrivedOk {
@@ -486,7 +484,7 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	storeItem.Quantity += request.Quantity * float64(constant.TotalEggPerIkat)
+	storeItem.Quantity += request.Quantity
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
