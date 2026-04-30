@@ -409,12 +409,12 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 
 		fcr := 0.0
 		if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
-			fcr = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg) * 100.0
+			fcr = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg)
 		}
 
 		hdp := 0.0
 		if chickenCage.TotalChicken > 0 {
-			hdp = float64(totalGoodEggCount) / float64(chickenCage.TotalChicken) * 100.0
+			hdp = float64(totalGoodEggCount) / float64(chickenCage.TotalChicken)
 		}
 
 		var goodEgg entity.Item
@@ -532,7 +532,7 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			}
 		}
 
-		kpiChicken := (mortality + hdp) / 2
+		kpiChicken := ((1 - mortality) + hdp) / 2
 		if kpiChicken < constant.ThresholdKpiChicken {
 			for _, cagePlacement := range chickenCage.Cage.CagePlacement {
 				if cagePlacement.User.Role.Name == constant.RolePekerjaKandang {

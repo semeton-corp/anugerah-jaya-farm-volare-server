@@ -259,6 +259,7 @@ type ArrivalConfirmationChickenProcurementRequest struct {
 	Note     string `json:"note"`
 }
 
+// Note : AverageEggWeight only for good egg
 type ChickenPerformanceSummaryResponse struct {
 	FeedConsumption      float64 `json:"foodConsumption"`
 	AverageEggWeight     float64 `json:"averageEggWeight"`

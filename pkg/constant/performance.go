@@ -9,5 +9,5 @@ const (
 	KPIScoreMid  = 74
 	KPIScoreBad  = 73
 
-	ThresholdKpiChicken = 75
+	ThresholdKpiChicken = 0.75
 )

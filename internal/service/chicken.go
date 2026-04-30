@@ -116,6 +116,10 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 	}
 }
 
+// Note :
+// 1. Mid-period restocking / movement.If chickens are moved into the cage during the 30-day window (`MoveChickenCage`), the "earliest" total doesn't represent the population that was actually exposed to mortality risk
+// 2. Missing days. If a worker skips a day, that day's deaths don't enter `chickenMonitorings`, so the rate under-counts
+
 func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chickenCageId uint64, upsertMonitoring *entity.ChickenMonitoring) (float64, error) {
 	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 	last30Days := today.AddDate(0, 0, -30)
@@ -130,8 +134,8 @@ func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chick
 	}
 
 	totalDeathChicken := uint64(0)
-	latestAliveChicken := uint64(0)
-	latestMonitoringAt := time.Time{}
+	earliestAliveChicken := uint64(0)
+	earliestMonitoringAt := time.Time{}
 	isUpsertApplied := false
 
 	for _, chickenMonitoring := range chickenMonitorings {
@@ -143,9 +147,9 @@ func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chick
 		}
 
 		totalDeathChicken += computedMonitoring.TotalDeathChicken
-		if latestMonitoringAt.IsZero() || latestMonitoringAt.Before(computedMonitoring.CreatedAt) {
-			latestMonitoringAt = computedMonitoring.CreatedAt
-			latestAliveChicken = computedMonitoring.TotalChicken
+		if earliestMonitoringAt.IsZero() || earliestMonitoringAt.After(computedMonitoring.CreatedAt) {
+			earliestMonitoringAt = computedMonitoring.CreatedAt
+			earliestAliveChicken = computedMonitoring.TotalChicken
 		}
 	}
 
@@ -156,16 +160,16 @@ func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chick
 			upsertMonitoringCreatedAt = time.Now()
 		}
 
-		if latestMonitoringAt.IsZero() || latestMonitoringAt.Before(upsertMonitoringCreatedAt) {
-			latestAliveChicken = upsertMonitoring.TotalChicken
+		if earliestMonitoringAt.IsZero() || earliestMonitoringAt.After(upsertMonitoringCreatedAt) {
+			earliestAliveChicken = upsertMonitoring.TotalChicken
 		}
 	}
 
-	if latestAliveChicken == 0 {
+	if earliestAliveChicken == 0 {
 		return 0, nil
 	}
 
-	return float64(totalDeathChicken) / float64(latestAliveChicken), nil
+	return float64(totalDeathChicken) / float64(earliestAliveChicken), nil
 }
 
 func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, userId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
@@ -452,9 +456,9 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		return dto.ChickenOverviewResponse{}, err
 	}
 
-	var totalEgg uint64
+	var totalGoodEgg uint64
 	for _, eggMonitoring := range currentEggMonitorings {
-		totalEgg += eggMonitoring.TotalGoodEgg
+		totalGoodEgg += eggMonitoring.TotalGoodEgg
 	}
 
 	var (
@@ -508,10 +512,10 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	}
 
 	if totalLiveChicken > 0 {
-		hdpRate = float64(totalEgg) / float64(totalLiveChicken)
+		hdpRate = float64(totalGoodEgg) / float64(totalLiveChicken)
 	}
 
-	kpiChicken = (mortalityRate + hdpRate) / 2
+	kpiChicken = ((1 - mortalityRate) + hdpRate) / 2
 
 	return dto.ChickenOverviewResponse{
 		ChickenDetail: dto.ChickenDetailOverview{
@@ -556,7 +560,7 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 	}
 
 	totalLiveChicken := uint64(0)
-	totalGoodEggInKg := uint64(0)
+	totalGoodEgg := uint64(0)
 	totalMortalityRate := float64(0)
 
 	for _, chickenMonitoring := range chickenMonitoringInMonth {
@@ -565,7 +569,7 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 	}
 
 	for _, eggMonitoring := range eggMonitoringInMonth {
-		totalGoodEggInKg += eggMonitoring.TotalGoodEgg
+		totalGoodEgg += eggMonitoring.TotalGoodEgg
 	}
 
 	mortalityRate := float64(0)
@@ -574,14 +578,14 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 	monitoringCount := len(chickenMonitoringInMonth)
 
 	if totalLiveChicken > 0 {
-		hdpRate = float64(totalGoodEggInKg) / float64((totalLiveChicken))
+		hdpRate = float64(totalGoodEgg) / float64((totalLiveChicken))
 	}
 
 	if monitoringCount > 0 {
 		mortalityRate = totalMortalityRate / float64(monitoringCount)
 	}
 
-	kpiChicken = ((mortalityRate + hdpRate) / 2) * 100
+	kpiChicken = ((1 - mortalityRate) + hdpRate) / 2
 
 	return kpiChicken, nil
 }
@@ -648,7 +652,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 			hdpRate = float64(totalGoodEggInWeek[key]) / float64(totalLiveChickenInWeek[key])
 		}
 
-		kpiChickenInWeek[key] = ((mortalityRate + hdpRate) / 2) * 100
+		kpiChickenInWeek[key] = ((1 - mortalityRate) + hdpRate) / 2
 	}
 
 	return kpiChickenInWeek, nil
@@ -2667,6 +2671,7 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				eggMonitoringMap[chickenCage.Id].TotalRemainingCrackedEgg +
 				(eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) +
 				eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
+			totalGoodEgg := (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
 
 			var averageConsumptionPerChicken float64
 			if chickenCage.TotalChicken > 0 {
@@ -2676,8 +2681,8 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			}
 
 			var averageWeightPerEgg float64
-			if totalEgg > 0 {
-				averageWeightPerEgg = eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg / float64(totalEgg)
+			if totalGoodEgg > 0 {
+				averageWeightPerEgg = eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg / float64(totalGoodEgg)
 			} else {
 				averageWeightPerEgg = 0
 			}
@@ -2692,22 +2697,14 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 				AverageWeightPerEgg:          averageWeightPerEgg,
 			}
 
-			if chickenCage.TotalChicken > 0 {
-				response.MortalityRate = float64(chickenMonitoringMap[chickenCage.Id].TotalDeathChicken) / float64(chickenCage.TotalChicken)
-			} else {
-				response.MortalityRate = 0
-			}
+			response.MortalityRate = chickenMonitoringMap[chickenCage.Id].MortalityRate
 
 			if chickenCage.TotalChicken > 0 {
-				response.HDP = float64(response.TotalEgg) / float64(chickenCage.TotalChicken) * 100.0
-			} else {
-				response.HDP = 0
+				response.HDP = float64(totalGoodEgg) / float64(chickenCage.TotalChicken)
 			}
 
 			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg > 0 {
 				response.FCR = float64(chickenMonitoringMap[chickenCage.Id].TotalFeed) / float64(eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg)
-			} else {
-				response.FCR = 0
 			}
 
 			if chickenCage.ChickenAge >= 90 {
@@ -2794,8 +2791,8 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		return dto.ChickenAndWarehouseOverviewResponse{}, err
 	}
 
-	var totalFeed, totalWeightEgg float64
-	var totalEgg, totalDeathChicken, totalChicken uint64
+	var totalFeed, totalWeightGoodEgg float64
+	var totalEgg, totalDeathChicken, totalChicken, totalGoodEgg uint64
 	var totalMortalityRate float64
 	var totalMortalityMonitoringCount uint64
 	var totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
@@ -2845,7 +2842,8 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 			totalMortalityMonitoringCount += 1
 		}
 		totalEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
-		totalWeightEgg += eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg
+		totalWeightGoodEgg += eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg
+		totalGoodEgg += (eggMonitoringMap[chickenCage.Id].TotalKarpetGoodEgg * constant.TotalEggPerKarpet) + eggMonitoringMap[chickenCage.Id].TotalRemainingGoodEgg
 
 		count := chickenCage.TotalChicken
 		switch chickenCage.ChickenCategory {
@@ -2862,9 +2860,9 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 		}
 	}
 
-	avgEggWeight := 0.0
+	avgGoodEggWeight := 0.0
 	if totalEgg > 0 {
-		avgEggWeight = (totalWeightEgg / float64(totalEgg)) * 1000.0
+		avgGoodEggWeight = (totalWeightGoodEgg / float64(totalEgg)) * 1000.0
 	}
 
 	avgMortality := 0.0
@@ -2874,18 +2872,18 @@ func (s *ChickenService) GetChickenAndWarehouseOverview(filter dto.GetChickenAnd
 
 	avgFCR := 0.0
 	if totalEgg > 0 {
-		avgFCR = totalFeed / float64(totalWeightEgg)
+		avgFCR = totalFeed / float64(totalWeightGoodEgg)
 	}
 
 	avgHDP := 0.0
 	if totalChicken > 0 {
-		avgHDP = float64(totalEgg) / float64(totalChicken)
+		avgHDP = float64(totalGoodEgg) / float64(totalChicken)
 	}
 
 	return dto.ChickenAndWarehouseOverviewResponse{
 		ChickenPerformanceSummary: dto.ChickenPerformanceSummaryResponse{
 			FeedConsumption:      totalFeed,
-			AverageEggWeight:     avgEggWeight,
+			AverageEggWeight:     avgGoodEggWeight,
 			AverageMortalityRate: avgMortality,
 			AverageFCR:           avgFCR,
 			AverageHDP:           avgHDP,
@@ -3058,7 +3056,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 
 	avgFCR := 0.0
 	if totalGoodEgg != 0 {
-		avgFCR = totalFeed / float64(totalGoodEgg)
+		avgFCR = totalFeed / float64(totalWeightGoodEgg)
 	}
 
 	avgHDP := 0.0
