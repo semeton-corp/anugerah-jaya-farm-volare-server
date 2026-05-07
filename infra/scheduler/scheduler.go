@@ -539,7 +539,8 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			}
 		}
 
-		kpiChicken := ((1 - mortality) + hdp) / 2
+		epei := util.CalculateEPEI(mortality, hdp, avgGoodEggWeight, fcr)
+		kpiChicken := util.CalculateKPIChickenScore(epei)
 		if kpiChicken < constant.ThresholdKpiChicken {
 			for _, cagePlacement := range chickenCage.Cage.CagePlacement {
 				if cagePlacement.User.Role.Name == constant.RolePekerjaKandang {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
+	recoverer "github.com/gofiber/fiber/v2/middleware/recover"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/response"
@@ -23,6 +24,10 @@ func New() *fiber.App {
 			CaseSensitive: true,
 		},
 	)
+
+	router.Use(recoverer.New(recoverer.Config{
+		EnableStackTrace: true,
+	}))
 
 	return router
 }

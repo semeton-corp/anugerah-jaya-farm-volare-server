@@ -5,8 +5,36 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/constant"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 )
+
+// CalculateEPEI returns the European Production Efficiency Index.
+// Inputs must be in their natural units:
+//
+//	mortality          : 0..1 (e.g. 0.02 == 2% deaths)
+//	hdp                : 0..1 (eggs per hen per day)
+//	avgEggWeightGrams  : grams per egg
+//	fcr                : kg feed / kg egg (e.g. 2.1)
+//
+// EPEI = (Liveability% × DEMP_kg / FCR) × 100
+func CalculateEPEI(mortality, hdp, avgEggWeightGrams, fcr float64) float64 {
+	if fcr <= 0 {
+		return 0
+	}
+	liveabilityPct := (1 - mortality) * 100
+	dempKg := (hdp * avgEggWeightGrams) / 1000
+	return (liveabilityPct * dempKg / fcr) * 100
+}
+
+// CalculateKPIChickenScore expresses an EPEI value as a fraction of the target
+// (1.0 == on target). Used for threshold checks like ThresholdKpiChicken.
+func CalculateKPIChickenScore(epei float64) float64 {
+	if constant.EpeiTarget <= 0 {
+		return 0
+	}
+	return epei / constant.EpeiTarget
+}
 
 func CalculateKPIScoreUserInMonthViaDTO(
 	additionalWorkUsers dto.AdditionalWorkUserListPaginationResponse,

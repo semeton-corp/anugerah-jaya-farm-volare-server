@@ -10,4 +10,8 @@ const (
 	KPIScoreBad  = 73
 
 	ThresholdKpiChicken = 0.75
+
+	// EpeiTarget is the European Production Efficiency Index target a flock is benchmarked
+	// against. KPI score = EPEI / EpeiTarget (1.0 = on target).
+	EpeiTarget = 250.0
 )

@@ -456,15 +456,20 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		return dto.ChickenOverviewResponse{}, err
 	}
 
-	var totalGoodEgg uint64
+	var (
+		totalGoodEgg       uint64
+		totalWeightGoodEgg float64
+	)
 	for _, eggMonitoring := range currentEggMonitorings {
 		totalGoodEgg += eggMonitoring.TotalGoodEgg
+		totalWeightGoodEgg += eggMonitoring.TotalWeightGoodEgg
 	}
 
 	var (
 		totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
 		totalLiveChicken, totalSickChicken, totalDeathChicken                                           uint64
 		totalMortalityRateChicken                                                                       float64
+		totalFeed                                                                                       float64
 	)
 
 	for _, cc := range chickenCages {
@@ -472,6 +477,7 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		totalSickChicken += currentChickenMonitoringMap[cc.Id].TotalSickChicken
 		totalDeathChicken += currentChickenMonitoringMap[cc.Id].TotalDeathChicken
 		totalMortalityRateChicken += currentChickenMonitoringMap[cc.Id].MortalityRate
+		totalFeed += currentChickenMonitoringMap[cc.Id].TotalFeed
 
 		chickenCategory := enum.ValueOfChickenCategory(cc.ChickenCategory)
 		switch chickenCategory {
@@ -504,7 +510,8 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 
 	mortalityRate := float64(0)
 	hdpRate := float64(0)
-	kpiChicken := float64(0)
+	avgEggWeightGrams := float64(0)
+	fcr := float64(0)
 	chickenCagesCount := len(chickenCages)
 
 	if chickenCagesCount > 0 {
@@ -515,7 +522,16 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		hdpRate = float64(totalGoodEgg) / float64(totalLiveChicken)
 	}
 
-	kpiChicken = ((1 - mortalityRate) + hdpRate) / 2
+	if totalGoodEgg > 0 {
+		avgEggWeightGrams = (totalWeightGoodEgg * 1000) / float64(totalGoodEgg)
+	}
+
+	if totalWeightGoodEgg > 0 {
+		fcr = totalFeed / totalWeightGoodEgg
+	}
+
+	epei := util.CalculateEPEI(mortalityRate, hdpRate, avgEggWeightGrams, fcr)
+	kpiChicken := util.CalculateKPIChickenScore(epei)
 
 	return dto.ChickenOverviewResponse{
 		ChickenDetail: dto.ChickenDetailOverview{
@@ -561,20 +577,25 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 
 	totalLiveChicken := uint64(0)
 	totalGoodEgg := uint64(0)
+	totalWeightGoodEgg := float64(0)
 	totalMortalityRate := float64(0)
+	totalFeed := float64(0)
 
 	for _, chickenMonitoring := range chickenMonitoringInMonth {
 		totalLiveChicken += chickenMonitoring.TotalChicken - chickenMonitoring.TotalDeathChicken
 		totalMortalityRate += chickenMonitoring.MortalityRate
+		totalFeed += chickenMonitoring.TotalFeed
 	}
 
 	for _, eggMonitoring := range eggMonitoringInMonth {
 		totalGoodEgg += eggMonitoring.TotalGoodEgg
+		totalWeightGoodEgg += eggMonitoring.TotalWeightGoodEgg
 	}
 
 	mortalityRate := float64(0)
 	hdpRate := float64(0)
-	kpiChicken := float64(0)
+	avgEggWeightGrams := float64(0)
+	fcr := float64(0)
 	monitoringCount := len(chickenMonitoringInMonth)
 
 	if totalLiveChicken > 0 {
@@ -585,7 +606,16 @@ func (c *ChickenService) GetKPIScoreChickenInMonth(locationId uint64, month enum
 		mortalityRate = totalMortalityRate / float64(monitoringCount)
 	}
 
-	kpiChicken = ((1 - mortalityRate) + hdpRate) / 2
+	if totalGoodEgg > 0 {
+		avgEggWeightGrams = (totalWeightGoodEgg * 1000) / float64(totalGoodEgg)
+	}
+
+	if totalWeightGoodEgg > 0 {
+		fcr = totalFeed / totalWeightGoodEgg
+	}
+
+	epei := util.CalculateEPEI(mortalityRate, hdpRate, avgEggWeightGrams, fcr)
+	kpiChicken := util.CalculateKPIChickenScore(epei)
 
 	return kpiChicken, nil
 }
@@ -619,6 +649,8 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 	totalMortalityRateInWeek := make(map[int]float64)
 	monitoringCountInWeek := make(map[int]int)
 	totalGoodEggInWeek := make(map[int]uint64)
+	totalWeightGoodEggInWeek := make(map[int]float64)
+	totalFeedInWeek := make(map[int]float64)
 	for _, chickenMonitoring := range chickenMonitoringInMonth {
 		week := util.FindWeek(chickenMonitoring.CreatedAt, weekRanges)
 		if week == 0 {
@@ -627,6 +659,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 
 		totalLiveChickenInWeek[week] += (chickenMonitoring.TotalChicken - chickenMonitoring.TotalDeathChicken)
 		totalMortalityRateInWeek[week] += chickenMonitoring.MortalityRate
+		totalFeedInWeek[week] += chickenMonitoring.TotalFeed
 		monitoringCountInWeek[week] += 1
 	}
 
@@ -636,6 +669,7 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 			continue
 		}
 		totalGoodEggInWeek[week] += eggMonitoring.TotalGoodEgg
+		totalWeightGoodEggInWeek[week] += eggMonitoring.TotalWeightGoodEgg
 	}
 
 	kpiChickenInWeek := make(map[int]float64)
@@ -652,7 +686,18 @@ func (c *ChickenService) GetKPIScoreChickenPerWeek(locationId uint64, month enum
 			hdpRate = float64(totalGoodEggInWeek[key]) / float64(totalLiveChickenInWeek[key])
 		}
 
-		kpiChickenInWeek[key] = ((1 - mortalityRate) + hdpRate) / 2
+		avgEggWeightGrams := 0.0
+		if totalGoodEggInWeek[key] > 0 {
+			avgEggWeightGrams = (totalWeightGoodEggInWeek[key] * 1000) / float64(totalGoodEggInWeek[key])
+		}
+
+		fcr := 0.0
+		if totalWeightGoodEggInWeek[key] > 0 {
+			fcr = totalFeedInWeek[key] / totalWeightGoodEggInWeek[key]
+		}
+
+		epei := util.CalculateEPEI(mortalityRate, hdpRate, avgEggWeightGrams, fcr)
+		kpiChickenInWeek[key] = util.CalculateKPIChickenScore(epei)
 	}
 
 	return kpiChickenInWeek, nil
