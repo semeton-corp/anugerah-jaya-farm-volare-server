@@ -2698,6 +2698,20 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 			chickenMonitoringMap[chickenMonitoring.ChickenCageId] = chickenMonitoring
 		}
 
+		totalChickenPerSite := make(map[uint64]uint64)
+		for _, chickenCage := range chickenCages {
+			totalChickenPerSite[chickenCage.Cage.Location.Id] += chickenCage.TotalChicken
+		}
+
+		totalExpenseProductionPerSite := make(map[uint64]decimal.Decimal)
+		for locationId := range totalChickenPerSite {
+			expense, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(today.Month()), uint64(today.Year()), locationId)
+			if err != nil {
+				return nil, err
+			}
+			totalExpenseProductionPerSite[locationId] = expense
+		}
+
 		for _, chickenCage := range chickenCages {
 			if chickenMonitoringMap[chickenCage.Id].Id == 0 || eggMonitoringMap[chickenCage.Id].Id == 0 {
 				s.log.Info("skipping cage, no monitoring data for today", zap.Uint64("cageId", chickenCage.Id))
@@ -2746,13 +2760,12 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 
 			if chickenCage.ChickenAge >= 90 {
 				response.Productivity = enum.ChickenProductivityAfkir.String()
+			} else if chickenCage.ChickenCategory == enum.ChickenCategoryDOC.String() || chickenCage.ChickenCategory == enum.ChickenCategoryGrower.String() {
+				response.Productivity = enum.ChickenProductivityNotClassified.String()
 			} else {
-				totalExpenseProduction, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(today.Month()), uint64(today.Year()))
-				if err != nil {
-					return nil, err
-				}
+				totalExpenseProduction := totalExpenseProductionPerSite[chickenCage.Cage.Location.Id]
 
-				budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(chickenCage.FirstTotalChicken)).Mul(decimal.NewFromUint64(chickenCage.ChickenAge * 7)))
+				budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(totalChickenPerSite[chickenCage.Cage.Location.Id]).Mul(decimal.NewFromUint64(chickenCage.ChickenAge * 7)))
 				budgetCage := budgetPerChicken.Mul(decimal.NewFromUint64(chickenCage.TotalChicken))
 
 				totalIncomeFromGoodEgg := decimal.Zero
@@ -3034,7 +3047,7 @@ func (s *ChickenService) GetChickenAndCompanyOverview(filter dto.GetChickenAndCo
 		return dto.ChickenAndCompanyOverviewResponse{}, err
 	}
 
-	totalExpenseProduction, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(time.Now().Month()), uint64(time.Now().Year()))
+	totalExpenseProduction, err := s.cashflowService.GetTotalExpenseProductionInMonth(enum.Month(time.Now().Month()), uint64(time.Now().Year()), filter.LocationId)
 	if err != nil {
 		return dto.ChickenAndCompanyOverviewResponse{}, err
 	}

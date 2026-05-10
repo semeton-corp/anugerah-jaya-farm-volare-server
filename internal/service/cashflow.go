@@ -63,7 +63,7 @@ type ICashflowService interface {
 
 	GetTotalIncomeProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
 	GetTotalIncomeProductionInDay(date time.Time) (decimal.Decimal, error)
-	GetTotalExpenseProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error)
+	GetTotalExpenseProductionInMonth(month enum.Month, year uint64, locationId uint64) (decimal.Decimal, error)
 	GetTotalExpenseProductionInDay(date time.Time) (decimal.Decimal, error)
 
 	GetCashflowHistories(filter dto.GetCashflowHistoryFilter) ([]dto.CashflowHistoryResponse, error)
@@ -436,7 +436,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 	}
 }
 
-func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, year uint64) (decimal.Decimal, error) {
+func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, year uint64, locationId uint64) (decimal.Decimal, error) {
 	s.repository.UseTx(false)
 
 	totalExpenseProduction := decimal.Zero
@@ -445,6 +445,7 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
 		StartDate: param.DateParam(startDate),
 		EndDate:   param.DateParam(endDate),
+		LocationId: locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item procuremet payments", zap.Error(err))
@@ -455,8 +456,9 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	}
 
 	warehouseItemCornProcurementPayments, err := s.repository.GetWarehouseItemCornProcurementPayments(dto.GetWarehouseItemCornProcurementPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item corn procurement payments", zap.Error(err))
@@ -467,8 +469,9 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	}
 
 	chickenProcurementPayments, err := s.repository.GetChickenProcurementPayments(dto.GetChickenProcurementPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get chicken procurement payments", zap.Error(err))
@@ -479,8 +482,9 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	}
 
 	expenses, err := s.repository.GetExpenses(dto.GetExpenseFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get expenses", zap.Error(err))
@@ -492,9 +496,10 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
-		IsPaid:    &isPaid,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		IsPaid:     &isPaid,
+		LocationId: locationId,
 	})
 	if err != nil {
 		return decimal.Zero, err

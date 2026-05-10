@@ -389,6 +389,120 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		totalChickenPopulation += chickenCage.TotalChicken
 	}
 
+	totalChickenPerSite := make(map[uint64]uint64)
+	for _, chickenCage := range chickenCages {
+		totalChickenPerSite[chickenCage.Cage.LocationId] += chickenCage.TotalChicken
+	}
+
+	getTotalExpenseProduction := func(db *gorm.DB, startDate time.Time, endDate time.Time, locationId uint64) (decimal.Decimal, error) {
+		totalExpenseProduction := decimal.Zero
+
+		warehouseItemProcurementQuery := db.Model(&entity.WarehouseItemProcurement{}).
+			Where("DATE(warehouse_item_procurements.deadline_payment_date) BETWEEN ? AND ?", startDate, endDate)
+		if locationId > 0 {
+			warehouseItemProcurementQuery = warehouseItemProcurementQuery.
+				Joins("JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id").
+				Where("warehouses.location_id = ?", locationId)
+		}
+		var warehouseItemProcurements []entity.WarehouseItemProcurement
+		if err := warehouseItemProcurementQuery.Find(&warehouseItemProcurements).Error; err != nil {
+			return decimal.Zero, err
+		}
+		for _, e := range warehouseItemProcurements {
+			totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+		}
+
+		warehouseItemCornProcurementQuery := db.Model(&entity.WarehouseItemCornProcurement{}).
+			Where("DATE(warehouse_item_corn_procurements.deadline_payment_date) BETWEEN ? AND ?", startDate, endDate)
+		if locationId > 0 {
+			warehouseItemCornProcurementQuery = warehouseItemCornProcurementQuery.
+				Joins("JOIN warehouses ON warehouses.id = warehouse_item_corn_procurements.warehouse_id").
+				Where("warehouses.location_id = ?", locationId)
+		}
+		var warehouseItemCornProcurements []entity.WarehouseItemCornProcurement
+		if err := warehouseItemCornProcurementQuery.Find(&warehouseItemCornProcurements).Error; err != nil {
+			return decimal.Zero, err
+		}
+		for _, e := range warehouseItemCornProcurements {
+			totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+		}
+
+		chickenProcurementQuery := db.Model(&entity.ChickenProcurement{}).
+			Where("DATE(chicken_procurements.deadline_payment_date) BETWEEN ? AND ?", startDate, endDate)
+		if locationId > 0 {
+			chickenProcurementQuery = chickenProcurementQuery.
+				Joins("JOIN cages ON cages.id = chicken_procurements.cage_id").
+				Where("cages.location_id = ?", locationId)
+		}
+		var chickenProcurements []entity.ChickenProcurement
+		if err := chickenProcurementQuery.Find(&chickenProcurements).Error; err != nil {
+			return decimal.Zero, err
+		}
+		for _, e := range chickenProcurements {
+			totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
+		}
+
+		expenseQuery := db.Model(&entity.Expense{}).
+			Where("DATE(expenses.created_at) BETWEEN ? AND ?", startDate, endDate)
+		if locationId > 0 {
+			expenseQuery = expenseQuery.Where("expenses.location_id = ?", locationId)
+		}
+		var expenses []entity.Expense
+		if err := expenseQuery.Find(&expenses).Error; err != nil {
+			return decimal.Zero, err
+		}
+		for _, e := range expenses {
+			totalExpenseProduction = totalExpenseProduction.Add(e.Nominal)
+		}
+
+		userSalaryPaymentQuery := db.Model(&entity.UserSalaryPayment{}).
+			Where("DATE(user_salary_payments.created_at) BETWEEN ? AND ?", startDate, endDate)
+		if locationId > 0 {
+			userSalaryPaymentQuery = userSalaryPaymentQuery.
+				Joins("JOIN users ON users.id = user_salary_payments.user_id").
+				Where("users.location_id = ?", locationId)
+		}
+		var userSalaryPayments []entity.UserSalaryPayment
+		if err := userSalaryPaymentQuery.Find(&userSalaryPayments).Error; err != nil {
+			return decimal.Zero, err
+		}
+		for _, e := range userSalaryPayments {
+			totalExpenseProduction = totalExpenseProduction.Add(
+				e.BaseSalary.Add(e.AdditionalWorkSalary).
+					Add(e.BonusSalary).
+					Add(e.CompentationSalary).
+					Sub(e.Cashbond),
+			)
+		}
+
+		return totalExpenseProduction, nil
+	}
+
+	currYear := time.Now().Year()
+	currMonth := time.Month(enum.Month(time.Now().Month()))
+	startDate, endDate := util.GetStartDateAndEndDateInMonth(currYear, currMonth)
+
+	totalExpenseProductionPerSite := make(map[uint64]decimal.Decimal)
+	for locationId := range totalChickenPerSite {
+		expense, err := getTotalExpenseProduction(tx, startDate, endDate, locationId)
+		if err != nil {
+			return err
+		}
+		totalExpenseProductionPerSite[locationId] = expense
+	}
+
+	var goodEgg entity.Item
+	err = tx.Model(&entity.Item{}).Where("name = ? AND unit = ? AND category = ?", constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg).First(&goodEgg).Error
+	if err != nil {
+		return err
+	}
+
+	var goodEggItemPrice entity.ItemPrice
+	err = tx.Model(&entity.ItemPrice{}).Where("item_id = ? AND sale_unit = ?", goodEgg.Id, enum.SaleUnitKg).First(&goodEggItemPrice).Error
+	if err != nil {
+		return err
+	}
+
 	for _, chickenCage := range chickenCages {
 		if !chickenCage.Cage.IsUsed {
 			continue
@@ -422,73 +536,6 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 			hdp = float64(totalGoodEggCount) / float64(chickenCage.TotalChicken)
 		}
 
-		var goodEgg entity.Item
-		err = tx.Model(&entity.Item{}).Where("name = ? AND unit = ? AND category = ?", constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg).First(&goodEgg).Error
-		if err != nil {
-			return err
-		}
-
-		var goodEggItemPrice entity.ItemPrice
-		err = tx.Model(&entity.ItemPrice{}).Where("item_id = ? AND sale_unit = ?", goodEgg.Id, enum.SaleUnitKg).First(&goodEggItemPrice).Error
-		if err != nil {
-			return err
-		}
-
-		getTotalExpenseProduction := func(db *gorm.DB, startDate time.Time, endDate time.Time) (decimal.Decimal, error) {
-			totalExpenseProduction := decimal.Zero
-			var warehouseItemProcurements []entity.WarehouseItemProcurement
-			if err := db.Where("DATE(deadline_payment_date) BETWEEN ? AND ?", startDate, endDate).
-				Find(&warehouseItemProcurements).Error; err != nil {
-				return decimal.Zero, err
-			}
-			for _, e := range warehouseItemProcurements {
-				totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
-			}
-
-			var warehouseItemCornProcurements []entity.WarehouseItemCornProcurement
-			if err := db.Where("DATE(deadline_payment_date) BETWEEN ? AND ?", startDate, endDate).
-				Find(&warehouseItemCornProcurements).Error; err != nil {
-				return decimal.Zero, err
-			}
-			for _, e := range warehouseItemCornProcurements {
-				totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
-			}
-
-			var chickenProcurements []entity.ChickenProcurement
-			if err := db.Where("DATE(deadline_payment_date) BETWEEN ? AND ?", startDate, endDate).
-				Find(&chickenProcurements).Error; err != nil {
-				return decimal.Zero, err
-			}
-			for _, e := range chickenProcurements {
-				totalExpenseProduction = totalExpenseProduction.Add(e.TotalPrice)
-			}
-
-			var expenses []entity.Expense
-			if err := db.Where("DATE(created_at) BETWEEN ? AND ?", startDate, endDate).
-				Find(&expenses).Error; err != nil {
-				return decimal.Zero, err
-			}
-			for _, e := range expenses {
-				totalExpenseProduction = totalExpenseProduction.Add(e.Nominal)
-			}
-
-			var userSalaryPayments []entity.UserSalaryPayment
-			if err := db.Where("DATE(created_at) BETWEEN ? AND ?", startDate, endDate).
-				Find(&userSalaryPayments).Error; err != nil {
-				return decimal.Zero, err
-			}
-			for _, e := range userSalaryPayments {
-				totalExpenseProduction = totalExpenseProduction.Add(
-					e.BaseSalary.Add(e.AdditionalWorkSalary).
-						Add(e.BonusSalary).
-						Add(e.CompentationSalary).
-						Sub(e.Cashbond),
-				)
-			}
-
-			return totalExpenseProduction, nil
-		}
-
 		chickenAge := util.GetChickenAgeByChickenCage(&chickenCage)
 		chickenCategory := util.GetChickenCategoryByChickenCage(&chickenCage)
 
@@ -513,19 +560,11 @@ func (s *Scheduler) createKpiChickenCage(tx *gorm.DB) error {
 		} else if chickenCategory == enum.ChickenCategoryDOC || chickenCategory == enum.ChickenCategoryGrower {
 			newData.Productivity = enum.ChickenProductivityNotClassified
 		} else {
-			var (
-				totalIncomeFromGoodEgg = decimal.Zero
-			)
+			totalIncomeFromGoodEgg := decimal.Zero
 
-			currYear := time.Now().Year()
-			currMonth := time.Month(enum.Month(time.Now().Month()))
-			startDate, endDate := util.GetStartDateAndEndDateInMonth(currYear, currMonth)
-			totalExpenseProduction, err := getTotalExpenseProduction(tx, startDate, endDate)
-			if err != nil {
-				return err
-			}
+			totalExpenseProduction := totalExpenseProductionPerSite[chickenCage.Cage.LocationId]
 
-			budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(uint64(chickenCage.ChickenProcurement.ReceiveQuantity.Int64)).Mul(decimal.NewFromUint64(chickenAge * 7)))
+			budgetPerChicken := totalExpenseProduction.Div(decimal.NewFromUint64(totalChickenPerSite[chickenCage.Cage.LocationId]).Mul(decimal.NewFromUint64(chickenAge * 7)))
 			budgetCage := budgetPerChicken.Mul(decimal.NewFromUint64(chickenCage.TotalChicken))
 
 			if eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg != 0.0 {
