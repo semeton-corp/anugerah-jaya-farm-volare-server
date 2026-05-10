@@ -307,7 +307,7 @@ type UpdateWarehouseSaleRequest struct {
 	Quantity float64 `json:"quantity" validate:"required,number"`
 	SendDate string  `json:"sendDate" validate:"required"`
 	Price    string  `json:"price" validate:"required"`
-	Discount float64 `json:"discount" validate:"required"`
+	Discount float64 `json:"discount" validate:"min=0"`
 	SaleUnit string  `json:"saleUnit" validate:"required,saleUnit"`
 }
 
