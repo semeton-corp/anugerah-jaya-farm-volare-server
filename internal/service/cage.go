@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -964,6 +965,10 @@ func (s *CageService) MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid
 		totalCurrentFeed += e.TotalFeed - e.UsedFeed
 	}
 
+	if totalCurrentFeed <= 0 {
+		return nil
+	}
+
 	cage, err := s.repository.GetCageById(cageId)
 	if err != nil {
 		return err
@@ -986,8 +991,16 @@ func (s *CageService) MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid
 		warehouseId = warehouses[0].Id
 	}
 
+	existingQty := float64(0)
+	existing, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, readyToEatFeed.Id)
+	if err == nil {
+		existingQty = existing.Quantity
+	} else if e, ok := err.(*errx.Errx); !ok || e.Err != fiber.ErrNotFound {
+		return err
+	}
+
 	_, err = s.warehouseService.CreateOrUpdateWarehouseItem(warehouseId, readyToEatFeed.Id, dto.UpdateWarehouseItemRequest{
-		Quantity: totalCurrentFeed,
+		Quantity: existingQty + totalCurrentFeed,
 	}, userId)
 	if err != nil {
 		return err

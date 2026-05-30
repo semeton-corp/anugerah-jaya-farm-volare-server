@@ -30,7 +30,7 @@ func (l *StoreListener) ListenStoreItemActivity(ctx context.Context, handler fun
 			l.log.Error("failed to unmarshal store item activity", zap.Error(err))
 			continue
 		}
-		l.log.Debug("sucess parsing data from redis", zap.Any("activity", activity))
+		l.log.Debug("sucsess parsing data from redis", zap.Any("activity", activity))
 		handler(activity)
 	}
 }

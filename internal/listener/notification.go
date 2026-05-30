@@ -30,7 +30,7 @@ func (l *NotificationListener) ListenNotificationItemActivity(ctx context.Contex
 			l.log.Error("failed to unmarshal notification", zap.Error(err))
 			continue
 		}
-		l.log.Debug("sucess parsing data from redis", zap.Any("notification", activity))
+		l.log.Debug("success parsing data from redis", zap.Any("notification", activity))
 		handler(activity)
 	}
 }

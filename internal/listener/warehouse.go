@@ -30,7 +30,7 @@ func (l *WarehouseListener) ListenWarehouseItemActivity(ctx context.Context, han
 			l.log.Error("failed to unmarshal warehouse item activity", zap.Error(err))
 			continue
 		}
-		l.log.Debug("sucess parsing data from redis", zap.Any("activity", activity))
+		l.log.Debug("success parsing data from redis", zap.Any("activity", activity))
 		handler(activity)
 	}
 }
