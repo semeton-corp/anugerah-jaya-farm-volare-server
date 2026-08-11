@@ -226,6 +226,8 @@ func (s *Scheduler) InitScheduler() {
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 	s.log.Info("creating daily work user")
 
+	today := time.Now()
+
 	var dailyWorks []entity.DailyWork
 	if err := tx.Model(&entity.DailyWork{}).Find(&dailyWorks).Error; err != nil {
 		return err
@@ -236,10 +238,27 @@ func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 		return err
 	}
 
+	var existingDailyWorkUsers []entity.DailyWorkUser
+	if err := tx.Model(&entity.DailyWorkUser{}).
+		Where("DATE(created_at) = ?", today).
+		Find(&existingDailyWorkUsers).Error; err != nil {
+		return err
+	}
+
+	existingDailyWorkUserKeys := make(map[string]struct{}, len(existingDailyWorkUsers))
+	for _, dailyWorkUser := range existingDailyWorkUsers {
+		existingDailyWorkUserKeys[fmt.Sprintf("%d:%s", dailyWorkUser.DailyWorkId, dailyWorkUser.UserId.String())] = struct{}{}
+	}
+
 	var dailyWorkUsers []entity.DailyWorkUser
 	for _, dailyWork := range dailyWorks {
 		for _, user := range users {
 			if user.RoleId == dailyWork.RoleId {
+				key := fmt.Sprintf("%d:%s", dailyWork.Id, user.Id.String())
+				if _, ok := existingDailyWorkUserKeys[key]; ok {
+					continue
+				}
+
 				dailyWorkUser := entity.DailyWorkUser{
 					DailyWorkId: dailyWork.Id,
 					UserId:      user.Id,
@@ -252,18 +271,42 @@ func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 	}
 
 	s.log.Info(fmt.Sprintf("daily work user created: %d", len(dailyWorkUsers)))
+	if len(dailyWorkUsers) == 0 {
+		return nil
+	}
+
 	return tx.CreateInBatches(dailyWorkUsers, len(dailyWorkUsers)).Error
 }
 
 func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 	s.log.Info("creating user presence")
 
+	today := time.Now()
+
 	var users []entity.User
-	tx.Model(&entity.User{}).Preload("Role").Find(&users)
+	if err := tx.Model(&entity.User{}).Preload("Role").Find(&users).Error; err != nil {
+		return err
+	}
+
+	var existingUserPresences []entity.UserPresence
+	if err := tx.Model(&entity.UserPresence{}).
+		Where("DATE(created_at) = ?", today).
+		Find(&existingUserPresences).Error; err != nil {
+		return err
+	}
+
+	existingUserPresenceByUserId := make(map[uuid.UUID]struct{}, len(existingUserPresences))
+	for _, userPresence := range existingUserPresences {
+		existingUserPresenceByUserId[userPresence.UserId] = struct{}{}
+	}
 
 	totalCreatedUserPresence := 0
 	for _, user := range users {
 		if user.Role.Name != constant.RoleOwner {
+			if _, ok := existingUserPresenceByUserId[user.Id]; ok {
+				continue
+			}
+
 			userPresence := entity.UserPresence{
 				UserId:                   user.Id,
 				Status:                   enum.PresenceStatusAlpha,
@@ -1388,7 +1431,10 @@ func (s *Scheduler) createNotificationWhenKPIPerformanceUserBad(tx *gorm.DB) err
 	startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(enum.Month(month), year)
 
 	var users []entity.User
-	if err := tx.Model(&entity.User{}).Find(&users).Error; err != nil {
+	if err := tx.Model(&entity.User{}).
+		Joins("JOIN roles ON roles.id = users.role_id").
+		Where("roles.name <> ?", constant.RoleOwner).
+		Find(&users).Error; err != nil {
 		return err
 	}
 
@@ -1410,7 +1456,7 @@ func (s *Scheduler) createNotificationWhenKPIPerformanceUserBad(tx *gorm.DB) err
 		if err := tx.Model(&entity.AdditionalWorkUser{}).
 			Joins("JOIN additional_works ON additional_work_users.additional_work_id = additional_works.id").
 			Where("additional_work_users.user_id = ?", user.Id).
-			Where("additional_work_users.created_at BETWEEN ? AND ?", startDate, endDate).
+			Where("additional_works.work_date BETWEEN ? AND ?", startDate, endDate).
 			Where("additional_works.deleted_at IS NULL").
 			Find(&additionalWorkUsers).Error; err != nil {
 			s.log.Error("failed to query additional work", zap.Error(err))

@@ -57,6 +57,29 @@ func NewWorkService(log *zap.Logger, repository repository.IWorkRepository, role
 	}
 }
 
+func parseAdditionalWorkUserIds(userIds []string, slot uint64) ([]uuid.UUID, error) {
+	if uint64(len(userIds)) > slot {
+		return nil, errx.BadRequest("assigned users cannot be greater than additional work slot")
+	}
+
+	parsedUserIds := make([]uuid.UUID, 0, len(userIds))
+	seenUserIds := make(map[uuid.UUID]struct{}, len(userIds))
+	for _, userId := range userIds {
+		parsedUserId, err := uuid.Parse(userId)
+		if err != nil {
+			return nil, errx.BadRequest("invalid user id")
+		}
+		if _, ok := seenUserIds[parsedUserId]; ok {
+			return nil, errx.BadRequest("duplicate assigned user")
+		}
+
+		seenUserIds[parsedUserId] = struct{}{}
+		parsedUserIds = append(parsedUserIds, parsedUserId)
+	}
+
+	return parsedUserIds, nil
+}
+
 func (w *WorkService) GetWorkOverview() (dto.WorkOveriew, error) {
 	dailyWorkSummaries, err := w.GetDailyWorkSummariesBasedOnRole()
 	if err != nil {
@@ -223,6 +246,7 @@ func (w *WorkService) GetUserWorksByUserId(userId uuid.UUID) (dto.WorkUserRespon
 		WithDeleted:          &withDeleted,
 		IsAdditionalWorkFull: true,
 		WithDoneToday:        true,
+		Date:                 param.DateParam(time.Now()),
 	})
 	if err != nil {
 		w.log.Error("failed to get daily work user", zap.Error(err))
@@ -254,6 +278,11 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	if err != nil {
 		w.log.Error("failed to parse work date", zap.Error(err))
 		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid work date")
+	}
+
+	requestedUserIds, err := parseAdditionalWorkUserIds(request.UserIds, request.Slot)
+	if err != nil {
+		return dto.AdditionalWorkResponse{}, err
 	}
 
 	additionalWork := entity.AdditionalWork{
@@ -299,10 +328,10 @@ func (w *WorkService) CreateAdditionalWork(request dto.CreateAdditionalWorkReque
 	}
 
 	additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
-	if request.UserIds != nil {
-		for _, userIdReq := range request.UserIds {
+	if len(requestedUserIds) > 0 {
+		for _, requestedUserId := range requestedUserIds {
 			additionalWorkUsers = append(additionalWorkUsers, entity.AdditionalWorkUser{
-				UserId:           uuid.MustParse(userIdReq),
+				UserId:           requestedUserId,
 				AdditionalWorkId: additionalWork.Id,
 				CreatedBy:        uuid.NullUUID{UUID: userId, Valid: true},
 				TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
@@ -379,6 +408,11 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 		return dto.AdditionalWorkResponse{}, errx.BadRequest("invalid work date format")
 	}
 
+	requestedUserIds, err := parseAdditionalWorkUserIds(request.UserIds, request.Slot)
+	if err != nil {
+		return dto.AdditionalWorkResponse{}, err
+	}
+
 	additionalWork.Name = request.Name
 	additionalWork.LocationId = request.LocationId
 	additionalWork.Description = request.Description
@@ -426,19 +460,19 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 
 	deleteUserIds := make([]uuid.UUID, 0)
 	for _, e := range currentUserIds {
-		if !slices.Contains(request.UserIds, e.String()) {
+		if !slices.Contains(requestedUserIds, e) {
 			deleteUserIds = append(deleteUserIds, e)
 		}
 	}
 
 	newUserIds := make([]uuid.UUID, 0)
-	for _, e := range request.UserIds {
-		if !slices.Contains(currentUserIds, uuid.MustParse(e)) {
-			newUserIds = append(newUserIds, uuid.MustParse(e))
+	for _, e := range requestedUserIds {
+		if !slices.Contains(currentUserIds, e) {
+			newUserIds = append(newUserIds, e)
 		}
 	}
 
-	if deleteUserIds != nil {
+	if len(deleteUserIds) > 0 {
 		err = w.repository.DeleteAdditionalWorkUserByAdditionalWorkIdAndUserIds(additionalWork.Id, deleteUserIds)
 		if err != nil {
 			w.log.Error("failed to delete additional work user by additional work id and user ids", zap.Error(err))
@@ -446,7 +480,7 @@ func (w *WorkService) UpdateAdditionalWork(id uint64, request dto.UpdateAddition
 		}
 	}
 
-	if newUserIds != nil {
+	if len(newUserIds) > 0 {
 		additionalWorkUsers := make([]entity.AdditionalWorkUser, 0)
 
 		for _, userId := range newUserIds {
@@ -625,15 +659,6 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 			IsDone:           false,
 			TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
 		}
-
-		err := w.repository.UpdateAdditionalWorkUserByAdditionalWorkId(id, map[string]any{
-			"is_additional_work_full": true,
-		})
-		if err != nil {
-			w.log.Error("failed to update additional work user by additional work id", zap.Error(err))
-			return dto.AdditionalWorkUserResponse{}, err
-		}
-
 	} else {
 		additionalWorkUser = entity.AdditionalWorkUser{
 			AdditionalWorkId: id,

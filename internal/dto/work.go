@@ -174,6 +174,7 @@ type GetDailyWorkUserFilter struct {
 type GetAdditionalWorkUserFilter struct {
 	Month                param.MonthParam `query:"month"`
 	Year                 uint64           `query:"year"`
+	Date                 param.DateParam  `query:"date"`
 	Page                 uint64           `query:"page"`
 	WithDoneToday        bool             `query:"withIsDoneToday"`
 	IsAdditionalWorkFull bool             `query:"isAdditionalWorkFull"`

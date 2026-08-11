@@ -211,7 +211,11 @@ func (r *WorkRepository) GetAdditionalWorkUserByUserId(userId uuid.UUID, filter 
 
 	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("DATE(additional_work_users.created_at) >= ? AND DATE(additional_work_users.created_at) <= ?", startDate, endDate)
+		query = query.Where("DATE(additional_works.work_date) >= ? AND DATE(additional_works.work_date) <= ?", startDate, endDate)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(additional_works.work_date) = ?", filter.Date.Value())
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
@@ -265,7 +269,11 @@ func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filte
 
 	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
-		query = query.Where("additional_work_users.created_at >= ? AND additional_work_users.created_at <= ?", startDate, endDate)
+		query = query.Where("DATE(additional_works.work_date) >= ? AND DATE(additional_works.work_date) <= ?", startDate, endDate)
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(additional_works.work_date) = ?", filter.Date.Value())
 	}
 
 	if filter.WithDeleted != nil && *filter.WithDeleted {
@@ -275,7 +283,13 @@ func (r *WorkRepository) CountAdditionalWorkUserByUserId(userId uuid.UUID, filte
 	}
 
 	if filter.IsAdditionalWorkFull {
-		query = query.Where("additional_work_users.is_additional_work_full = ?", filter.IsAdditionalWorkFull)
+		subQuery := r.GetDB().
+			Table("additional_work_users").
+			Select("additional_work_id").
+			Group("additional_work_id").
+			Having("COUNT(*) = (SELECT slot FROM additional_works WHERE id = additional_work_users.additional_work_id)")
+
+		query = query.Where("additional_works.id IN (?)", subQuery)
 	}
 
 	err := query.Where("users.id = ?", userId).

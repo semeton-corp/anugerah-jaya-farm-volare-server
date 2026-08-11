@@ -2715,7 +2715,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 				totalDayInMonth := util.TotalDaysInMonth(int(filter.Year), time.Month(filter.Month.Value()))
 				salaryPerDay := userSalaryPayment.User.Salary.Div(decimal.NewFromUint64(totalDayInMonth))
 				reduceSalaryCauseNotPresent := salaryPerDay.Mul(decimal.NewFromUint64(totalNotPresent))
-				bonusSalary = bonusSalary.Add(reduceSalaryCauseNotPresent)
+				bonusSalary = bonusSalary.Sub(reduceSalaryCauseNotPresent)
 			}
 
 			for _, e := range additionalWorkUsers.AdditionalWorkUsers {
@@ -2736,7 +2736,7 @@ func (s *CashflowService) GetUserSalarySummary(filter dto.GetUserSalarySummaryFi
 			kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
 			if kpiPerformance >= constant.KPIScoreGood {
 				bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.User.Salary))
-			} else if kpiPerformance <= constant.KPIScoreMid {
+			} else if kpiPerformance <= constant.KPIScoreBad {
 				bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.User.Salary))
 			}
 
@@ -2891,8 +2891,8 @@ func (s *CashflowService) GetUserSalaryDetail(id uint64) (dto.UserSalaryDetailRe
 		kpiPerformance := (presenceScore * 0.6) + (workScore * 0.4)
 		if kpiPerformance >= constant.KPIScoreGood {
 			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusGoodPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
-		} else if kpiPerformance >= constant.KPIScoreMid && kpiPerformance < constant.KPIScoreGood {
-			bonusSalary = bonusSalary.Add(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
+		} else if kpiPerformance <= constant.KPIScoreBad {
+			bonusSalary = bonusSalary.Sub(decimal.NewFromFloat(constant.BonusBadPerformancePercentage).Mul(userSalaryPayment.BaseSalary))
 		}
 
 		userCashAdvanceSummary, err := s.GetUserCashAdvanceByUserId(userSalaryPayment.UserId)
