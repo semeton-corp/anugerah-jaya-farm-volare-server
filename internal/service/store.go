@@ -899,6 +899,9 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
 	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
@@ -2045,6 +2048,9 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
 		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
+		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
 		return dto.StoreSaleResponse{}, errx.BadRequest("invalid payment type")
 	}
 

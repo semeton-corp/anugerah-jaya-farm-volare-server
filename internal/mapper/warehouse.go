@@ -287,10 +287,6 @@ func WarehouseItemProcurementToResponse(data *entity.WarehouseItemProcurement) d
 		response.PaidDate = "-"
 	}
 
-	if data.ReceiveQuantity.Valid {
-		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
-	}
-
 	return response
 }
 
@@ -330,6 +326,10 @@ func WarehouseItemProcurementToListResponse(data *entity.WarehouseItemProcuremen
 		response.PaidDate = data.PaidDate.Time.Format("02-01-2006")
 	} else {
 		response.PaidDate = "-"
+	}
+
+	if data.ReceiveQuantity.Valid {
+		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
 	}
 
 	return response
@@ -409,11 +409,10 @@ func WarehouseItemCornProcurementToResponse(data *entity.WarehouseItemCornProcur
 	}
 
 	if data.ReceiveQuantity.Valid {
-		response.ReceieveQuantity = &data.ReceiveQuantity.Float64
+		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
 	}
 
-	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))
-	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+	response.TotalPrice = data.TotalPrice.String()
 
 	if data.DeadlinePaymentDate.Valid {
 		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")
@@ -451,8 +450,11 @@ func WarehouseItemCornProcurementToListResponse(data *entity.WarehouseItemCornPr
 		PaymentStatus:     data.PaymentStatus.String(),
 	}
 
-	discountPrice := data.Price.Mul(decimal.NewFromFloat(data.Discount / 100.0))
-	response.TotalPrice = data.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(response.Quantity)).String()
+	response.TotalPrice = data.TotalPrice.String()
+
+	if data.ReceiveQuantity.Valid {
+		response.ReceiveQuantity = &data.ReceiveQuantity.Float64
+	}
 
 	if data.DeadlinePaymentDate.Valid {
 		response.DeadlinePaymentDate = data.DeadlinePaymentDate.Time.Format("02-01-2006")

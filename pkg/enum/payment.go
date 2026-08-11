@@ -74,12 +74,14 @@ const (
 	PaymentTypeUnknown     PaymentType = 0
 	PaymentTypePaidOff     PaymentType = 1
 	PaymentTypeinstallment PaymentType = 2
+	PaymentTypePaidAtEnd   PaymentType = 3
 )
 
 var (
 	PaymentTypeMap = map[PaymentType]string{
 		PaymentTypePaidOff:     "Penuh",
 		PaymentTypeinstallment: "Cicil",
+		PaymentTypePaidAtEnd:   "Pembayaran Akhir",
 	}
 )
 

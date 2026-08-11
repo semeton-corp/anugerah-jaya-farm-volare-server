@@ -762,6 +762,9 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment type")
 	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
@@ -1684,6 +1687,9 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		s.log.Error("invalid payment type", zap.String("paymentType", request.PaymentType))
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment type")
 	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment type")
+	}
 
 	price, err := decimal.NewFromString(request.Price)
 	if err != nil {
@@ -2037,10 +2043,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
 	}
 
-	if len(request.Payments) == 0 {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("payments are required")
-	}
-
 	payments := make([]entity.WarehouseItemProcurementPayment, 0, len(request.Payments))
 	totalPayment := decimal.Zero
 	for _, p := range request.Payments {
@@ -2069,18 +2071,16 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("need more payment for paid off")
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, data.TotalPrice, len(payments)); err != nil {
+		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	if totalPayment.Equal(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusPaid
-		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalPayment.LessThan(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusUnpaid
-	} else {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("total payment more than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, data.TotalPrice, false)
+	if err != nil {
+		return dto.WarehouseItemProcurementResponse{}, err
 	}
+	data.PaymentStatus = paymentStatus
+	data.PaidDate = paidDate
 
 	err = s.repository.CreateWarehouseItemProcurement(&data)
 	if err != nil {
@@ -2092,10 +2092,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemProcurementDraft(id uint64, 
 		payments[i].WarehouseItemProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
-	if err != nil {
-		s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
+		if err != nil {
+			s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
 	}
 
 	err = s.repository.Commit()
@@ -2197,10 +2199,6 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		data.ExpiredAt = sql.NullTime{Time: expiredAt, Valid: true}
 	}
 
-	if len(request.Payments) == 0 {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("payments are required")
-	}
-
 	payments := make([]entity.WarehouseItemProcurementPayment, 0, len(request.Payments))
 	totalPayment := decimal.Zero
 	for _, p := range request.Payments {
@@ -2229,18 +2227,16 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("need more payment for paid off")
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, data.TotalPrice, len(payments)); err != nil {
+		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	if totalPayment.Equal(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusPaid
-		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalPayment.LessThan(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusUnpaid
-	} else {
-		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("total payment more than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, data.TotalPrice, false)
+	if err != nil {
+		return dto.WarehouseItemProcurementResponse{}, err
 	}
+	data.PaymentStatus = paymentStatus
+	data.PaidDate = paidDate
 
 	err = s.repository.CreateWarehouseItemProcurement(&data)
 	if err != nil {
@@ -2252,10 +2248,12 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		payments[i].WarehouseItemProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
-	if err != nil {
-		s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
-		return dto.WarehouseItemProcurementResponse{}, err
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseItemProcurementPaymentInBatch(&payments)
+		if err != nil {
+			s.log.Error("failed create warehouse procurement payments in batch", zap.Error(err))
+			return dto.WarehouseItemProcurementResponse{}, err
+		}
 	}
 
 	err = s.repository.Commit()
@@ -2549,12 +2547,12 @@ func (s *WarehouseService) DeleteWarehouseItemProcurementPayment(id uint64, ware
 	}
 
 	warehouseItemProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	if totalPrice.LessThan(decimal.Zero) {
-		return errx.BadRequest("delete this payment make minus")
-	} else if totalPrice.LessThan(warehouseItemProcurement.TotalPrice) {
-		warehouseItemProcurement.PaymentStatus = enum.PaymentStatusUnpaid
-		warehouseItemProcurement.PaidDate = sql.NullTime{Valid: false}
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPrice, warehouseItemProcurement.TotalPrice, true)
+	if err != nil {
+		return err
 	}
+	warehouseItemProcurement.PaymentStatus = paymentStatus
+	warehouseItemProcurement.PaidDate = paidDate
 
 	err = s.repository.DeleteWarehouseItemProcurementPayment(id)
 	if err != nil {
@@ -2592,12 +2590,26 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 	warehouseItemProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	warehouseItemProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	warehouseItemProcurement.IsArrived = true
+	warehouseItemProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	warehouseItemProcurement.TotalPrice = warehouseItemProcurement.Price.Mul(decimal.NewFromFloat(request.Quantity))
 
 	if warehouseItemProcurement.Quantity != request.Quantity {
 		warehouseItemProcurement.Status = enum.ProcurementStatusArrivedNotOk
 	} else {
 		warehouseItemProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
+
+	totalPayment := decimal.Zero
+	for _, payment := range warehouseItemProcurement.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, warehouseItemProcurement.TotalPrice, true)
+	if err != nil {
+		return dto.WarehouseItemProcurementResponse{}, err
+	}
+	warehouseItemProcurement.PaymentStatus = paymentStatus
+	warehouseItemProcurement.PaidDate = paidDate
 
 	warehouseItem := entity.WarehouseItem{
 		ItemId:      warehouseItemProcurement.ItemId,
@@ -2611,7 +2623,8 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	warehouseItem.Quantity = warehouseItem.Quantity + request.Quantity
+	quantityBefore := warehouseItem.Quantity
+	warehouseItem.Quantity = quantityBefore + request.Quantity
 
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	err = s.repository.UpdateWarehouseItemProcurement(&warehouseItemProcurement)
@@ -2631,8 +2644,8 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		ItemUnit:       warehouseItem.Item.Unit,
 		Source:         warehouseItem.Item.Name,
 		Destination:    warehouseItemProcurement.Warehouse.Name,
-		QuantityBefore: warehouseItem.Quantity,
-		QuantityAfter:  request.Quantity + warehouseItem.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  warehouseItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusIn,
 	})
@@ -2880,10 +2893,6 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
-	if len(request.Payments) == 0 {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("payments are required")
-	}
-
 	payments := make([]entity.WarehouseItemCornProcurementPayment, 0, len(request.Payments))
 	totalPayment := decimal.Zero
 	for _, p := range request.Payments {
@@ -2912,18 +2921,16 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("need payment to paid off")
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, data.TotalPrice, len(payments)); err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	if totalPayment.Equal(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusPaid
-		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalPayment.LessThan(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusUnpaid
-	} else {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("total payment more than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, data.TotalPrice, false)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
+	data.PaymentStatus = paymentStatus
+	data.PaidDate = paidDate
 
 	err = s.repository.CreateWarehouseItemCornProcurement(&data)
 	if err != nil {
@@ -2935,10 +2942,12 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		payments[i].WarehouseItemCornProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
-	if err != nil {
-		s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
+		if err != nil {
+			s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
 	}
 
 	data, err = s.repository.GetWarehouseItemCornProcurement(data.Id)
@@ -3044,10 +3053,6 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 	discountPrice := price.Mul(decimal.NewFromFloat(request.Discount / 100.0))
 	data.TotalPrice = price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
-	if len(request.Payments) == 0 {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("payments are required")
-	}
-
 	payments := make([]entity.WarehouseItemCornProcurementPayment, 0, len(request.Payments))
 	totalPayment := decimal.Zero
 	for _, p := range request.Payments {
@@ -3076,18 +3081,16 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff && !totalPayment.Equal(data.TotalPrice) {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("need payment to paid off")
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, data.TotalPrice, len(payments)); err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
 
-	if totalPayment.Equal(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusPaid
-		data.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalPayment.LessThan(data.TotalPrice) {
-		data.PaymentStatus = enum.PaymentStatusUnpaid
-	} else {
-		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("total payment more than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, data.TotalPrice, false)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
 	}
+	data.PaymentStatus = paymentStatus
+	data.PaidDate = paidDate
 
 	err = s.repository.CreateWarehouseItemCornProcurement(&data)
 	if err != nil {
@@ -3099,10 +3102,12 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		payments[i].WarehouseItemCornProcurementId = data.Id
 	}
 
-	err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
-	if err != nil {
-		s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
-		return dto.WarehouseItemCornProcurementResponse{}, err
+	if len(payments) > 0 {
+		err = s.repository.CreateWarehouseItemCornProcurementPaymentInBatch(&payments)
+		if err != nil {
+			s.log.Error("failed create warehouse item corn procurement payments in batch", zap.Error(err))
+			return dto.WarehouseItemCornProcurementResponse{}, err
+		}
 	}
 
 	err = s.repository.Commit()
@@ -3421,12 +3426,12 @@ func (s *WarehouseService) DeleteWarehouseItemCornProcurementPayment(id uint64, 
 	}
 
 	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	if totalPrice.LessThan(decimal.Zero) {
-		return errx.BadRequest("delete this payment make minus")
-	} else if totalPrice.LessThan(warehouseItemCornProcurement.TotalPrice) {
-		warehouseItemCornProcurement.PaymentStatus = enum.PaymentStatusUnpaid
-		warehouseItemCornProcurement.PaidDate = sql.NullTime{Valid: false}
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPrice, warehouseItemCornProcurement.TotalPrice, true)
+	if err != nil {
+		return err
 	}
+	warehouseItemCornProcurement.PaymentStatus = paymentStatus
+	warehouseItemCornProcurement.PaidDate = paidDate
 
 	err = s.repository.DeleteWarehouseItemCornProcurementPayment(id)
 	if err != nil {
@@ -3464,6 +3469,9 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 	warehouseItemCornProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
 	warehouseItemCornProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	warehouseItemCornProcurement.IsArrived = true
+	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	discountPrice := warehouseItemCornProcurement.Price.Mul(decimal.NewFromFloat(warehouseItemCornProcurement.Discount / 100.0))
+	warehouseItemCornProcurement.TotalPrice = warehouseItemCornProcurement.Price.Sub(discountPrice).Mul(decimal.NewFromFloat(request.Quantity))
 
 	if warehouseItemCornProcurement.Quantity != request.Quantity {
 		warehouseItemCornProcurement.Status = enum.ProcurementStatusArrivedNotOk
@@ -3471,10 +3479,22 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 		warehouseItemCornProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
 
+	totalPayment := decimal.Zero
+	for _, payment := range warehouseItemCornProcurement.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, warehouseItemCornProcurement.TotalPrice, true)
+	if err != nil {
+		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+	warehouseItemCornProcurement.PaymentStatus = paymentStatus
+	warehouseItemCornProcurement.PaidDate = paidDate
+
 	warehouseItemCorn := entity.WarehouseItemCorn{
 		WarehouseId: warehouseItemCornProcurement.WarehouseId,
 		SupplierId:  warehouseItemCornProcurement.SupplierId,
-		Quantity:    warehouseItemCornProcurement.Quantity,
+		Quantity:    request.Quantity,
 		OrderDate:   warehouseItemCornProcurement.CreatedAt,
 		ExpiredAt:   warehouseItemCornProcurement.ExpiredAt,
 		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},

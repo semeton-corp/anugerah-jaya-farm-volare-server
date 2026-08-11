@@ -117,6 +117,7 @@ type WarehouseItemProcurementListResponse struct {
 	Supplier                      SupplierListResponse `json:"supplier"`
 	IsArrived                     bool                 `json:"IsArrived"`
 	Quantity                      float64              `json:"quantity"`
+	ReceiveQuantity               *float64             `json:"receiveQuantity"`
 	EstimationArrivalDate         string               `json:"estimationArrivalDate"`
 	ProcurementStatus             string               `json:"procurementStatus"`
 	DeadlinePaymentDate           string               `json:"deadlinePaymentDate"`
@@ -477,7 +478,7 @@ type WarehouseItemCornProcurementListResponse struct {
 	Discount                      float64              `json:"discount"`
 	Price                         string               `json:"price"`
 	PaidDate                      string               `json:"paidDate"`
-	ReceiveQuantity               *float64             `json:"recieveQuantity"`
+	ReceiveQuantity               *float64             `json:"receiveQuantity"`
 }
 
 type WarehouseItemCornProcurementListPaginationResponse struct {
@@ -507,7 +508,7 @@ type WarehouseItemCornProcurementResponse struct {
 	PaymentStatus                 string                                        `json:"paymentStatus"`
 	PaymentType                   string                                        `json:"paymentType"`
 	Payments                      []WarehouseItemCornProcurementPaymentResponse `json:"payments"`
-	ReceieveQuantity              *float64                                      `json:"recieveQuantity"`
+	ReceiveQuantity               *float64                                      `json:"receiveQuantity"`
 	ExpiredAt                     string                                        `json:"expiredAt"`
 	Date                          string                                        `json:"date"`
 }

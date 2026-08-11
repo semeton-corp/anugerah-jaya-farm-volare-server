@@ -496,15 +496,19 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 		totalDOCChicken, totalGrowerChicken, totalPreLayerChicken, totalLayerChicken, totalAfkirChicken uint64
 		totalLiveChicken, totalSickChicken, totalDeathChicken                                           uint64
 		totalMortalityRateChicken                                                                       float64
+		totalMortalityMonitoringCount                                                                   uint64
 		totalFeed                                                                                       float64
 	)
 
 	for _, cc := range chickenCages {
 		totalLiveChicken += cc.TotalChicken
-		totalSickChicken += currentChickenMonitoringMap[cc.Id].TotalSickChicken
-		totalDeathChicken += currentChickenMonitoringMap[cc.Id].TotalDeathChicken
-		totalMortalityRateChicken += currentChickenMonitoringMap[cc.Id].MortalityRate
-		totalFeed += currentChickenMonitoringMap[cc.Id].TotalFeed
+		if chickenMonitoring, ok := currentChickenMonitoringMap[cc.Id]; ok {
+			totalSickChicken += chickenMonitoring.TotalSickChicken
+			totalDeathChicken += chickenMonitoring.TotalDeathChicken
+			totalMortalityRateChicken += chickenMonitoring.MortalityRate
+			totalMortalityMonitoringCount += 1
+			totalFeed += chickenMonitoring.TotalFeed
+		}
 
 		chickenCategory := enum.ValueOfChickenCategory(cc.ChickenCategory)
 		switch chickenCategory {
@@ -539,10 +543,9 @@ func (c *ChickenService) GetChickenOverview(filter dto.GetChickenOverviewFilter)
 	hdpRate := float64(0)
 	avgEggWeightGrams := float64(0)
 	fcr := float64(0)
-	chickenCagesCount := len(chickenCages)
 
-	if chickenCagesCount > 0 {
-		mortalityRate = totalMortalityRateChicken / float64(chickenCagesCount)
+	if totalMortalityMonitoringCount > 0 {
+		mortalityRate = totalMortalityRateChicken / float64(totalMortalityMonitoringCount)
 	}
 
 	if totalLiveChicken > 0 {
@@ -1374,18 +1377,16 @@ func (s *ChickenService) ConfirmationChickenProcurementDraft(id uint64, request 
 		totalPayment = totalPayment.Add(nominal)
 	}
 
-	if paymentType == enum.PaymentTypePaidOff && totalPayment.LessThan(chickenProcurement.TotalPrice) {
-		return dto.ChickenProcurementResponse{}, errx.BadRequest("need payment to make it paid off")
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, chickenProcurement.TotalPrice, len(chickenProcurementPayments)); err != nil {
+		return dto.ChickenProcurementResponse{}, err
 	}
 
-	if totalPayment.Equal(chickenProcurement.TotalPrice) {
-		chickenProcurement.PaymentStatus = enum.PaymentStatusPaid
-		chickenProcurement.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) {
-		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
-	} else {
-		return dto.ChickenProcurementResponse{}, errx.BadRequest("nominal greater than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, chickenProcurement.TotalPrice, false)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
 	}
+	chickenProcurement.PaymentStatus = paymentStatus
+	chickenProcurement.PaidDate = paidDate
 
 	err = s.repository.CreateChickenProcurement(&chickenProcurement)
 	if err != nil {
@@ -1465,12 +1466,28 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	chickenProcurement.TakenBy = uuid.NullUUID{UUID: userId, Valid: true}
 	chickenProcurement.IsArrived = true
 	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	if chickenProcurement.Quantity > 0 {
+		unitPrice := chickenProcurement.TotalPrice.Div(decimal.NewFromUint64(chickenProcurement.Quantity))
+		chickenProcurement.TotalPrice = unitPrice.Mul(decimal.NewFromUint64(request.Quantity))
+	}
 
 	if chickenProcurement.Quantity != request.Quantity {
 		chickenProcurement.Status = enum.ProcurementStatusArrivedNotOk
 	} else {
 		chickenProcurement.Status = enum.ProcurementStatusArrivedOk
 	}
+
+	totalPayment := decimal.Zero
+	for _, payment := range chickenProcurement.Payments {
+		totalPayment = totalPayment.Add(payment.Nominal)
+	}
+
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, chickenProcurement.TotalPrice, true)
+	if err != nil {
+		return dto.ChickenProcurementResponse{}, err
+	}
+	chickenProcurement.PaymentStatus = paymentStatus
+	chickenProcurement.PaidDate = paidDate
 
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,
@@ -1725,14 +1742,13 @@ func (s *ChickenService) DeleteChickenProcurementPayment(chickenProcurementId ui
 		}
 	}
 
-	if totalPayment.LessThan(decimal.Zero) {
-		s.log.Error("delete this payment make minus", zap.Error(err))
-		return errx.BadRequest("delete this payment make minus")
-	} else if totalPayment.LessThan(chickenProcurement.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
-		chickenProcurement.PaymentStatus = enum.PaymentStatusUnpaid
-		chickenProcurement.PaidDate = sql.NullTime{Valid: false}
-		chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, chickenProcurement.TotalPrice, true)
+	if err != nil {
+		return err
 	}
+	chickenProcurement.PaymentStatus = paymentStatus
+	chickenProcurement.PaidDate = paidDate
+	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
 	if err != nil {
@@ -1996,6 +2012,9 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
+	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
 
@@ -2500,6 +2519,9 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 
 	paymentType := enum.ValueOfPaymentType(request.PaymentType)
 	if !paymentType.IsValid() {
+		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
+	}
+	if paymentType == enum.PaymentTypePaidAtEnd {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
 

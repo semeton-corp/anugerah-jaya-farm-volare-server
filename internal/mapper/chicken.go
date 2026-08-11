@@ -301,6 +301,11 @@ func ChickenProcurementToListResponse(data *entity.ChickenProcurement) dto.Chick
 		response.PaidDate = "-"
 	}
 
+	if data.ReceiveQuantity.Valid {
+		val := uint64(data.ReceiveQuantity.Int64)
+		response.ReceiveQuantity = &val
+	}
+
 	return response
 }
 

@@ -76,7 +76,7 @@ func ValidationItemCategory(fl validator.FieldLevel) bool {
 func ValidationPaymentType(fl validator.FieldLevel) bool {
 	paymentType := fl.Field().String()
 	switch paymentType {
-	case "Penuh", "Cicil":
+	case "Penuh", "Cicil", "Pembayaran Akhir":
 		return true
 	default:
 		return false

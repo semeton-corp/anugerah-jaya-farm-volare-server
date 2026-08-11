@@ -203,6 +203,7 @@ type ChickenProcurementListResponse struct {
 	Id                            uint64               `json:"id"`
 	OrderDate                     string               `json:"orderDate"`
 	Quantity                      uint64               `json:"quantity"`
+	ReceiveQuantity               *uint64              `json:"receiveQuantity"`
 	Cage                          CageResponse         `json:"cage"`
 	Supplier                      SupplierListResponse `json:"supplier"`
 	EstimationArrivalDate         string               `json:"estimationArrivalDate"`
