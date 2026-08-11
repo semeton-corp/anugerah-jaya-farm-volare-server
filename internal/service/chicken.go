@@ -2753,14 +2753,14 @@ func (s *ChickenService) GetChickenPerformances(filter dto.GetChickenPerformance
 
 			var averageConsumptionPerChicken float64
 			if chickenCage.TotalChicken > 0 {
-				averageConsumptionPerChicken = chickenMonitoringMap[chickenCage.Id].TotalFeed / float64(chickenCage.TotalChicken)
+				averageConsumptionPerChicken = (chickenMonitoringMap[chickenCage.Id].TotalFeed * 1000.0) / float64(chickenCage.TotalChicken)
 			} else {
 				averageConsumptionPerChicken = 0
 			}
 
 			var averageWeightPerEgg float64
 			if totalGoodEgg > 0 {
-				averageWeightPerEgg = eggMonitoringMap[chickenCage.Id].TotalWeightAllEgg / float64(totalGoodEgg)
+				averageWeightPerEgg = (eggMonitoringMap[chickenCage.Id].TotalWeightGoodEgg * 1000.0) / float64(totalGoodEgg)
 			} else {
 				averageWeightPerEgg = 0
 			}
