@@ -104,7 +104,7 @@ func (r *CageRepository) GetCages(filter dto.GetCageFilter) ([]entity.Cage, erro
 	}
 
 	if filter.IsUsed != nil {
-		query = query.Where("is_used = ?", filter.ChickenCategory)
+		query = query.Where("is_used = ?", *filter.IsUsed)
 	}
 
 	err := query.Order("created_at DESC").Preload("Location").Find(&cages).Error
@@ -418,7 +418,7 @@ func (r *CageRepository) GetCageFeedStocks(filter dto.GetCageFeedStockFilter) ([
 		query = query.Where("cage_id = ?", filter.CageId)
 	}
 
-	err := query.Where("total_feed - used_feed <> 0").Order("created_by ASC").Find(&data).Error
+	err := query.Where("total_feed - used_feed <> 0").Order("created_at ASC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}

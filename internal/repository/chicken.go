@@ -192,7 +192,7 @@ func (r *ChickenRepository) GetChickenMonitorings(filter *dto.GetChickenMonitori
 	}
 
 	err := query.
-		Order("created_at DESC").
+		Order("chicken_monitorings.created_at DESC").
 		Find(&chickenMonitorings).Error
 
 	if err != nil {
@@ -526,17 +526,39 @@ func (r *ChickenRepository) CreateAfkirChickenSale(data *entity.AfkirChickenSale
 
 func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) ([]entity.AfkirChickenSale, error) {
 	var data []entity.AfkirChickenSale
-	query := r.GetDB().Model(&entity.AfkirChickenSale{})
+	query := r.GetDB().Model(&entity.AfkirChickenSale{}).
+		Joins("JOIN chicken_cages ON chicken_cages.id = afkir_chicken_sales.chicken_cage_id").
+		Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
 
 	if filter.Page > 0 {
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("afkir_chicken_sales.payment_status = ?", filter.PaymentStatus.Value())
 	}
 
-	err := query.Order("is_taken ASC").Order("paid_date DESC").Order("created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]int, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, int(paymentStatus.Value()))
+		}
+		query = query.Where("afkir_chicken_sales.payment_status IN ?", paymentStatuses)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sales.created_at) >= ? AND DATE(afkir_chicken_sales.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sales.deadline_payment_date) >= ? AND DATE(afkir_chicken_sales.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	err := query.Order("afkir_chicken_sales.is_taken ASC").Order("afkir_chicken_sales.paid_date DESC").Order("afkir_chicken_sales.created_at DESC").Preload("ChickenCage.Cage.Location").Preload("ChickenCage.Cage.CagePlacement.User").Preload("ChickenCage.ChickenProcurement").Preload("AfkirChickenCustomer").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +568,35 @@ func (r *ChickenRepository) GetAfkirChickenSales(filter dto.GetAfkirChickenSaleF
 
 func (r *ChickenRepository) CountChickenAfkirChickenSale(filter dto.GetAfkirChickenSaleFilter) (int64, error) {
 	var count int64
-	err := r.GetDB().Model(entity.AfkirChickenSale{}).Count(&count).Error
+	query := r.GetDB().Model(entity.AfkirChickenSale{}).
+		Joins("JOIN chicken_cages ON chicken_cages.id = afkir_chicken_sales.chicken_cage_id").
+		Joins("JOIN cages ON cages.id = chicken_cages.cage_id")
+
+	if filter.PaymentStatus.Value().IsValid() {
+		query = query.Where("afkir_chicken_sales.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]int, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, int(paymentStatus.Value()))
+		}
+		query = query.Where("afkir_chicken_sales.payment_status IN ?", paymentStatuses)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sales.created_at) >= ? AND DATE(afkir_chicken_sales.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sales.deadline_payment_date) >= ? AND DATE(afkir_chicken_sales.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	err := query.Count(&count).Error
 	if err != nil {
 		return -1, err
 	}
@@ -627,17 +677,38 @@ func (r *ChickenRepository) UpdateAfkirChickenSale(data *entity.AfkirChickenSale
 
 func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurementFilter) ([]entity.ChickenProcurement, error) {
 	var chickenProcurements []entity.ChickenProcurement
-	query := r.GetDB().Model(&entity.ChickenProcurement{})
+	query := r.GetDB().Model(&entity.ChickenProcurement{}).
+		Joins("JOIN cages ON cages.id = chicken_procurements.cage_id")
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("chicken_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]int, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, int(paymentStatus.Value()))
+		}
+		query = query.Where("chicken_procurements.payment_status IN ?", paymentStatuses)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurements.created_at) >= ? AND DATE(chicken_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurements.deadline_payment_date) >= ? AND DATE(chicken_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	if filter.Page > 0 {
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date ASC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
+	err := query.Order("chicken_procurements.status ASC").Order("chicken_procurements.payment_status DESC").Order("chicken_procurements.deadline_payment_date ASC").Preload("Cage.Location").Preload("Supplier").Find(&chickenProcurements).Error
 	if err != nil {
 		return nil, err
 	}
@@ -647,10 +718,31 @@ func (r *ChickenRepository) GetChickenProcurements(filter dto.GetChickenProcurem
 
 func (r *ChickenRepository) CountChickenProcurement(filter dto.GetChickenProcurementFilter) (int64, error) {
 	var count int64
-	query := r.GetDB().Model(&entity.ChickenProcurement{})
+	query := r.GetDB().Model(&entity.ChickenProcurement{}).
+		Joins("JOIN cages ON cages.id = chicken_procurements.cage_id")
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("chicken_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]int, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, int(paymentStatus.Value()))
+		}
+		query = query.Where("chicken_procurements.payment_status IN ?", paymentStatuses)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Where("cages.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurements.created_at) >= ? AND DATE(chicken_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurements.deadline_payment_date) >= ? AND DATE(chicken_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	err := query.Count(&count).Error

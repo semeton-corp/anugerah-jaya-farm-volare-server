@@ -883,7 +883,7 @@ func (s *CageService) GetTotalCageFeedHistory(cageId uint64) (float64, error) {
 	}
 
 	for _, e := range cageFeedStocks {
-		totalCurrentFeed = e.TotalFeed - e.UsedFeed
+		totalCurrentFeed += e.TotalFeed - e.UsedFeed
 	}
 
 	return totalCurrentFeed, nil
@@ -1004,6 +1004,14 @@ func (s *CageService) MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid
 	}, userId)
 	if err != nil {
 		return err
+	}
+
+	for i := range cageFeedStocks {
+		cageFeedStocks[i].UsedFeed = cageFeedStocks[i].TotalFeed
+		cageFeedStocks[i].UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+		if err := s.repository.UpdateCageFeedStock(&cageFeedStocks[i]); err != nil {
+			return err
+		}
 	}
 
 	return nil
