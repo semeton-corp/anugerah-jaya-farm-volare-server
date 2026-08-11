@@ -386,15 +386,41 @@ func (r *WarehouseRepository) CountTotalWarehouseSale(filter dto.GetWarehouseSal
 	query := r.GetDB().Model(&entity.WarehouseSale{})
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+		query = query.Where("DATE(warehouse_sales.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("warehouse_sales.payment_status = ?", filter.PaymentStatus.Value())
 	}
 
 	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+		query = query.Where("warehouse_sales.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.ItemId > 0 {
+		query = query.Where("warehouse_sales.item_id = ?", filter.ItemId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_sales.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_sales.deadline_payment_date) >= ? AND DATE(warehouse_sales.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_sales.created_at) >= ? AND DATE(warehouse_sales.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("warehouse_sales.payment_status IN ?", paymentStatus)
 	}
 
 	err := query.Count(&totalData).Error
@@ -445,7 +471,7 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 	query := r.GetDB().Model(&entity.WarehouseSale{})
 
 	if !filter.Date.Value().IsZero() {
-		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
+		query = query.Where("DATE(warehouse_sales.created_at) = ?", filter.Date.Value())
 	}
 
 	if filter.Page > 0 {
@@ -453,18 +479,40 @@ func (r *WarehouseRepository) GetWarehouseSales(filter dto.GetWarehouseSaleFilte
 	}
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("warehouse_sales.payment_status = ?", filter.PaymentStatus.Value())
 	}
 
 	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
-		query = query.Where("DATE(created_at) >= ? AND DATE(created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+		query = query.Where("DATE(warehouse_sales.created_at) >= ? AND DATE(warehouse_sales.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+		query = query.Where("warehouse_sales.warehouse_id = ?", filter.WarehouseId)
 	}
 
-	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Order("created_at DESC").Find(&warehouseSales).Error
+	if filter.ItemId > 0 {
+		query = query.Where("warehouse_sales.item_id = ?", filter.ItemId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_sales.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_sales.deadline_payment_date) >= ? AND DATE(warehouse_sales.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatus := make([]enum.PaymentStatus, 0)
+		for _, e := range filter.PaymentStatuses {
+			paymentStatus = append(paymentStatus, e.Value())
+		}
+
+		query = query.Where("warehouse_sales.payment_status IN ?", paymentStatus)
+	}
+
+	err := query.Preload("Warehouse.Location").Preload("Customer").Preload("Item").Order("warehouse_sales.created_at DESC").Find(&warehouseSales).Error
 	if err != nil {
 		return nil, err
 	}
@@ -595,15 +643,40 @@ func (r *WarehouseRepository) CountWarehouseItemProcurement(filter dto.GetWareho
 	query := r.GetDB().Model(&entity.WarehouseItemProcurement{})
 
 	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+		query = query.Where("warehouse_item_procurements.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("warehouse_item_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]enum.PaymentStatus, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, paymentStatus.Value())
+		}
+		query = query.Where("warehouse_item_procurements.payment_status IN ?", paymentStatuses)
 	}
 
 	if filter.Status.Value().IsValid() {
-		query = query.Where("status = ?", filter.Status.Value())
+		query = query.Where("warehouse_item_procurements.status = ?", filter.Status.Value())
+	}
+
+	if filter.ProcurementStatus.Value().IsValid() {
+		query = query.Where("warehouse_item_procurements.status = ?", filter.ProcurementStatus.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurements.created_at) >= ? AND DATE(warehouse_item_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	err := query.Count(&count).Error
@@ -664,22 +737,47 @@ func (r *WarehouseRepository) GetWarehouseItemProcurements(filter dto.GetWarehou
 	query := r.GetDB().Model(&entity.WarehouseItemProcurement{}).Preload("Warehouse.Location").Preload("Item").Preload("Supplier")
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus)
+		query = query.Where("warehouse_item_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]enum.PaymentStatus, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, paymentStatus.Value())
+		}
+		query = query.Where("warehouse_item_procurements.payment_status IN ?", paymentStatuses)
 	}
 
 	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+		query = query.Where("warehouse_item_procurements.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_item_procurements.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
 	if filter.ProcurementStatus.Value().IsValid() {
-		query = query.Where("status = ?", filter.ProcurementStatus.Value())
+		query = query.Where("warehouse_item_procurements.status = ?", filter.ProcurementStatus.Value())
+	}
+
+	if filter.Status.Value().IsValid() {
+		query = query.Where("warehouse_item_procurements.status = ?", filter.Status.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurements.created_at) >= ? AND DATE(warehouse_item_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	if filter.Page > 0 {
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date ASC").Find(&data).Error
+	err := query.Order("warehouse_item_procurements.status ASC").Order("warehouse_item_procurements.payment_status DESC").Order("warehouse_item_procurements.deadline_payment_date ASC").Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -892,22 +990,43 @@ func (r *WarehouseRepository) GetWarehouseItemCornProcurements(filter dto.GetWar
 	query := r.GetDB().Model(&entity.WarehouseItemCornProcurement{})
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("warehouse_item_corn_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]enum.PaymentStatus, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, paymentStatus.Value())
+		}
+		query = query.Where("warehouse_item_corn_procurements.payment_status IN ?", paymentStatuses)
 	}
 
 	if filter.WarehouseId > 0 {
-		query = query.Where("warehouse_id = ?", filter.WarehouseId)
+		query = query.Where("warehouse_item_corn_procurements.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_item_corn_procurements.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
 	}
 
 	if filter.ProcurementStatus.Value().IsValid() {
-		query = query.Where("status = ?", filter.ProcurementStatus.Value())
+		query = query.Where("warehouse_item_corn_procurements.status = ?", filter.ProcurementStatus.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurements.created_at) >= ? AND DATE(warehouse_item_corn_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_corn_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	if filter.Page > 0 {
 		query = query.Limit(int(constant.PaginationDefaultLimit)).Offset((int(filter.Page) - 1) * int(constant.PaginationDefaultLimit))
 	}
 
-	err := query.Preload("Warehouse.Location").Order("status ASC").Order("payment_status DESC").Order("deadline_payment_date DESC").Preload("Supplier").Find(&warehouseItemCornProcurements).Error
+	err := query.Preload("Warehouse.Location").Order("warehouse_item_corn_procurements.status ASC").Order("warehouse_item_corn_procurements.payment_status DESC").Order("warehouse_item_corn_procurements.deadline_payment_date DESC").Preload("Supplier").Find(&warehouseItemCornProcurements).Error
 	if err != nil {
 		return nil, err
 	}
@@ -920,7 +1039,36 @@ func (r *WarehouseRepository) CountWarehouseItemCornProcurement(filter dto.GetWa
 	query := r.GetDB().Model(&entity.WarehouseItemCornProcurement{})
 
 	if filter.PaymentStatus.Value().IsValid() {
-		query = query.Where("payment_status = ?", filter.PaymentStatus.Value())
+		query = query.Where("warehouse_item_corn_procurements.payment_status = ?", filter.PaymentStatus.Value())
+	}
+
+	if filter.PaymentStatuses != nil {
+		paymentStatuses := make([]enum.PaymentStatus, 0, len(filter.PaymentStatuses))
+		for _, paymentStatus := range filter.PaymentStatuses {
+			paymentStatuses = append(paymentStatuses, paymentStatus.Value())
+		}
+		query = query.Where("warehouse_item_corn_procurements.payment_status IN ?", paymentStatuses)
+	}
+
+	if filter.WarehouseId > 0 {
+		query = query.Where("warehouse_item_corn_procurements.warehouse_id = ?", filter.WarehouseId)
+	}
+
+	if filter.LocationId > 0 {
+		query = query.Joins("JOIN warehouses ON warehouses.id = warehouse_item_corn_procurements.warehouse_id").
+			Where("warehouses.location_id = ?", filter.LocationId)
+	}
+
+	if filter.ProcurementStatus.Value().IsValid() {
+		query = query.Where("warehouse_item_corn_procurements.status = ?", filter.ProcurementStatus.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurements.created_at) >= ? AND DATE(warehouse_item_corn_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_corn_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
 	err := query.Count(&count).Error

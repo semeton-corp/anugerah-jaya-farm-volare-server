@@ -487,7 +487,9 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		return dto.StoreRequestItemResponse{}, err
 	}
 
-	storeItem.Quantity += request.Quantity
+	quantityBefore := storeItem.Quantity
+	storeItem.Quantity = quantityBefore + request.Quantity
+	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreRequestItem(&storeRequestItem)
 	if err != nil {
@@ -506,10 +508,10 @@ func (s *StoreService) StoreConfirmationStoreRequestItem(id uint64, request dto.
 		ItemUnit:       storeRequestItem.Item.Unit,
 		Source:         storeRequestItem.Warehouse.Name,
 		Destination:    storeRequestItem.Store.Name,
-		QuantityBefore: storeItem.Quantity,
-		QuantityAfter:  storeItem.Quantity + request.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  storeItem.Quantity,
 		UserId:         userId,
-		Status:         enum.ItemHistoryStatusOut,
+		Status:         enum.ItemHistoryStatusIn,
 	})
 
 	if err != nil {
@@ -569,6 +571,10 @@ func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingSto
 		return dto.StoreRequestItemResponse{}, err
 	}
 
+	if storeRequestItem.IsSorted {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("store request item is already sorted")
+	}
+
 	storeItems, err := s.repository.GetStoreItems(dto.GetStoreItemFilter{
 		StoreId:   uint64(storeRequestItem.StoreId.Int64),
 		Category:  param.ItemCategoryParam(enum.ItemCategoryEgg),
@@ -593,6 +599,10 @@ func (s *StoreService) SortingStoreRequestItem(id uint64, request dto.SortingSto
 
 	if crackedEgg.Item.Id == 0 || brokenEgg.Item.Id == 0 {
 		return dto.StoreRequestItemResponse{}, errx.BadRequest("cracked egg or broken egg not found")
+	}
+
+	if crackedEgg.Quantity < request.BrokenEggInKg {
+		return dto.StoreRequestItemResponse{}, errx.BadRequest("cracked egg stock is insufficient")
 	}
 
 	crackedEgg.Quantity -= request.BrokenEggInKg
@@ -726,6 +736,7 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 		return dto.StoreItemResponse{}, err
 	}
 
+	quantityBefore := storeItem.Quantity
 	storeItem.Quantity = request.Quantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -746,7 +757,7 @@ func (s *StoreService) UpdateStoreItem(storeId uint64, itemId uint64, request dt
 		ItemUnit:       storeItem.Item.Unit,
 		Source:         storeItem.Store.Name,
 		Destination:    "-",
-		QuantityBefore: storeItem.Quantity,
+		QuantityBefore: quantityBefore,
 		QuantityAfter:  request.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStockUpdated,
@@ -882,6 +893,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
+	quantityBefore := storeItem.Quantity
 	storeItem.Quantity -= realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -973,6 +985,7 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 			return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		} else if totalPayment.Equal(storeSale.TotalPrice) {
 			storeSale.PaymentStatus = enum.PaymentStatusPaid
+			storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 		} else {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
@@ -1051,8 +1064,8 @@ func (s *StoreService) CreateStoreSale(request dto.CreateStoreSaleRequest, userI
 		ItemUnit:       storeSale.Item.Unit,
 		Source:         storeSale.Store.Name,
 		Destination:    storeSale.Customer.Name,
-		QuantityBefore: storeItem.Quantity,
-		QuantityAfter:  storeItem.Quantity - request.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  storeItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusOut,
 	})
@@ -1114,13 +1127,7 @@ func (s *StoreService) GetStoreSales(filter dto.GetStoreSaleFilter) (dto.StoreSa
 		storeSaleResponses[i] = mapper.StoreSaleToListResponse(&storeSale)
 	}
 
-	totalData, err := s.repository.CountTotalStoreSale(
-		dto.GetStoreSaleFilter{
-			Date:          filter.Date,
-			PaymentStatus: filter.PaymentStatus,
-			StoreId:       filter.StoreId,
-		},
-	)
+	totalData, err := s.repository.CountTotalStoreSale(filter)
 	if err != nil {
 		s.log.Error("failed to get store sales", zap.Error(err))
 		return dto.StoreSaleListPaginationResponse{}, err
@@ -1268,7 +1275,7 @@ func (s *StoreService) UpdateStoreSale(id uint64, request dto.UpdateStoreSaleReq
 		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
-	storeItem.Quantity += (storeSale.Quantity + currQuantity) - reqQuantity
+	storeItem.Quantity += currQuantity - reqQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreItem(&storeItem)
@@ -1463,14 +1470,13 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 		}
 	}
 
-	if totalPayment.LessThan(storeSale.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
-		storeSale.PaymentStatus = enum.PaymentStatusUnpaid
-		storeSale.PaidDate = sql.NullTime{Valid: false}
-		storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	} else if totalPayment.LessThan(decimal.Zero) {
-		s.log.Error("delete this payment make minus", zap.Error(err))
-		return errx.BadRequest("delete this payment make minus")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, storeSale.TotalPrice, false)
+	if err != nil {
+		s.log.Error("failed to calculate store sale payment status", zap.Error(err))
+		return err
 	}
+	storeSale.PaymentStatus = paymentStatus
+	storeSale.PaidDate = paidDate
 	storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
@@ -1538,6 +1544,9 @@ func (s *StoreService) SendStoreSale(id uint64, userId uuid.UUID) (dto.StoreSale
 }
 
 func (s *StoreService) DeleteStoreSale(id uint64, userId uuid.UUID) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
 	storeSale, err := s.repository.GetStoreSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get store sale by id", zap.Error(err))
@@ -1572,6 +1581,12 @@ func (s *StoreService) DeleteStoreSale(id uint64, userId uuid.UUID) error {
 	err = s.repository.DeleteStoreSale(id)
 	if err != nil {
 		s.log.Error("failed to delete store sale", zap.Error(err))
+		return err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 
@@ -1912,9 +1927,14 @@ func (s *StoreService) GetStoreSaleQueues(filter dto.GetStoreSaleQueueFilter) ([
 
 			totalWeight := 0.0
 			for _, q := range queues {
+				currDemand := q.Quantity
+				if q.SaleUnit == enum.SaleUnitIkat {
+					currDemand *= float64(constant.TotalEggPerIkat)
+				}
+
 				demandRatio := 0.0
 				if totalDemand > 0 {
-					demandRatio = q.Quantity / totalDemand
+					demandRatio = currDemand / totalDemand
 				}
 
 				weight := 0.0
@@ -2036,6 +2056,7 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		return dto.StoreSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
+	quantityBefore := storeItem.Quantity
 	storeItem.Quantity -= realQuantity
 	storeItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -2121,11 +2142,13 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 			return dto.StoreSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
 		}
 		storeSale.PaymentStatus = enum.PaymentStatusPaid
+		storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 	} else {
-		if totalPayment.GreaterThan(totalPayment) {
+		if totalPayment.GreaterThan(storeSale.TotalPrice) {
 			return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		} else if totalPayment.Equal(storeSale.TotalPrice) {
 			storeSale.PaymentStatus = enum.PaymentStatusPaid
+			storeSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 		} else {
 			storeSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
@@ -2198,8 +2221,8 @@ func (s *StoreService) AllocateStoreSaleQueue(id uint64, request dto.CreateStore
 		ItemUnit:       storeSale.Item.Unit,
 		Source:         storeSale.Store.Name,
 		Destination:    storeSale.Customer.Name,
-		QuantityBefore: storeItem.Quantity,
-		QuantityAfter:  storeItem.Quantity - request.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  storeItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusOut,
 	})

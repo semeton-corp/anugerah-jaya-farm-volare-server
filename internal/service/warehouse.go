@@ -747,6 +747,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
+	quantityBefore := warehouseItem.Quantity
 	warehouseItem.Quantity -= realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -823,6 +824,7 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 			return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 		} else if totalPayment.Equal(warehouseSale.TotalPrice) {
 			warehouseSale.PaymentStatus = enum.PaymentStatusPaid
+			warehouseSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
 		} else {
 			warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
 		}
@@ -928,8 +930,8 @@ func (s *WarehouseService) CreateWarehouseSale(request dto.CreateWarehouseSaleRe
 		ItemUnit:       warehouseSale.Item.Unit,
 		Source:         warehouseSale.Warehouse.Name,
 		Destination:    warehouseSale.Customer.Name,
-		QuantityBefore: warehouseSale.Quantity,
-		QuantityAfter:  warehouseSale.Quantity - request.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  warehouseItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusOut,
 	})
@@ -991,13 +993,7 @@ func (s *WarehouseService) GetWarehouseSales(filter dto.GetWarehouseSaleFilter) 
 		warehouseSaleResponses[i] = mapper.WarehouseSaleToListResponse(&warehouseSale)
 	}
 
-	totalData, err := s.repository.CountTotalWarehouseSale(
-		dto.GetWarehouseSaleFilter{
-			Date:          filter.Date,
-			PaymentStatus: filter.PaymentStatus,
-			WarehouseId:   filter.WarehouseId,
-		},
-	)
+	totalData, err := s.repository.CountTotalWarehouseSale(filter)
 	if err != nil {
 		s.log.Error("failed to get warehouse sales", zap.Error(err))
 		return dto.WarehouseSaleListPaginationResponse{}, err
@@ -1106,10 +1102,18 @@ func (s *WarehouseService) CreateWarehouseSalePayment(warehouseSaleId uint64, re
 }
 
 func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWarehouseSaleRequest, userId uuid.UUID) (dto.WarehouseSaleResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
 	warehouseSale, err := s.repository.GetWarehouseSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
+	}
+
+	if warehouseSale.IsSend {
+		s.log.Error("warehouse sale is already sent", zap.Uint64("id", id))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("warehouse sale is already sent")
 	}
 
 	warehouseItem, err := s.repository.GetWarehouseItemByWarehouseIdAndItemId(warehouseSale.WarehouseId, warehouseSale.ItemId)
@@ -1127,6 +1131,8 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	tempStoreSaleQuantity := warehouseSale.Quantity
 	if saleUnit == enum.SaleUnitIkat {
 		realQuantity *= float64(constant.TotalEggPerIkat)
+	}
+	if warehouseSale.SaleUnit == enum.SaleUnitIkat {
 		tempStoreSaleQuantity *= float64(constant.TotalEggPerIkat)
 	}
 
@@ -1134,7 +1140,7 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
-	warehouseItem.Quantity += warehouseSale.Quantity - realQuantity
+	warehouseItem.Quantity += tempStoreSaleQuantity - realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseItem(&warehouseItem)
@@ -1155,6 +1161,7 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	warehouseSale.TotalPrice = totalPrice.Sub(discountPrice)
 	warehouseSale.Price = price
 	warehouseSale.Discount = request.Discount
+	warehouseSale.SaleUnit = saleUnit
 
 	totalPayment := decimal.Zero
 	for _, payment := range warehouseSale.Payments {
@@ -1182,6 +1189,12 @@ func (s *WarehouseService) UpdateWarehouseSale(id uint64, request dto.UpdateWare
 	err = s.repository.UpdateWarehouseSale(&warehouseSale)
 	if err != nil {
 		s.log.Error("failed to update warehouse sale", zap.Error(err))
+		return dto.WarehouseSaleResponse{}, err
+	}
+
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, err
 	}
 
@@ -1223,6 +1236,12 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id
 		return dto.WarehouseSaleResponse{}, err
 	}
 
+	paymentMethod := enum.ValueOfPaymentMethod(request.PaymentMethod)
+	if !paymentMethod.IsValid() {
+		s.log.Error("invalid payment method", zap.String("paymentMethod", request.PaymentMethod))
+		return dto.WarehouseSaleResponse{}, errx.BadRequest("invalid payment method")
+	}
+
 	paymentDate, err := time.Parse("02-01-2006", request.PaymentDate)
 	if err != nil {
 		s.log.Error("failed to parse payment date", zap.Error(err))
@@ -1254,6 +1273,7 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id
 	}
 
 	warehouseSalePayment.Nominal = nominal
+	warehouseSalePayment.PaymentMethod = paymentMethod
 	warehouseSalePayment.PaymentProof = request.PaymentProof
 	warehouseSalePayment.PaymentDate = paymentDate
 	warehouseSalePayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
@@ -1342,6 +1362,9 @@ func (s *WarehouseService) SendWarehouseSale(id uint64, userId uuid.UUID) (dto.W
 }
 
 func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) error {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
 	warehouseSale, err := s.repository.GetWarehouseSaleById(id)
 	if err != nil {
 		s.log.Error("failed to get warehouse sale by id", zap.Error(err))
@@ -1379,6 +1402,12 @@ func (s *WarehouseService) DeleteWarehouseSale(id uint64, userId uuid.UUID) erro
 		return err
 	}
 
+	err = s.repository.Commit()
+	if err != nil {
+		s.log.Error("failed to commit transaction", zap.Error(err))
+		return err
+	}
+
 	return nil
 }
 
@@ -1399,14 +1428,13 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 		}
 	}
 
-	if totalPayment.LessThan(warehouseSale.TotalPrice) && totalPayment.GreaterThan(decimal.Zero) {
-		warehouseSale.PaymentStatus = enum.PaymentStatusUnpaid
-		warehouseSale.PaidDate = sql.NullTime{Valid: false}
-		warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
-	} else if totalPayment.LessThan(decimal.Zero) {
-		s.log.Error("delete this payment make minus", zap.Error(err))
-		return errx.BadRequest("payment minus")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, warehouseSale.TotalPrice, false)
+	if err != nil {
+		s.log.Error("failed to calculate warehouse sale payment status", zap.Error(err))
+		return err
 	}
+	warehouseSale.PaymentStatus = paymentStatus
+	warehouseSale.PaidDate = paidDate
 	warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseSale(&warehouseSale)
@@ -1552,9 +1580,14 @@ func (s *WarehouseService) GetWarehouseSaleQueues(filter dto.GetWarehouseSaleQue
 
 			totalWeight := 0.0
 			for _, q := range warehouseSaleQueues {
+				currDemand := q.Quantity
+				if q.SaleUnit == enum.SaleUnitIkat {
+					currDemand *= float64(constant.TotalEggPerIkat)
+				}
+
 				demandRatio := 0.0
 				if totalDemand > 0 {
-					demandRatio = q.Quantity / totalDemand
+					demandRatio = currDemand / totalDemand
 				}
 
 				weight := 0.0
@@ -1675,6 +1708,7 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("stock item is insuficcient")
 	}
 
+	quantityBefore := warehouseItem.Quantity
 	warehouseItem.Quantity -= realQuantity
 	warehouseItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
@@ -1853,8 +1887,8 @@ func (s *WarehouseService) AllocateWarehouseSaleQueue(id uint64, request dto.Cre
 		ItemUnit:       warehouseSale.Item.Unit,
 		Source:         warehouseSale.Warehouse.Name,
 		Destination:    warehouseSale.Customer.Name,
-		QuantityBefore: warehouseSale.Quantity,
-		QuantityAfter:  warehouseSale.Quantity - request.Quantity,
+		QuantityBefore: quantityBefore,
+		QuantityAfter:  warehouseItem.Quantity,
 		UserId:         userId,
 		Status:         enum.ItemHistoryStatusOut,
 	})
@@ -2158,7 +2192,7 @@ func (s *WarehouseService) CreateWarehouseItemProcurement(request dto.CreateWare
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
-	estimationArrivalDate, err := time.Parse("02-06-2006", request.EstimationArrivalDate)
+	estimationArrivalDate, err := time.Parse("02-01-2006", request.EstimationArrivalDate)
 	if err != nil {
 		s.log.Error("failed parse time", zap.Error(err))
 		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("invalid estimation arrival date format")
@@ -2593,6 +2627,10 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemProcurement(id uint64
 		return dto.WarehouseItemProcurementResponse{}, err
 	}
 
+	if warehouseItemProcurement.IsArrived {
+		return dto.WarehouseItemProcurementResponse{}, errx.BadRequest("warehouse item procurement has already arrived")
+	}
+
 	warehouseItemProcurement.ReceiveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
 	warehouseItemProcurement.Note = request.Note
 	warehouseItemProcurement.TakenAt = sql.NullTime{Time: time.Now(), Valid: true}
@@ -2881,7 +2919,7 @@ func (s *WarehouseService) ConfirmationWarehouseItemCornProcurementDraft(id uint
 		Status:                    enum.ProcurementStatusSentOff,
 		Discount:                  request.Discount,
 		PaymentStatus:             enum.PaymentStatusNotPaid,
-		CornWaterLevel:            request.Quantity,
+		CornWaterLevel:            request.CornWaterLevel,
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
@@ -3471,6 +3509,10 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 	if err != nil {
 		s.log.Error("failed get warehouse item corn procurement", zap.Error(err))
 		return dto.WarehouseItemCornProcurementResponse{}, err
+	}
+
+	if warehouseItemCornProcurement.IsArrived {
+		return dto.WarehouseItemCornProcurementResponse{}, errx.BadRequest("warehouse item corn procurement has already arrived")
 	}
 
 	warehouseItemCornProcurement.ReceiveQuantity = sql.NullFloat64{Float64: request.Quantity, Valid: true}
