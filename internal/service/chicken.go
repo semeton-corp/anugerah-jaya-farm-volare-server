@@ -121,7 +121,13 @@ func NewChickenService(log *zap.Logger, repository repository.IChickenRepository
 // 2. Missing days. If a worker skips a day, that day's deaths don't enter `chickenMonitorings`, so the rate under-counts
 
 func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chickenCageId uint64, upsertMonitoring *entity.ChickenMonitoring) (float64, error) {
-	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	referenceDate := time.Now()
+	if upsertMonitoring != nil && !upsertMonitoring.CreatedAt.IsZero() {
+		referenceDate = upsertMonitoring.CreatedAt
+	}
+
+	referenceDate = referenceDate.In(time.Local)
+	today := time.Date(referenceDate.Year(), referenceDate.Month(), referenceDate.Day(), 0, 0, 0, 0, time.Local)
 	last30Days := today.AddDate(0, 0, -30)
 
 	chickenMonitorings, err := s.repository.GetChickenMonitorings(&dto.GetChickenMonitoringFilter{
@@ -170,6 +176,18 @@ func (s *ChickenService) calculateChickenMonitoringMortalityRateLast30Days(chick
 	}
 
 	return float64(totalDeathChicken) / float64(earliestAliveChicken), nil
+}
+
+func validateChickenMonitoringTotals(totalChickenBaseline, totalSickChicken, totalDeathChicken uint64) error {
+	if totalChickenBaseline < totalSickChicken {
+		return errx.BadRequest("total chicken is less than total sick chicken")
+	}
+
+	if totalChickenBaseline < totalDeathChicken {
+		return errx.BadRequest("total chicken is less than total death chicken")
+	}
+
+	return nil
 }
 
 func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonitoringRequest, userId uuid.UUID) (dto.ChickenMonitoringResponse, error) {
@@ -303,7 +321,12 @@ func (s *ChickenService) GetChickenMonitorings(filter dto.GetChickenMonitoringFi
 
 	chickenMonitoringsResponse := make([]dto.ChickenMonitoringListResponse, len(chickenMonitorings))
 	for i, chickenMonitoring := range chickenMonitorings {
-		chickenMonitoringsResponse[i] = mapper.ChickenMonitoringToListResponse(&chickenMonitoring)
+		asOf := chickenMonitoring.CreatedAt
+		if !filter.Date.Value().IsZero() {
+			asOf = filter.Date.Value()
+		}
+
+		chickenMonitoringsResponse[i] = mapper.ChickenMonitoringToListResponseAt(&chickenMonitoring, asOf)
 	}
 
 	return chickenMonitoringsResponse, nil
@@ -322,13 +345,17 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
+	totalChickenBaseline := chickenCage.TotalChicken + chickenMonitoring.TotalDeathChicken
+	if err := validateChickenMonitoringTotals(totalChickenBaseline, request.TotalSickChicken, request.TotalDeathChicken); err != nil {
+		return dto.ChickenMonitoringResponse{}, err
+	}
+
 	err = s.cageService.ReduceCageFeedStocks(chickenMonitoring.TotalFeed, request.TotalFeed, chickenCage.Cage.Id)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	currentChicken := chickenCage.TotalChicken + chickenMonitoring.TotalDeathChicken - request.TotalDeathChicken
-	totalChickenBaseline := chickenCage.TotalChicken + chickenMonitoring.TotalDeathChicken
+	currentChicken := totalChickenBaseline - request.TotalDeathChicken
 	_, err = s.cageService.UpdateChickenCage(request.ChickenCageId, dto.UpdateChickenCageRequest{
 		TotalChicken:         currentChicken,
 		IsNeedRoutineVaccine: chickenCage.IsNeedRoutineVaccine,
@@ -351,7 +378,7 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	if chickenCage.TotalChicken-request.TotalDeathChicken == 0 {
+	if currentChicken == 0 {
 		_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 			CageId:       chickenCage.Cage.Id,
 			TotalChicken: 0,

@@ -9,8 +9,16 @@ import (
 )
 
 func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.ChickenCategory {
-	chickenAgeInWeek := GetChickenAgeByChickenCage(chickenCage)
+	return GetChickenCategoryByChickenCageAt(chickenCage, time.Now())
+}
 
+func GetChickenCategoryByChickenCageAt(chickenCage *entity.ChickenCage, asOf time.Time) enum.ChickenCategory {
+	chickenAgeInWeek := GetChickenAgeByChickenCageAt(chickenCage, asOf)
+
+	return GetChickenCategoryByAge(chickenAgeInWeek)
+}
+
+func GetChickenCategoryByAge(chickenAgeInWeek uint64) enum.ChickenCategory {
 	if chickenAgeInWeek <= 9 {
 		return enum.ChickenCategoryDOC
 	} else if chickenAgeInWeek >= 10 && chickenAgeInWeek <= 15 {
@@ -27,8 +35,12 @@ func GetChickenCategoryByChickenCage(chickenCage *entity.ChickenCage) enum.Chick
 }
 
 func GetChickenAgeByChickenCage(chickenCage *entity.ChickenCage) uint64 {
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
-		chickenAge := time.Now().UTC().Add(time.Hour * 7).Sub(chickenCage.ChickenProcurement.CreatedAt)
+	return GetChickenAgeByChickenCageAt(chickenCage, time.Now())
+}
+
+func GetChickenAgeByChickenCageAt(chickenCage *entity.ChickenCage, asOf time.Time) uint64 {
+	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() && !asOf.IsZero() {
+		chickenAge := asOf.UTC().Add(time.Hour * 7).Sub(chickenCage.ChickenProcurement.CreatedAt)
 		chickenAgeInWeek := uint64(math.Floor(math.Abs(chickenAge.Hours()) / float64(7*24)))
 		return chickenAgeInWeek
 	}

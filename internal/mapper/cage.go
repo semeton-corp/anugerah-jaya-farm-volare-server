@@ -3,6 +3,7 @@ package mapper
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -25,6 +26,14 @@ func CageToResponse(cage *entity.Cage) dto.CageResponse {
 }
 
 func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageResponse {
+	return chickenCageToResponseAt(chickenCage, time.Now())
+}
+
+func chickenCageToResponseAt(chickenCage *entity.ChickenCage, asOf time.Time) dto.ChickenCageResponse {
+	if asOf.IsZero() {
+		asOf = time.Now()
+	}
+
 	var (
 		batchId string = ""
 	)
@@ -48,8 +57,8 @@ func ChickenCageToResponse(chickenCage *entity.ChickenCage) dto.ChickenCageRespo
 		Cage:                 CageToResponse(&chickenCage.Cage),
 		Id:                   chickenCage.Id,
 		BatchId:              batchId,
-		ChickenAge:           util.GetChickenAgeByChickenCage(chickenCage),
-		ChickenCategory:      util.GetChickenCategoryByChickenCage(chickenCage).String(),
+		ChickenAge:           util.GetChickenAgeByChickenCageAt(chickenCage, asOf),
+		ChickenCategory:      util.GetChickenCategoryByChickenCageAt(chickenCage, asOf).String(),
 		TotalChicken:         chickenCage.TotalChicken,
 		ChickenPic:           chickenPic,
 		EggPic:               eggPic,

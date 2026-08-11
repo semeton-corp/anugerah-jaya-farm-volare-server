@@ -5,7 +5,7 @@ import (
 
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
-	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/util"
 	"github.com/shopspring/decimal"
 )
 
@@ -19,17 +19,7 @@ func ChickenHealthItemToResponse(chickenHealthItem *entity.ChickenHealthItem) dt
 
 	if chickenHealthItem.ChickenAge.Valid {
 		valUint64 := uint64(chickenHealthItem.ChickenAge.Int64)
-		var chickenCategory string
-
-		if chickenHealthItem.ChickenAge.Int64 >= 0 && valUint64 <= 9 {
-			chickenCategory = enum.ChickenCategoryDOC.String()
-		} else if valUint64 >= 10 && valUint64 <= 15 {
-			chickenCategory = enum.ChickenCategoryGrower.String()
-		} else if valUint64 >= 16 && valUint64 <= 17 {
-			chickenCategory = enum.ChickenCategoryPreLayer.String()
-		} else if valUint64 >= 18 {
-			chickenCategory = enum.ChickenCategoryPreLayer.String()
-		}
+		chickenCategory := util.GetChickenCategoryByAge(valUint64).String()
 
 		response.ChickenAge = &valUint64
 		response.ChickenCategory = &chickenCategory
@@ -57,28 +47,25 @@ func ChickenHealthMonitoringToResponse(chickenHealthMonitoring *entity.ChickenHe
 		response.Disease = "-"
 	}
 
-	var chickenCategory string
-	if chickenHealthMonitoring.ChickenAge <= 9 {
-		chickenCategory = enum.ChickenCategoryDOC.String()
-	} else if chickenHealthMonitoring.ChickenAge >= 10 && chickenHealthMonitoring.ChickenAge <= 15 {
-		chickenCategory = enum.ChickenCategoryGrower.String()
-	} else if chickenHealthMonitoring.ChickenAge >= 16 && chickenHealthMonitoring.ChickenAge <= 17 {
-		chickenCategory = enum.ChickenCategoryPreLayer.String()
-	} else if chickenHealthMonitoring.ChickenAge >= 18 {
-		chickenCategory = enum.ChickenCategoryPreLayer.String()
-	}
-
 	response.ChickenAge = chickenHealthMonitoring.ChickenAge
-	response.ChickenCategory = chickenCategory
+	response.ChickenCategory = util.GetChickenCategoryByAge(chickenHealthMonitoring.ChickenAge).String()
 
 	return response
 }
 
 func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringResponse {
+	return ChickenMonitoringToResponseAt(chickenMonitoring, chickenMonitoring.CreatedAt)
+}
+
+func ChickenMonitoringToResponseAt(chickenMonitoring *entity.ChickenMonitoring, asOf time.Time) dto.ChickenMonitoringResponse {
+	totalLiveChicken := chickenMonitoringLiveChicken(chickenMonitoring)
+	chickenCage := chickenCageToResponseAt(&chickenMonitoring.ChickenCage, asOf)
+	chickenCage.TotalChicken = totalLiveChicken
+
 	return dto.ChickenMonitoringResponse{
 		Id:                 chickenMonitoring.Id,
-		ChickenCage:        ChickenCageToResponse(&chickenMonitoring.ChickenCage),
-		TotalLiveChicken:   chickenMonitoring.ChickenCage.TotalChicken,
+		ChickenCage:        chickenCage,
+		TotalLiveChicken:   totalLiveChicken,
 		TotalSickChicken:   chickenMonitoring.TotalSickChicken,
 		TotalDeatchChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:          chickenMonitoring.TotalFeed,
@@ -87,10 +74,18 @@ func ChickenMonitoringToResponse(chickenMonitoring *entity.ChickenMonitoring) dt
 }
 
 func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring) dto.ChickenMonitoringListResponse {
+	return ChickenMonitoringToListResponseAt(chickenMonitoring, chickenMonitoring.CreatedAt)
+}
+
+func ChickenMonitoringToListResponseAt(chickenMonitoring *entity.ChickenMonitoring, asOf time.Time) dto.ChickenMonitoringListResponse {
+	totalLiveChicken := chickenMonitoringLiveChicken(chickenMonitoring)
+	chickenCage := chickenCageToResponseAt(&chickenMonitoring.ChickenCage, asOf)
+	chickenCage.TotalChicken = totalLiveChicken
+
 	response := dto.ChickenMonitoringListResponse{
 		Id:                chickenMonitoring.Id,
-		ChickenCage:       ChickenCageToResponse(&chickenMonitoring.ChickenCage),
-		TotalLiveChicken:  chickenMonitoring.ChickenCage.TotalChicken,
+		ChickenCage:       chickenCage,
+		TotalLiveChicken:  totalLiveChicken,
 		TotalSickChicken:  chickenMonitoring.TotalSickChicken,
 		TotalDeathChicken: chickenMonitoring.TotalDeathChicken,
 		TotalFeed:         chickenMonitoring.TotalFeed,
@@ -98,6 +93,14 @@ func ChickenMonitoringToListResponse(chickenMonitoring *entity.ChickenMonitoring
 	}
 
 	return response
+}
+
+func chickenMonitoringLiveChicken(chickenMonitoring *entity.ChickenMonitoring) uint64 {
+	if chickenMonitoring.TotalChicken < chickenMonitoring.TotalDeathChicken {
+		return 0
+	}
+
+	return chickenMonitoring.TotalChicken - chickenMonitoring.TotalDeathChicken
 }
 
 func ChickenProcurementDraftToResponse(data *entity.ChickenProcurementDraft) dto.ChickenProcurementDraftResponse {
