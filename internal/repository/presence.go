@@ -32,8 +32,8 @@ type IPresenceRepository interface {
 	GetUserPresenceInRoleIds(roleIds []uint64) ([]entity.UserPresence, error)
 	CountTotalUserPresenceByUserId(userId uuid.UUID, filter dto.GetPresenceFilter) (int64, error)
 	GetUserPresences(filter dto.GetUserPresenceFilter) ([]entity.UserPresence, error)
-	UpdateSubmissionPresenceStatusUserByIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus) error
-	UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(ids []uint64, status enum.PresenceStatus, submissionPresenceStatus enum.SubmissionPresenceStatus) error
+	UpdateSubmissionPresenceStatusUserByIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus, userId uuid.UUID) error
+	UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(ids []uint64, status enum.PresenceStatus, submissionPresenceStatus enum.SubmissionPresenceStatus, userId uuid.UUID) error
 
 	GetLocationPresenceSummaries(filter dto.GetLocationPresenceSummaryFilter) ([]entity.LocationPresenceSummary, error)
 
@@ -468,15 +468,17 @@ func (r *PresenceRepository) GetUserPresences(filter dto.GetUserPresenceFilter) 
 	return userPresences, nil
 }
 
-func (r *PresenceRepository) UpdateSubmissionPresenceStatusUserByIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus) error {
+func (r *PresenceRepository) UpdateSubmissionPresenceStatusUserByIds(ids []uint64, submissionPresenceStatus enum.SubmissionPresenceStatus, userId uuid.UUID) error {
 	return r.GetDB().Model(entity.UserPresence{}).Where("id IN ?", ids).Updates(map[string]any{
 		"submission_presence_status": submissionPresenceStatus,
+		"updated_by":                 uuid.NullUUID{UUID: userId, Valid: true},
 	}).Error
 }
 
-func (r *PresenceRepository) UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(ids []uint64, status enum.PresenceStatus, submissionPresenceStatus enum.SubmissionPresenceStatus) error {
+func (r *PresenceRepository) UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(ids []uint64, status enum.PresenceStatus, submissionPresenceStatus enum.SubmissionPresenceStatus, userId uuid.UUID) error {
 	return r.GetDB().Model(entity.UserPresence{}).Where("id IN ?", ids).Updates(map[string]any{
 		"status":                     status,
 		"submission_presence_status": submissionPresenceStatus,
+		"updated_by":                 uuid.NullUUID{UUID: userId, Valid: true},
 	}).Error
 }

@@ -126,21 +126,24 @@ func (s *StoreService) CreateStore(request dto.CreateStoreRequest, userId uuid.U
 
 	storeItems := make([]entity.StoreItem, 0)
 	storeItems = append(storeItems, entity.StoreItem{
-		StoreId:  store.Id,
-		ItemId:   goodEggItem.Id,
-		Quantity: 0,
+		StoreId:   store.Id,
+		ItemId:    goodEggItem.Id,
+		Quantity:  0,
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	storeItems = append(storeItems, entity.StoreItem{
-		StoreId:  store.Id,
-		ItemId:   crackedEggItem.Id,
-		Quantity: 0,
+		StoreId:   store.Id,
+		ItemId:    crackedEggItem.Id,
+		Quantity:  0,
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	storeItems = append(storeItems, entity.StoreItem{
-		StoreId:  store.Id,
-		ItemId:   brokenEggItem.Id,
-		Quantity: 0,
+		StoreId:   store.Id,
+		ItemId:    brokenEggItem.Id,
+		Quantity:  0,
+		CreatedBy: uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	err = s.repository.CreateStoreItemsInBatch(&storeItems)
@@ -1189,6 +1192,7 @@ func (s *StoreService) CreateStoreSalePayment(storeSaleId uint64, request dto.Cr
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.StoreSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 	}
+	storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.CreateStoreSalePayment(&storeSalePayment)
 	if err != nil {
@@ -1401,6 +1405,7 @@ func (s *StoreService) UpdateStoreSalePayment(storeSaleId uint64, id uint64, req
 	storeSalePayment.PaymentProof = request.PaymentProof
 	storeSalePayment.PaymentDate = paymentDate
 	storeSalePayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
 	if err != nil {
@@ -1466,6 +1471,7 @@ func (s *StoreService) DeleteStoreSalePayment(storeSaleId uint64, id uint64, use
 		s.log.Error("delete this payment make minus", zap.Error(err))
 		return errx.BadRequest("delete this payment make minus")
 	}
+	storeSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateStoreSale(&storeSale)
 	if err != nil {

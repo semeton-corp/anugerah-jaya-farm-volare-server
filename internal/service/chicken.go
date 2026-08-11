@@ -88,11 +88,11 @@ type IChickenService interface {
 	CreateAfkirChickenSale(request dto.CreateAfkirChickenSaleRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	GetAfkirChickenSales(filter dto.GetAfkirChickenSaleFilter) (dto.AfkirChickenSaleListPaginationResponse, error)
 	GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleResponse, error)
-	ConfirmationTakeAfkirChickenSale(id uint64) error
+	ConfirmationTakeAfkirChickenSale(id uint64, userId uuid.UUID) error
 
 	CreateAfkirChickenSalePayment(afkirChickenSaleId uint64, request dto.CreateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
 	UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, request dto.UpdateAfkirChickenSalePaymentRequest, userId uuid.UUID) (dto.AfkirChickenSaleResponse, error)
-	DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error
+	DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, userId uuid.UUID) error
 
 	GetChickenPerformances(filter dto.GetChickenPerformanceFilter) ([]dto.ChickenPerformanceResponse, error)
 
@@ -228,7 +228,7 @@ func (s *ChickenService) CreateChickenMonitoring(request dto.CreateChickenMonito
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	err = s.cageService.ReduceCageFeedStocks(0, request.TotalFeed, chickenCage.Cage.Id)
+	err = s.cageService.ReduceCageFeedStocks(0, request.TotalFeed, chickenCage.Cage.Id, userId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
@@ -368,7 +368,7 @@ func (s *ChickenService) UpdateChickenMonitoring(id uint64, request dto.UpdateCh
 		return dto.ChickenMonitoringResponse{}, err
 	}
 
-	err = s.cageService.ReduceCageFeedStocks(previousTotalFeed, request.TotalFeed, chickenCage.Cage.Id)
+	err = s.cageService.ReduceCageFeedStocks(previousTotalFeed, request.TotalFeed, chickenCage.Cage.Id, userId)
 	if err != nil {
 		return dto.ChickenMonitoringResponse{}, err
 	}
@@ -450,7 +450,7 @@ func (c *ChickenService) DeleteChickenMonitoring(id uint64, userId uuid.UUID) er
 	}
 
 	if chickenMonitoring.TotalFeed > 0 {
-		err = c.cageService.ReduceCageFeedStocks(chickenMonitoring.TotalFeed, 0, chickenMonitoring.ChickenCage.CageId)
+		err = c.cageService.ReduceCageFeedStocks(chickenMonitoring.TotalFeed, 0, chickenMonitoring.ChickenCage.CageId, userId)
 		if err != nil {
 			return err
 		}
@@ -955,6 +955,7 @@ func (s *ChickenService) UpdateChickenHealthItem(id uint64, request dto.UpdateCh
 	}
 	chickenHealthItem.Type = chickenHealthItemType
 	chickenHealthItem.Note = request.Note
+	chickenHealthItem.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateChickenHealthItem(&chickenHealthItem)
 	if err != nil {
@@ -1071,6 +1072,7 @@ func (s *ChickenService) UpdateChickenHealthMonitoring(id uint64, request dto.Up
 	chickenHealthMonitoring.Unit = request.Unit
 	chickenHealthMonitoring.Type = chickenHealthMonitoringType
 	chickenHealthMonitoring.ChickenAge = chickenCage.ChickenAge
+	chickenHealthMonitoring.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if request.Disease != nil {
 		chickenHealthMonitoring.Disease = sql.NullString{String: *request.Disease, Valid: true}
@@ -1546,6 +1548,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 	}
 	chickenProcurement.PaymentStatus = paymentStatus
 	chickenProcurement.PaidDate = paidDate
+	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	_, err = s.cageService.CreateChickenCage(dto.CreateChickenCageRequest{
 		CageId:               chickenProcurement.CageId,
@@ -1636,6 +1639,7 @@ func (s *ChickenService) CreateChickenProcurementPayment(chickenProcurementId ui
 	}
 	chickenProcurement.PaymentStatus = paymentStatus
 	chickenProcurement.PaidDate = paidDate
+	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateChickenProcurement(&chickenProcurement)
 	if err != nil {
@@ -1722,6 +1726,7 @@ func (s *ChickenService) UpdateChickenProcurementPayment(chickenProcurementId ui
 	}
 	chickenProcurement.PaymentStatus = paymentStatus
 	chickenProcurement.PaidDate = paidDate
+	chickenProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	chickenProcurementPayment.PaymentMethod = paymentMethod
 	chickenProcurementPayment.Nominal = nominal
@@ -1936,6 +1941,7 @@ func (s *ChickenService) CreateAkfirChickenSaleDraft(request dto.CreateAfkirChic
 		TotalSellChicken:       request.TotalSellChicken,
 		PricePerChicken:        pricePerChicken,
 		TotalPrice:             totalPrice,
+		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateAfkirChickenSaleDraft(&data)
@@ -2011,6 +2017,7 @@ func (s *ChickenService) UpdateAfkirChickenSaleDraft(id uint64, request dto.Upda
 	data.TotalSellChicken = request.TotalSellChicken
 	data.PricePerChicken = pricePerChicken
 	data.TotalPrice = pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
+	data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenSaleDraft(&data)
 	if err != nil {
@@ -2201,6 +2208,7 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	}
 
 	afkirChickenCustomer.LatestPrice = pricePerChicken
+	afkirChickenCustomer.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenCustomer(&afkirChickenCustomer)
 	if err != nil {
@@ -2287,7 +2295,7 @@ func (s *ChickenService) GetAkfirChickenSale(id uint64) (dto.AfkirChickenSaleRes
 	return resp, nil
 }
 
-func (s *ChickenService) ConfirmationTakeAfkirChickenSale(id uint64) error {
+func (s *ChickenService) ConfirmationTakeAfkirChickenSale(id uint64, userId uuid.UUID) error {
 	s.repository.UseTx(false)
 
 	afkirChickenSale, err := s.repository.GetAfkirChickenSale(id)
@@ -2297,6 +2305,7 @@ func (s *ChickenService) ConfirmationTakeAfkirChickenSale(id uint64) error {
 	}
 
 	afkirChickenSale.IsTaken = true
+	afkirChickenSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
 	if err != nil {
@@ -2354,6 +2363,7 @@ func (s *ChickenService) CreateAfkirChickenSalePayment(afkirChickenSaleId uint64
 	}
 	afkirChickenSale.PaymentStatus = paymentStatus
 	afkirChickenSale.PaidDate = paidDate
+	afkirChickenSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
 	if err != nil {
@@ -2487,7 +2497,7 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 	return resp, nil
 }
 
-func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64) error {
+func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64, id uint64, userId uuid.UUID) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -2516,6 +2526,7 @@ func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64
 		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
 		afkirChickenSale.PaidDate = sql.NullTime{Valid: false}
 	}
+	afkirChickenSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
 	if err != nil {
@@ -2710,6 +2721,7 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	}
 
 	afkirChickenCustomer.LatestPrice = pricePerChicken
+	afkirChickenCustomer.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenCustomer(&afkirChickenCustomer)
 	if err != nil {

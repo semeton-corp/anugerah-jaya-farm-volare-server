@@ -1462,6 +1462,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 		PaymentDate:       paymentDate,
 		PaymentMethod:     paymentMethod,
 		PaymentProof:      request.PaymentProof,
+		CreatedBy:         uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err = s.repository.CreateUserCashAdvancePayment(&payment)
@@ -1470,6 +1471,7 @@ func (s *CashflowService) CreateUserCashAdvancePayment(userCashAdvanceId uint64,
 		return dto.UserCashAdvanceResponse{}, err
 	}
 
+	data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 	err = s.repository.UpdateUserCashAdvance(&data)
 	if err != nil {
 		s.log.Error("failed update user cash advance", zap.Error(err))
@@ -2084,8 +2086,10 @@ func (s *CashflowService) PayUserSalaryPayment(id uint64, request dto.PayUserSal
 				PaymentDate:       paymentDate,
 				PaymentMethod:     paymentMethod,
 				PaymentProof:      capReq.PaymentProof,
+				CreatedBy:         uuid.NullUUID{UUID: userId, Valid: true},
 			})
 
+			data.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 			if err := s.repository.UpdateUserCashAdvance(&data); err != nil {
 				s.log.Error("failed batch update user cash advances", zap.Error(err))
 				return dto.UserSalaryPaymentResponse{}, err

@@ -658,6 +658,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 			UserId:           userId,
 			IsDone:           false,
 			TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
+			CreatedBy:        uuid.NullUUID{UUID: userId, Valid: true},
 		}
 	} else {
 		additionalWorkUser = entity.AdditionalWorkUser{
@@ -665,6 +666,7 @@ func (w *WorkService) TakeAdditionalWork(id uint64, userId uuid.UUID) (dto.Addit
 			UserId:           userId,
 			IsDone:           false,
 			TakenAt:          sql.NullTime{Time: time.Now(), Valid: true},
+			CreatedBy:        uuid.NullUUID{UUID: userId, Valid: true},
 		}
 	}
 

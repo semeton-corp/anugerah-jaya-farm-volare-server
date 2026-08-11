@@ -97,7 +97,7 @@ func (s *NotificationService) GetNotifications(filter dto.GetNotificationFilter)
 func (s *NotificationService) MarkNotifications(request dto.MarkNotificationRequest, userId uuid.UUID) ([]dto.NotificationResponse, error) {
 	s.repository.UseTx(false)
 
-	err := s.repository.UpdateNotificationAsMarked(request.Ids)
+	err := s.repository.UpdateNotificationAsMarked(request.Ids, userId)
 	if err != nil {
 		s.log.Error("failed update notification as marked", zap.Error(err))
 		return nil, err

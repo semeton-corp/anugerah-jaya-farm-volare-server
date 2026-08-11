@@ -161,6 +161,7 @@ func (s *ItemService) CreateItemDiscount(request dto.CreateItemPriceDiscountRequ
 		Name:                   request.Name,
 		MinimumTransactionUser: request.MinimumTransactionUser,
 		TotalDiscount:          request.TotalDiscount,
+		CreatedBy:              uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	err := s.repository.CreateItemPriceDiscount(&eggPriceDiscount)

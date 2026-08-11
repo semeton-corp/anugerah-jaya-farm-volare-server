@@ -247,30 +247,35 @@ func (s *WarehouseService) CreateWarehouse(request dto.CreateWarehouseRequest, u
 		WarehouseId: warehouse.Id,
 		ItemId:      goodEggItem.Id,
 		Quantity:    0,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      crackedEggItem.Id,
 		Quantity:    0,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      brokenEggItem.Id,
 		Quantity:    0,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      cornItem.Id,
 		Quantity:    0,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	warehouseItems = append(warehouseItems, entity.WarehouseItem{
 		WarehouseId: warehouse.Id,
 		ItemId:      readyToEatFeed.Id,
 		Quantity:    0,
+		CreatedBy:   uuid.NullUUID{UUID: userId, Valid: true},
 	})
 
 	err = s.repository.CreateWarehouseItemInBatch(&warehouseItems)
@@ -1064,6 +1069,7 @@ func (s *WarehouseService) CreateWarehouseSalePayment(warehouseSaleId uint64, re
 		s.log.Error("total payment is greater than total price", zap.Error(err))
 		return dto.WarehouseSaleResponse{}, errx.BadRequest("total payment is greater than total price")
 	}
+	warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.CreateWarehouseSalePayment(&warehouseSalePayment)
 	if err != nil {
@@ -1251,6 +1257,7 @@ func (s *WarehouseService) UpdateWarehouseSalePayment(warehouseSaleId uint64, id
 	warehouseSalePayment.PaymentProof = request.PaymentProof
 	warehouseSalePayment.PaymentDate = paymentDate
 	warehouseSalePayment.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+	warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseSale(&warehouseSale)
 	if err != nil {
@@ -1400,6 +1407,7 @@ func (s *WarehouseService) DeleteWarehouseSalePayment(warehouseSaleId uint64, id
 		s.log.Error("delete this payment make minus", zap.Error(err))
 		return errx.BadRequest("payment minus")
 	}
+	warehouseSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateWarehouseSale(&warehouseSale)
 	if err != nil {
@@ -3037,6 +3045,7 @@ func (s *WarehouseService) CreateWarehouseItemCornProcurement(request dto.Create
 		OvenCondition:             ovenCondition,
 		IsOvenCanOperateInNearDay: *request.IsOvenCanOperateInNearDay,
 		PaymentType:               paymentType,
+		CreatedBy:                 uuid.NullUUID{UUID: userId, Valid: true},
 	}
 
 	if request.DeadlinePaymentDate != nil {
@@ -3490,6 +3499,7 @@ func (s *WarehouseService) ArrivalConfirmationWarehouseItemCornProcurement(id ui
 	}
 	warehouseItemCornProcurement.PaymentStatus = paymentStatus
 	warehouseItemCornProcurement.PaidDate = paidDate
+	warehouseItemCornProcurement.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	warehouseItemCorn := entity.WarehouseItemCorn{
 		WarehouseId: warehouseItemCornProcurement.WarehouseId,

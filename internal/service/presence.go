@@ -432,13 +432,13 @@ func (s *PresenceService) ApprovalUserPresence(request dto.ApprovalPresenceReque
 
 	switch request.ApprovalStatus {
 	case constant.ApprovalStatusAccepted:
-		err := s.repository.UpdateSubmissionPresenceStatusUserByIds(request.UserPresenceIds, enum.SubmissionPresenceStatusAccepted)
+		err := s.repository.UpdateSubmissionPresenceStatusUserByIds(request.UserPresenceIds, enum.SubmissionPresenceStatusAccepted, userId)
 		if err != nil {
 			s.log.Error("failed update submission presence status by ids", zap.Error(err))
 			return nil, err
 		}
 	case constant.ApprovalStatusRejected:
-		err := s.repository.UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(request.UserPresenceIds, enum.PresenceStatusAlpha, enum.SubmissionPresenceStatusRejected)
+		err := s.repository.UpdatePresenceStatusAndSubmissionPresenceStatusByUserIds(request.UserPresenceIds, enum.PresenceStatusAlpha, enum.SubmissionPresenceStatusRejected, userId)
 		if err != nil {
 			s.log.Error("failed update presence status and submission presence status by ids", zap.Error(err))
 			return nil, err

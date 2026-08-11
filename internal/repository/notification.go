@@ -3,6 +3,7 @@ package repository
 import (
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
@@ -21,7 +22,7 @@ type INotificationRepository interface {
 
 	CreateNotification(data *entity.Notification) error
 	GetNotifications(filter dto.GetNotificationFilter) ([]entity.Notification, error)
-	UpdateNotificationAsMarked(ids []uint64) error
+	UpdateNotificationAsMarked(ids []uint64, userId uuid.UUID) error
 	GetNotificationByIds(ids []uint64) ([]entity.Notification, error)
 }
 
@@ -120,9 +121,10 @@ func (r *NotificationRepository) GetNotifications(filter dto.GetNotificationFilt
 	return data, nil
 }
 
-func (r *NotificationRepository) UpdateNotificationAsMarked(ids []uint64) error {
+func (r *NotificationRepository) UpdateNotificationAsMarked(ids []uint64, userId uuid.UUID) error {
 	return r.GetDB().Model(&entity.Notification{}).Where("id IN ?", ids).Updates(map[string]any{
-		"is_marked": true,
+		"is_marked":  true,
+		"updated_by": uuid.NullUUID{UUID: userId, Valid: true},
 	}).Error
 }
 

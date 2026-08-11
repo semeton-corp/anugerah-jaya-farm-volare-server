@@ -993,7 +993,12 @@ func (h *ChickenHandler) ConfirmationTakeAfkirChickenSale(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = h.service.ConfirmationTakeAfkirChickenSale(id)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	err = h.service.ConfirmationTakeAfkirChickenSale(id, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}
@@ -1082,7 +1087,12 @@ func (h *ChickenHandler) DeleteAfkirChickenSalePayment(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = h.service.DeleteAfkirChickenSalePayment(afkirChickenSaleId, id)
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		return errx.Unauthorized("user id not found in context")
+	}
+
+	err = h.service.DeleteAfkirChickenSalePayment(afkirChickenSaleId, id, uuid.MustParse(userId))
 	if err != nil {
 		return err
 	}

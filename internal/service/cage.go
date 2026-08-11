@@ -50,7 +50,7 @@ type ICageService interface {
 
 	MoveChickenCage(request dto.MoveChickenCageRequest, userId uuid.UUID) ([]dto.ChickenCageResponse, error)
 
-	ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error
+	ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64, userId uuid.UUID) error
 
 	MoveCageFeedStocksIntoWarehouse(cageId uint64, userId uuid.UUID) error
 }
@@ -889,7 +889,7 @@ func (s *CageService) GetTotalCageFeedHistory(cageId uint64) (float64, error) {
 	return totalCurrentFeed, nil
 }
 
-func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64) error {
+func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds float64, cageId uint64, userId uuid.UUID) error {
 	s.repository.UseTx(true)
 	defer s.repository.Rollback()
 
@@ -930,6 +930,7 @@ func (s *CageService) ReduceCageFeedStocks(latestFeed float64, currentFeeds floa
 			diff += reduce
 		}
 
+		e.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 		if err := s.repository.UpdateCageFeedStock(e); err != nil {
 			s.log.Error("failed to update cage feed stock", zap.Error(err))
 			return err

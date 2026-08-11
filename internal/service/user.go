@@ -132,6 +132,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, us
 	user.PhoneNumber = request.PhoneNumber
 	user.Address = request.Address
 	user.Salary = salary
+	user.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	if err := s.repository.UpdateUser(&user); err != nil {
 		s.log.Error("failed to update user", zap.Error(err))
