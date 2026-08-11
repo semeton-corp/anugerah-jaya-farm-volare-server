@@ -336,8 +336,8 @@ func ChickenPerformanceToResponse(data *entity.ChickenPerformance) dto.ChickenPe
 		AverageConsumptionPerChicken: data.AverageConsumptionPerChicken,
 		AverageWeightPerEgg:          data.AverageWeightPerEgg,
 		FCR:                          data.FCR,
-		HDP:                          data.HDP,
-		MortalityRate:                data.MortalityRate,
+		HDP:                          data.HDP * 100.0,
+		MortalityRate:                data.MortalityRate * 100.0,
 		Productivity:                 data.Productivity.String(),
 	}
 }
