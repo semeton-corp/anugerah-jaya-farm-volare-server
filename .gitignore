@@ -3,3 +3,6 @@ compose.env
 app.exe
 log/
 tmp/
+graphify-out/
+.codex/
+AGENTS.md
