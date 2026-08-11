@@ -349,6 +349,14 @@ func (r *CashflowRepository) GetUserSalaryPayments(filter dto.GetUserSalaryPayme
 		query = query.Where("DATE(user_salary_payments.created_at) >= ? AND DATE(user_salary_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
+	if !filter.PaymentDate.Value().IsZero() {
+		query = query.Where("DATE(user_salary_payments.payment_date) = ?", filter.PaymentDate.Value())
+	}
+
+	if !filter.PaymentEndDate.Value().IsZero() && !filter.PaymentStartDate.Value().IsZero() {
+		query = query.Where("DATE(user_salary_payments.payment_date) >= ? AND DATE(user_salary_payments.payment_date) <= ?", filter.PaymentStartDate.Value(), filter.PaymentEndDate.Value())
+	}
+
 	if filter.IsPaid != nil {
 		query = query.Where("is_paid = ?", filter.IsPaid)
 	}
@@ -372,7 +380,7 @@ func (r *CashflowRepository) CountUserSalaryPayments(filter dto.GetUserSalaryPay
 	}
 
 	if filter.RoleId > 0 {
-		query = query.Where("users.role_id = ?", filter.LocationId)
+		query = query.Where("users.role_id = ?", filter.RoleId)
 	}
 
 	if filter.Keyword != "" {
@@ -382,6 +390,14 @@ func (r *CashflowRepository) CountUserSalaryPayments(filter dto.GetUserSalaryPay
 
 	if !filter.EndDate.Value().IsZero() && !filter.StartDate.Value().IsZero() {
 		query = query.Where("DATE(user_salary_payments.created_at) >= ? AND DATE(user_salary_payments.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.PaymentDate.Value().IsZero() {
+		query = query.Where("DATE(user_salary_payments.payment_date) = ?", filter.PaymentDate.Value())
+	}
+
+	if !filter.PaymentEndDate.Value().IsZero() && !filter.PaymentStartDate.Value().IsZero() {
+		query = query.Where("DATE(user_salary_payments.payment_date) >= ? AND DATE(user_salary_payments.payment_date) <= ?", filter.PaymentStartDate.Value(), filter.PaymentEndDate.Value())
 	}
 
 	if filter.IsPaid != nil {
@@ -533,6 +549,14 @@ func (r *CashflowRepository) GetUserCashAdvances(filter dto.GetUserCashAdvanceFi
 		query = query.Where("users.location_id = ?", filter.LocationId)
 	}
 
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(user_cash_advances.created_at) >= ? AND DATE(user_cash_advances.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
+	if !filter.Date.Value().IsZero() {
+		query = query.Where("DATE(user_cash_advances.created_at) = ?", filter.Date.Value())
+	}
+
 	err := query.Order("user_cash_advances.created_at DESC").Preload("User.Location").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
 	if err != nil {
 		return nil, err
@@ -621,7 +645,7 @@ func (r *CashflowRepository) DeleteUserCashAdvancePayment(id uint64) error {
 
 func (r *CashflowRepository) GetUserCashAdvancePayment(id uint64) (entity.UserCashAdvancePayment, error) {
 	var data entity.UserCashAdvancePayment
-	err := r.GetDB().Model(&entity.UserCashAdvancePayment{}).Where("id = ?").Preload("UserCashAdvance.User.Location").Preload("CreatedByUser").First(&data).Error
+	err := r.GetDB().Model(&entity.UserCashAdvancePayment{}).Where("id = ?", id).Preload("UserCashAdvance.User.Location").Preload("CreatedByUser").First(&data).Error
 	if err != nil {
 		return entity.UserCashAdvancePayment{}, err
 	}
@@ -673,6 +697,10 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 
 	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
 		query = query.Where("DATE(afkir_chicken_sales.deadline_payment_date) >= ? AND DATE(afkir_chicken_sales.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(afkir_chicken_sales.created_at) >= ? AND DATE(afkir_chicken_sales.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.LocationId > 0 {
@@ -772,6 +800,10 @@ func (r *CashflowRepository) GetWarehouseItemProcurementCashflows(filter dto.Get
 		query = query.Where("DATE(warehouse_item_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_procurements.created_at) >= ? AND DATE(warehouse_item_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
 	if filter.LocationId > 0 {
 		query = query.Where("warehouses.location_id = ?", filter.LocationId)
 	}
@@ -802,6 +834,10 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementCashflows(filter dto
 		query = query.Where("DATE(warehouse_item_corn_procurements.deadline_payment_date) >= ? AND DATE(warehouse_item_corn_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
 	}
 
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(warehouse_item_corn_procurements.created_at) >= ? AND DATE(warehouse_item_corn_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
+	}
+
 	if filter.PaymentStatuses != nil {
 		paymentStatus := make([]enum.PaymentStatus, 0)
 		for _, e := range filter.PaymentStatuses {
@@ -829,6 +865,10 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 	query := r.GetDB().Model(&entity.ChickenProcurement{}).Joins("LEFT JOIN cages ON cages.id = chicken_procurements.cage_id")
 	if !filter.DeadlinePaymentStartDate.Value().IsZero() && !filter.DeadlinePaymentEndDate.Value().IsZero() {
 		query = query.Where("DATE(chicken_procurements.deadline_payment_date) >= ? AND DATE(chicken_procurements.deadline_payment_date) <= ?", filter.DeadlinePaymentStartDate.Value(), filter.DeadlinePaymentEndDate.Value())
+	}
+
+	if !filter.StartDate.Value().IsZero() && !filter.EndDate.Value().IsZero() {
+		query = query.Where("DATE(chicken_procurements.created_at) >= ? AND DATE(chicken_procurements.created_at) <= ?", filter.StartDate.Value(), filter.EndDate.Value())
 	}
 
 	if filter.PaymentStatuses != nil {

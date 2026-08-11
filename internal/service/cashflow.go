@@ -81,6 +81,14 @@ func NewCashflowService(log *zap.Logger, repository repository.ICashflowReposito
 	}
 }
 
+func userSalaryCashOutAmount(salary entity.UserSalaryPayment) decimal.Decimal {
+	return salary.BaseSalary.
+		Add(salary.BonusSalary).
+		Add(salary.CompentationSalary).
+		Add(salary.AdditionalWorkSalary).
+		Sub(salary.Cashbond)
+}
+
 func (s *CashflowService) GetIncomeStoreSalePayments(filter dto.GetStoreSalePaymentFilter) ([]dto.IncomeListResponse, error) {
 	s.repository.UseTx(false)
 	incomeResponses := make([]dto.IncomeListResponse, 0)
@@ -408,7 +416,7 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 	case constant.IncomeCategoryUserCashAdvancePayment:
 		payment, err := s.repository.GetUserCashAdvancePayment(id)
 		if err != nil {
-			s.log.Error("failed get afkir chicken sale payment", zap.Error(err))
+			s.log.Error("failed get user cash advance payment", zap.Error(err))
 			return dto.IncomeResponse{}, err
 		}
 
@@ -417,13 +425,13 @@ func (s *CashflowService) GetIncome(incomeCategory string, id uint64) (dto.Incom
 			Id:                  payment.Id,
 			Date:                payment.PaymentDate.Format("02-01-2006"),
 			Time:                payment.PaymentDate.Format("15:04"),
-			Category:            constant.IncomeCategoryAfkirChickenSale,
+			Category:            constant.IncomeCategoryUserCashAdvancePayment,
 			PlaceName:           payment.UserCashAdvance.User.Location.Name,
 			CustomerName:        payment.UserCashAdvance.User.Name,
 			CustomerPhoneNumber: payment.UserCashAdvance.User.PhoneNumber,
-			ItemName:            constant.AfkirChicken,
-			ItemUnit:            constant.AfkirChickenUnitEkor,
-			Quantity:            1,
+			ItemName:            constant.IncomeNameUserCashAdvance,
+			ItemUnit:            "-",
+			Quantity:            0,
 			Nominal:             payment.Nominal.String(),
 			PaymentType:         enum.PaymentTypeinstallment.String(),
 			TotalPrice:          payment.UserCashAdvance.Nominal.String(),
@@ -443,8 +451,8 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 	startDate, endDate := util.GetStartDateAndEndDateInMonth(int(year), time.Month(month))
 
 	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
 		LocationId: locationId,
 	})
 	if err != nil {
@@ -496,21 +504,28 @@ func (s *CashflowService) GetTotalExpenseProductionInMonth(month enum.Month, yea
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		StartDate:  param.DateParam(startDate),
-		EndDate:    param.DateParam(endDate),
-		IsPaid:     &isPaid,
-		LocationId: locationId,
+		PaymentStartDate: param.DateParam(startDate),
+		PaymentEndDate:   param.DateParam(endDate),
+		IsPaid:           &isPaid,
+		LocationId:       locationId,
 	})
 	if err != nil {
 		return decimal.Zero, err
 	}
 	for _, salary := range userSalaryPayments {
-		total := salary.BaseSalary.
-			Add(salary.BonusSalary).
-			Add(salary.CompentationSalary).
-			Add(salary.AdditionalWorkSalary).
-			Add(salary.Cashbond)
-		totalExpenseProduction = totalExpenseProduction.Add(total)
+		totalExpenseProduction = totalExpenseProduction.Add(userSalaryCashOutAmount(salary))
+	}
+
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		return decimal.Zero, err
+	}
+	for _, cashAdvance := range userCashAdvances {
+		totalExpenseProduction = totalExpenseProduction.Add(cashAdvance.Nominal)
 	}
 
 	return totalExpenseProduction, nil
@@ -567,19 +582,24 @@ func (s *CashflowService) GetTotalExpenseProductionInDay(date time.Time) (decima
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		Date:   param.DateParam(date),
-		IsPaid: &isPaid,
+		PaymentDate: param.DateParam(date),
+		IsPaid:      &isPaid,
 	})
 	if err != nil {
 		return decimal.Zero, err
 	}
 	for _, salary := range userSalaryPayments {
-		total := salary.BaseSalary.
-			Add(salary.BonusSalary).
-			Add(salary.CompentationSalary).
-			Add(salary.AdditionalWorkSalary).
-			Add(salary.Cashbond)
-		totalExpenseProduction = totalExpenseProduction.Add(total)
+		totalExpenseProduction = totalExpenseProduction.Add(userSalaryCashOutAmount(salary))
+	}
+
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		Date: param.DateParam(date),
+	})
+	if err != nil {
+		return decimal.Zero, err
+	}
+	for _, cashAdvance := range userCashAdvances {
+		totalExpenseProduction = totalExpenseProduction.Add(cashAdvance.Nominal)
 	}
 
 	return totalExpenseProduction, nil
@@ -807,9 +827,9 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		StartDate: param.DateParam(startDate),
-		EndDate:   param.DateParam(endDate),
-		IsPaid:    &isPaid,
+		PaymentStartDate: param.DateParam(startDate),
+		PaymentEndDate:   param.DateParam(endDate),
+		IsPaid:           &isPaid,
 	})
 	if err != nil {
 		s.log.Error("failed get user salary payments", zap.Error(err))
@@ -844,9 +864,8 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	}
 
 	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
-		PaymentStatus: param.PaymentStatusParam(enum.PaymentStatusNotPaid),
-		StartDate:     param.DateParam(startDate),
-		EndDate:       param.DateParam(endDate),
+		StartDate: param.DateParam(startDate),
+		EndDate:   param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advances", zap.Error(err))
@@ -892,9 +911,9 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 	}
 
 	for _, p := range userSalaryPayments {
-		totalSalary := p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary)
+		totalSalary := userSalaryCashOutAmount(p)
 		totalExpense = totalExpense.Add(totalSalary)
-		totalWarehouseItemProcurement = totalWarehouseItemProcurement.Add(totalSalary)
+		totalUserSalary = totalUserSalary.Add(totalSalary)
 	}
 
 	for _, p := range userCashAdvances {
@@ -961,7 +980,7 @@ func (s *CashflowService) GetExpenseOverview(filter dto.GetExpenseOverviewFilter
 				Category:     constant.ExpenseCategoryStaff,
 				Name:         constant.ExpenseTransactionNameSalary,
 				PlaceName:    p.User.Location.Name,
-				Nominal:      p.BaseSalary.Add(p.BonusSalary).Add(p.CompentationSalary).Add(p.AdditionalWorkSalary).String(),
+				Nominal:      userSalaryCashOutAmount(p).String(),
 				ReceiverName: p.User.Name,
 				PaymentProof: p.PaymentProof,
 			})
@@ -1231,7 +1250,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Name:                expense.User.Name,
 			ReceiverName:        expense.User.Name,
 			ReceiverPhoneNumber: expense.User.PhoneNumber,
-			Nominal:             expense.BaseSalary.Add(expense.BonusSalary).Add(expense.CompentationSalary).Add(expense.AdditionalWorkSalary).String(),
+			Nominal:             userSalaryCashOutAmount(expense).String(),
 			PaymentMethod:       expense.PaymentMethod.String(),
 			PaymentProof:        expense.PaymentProof,
 			InputBy:             expense.CreatedByUser.Name,
@@ -1240,7 +1259,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 	case constant.ExpenseCategoryTax:
 		expense, err := s.repository.GetExpense(id)
 		if err != nil {
-			s.log.Error("failed get other expense", zap.Error(err))
+			s.log.Error("failed get tax expense", zap.Error(err))
 			return dto.ExpenseResponse{}, err
 		}
 
@@ -1248,7 +1267,7 @@ func (s *CashflowService) GetExpense(expenseCategory string, id uint64) (dto.Exp
 			Id:                  expense.Id,
 			Date:                expense.CreatedAt.Format("2006-01-02"),
 			Time:                expense.CreatedAt.Format("15:04:05"),
-			Category:            constant.ExpenseCategoryOther,
+			Category:            constant.ExpenseCategoryTax,
 			PlaceName:           expense.Location.Name,
 			Name:                expense.Name,
 			ReceiverName:        expense.ReceiverName,
@@ -3384,7 +3403,7 @@ func (s *CashflowService) getIncomePerWeek(locationId uint64, weeks map[int]util
 	}
 
 	for _, storeSalePayment := range storeSalePayments {
-		week := util.FindWeek(storeSalePayment.CreatedAt, weeks)
+		week := util.FindWeek(storeSalePayment.PaymentDate, weeks)
 		income[week] = income[week].Add(storeSalePayment.Nominal)
 	}
 
@@ -3398,7 +3417,7 @@ func (s *CashflowService) getIncomePerWeek(locationId uint64, weeks map[int]util
 		return nil, err
 	}
 	for _, warehouseSalePayment := range warehouseSalePayments {
-		week := util.FindWeek(warehouseSalePayment.CreatedAt, weeks)
+		week := util.FindWeek(warehouseSalePayment.PaymentDate, weeks)
 		income[week] = income[week].Add(warehouseSalePayment.Nominal)
 	}
 
@@ -3412,7 +3431,7 @@ func (s *CashflowService) getIncomePerWeek(locationId uint64, weeks map[int]util
 		return nil, err
 	}
 	for _, afkirChickenSalePayment := range afkirChickenSalePayments {
-		week := util.FindWeek(afkirChickenSalePayment.CreatedAt, weeks)
+		week := util.FindWeek(afkirChickenSalePayment.PaymentDate, weeks)
 		income[week] = income[week].Add(afkirChickenSalePayment.Nominal)
 	}
 
@@ -3426,7 +3445,7 @@ func (s *CashflowService) getIncomePerWeek(locationId uint64, weeks map[int]util
 		return nil, err
 	}
 	for _, userCashAdvancePayment := range userCashAdvancePayments {
-		week := util.FindWeek(userCashAdvancePayment.CreatedAt, weeks)
+		week := util.FindWeek(userCashAdvancePayment.PaymentDate, weeks)
 		income[week] = income[week].Add(userCashAdvancePayment.Nominal)
 	}
 
@@ -3449,7 +3468,7 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 		return nil, err
 	}
 	for _, warehouseItemProcurementPayment := range warehouseItemProcurementPayments {
-		week := util.FindWeek(warehouseItemProcurementPayment.CreatedAt, weeks)
+		week := util.FindWeek(warehouseItemProcurementPayment.PaymentDate, weeks)
 		expenseMap[week] = expenseMap[week].Add(warehouseItemProcurementPayment.Nominal)
 	}
 
@@ -3463,7 +3482,7 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 		return nil, err
 	}
 	for _, warehouseItemCornProcurementPayment := range warehouseItemCornProcurementPayments {
-		week := util.FindWeek(warehouseItemCornProcurementPayment.CreatedAt, weeks)
+		week := util.FindWeek(warehouseItemCornProcurementPayment.PaymentDate, weeks)
 		expenseMap[week] = expenseMap[week].Add(warehouseItemCornProcurementPayment.Nominal)
 	}
 
@@ -3477,7 +3496,7 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 		return nil, err
 	}
 	for _, chickenProcurementPayment := range chickenProcurementPayments {
-		week := util.FindWeek(chickenProcurementPayment.CreatedAt, weeks)
+		week := util.FindWeek(chickenProcurementPayment.PaymentDate, weeks)
 		expenseMap[week] = expenseMap[week].Add(chickenProcurementPayment.Nominal)
 	}
 
@@ -3497,23 +3516,33 @@ func (s *CashflowService) getExpensePerWeek(locationId uint64, weeks map[int]uti
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		StartDate:  param.DateParam(startDate),
-		EndDate:    param.DateParam(endDate),
-		LocationId: locationId,
-		IsPaid:     &isPaid,
+		PaymentStartDate: param.DateParam(startDate),
+		PaymentEndDate:   param.DateParam(endDate),
+		LocationId:       locationId,
+		IsPaid:           &isPaid,
 	})
 	if err != nil {
 		return nil, err
 	}
 	for _, salary := range userSalaryPayments {
-		total := salary.BaseSalary.
-			Add(salary.BonusSalary).
-			Add(salary.CompentationSalary).
-			Add(salary.AdditionalWorkSalary).
-			Add(salary.Cashbond)
-		week := util.FindWeek(salary.CreatedAt, weeks)
-		expenseMap[week] = expenseMap[week].Add(total)
+		if !salary.PaymentDate.Valid {
+			continue
+		}
+		week := util.FindWeek(salary.PaymentDate.Time, weeks)
+		expenseMap[week] = expenseMap[week].Add(userSalaryCashOutAmount(salary))
+	}
 
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		LocationId: locationId,
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+	})
+	if err != nil {
+		return nil, err
+	}
+	for _, cashAdvance := range userCashAdvances {
+		week := util.FindWeek(cashAdvance.CreatedAt, weeks)
+		expenseMap[week] = expenseMap[week].Add(cashAdvance.Nominal)
 	}
 
 	return expenseMap, nil
@@ -3609,6 +3638,8 @@ func (s *CashflowService) getEggStoreSaleLocationSummary(locationId uint64, stor
 	storeSales, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		LocationId:      locationId,
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get store sale sale cashflows", zap.Error(err))
@@ -3650,6 +3681,8 @@ func (s *CashflowService) getEggWarehouseSaleLocationSummary(locationId uint64, 
 	warehouseSales, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
 		LocationId:      locationId,
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse sale sale cashflows", zap.Error(err))
@@ -3751,21 +3784,17 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 
 	isPaid := true
 	userSalaryPayments, err := s.repository.GetUserSalaryPayments(dto.GetUserSalaryPaymentFilter{
-		StartDate:  param.DateParam(startDate),
-		EndDate:    param.DateParam(endDate),
-		IsPaid:     &isPaid,
-		LocationId: locationId,
+		PaymentStartDate: param.DateParam(startDate),
+		PaymentEndDate:   param.DateParam(endDate),
+		IsPaid:           &isPaid,
+		LocationId:       locationId,
 	})
 	if err != nil {
 		s.log.Error("failed get user salary payments", zap.Error(err))
 		return entity.CashflowHistory{}, err
 	}
 	for _, e := range userSalaryPayments {
-		totalExpense = totalExpense.Add(e.BaseSalary).
-			Add(e.AdditionalWorkSalary).
-			Add(e.BonusSalary).
-			Add(e.CompentationSalary).
-			Sub(e.Cashbond)
+		totalExpense = totalExpense.Add(userSalaryCashOutAmount(e))
 	}
 
 	warehouseItemProcurementPayments, err := s.repository.GetWarehouseItemProcurementPayments(dto.GetWarehouseItemProcurementPaymentFilter{
@@ -3807,6 +3836,19 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 		totalExpense = totalExpense.Add(e.Nominal)
 	}
 
+	userCashAdvances, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
+		StartDate:  param.DateParam(startDate),
+		EndDate:    param.DateParam(endDate),
+		LocationId: locationId,
+	})
+	if err != nil {
+		s.log.Error("failed get user cash advances", zap.Error(err))
+		return entity.CashflowHistory{}, err
+	}
+	for _, e := range userCashAdvances {
+		totalExpense = totalExpense.Add(e.Nominal)
+	}
+
 	totalEggStoreSale := decimal.Zero
 	totalWarehouseStoreSale := decimal.Zero
 
@@ -3840,6 +3882,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	storeSaleReceivables, err := s.repository.GetStoreSaleCashflows(dto.GetStoreSaleFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get store sale cashflows", zap.Error(err))
@@ -3856,6 +3900,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	warehouseSaleReceivables, err := s.repository.GetWarehouseSaleCashflows(dto.GetWarehouseSaleFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse sale cashflows", zap.Error(err))
@@ -3872,6 +3918,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	afkirChickenSales, err := s.repository.GetAfkirChickenSaleCashflows(dto.GetAfkirChickenSaleFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get afkir chicken sale cashflows", zap.Error(err))
@@ -3888,6 +3936,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	userCashAdvanceReceivables, err := s.repository.GetUserCashAdvances(dto.GetUserCashAdvanceFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get user cash advances", zap.Error(err))
@@ -3905,6 +3955,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	warehouseItemProcurements, err := s.repository.GetWarehouseItemProcurementCashflows(dto.GetWarehouseItemProcurementFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item procurements", zap.Error(err))
@@ -3921,6 +3973,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	warehouseItemCornProcurements, err := s.repository.GetWarehouseItemCornProcurementCashflows(dto.GetWarehouseItemCornProcurementFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get warehouse item corn procurements", zap.Error(err))
@@ -3937,6 +3991,8 @@ func (s *CashflowService) getCashflowHistoryInMonth(locationId uint64, year uint
 	chickenProcurements, err := s.repository.GetChickenProcurementCashflows(dto.GetChickenProcurementFilter{
 		PaymentStatuses: []param.PaymentStatusParam{param.PaymentStatusParam(enum.PaymentStatusNotPaid), param.PaymentStatusParam(enum.PaymentStatusUnpaid)},
 		LocationId:      locationId,
+		StartDate:       param.DateParam(startDate),
+		EndDate:         param.DateParam(endDate),
 	})
 	if err != nil {
 		s.log.Error("failed get chicken procurements", zap.Error(err))

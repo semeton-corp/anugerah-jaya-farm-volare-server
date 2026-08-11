@@ -191,6 +191,7 @@ type GetUserCashAdvanceFilter struct {
 	LocationId               uint64                     `query:"locationId"`
 	StartDate                param.DateParam            `query:"startDate"`
 	EndDate                  param.DateParam            `query:"endDate"`
+	Date                     param.DateParam            `query:"date"`
 }
 
 type ReceivablesResponse struct {
@@ -282,7 +283,7 @@ type DebtListResponse struct {
 }
 
 type DebtResponse struct {
-	Id                  uint64                `jso:"id"`
+	Id                  uint64                `json:"id"`
 	Date                string                `json:"date"`
 	Time                string                `json:"time"`
 	Category            string                `json:"category"`
@@ -377,14 +378,17 @@ type UserSalaryDetailResponse struct {
 }
 
 type GetUserSalaryPaymentFilter struct {
-	LocationId uint64          `query:"locationId"`
-	StartDate  param.DateParam `query:"startDate"`
-	EndDate    param.DateParam `query:"endDate"`
-	IsPaid     *bool           `query:"isPaid"`
-	Keyword    string          `query:"keyword"`
-	RoleId     uint64          `query:"roleId"`
-	Page       uint64          `query:"page"`
-	Date       param.DateParam `query:"date"`
+	LocationId       uint64          `query:"locationId"`
+	StartDate        param.DateParam `query:"startDate"`
+	EndDate          param.DateParam `query:"endDate"`
+	PaymentStartDate param.DateParam `json:"-"`
+	PaymentEndDate   param.DateParam `json:"-"`
+	PaymentDate      param.DateParam `json:"-"`
+	IsPaid           *bool           `query:"isPaid"`
+	Keyword          string          `query:"keyword"`
+	RoleId           uint64          `query:"roleId"`
+	Page             uint64          `query:"page"`
+	Date             param.DateParam `query:"date"`
 }
 
 type CashflowSaleSummaryResponse struct {

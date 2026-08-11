@@ -175,6 +175,8 @@ type WarehouseItemProcurementListPaginationResponse struct {
 type GetWarehouseItemProcurementFilter struct {
 	DeadlinePaymentStartDate param.DateParam              `query:"deadlinePaymentStartDate"`
 	DeadlinePaymentEndDate   param.DateParam              `query:"deadlinePaymentEndDate"`
+	StartDate                param.DateParam              `query:"startDate"`
+	EndDate                  param.DateParam              `query:"endDate"`
 	PaymentStatus            param.PaymentStatusParam     `query:"paymentStatus"`
 	Status                   param.ProcurementStatusParam `query:"status"`
 	PaymentStatuses          []param.PaymentStatusParam   `query:"paymentStatuses"`
@@ -531,6 +533,8 @@ type GetWarehouseItemCornFilter struct {
 type GetWarehouseItemCornProcurementFilter struct {
 	DeadlinePaymentStartDate param.DateParam              `query:"deadlinePaymentStartDate"`
 	DeadlinePaymentEndDate   param.DateParam              `query:"deadlinePaymentEndDate"`
+	StartDate                param.DateParam              `query:"startDate"`
+	EndDate                  param.DateParam              `query:"endDate"`
 	PaymentStatus            param.PaymentStatusParam     `query:"paymentStatus"`
 	PaymentStatuses          []param.PaymentStatusParam   `query:"paymentStatuses"`
 	Page                     uint64                       `query:"page"`

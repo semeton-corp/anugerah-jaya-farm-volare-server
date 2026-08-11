@@ -804,6 +804,16 @@ func (s *Scheduler) createCashflowHistoryMonthly(tx *gorm.DB) error {
 			totalExpense = totalExpense.Add(e.Nominal)
 		}
 
+		var userCashAdvances []entity.UserCashAdvance
+		if err := tx.Joins("JOIN users u ON u.id = user_cash_advances.user_id").
+			Where("u.location_id = ? AND user_cash_advances.created_at BETWEEN ? AND ?", loc.Id, startDate, endDate).
+			Find(&userCashAdvances).Error; err != nil {
+			return err
+		}
+		for _, e := range userCashAdvances {
+			totalExpense = totalExpense.Add(e.Nominal)
+		}
+
 		var storeSales []entity.StoreSale
 		if err := tx.Preload("Payments").
 			Joins("JOIN stores st ON st.id = store_sales.store_id").
