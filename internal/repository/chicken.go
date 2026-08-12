@@ -122,7 +122,8 @@ func (r *ChickenRepository) GetDB() *gorm.DB {
 
 func (r *ChickenRepository) CountChickenMonitoringByChickenCageIdToday(cageId uint64) (int64, error) {
 	var count int64
-	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", cageId, time.Now()).Count(&count).Error; err != nil {
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	if err := r.GetDB().Model(entity.ChickenMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", cageId, today).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

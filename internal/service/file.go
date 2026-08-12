@@ -64,6 +64,7 @@ func (s *FileService) DownloadFile(key string) (dto.FileDetailResponse, error) {
 	out, err := s.storage.DownloadFile(key)
 	if err != nil {
 		s.log.Error("failed to dowload file", zap.Error(err))
+		return dto.FileDetailResponse{}, err
 	}
 
 	return dto.FileDetailResponse{

@@ -287,7 +287,7 @@ func (s *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	user, err := s.repository.GetUserById(userId)
 	if err != nil {
 		s.log.Error("failed to get user by id", zap.Error(err))
-		return dto.ChangePasswordResponse{}, nil
+		return dto.ChangePasswordResponse{}, err
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword)) != nil {
@@ -303,7 +303,7 @@ func (s *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		s.log.Error("failed to hash password", zap.Error(err))
-		return dto.ChangePasswordResponse{}, nil
+		return dto.ChangePasswordResponse{}, err
 	}
 
 	user.Password = string(hashedPassword)
@@ -311,7 +311,7 @@ func (s *AuthenticationService) ChangePassword(request dto.ChangePasswordRequest
 
 	if err := s.repository.UpdateUser(&user); err != nil {
 		s.log.Error("failed to update user", zap.Error(err))
-		return dto.ChangePasswordResponse{}, nil
+		return dto.ChangePasswordResponse{}, err
 	}
 
 	user, err = s.repository.GetUserById(userId)

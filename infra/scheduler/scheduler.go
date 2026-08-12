@@ -226,7 +226,7 @@ func (s *Scheduler) InitScheduler() {
 func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 	s.log.Info("creating daily work user")
 
-	today := time.Now()
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
 	var dailyWorks []entity.DailyWork
 	if err := tx.Model(&entity.DailyWork{}).Find(&dailyWorks).Error; err != nil {
@@ -281,7 +281,7 @@ func (s *Scheduler) createDailyWorkUser(tx *gorm.DB) error {
 func (s *Scheduler) createUserPresence(tx *gorm.DB) error {
 	s.log.Info("creating user presence")
 
-	today := time.Now()
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
 
 	var users []entity.User
 	if err := tx.Model(&entity.User{}).Preload("Role").Find(&users).Error; err != nil {

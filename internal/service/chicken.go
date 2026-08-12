@@ -998,7 +998,7 @@ func (s *ChickenService) CreateChickenHealthMonitoring(request dto.CreateChicken
 
 	chickenCage, err := s.cageService.GetChickenCageById(request.ChickenCageId)
 	if err != nil {
-		return dto.ChickenHealthMonitoringResponse{}, nil
+		return dto.ChickenHealthMonitoringResponse{}, err
 	}
 
 	data := entity.ChickenHealthMonitoring{

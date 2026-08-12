@@ -130,7 +130,8 @@ func (r *EggRepository) DeleteEggMonitoring(id uint64) error {
 
 func (r *EggRepository) CountEggMonitoringByChickenCageIdToday(chickenCageId uint64) (int64, error) {
 	var count int64
-	if err := r.GetDB().Model(entity.EggMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, time.Now()).Count(&count).Error; err != nil {
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	if err := r.GetDB().Model(entity.EggMonitoring{}).Where("chicken_cage_id = ? AND DATE(created_at) = ?", chickenCageId, today).Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

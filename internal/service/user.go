@@ -126,6 +126,7 @@ func (s *UserService) UpdateUser(id uuid.UUID, request dto.UpdateUserRequest, us
 
 	user.Email = request.Email
 	user.Username = request.Username
+	user.LocationId = request.LocationId
 	user.RoleId = request.RoleId
 	user.PhotoProfile = request.PhotoProfile
 	user.Name = request.Name
@@ -560,7 +561,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 				WithDeleted: &withDeleted,
 			})
 		if err != nil {
-			return dto.UserPerformanceOverviewResponse{}, nil
+			return dto.UserPerformanceOverviewResponse{}, err
 		}
 
 		dailyWorkUsers, err := s.workService.GetDailyWorkUserByUserId(user.Id,
@@ -570,7 +571,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 				WithDeleted: &withDeleted,
 			})
 		if err != nil {
-			return dto.UserPerformanceOverviewResponse{}, nil
+			return dto.UserPerformanceOverviewResponse{}, err
 		}
 
 		userPresences, err := s.presenceService.GetUserPresencesByUserId(user.Id,
@@ -579,7 +580,7 @@ func (s *UserService) GetUserPerformanceOverview(filter dto.GetUserPerformanceOv
 				Year:  filter.Year,
 			})
 		if err != nil {
-			return dto.UserPerformanceOverviewResponse{}, nil
+			return dto.UserPerformanceOverviewResponse{}, err
 		}
 
 		totalPresenceWeek := make(map[int]uint64)

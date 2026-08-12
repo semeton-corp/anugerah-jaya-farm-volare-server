@@ -117,19 +117,25 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 	}
 
 	goodEggSaleInKg := float64(0)
+	saleQuantityInKg := func(quantity float64, saleUnit string) float64 {
+		if saleUnit == enum.SaleUnitIkat.String() {
+			return quantity * float64(constant.TotalEggPerIkat)
+		}
+		if saleUnit == enum.SaleUnitKg.String() {
+			return quantity
+		}
+		return 0
+	}
+
 	for _, storeSale := range storeSales.StoreSales {
-		if storeSale.SaleUnit == enum.SaleUnitIkat.String() {
-			goodEggSaleInKg += storeSale.Quantity * float64(constant.TotalEggPerIkat)
-		} else if storeSale.SaleUnit == enum.SaleUnitKg.String() {
-			goodEggSaleInKg += storeSale.Quantity
+		if storeSale.Item.Name == constant.GoodEgg {
+			goodEggSaleInKg += saleQuantityInKg(storeSale.Quantity, storeSale.SaleUnit)
 		}
 	}
 
 	for _, warehouseSale := range warehouseSales.WarehouseSales {
-		if warehouseSale.SaleUnit == enum.SaleUnitIkat.String() {
-			goodEggSaleInKg += warehouseSale.Quantity * float64(constant.TotalEggPerIkat)
-		} else if warehouseSale.SaleUnit == enum.SaleUnitKg.String() {
-			goodEggSaleInKg += warehouseSale.Quantity
+		if warehouseSale.Item.Name == constant.GoodEgg {
+			goodEggSaleInKg += saleQuantityInKg(warehouseSale.Quantity, warehouseSale.SaleUnit)
 		}
 	}
 
@@ -158,14 +164,14 @@ func (s *GeneralService) GetGeneralOverview() (dto.GeneralOverview, error) {
 	for day := startDate; !day.After(endDate); day = day.AddDate(0, 0, 1) {
 		var production, sale float64
 		for _, ss := range storeSaleInAWeek.StoreSales {
-			if util.IsSameDate(day, ss.CreatedAt) {
-				sale += ss.Quantity
+			if util.IsSameDate(day, ss.CreatedAt) && ss.Item.Name == constant.GoodEgg {
+				sale += saleQuantityInKg(ss.Quantity, ss.SaleUnit)
 			}
 		}
 
 		for _, ws := range warehouseSaleInAWeek.WarehouseSales {
-			if util.IsSameDate(day, ws.CreatedAt) {
-				sale += ws.Quantity
+			if util.IsSameDate(day, ws.CreatedAt) && ws.Item.Name == constant.GoodEgg {
+				sale += saleQuantityInKg(ws.Quantity, ws.SaleUnit)
 			}
 		}
 

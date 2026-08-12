@@ -181,7 +181,11 @@ func (s *EggService) CreateEggMonitoring(request dto.CreateEggMonitoringRequest,
 		return dto.EggMonitoringResponse{}, err
 	}
 
-	abnormalityRate := float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalRejectEgg) / float64(eggMonitoring.TotalGoodEgg+eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalRejectEgg) * 100.0
+	totalEgg := eggMonitoring.TotalGoodEgg + eggMonitoring.TotalCrackedEgg + eggMonitoring.TotalRejectEgg
+	abnormalityRate := float64(0)
+	if totalEgg > 0 {
+		abnormalityRate = float64(eggMonitoring.TotalCrackedEgg+eggMonitoring.TotalRejectEgg) / float64(totalEgg) * 100.0
+	}
 	abnormalityStatus := ""
 
 	if abnormalityRate < 0.8 {
@@ -256,6 +260,10 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 		return dto.EggMonitoringResponse{}, err
 	}
 
+	previousWarehouseId := eggMonitoring.WarehouseId
+	previousGoodEggWeight := eggMonitoring.TotalWeightGoodEgg
+	previousCrackedEggWeight := eggMonitoring.TotalWeightCrackedEgg
+
 	eggMonitoring.ChickenCageId = request.ChickenCageId
 	eggMonitoring.WarehouseId = request.WarehouseId
 	eggMonitoring.TotalGoodEgg = (request.TotalKarpetGoodEgg * uint64(constant.TotalEggPerKarpet)) + request.TotalRemainingGoodEgg
@@ -265,75 +273,70 @@ func (s *EggService) UpdateEggMonitoring(id uint64, request dto.UpdateEggMonitor
 	eggMonitoring.TotalWeightGoodEgg = request.TotalWeightGoodEgg
 	eggMonitoring.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
-	if eggMonitoring.TotalGoodEgg != 0 {
-		goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
-		if err != nil {
-			return dto.EggMonitoringResponse{}, err
+	updateWarehouseEggStock := func(itemName string, previousWeight float64, newWeight float64) error {
+		if previousWeight == 0 && newWeight == 0 {
+			return nil
 		}
 
-		goodEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, goodEggItem.Id)
+		item, err := s.itemService.GetItemByNameAndUnitAndType(itemName, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
-			return dto.EggMonitoringResponse{}, err
+			return err
 		}
 
-		goodEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-			ItemName:       goodEggItem.Name,
-			ItemUnit:       constant.UnitKg,
-			Source:         eggMonitoring.ChickenCage.Cage.Name,
-			Destination:    goodEggWarehouseItem.Warehouse.Name,
-			QuantityBefore: goodEggWarehouseItem.Quantity,
-			QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg + request.TotalWeightGoodEgg,
-			UserId:         userId,
-			Status:         enum.ItemHistoryStockUpdated,
-		})
-		if err != nil {
-			s.log.Error("failed to parse struct into json", zap.Error(err))
-			return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
+		applyStockUpdate := func(warehouseId uint64, delta float64) error {
+			if delta == 0 {
+				return nil
+			}
+
+			warehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(warehouseId, item.Id)
+			if err != nil {
+				return err
+			}
+
+			quantityAfter := warehouseItem.Quantity + delta
+			if quantityAfter < 0 {
+				return errx.BadRequest("warehouse egg stock is insufficient")
+			}
+
+			jsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
+				ItemName:       item.Name,
+				ItemUnit:       constant.UnitKg,
+				Source:         eggMonitoring.ChickenCage.Cage.Name,
+				Destination:    warehouseItem.Warehouse.Name,
+				QuantityBefore: warehouseItem.Quantity,
+				QuantityAfter:  quantityAfter,
+				UserId:         userId,
+				Status:         enum.ItemHistoryStockUpdated,
+			})
+			if err != nil {
+				s.log.Error("failed to parse struct into json", zap.Error(err))
+				return errx.BadRequest("failed parsed struct into json")
+			}
+
+			s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(jsonParsed))
+
+			_, err = s.warehouseService.UpdateWarehouseItem(warehouseId, item.Id, dto.UpdateWarehouseItemRequest{
+				Quantity: quantityAfter,
+			}, userId)
+			return err
 		}
 
-		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(goodEggJsonParsed))
-
-		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
-			Quantity: goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg + request.TotalWeightGoodEgg,
-		}, userId)
-		if err != nil {
-			return dto.EggMonitoringResponse{}, err
+		if previousWarehouseId == request.WarehouseId {
+			return applyStockUpdate(request.WarehouseId, newWeight-previousWeight)
 		}
+
+		if err := applyStockUpdate(previousWarehouseId, -previousWeight); err != nil {
+			return err
+		}
+		return applyStockUpdate(request.WarehouseId, newWeight)
 	}
 
-	if eggMonitoring.TotalCrackedEgg != 0 {
-		crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
-		if err != nil {
-			return dto.EggMonitoringResponse{}, err
-		}
+	if err := updateWarehouseEggStock(constant.GoodEgg, previousGoodEggWeight, request.TotalWeightGoodEgg); err != nil {
+		return dto.EggMonitoringResponse{}, err
+	}
 
-		crackedEggWarehouseItem, err := s.warehouseService.GetWarehouseItemByWarehouseIdAndItemId(eggMonitoring.WarehouseId, crackedEggItem.Id)
-		if err != nil {
-			return dto.EggMonitoringResponse{}, err
-		}
-
-		crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
-			ItemName:       crackedEggItem.Name,
-			ItemUnit:       constant.UnitKg,
-			Source:         eggMonitoring.ChickenCage.Cage.Name,
-			Destination:    crackedEggWarehouseItem.Warehouse.Name,
-			QuantityBefore: crackedEggWarehouseItem.Quantity,
-			QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg + request.TotalWeightCrackedEgg,
-			UserId:         userId,
-			Status:         enum.ItemHistoryStockUpdated,
-		})
-		if err != nil {
-			s.log.Error("failed to parse struct into json", zap.Error(err))
-			return dto.EggMonitoringResponse{}, errx.BadRequest("failed parsed struct into json")
-		}
-		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(crackedEggJsonParsed))
-
-		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
-			Quantity: crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg + request.TotalWeightCrackedEgg,
-		}, userId)
-		if err != nil {
-			return dto.EggMonitoringResponse{}, err
-		}
+	if err := updateWarehouseEggStock(constant.CrackedEgg, previousCrackedEggWeight, request.TotalWeightCrackedEgg); err != nil {
+		return dto.EggMonitoringResponse{}, err
 	}
 
 	if err := s.repository.UpdateEggMonitoring(&eggMonitoring); err != nil {
@@ -359,7 +362,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 		return err
 	}
 
-	if eggMonitoring.TotalGoodEgg == 0 {
+	if eggMonitoring.TotalWeightGoodEgg > 0 {
 		goodEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.GoodEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return err
@@ -370,13 +373,18 @@ func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 			return err
 		}
 
+		quantityAfter := goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg
+		if quantityAfter < 0 {
+			return errx.BadRequest("warehouse egg stock is insufficient")
+		}
+
 		goodEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
 			ItemName:       goodEggItem.Name,
 			ItemUnit:       constant.UnitKg,
 			Source:         eggMonitoring.ChickenCage.Cage.Name,
 			Destination:    goodEggWarehouseItem.Warehouse.Name,
 			QuantityBefore: goodEggWarehouseItem.Quantity,
-			QuantityAfter:  goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg,
+			QuantityAfter:  quantityAfter,
 			UserId:         userId,
 			Status:         enum.ItemHistoryStockUpdated,
 		})
@@ -387,14 +395,14 @@ func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(goodEggJsonParsed))
 
 		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, goodEggItem.Id, dto.UpdateWarehouseItemRequest{
-			Quantity: goodEggWarehouseItem.Quantity - eggMonitoring.TotalWeightGoodEgg,
+			Quantity: quantityAfter,
 		}, userId)
 		if err != nil {
 			return err
 		}
 	}
 
-	if eggMonitoring.TotalCrackedEgg == 0 {
+	if eggMonitoring.TotalWeightCrackedEgg > 0 {
 		crackedEggItem, err := s.itemService.GetItemByNameAndUnitAndType(constant.CrackedEgg, constant.UnitKg, enum.ItemCategoryEgg)
 		if err != nil {
 			return err
@@ -405,13 +413,18 @@ func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 			return err
 		}
 
+		quantityAfter := crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg
+		if quantityAfter < 0 {
+			return errx.BadRequest("warehouse egg stock is insufficient")
+		}
+
 		crackedEggJsonParsed, err := json.Marshal(entity.WarehouseItemHistory{
 			ItemName:       crackedEggItem.Name,
 			ItemUnit:       constant.UnitKg,
 			Source:         eggMonitoring.ChickenCage.Cage.Name,
 			Destination:    crackedEggWarehouseItem.Warehouse.Name,
 			QuantityBefore: crackedEggWarehouseItem.Quantity,
-			QuantityAfter:  crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg,
+			QuantityAfter:  quantityAfter,
 			UserId:         userId,
 			Status:         enum.ItemHistoryStockUpdated,
 		})
@@ -422,7 +435,7 @@ func (s *EggService) DeleteEggMonitoring(id uint64, userId uuid.UUID) error {
 		s.cacheService.Publish(context.Background(), constant.WarehouseItemHistoryTopic, string(crackedEggJsonParsed))
 
 		_, err = s.warehouseService.UpdateWarehouseItem(eggMonitoring.WarehouseId, crackedEggItem.Id, dto.UpdateWarehouseItemRequest{
-			Quantity: crackedEggWarehouseItem.Quantity - eggMonitoring.TotalWeightCrackedEgg,
+			Quantity: quantityAfter,
 		}, userId)
 		if err != nil {
 			return err

@@ -72,10 +72,7 @@ func (s *PresenceService) GetUserPresencesByUserId(userId uuid.UUID, filter dto.
 		presenceResponses[i] = mapper.PresenceToResponseList(&presence)
 	}
 
-	totalData, err := s.repository.CountTotalUserPresenceByUserId(userId, dto.GetPresenceFilter{
-		Month: filter.Month,
-		Year:  filter.Year,
-	})
+	totalData, err := s.repository.CountTotalUserPresenceByUserId(userId, filter)
 	if err != nil {
 		s.log.Error("failed to count user presence", zap.Error(err))
 		return dto.PresenceListPaginationResponse{}, err

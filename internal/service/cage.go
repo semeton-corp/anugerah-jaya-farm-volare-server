@@ -552,7 +552,7 @@ func (s *CageService) GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) (
 		}
 
 		resp := mapper.ChickenCageFeedToListResponse(&e)
-		resp.TotalFeed = (cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed * float64(e.TotalChicken) / 1000.0) - cageFeedStockMap[e.CageId]
+		resp.TotalFeed = math.Max((cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed*float64(e.TotalChicken)/1000.0)-cageFeedStockMap[e.CageId], 0)
 		resp.FeedPerChicken = cageFeedsMapByCategory[resp.ChickenCategory].TotalFeed
 		resp.FeedType = cageFeedsMapByCategory[resp.ChickenCategory].FeedType.String()
 		responses = append(responses, resp)
@@ -591,12 +591,13 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 		remainingStockFeeds += (e.TotalFeed - e.UsedFeed)
 	}
 
+	totalFeed := math.Max(needCreateFeed, 0)
 	feedDetailResponse := make([]dto.FeedDetailResponse, 0)
 	for _, cageFeedDetail := range cageFeed.CageFeedDetails {
 		feedDetailResponse = append(feedDetailResponse, dto.FeedDetailResponse{
 			Item:       mapper.ItemToResponse(&cageFeedDetail.Item),
 			Percentage: cageFeedDetail.Percentage,
-			Quantity:   needCreateFeed * (cageFeedDetail.Percentage / 100.0),
+			Quantity:   totalFeed * (cageFeedDetail.Percentage / 100.0),
 		})
 	}
 
@@ -605,11 +606,7 @@ func (s *CageService) GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageF
 	response.RemainingTotalFeed = remainingStockFeeds
 	response.FeedPerChicken = cageFeed.TotalFeed
 
-	if needCreateFeed < 0 {
-		response.TotalFeed = 0
-	} else {
-		response.TotalFeed = needCreateFeed
-	}
+	response.TotalFeed = totalFeed
 	response.FeedDetails = feedDetailResponse
 
 	return response, nil
@@ -645,6 +642,9 @@ func (s *CageService) ConfirmationChickenCageFeed(chickenCageId uint64, request 
 
 	for _, e := range cageFeedStocks {
 		needCreateFeed -= (e.TotalFeed - e.UsedFeed)
+	}
+	if needCreateFeed < 0 {
+		needCreateFeed = 0
 	}
 
 	requestToWarehouse := make([]dto.ReduceFeedRequest, 0)

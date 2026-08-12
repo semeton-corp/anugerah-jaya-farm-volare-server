@@ -56,7 +56,7 @@ func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, user
 		return dto.SupplierResponse{}, err
 	}
 
-	if supplierType == enum.SupplierTypeItem && request.ItemIds != nil {
+	if supplierType == enum.SupplierTypeItem && len(request.ItemIds) > 0 {
 		supplierItems := make([]entity.SupplierItem, 0)
 		for _, e := range request.ItemIds {
 			supplierItems = append(supplierItems, entity.SupplierItem{
@@ -76,7 +76,7 @@ func (s *SupplierService) CreateSupplier(request dto.CreateSupplierRequest, user
 	err = s.repository.Commit()
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
-		return dto.SupplierResponse{}, nil
+		return dto.SupplierResponse{}, err
 	}
 
 	supplier, err = s.repository.GetSupplierById(supplier.Id)
@@ -162,7 +162,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRe
 		return dto.SupplierResponse{}, err
 	}
 
-	if deletedItemIds != nil {
+	if len(deletedItemIds) > 0 {
 		err := s.repository.DeleteSupplierItemInBatch(deletedItemIds, supplier.Id)
 		if err != nil {
 			s.log.Error("failed to delete supplier item in batch", zap.Error(err))
@@ -170,7 +170,7 @@ func (s *SupplierService) UpdateSupplier(id uint64, request dto.UpdateSupplierRe
 		}
 	}
 
-	if newItemIds != nil {
+	if len(newItemIds) > 0 {
 		supplierItems := make([]entity.SupplierItem, 0)
 		for _, e := range newItemIds {
 			supplierItems = append(supplierItems, entity.SupplierItem{

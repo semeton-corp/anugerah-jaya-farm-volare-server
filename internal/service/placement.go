@@ -262,6 +262,7 @@ func (s *PlacementService) UpdateCagePlacement(request dto.UpdateCagePlacementRe
 	err = s.repository.Commit()
 	if err != nil {
 		s.log.Error("failed to commit transaction", zap.Error(err))
+		return nil, err
 	}
 
 	dataResponse := make([]dto.CagePlacementResponse, 0)

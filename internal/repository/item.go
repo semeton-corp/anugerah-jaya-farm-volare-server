@@ -115,6 +115,7 @@ func (r *ItemRepository) UpdateItemPrice(data *entity.ItemPrice) error {
 	updates := map[string]interface{}{
 		"category":   data.Category,
 		"item_id":    data.ItemId,
+		"sale_unit":  data.SaleUnit,
 		"price":      data.Price,
 		"updated_by": data.UpdatedBy,
 	}

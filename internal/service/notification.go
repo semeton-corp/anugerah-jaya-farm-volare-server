@@ -7,6 +7,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/dto"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/entity"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/internal/repository"
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"go.uber.org/zap"
 )
 
@@ -36,7 +37,11 @@ func (s *NotificationService) CreateNotification(request dto.CreateNotificationR
 	}
 
 	if request.UserId != nil {
-		data.UserId = uuid.NullUUID{UUID: uuid.MustParse(*request.UserId), Valid: true}
+		userId, err := uuid.Parse(*request.UserId)
+		if err != nil {
+			return dto.NotificationResponse{}, errx.BadRequest("invalid user id")
+		}
+		data.UserId = uuid.NullUUID{UUID: userId, Valid: true}
 	}
 
 	if request.CageId != nil {

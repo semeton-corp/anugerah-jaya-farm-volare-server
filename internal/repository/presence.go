@@ -149,7 +149,8 @@ func (r *PresenceRepository) GetUserPresenceInRoleIds(roleIds []uint64) ([]entit
 
 func (r *PresenceRepository) GetUserPresenceTodayByUserId(userId uuid.UUID) (entity.UserPresence, error) {
 	var userPresence entity.UserPresence
-	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ? AND DATE(created_at) = ?", userId, time.Now()).First(&userPresence).Error
+	today := time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Local)
+	err := r.GetDB().Preload("User.Role").Preload("User.Location").Where("user_id = ? AND DATE(created_at) = ?", userId, today).First(&userPresence).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return userPresence, errx.NotFound("user presence not found")
@@ -163,12 +164,16 @@ func (r *PresenceRepository) CountTotalUserPresenceByUserId(userId uuid.UUID, fi
 	var totalData int64
 	query := r.GetDB().Model(&entity.UserPresence{}).Where("user_id = ?", userId)
 
-	if filter.Month.Value().IsValid() {
+	if filter.Month.Value().IsValid() && filter.Year > 0 {
 		startDate, endDate := util.GetStartDayAndEndDayByMonthFilter(filter.Month.Value(), int(filter.Year))
 		query = query.Where("created_at >= ? AND created_at <= ?", startDate, endDate)
 	}
 
-	err := query.Model(&entity.UserPresence{}).Count(&totalData).Error
+	if filter.PresenceStatus.Value().IsValid() {
+		query = query.Where("status = ?", filter.PresenceStatus.Value())
+	}
+
+	err := query.Count(&totalData).Error
 	if err != nil {
 		return 0, err
 	}
@@ -184,6 +189,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 	}
 
 	query := r.GetDB().Model(&entity.LocationPresenceSummary{})
+	locationFilterColumn := "locations.id"
 
 	switch filter.LocationType.Value() {
 	case enum.LocationTypeCage:
@@ -199,6 +205,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM cage_placements)")
 
 	case enum.LocationTypeStore:
+		locationFilterColumn = "stores.location_id"
 		query = query.Table("stores").
 			Select(`roles.id AS role_id, roles.name AS role_name,
 			        stores.id AS place_id, stores.name AS place_name,
@@ -212,6 +219,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 			Where("user_presences.user_id IN (SELECT DISTINCT user_id FROM store_placements)")
 
 	case enum.LocationTypeWarehouse:
+		locationFilterColumn = "warehouses.location_id"
 		query = query.Table("warehouses").
 			Select(`roles.id AS role_id, roles.name AS role_name,
 			        warehouses.id AS place_id, warehouses.name AS place_name,
@@ -256,7 +264,7 @@ func (r *PresenceRepository) GetLocationPresenceSummaries(filter dto.GetLocation
 	}
 
 	if filter.LocationId > 0 {
-		query = query.Where("locations.id = ?", filter.LocationId)
+		query = query.Where(locationFilterColumn+" = ?", filter.LocationId)
 	}
 
 	err := query.Scan(&locationPresenceSummaries).Error

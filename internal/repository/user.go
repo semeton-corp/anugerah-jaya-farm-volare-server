@@ -139,7 +139,15 @@ func (r *UserRepository) CountTotalUserOverviewList(filter *dto.GetUserOverviewL
 		query = query.Where("LOWER(name) ILIKE ? OR LOWER(email) ILIKE ?", keyword, keyword)
 	}
 
-	err := query.Model(&entity.User{}).Count(&totalData).Error
+	if filter.ExcludeRoleIds != nil {
+		query = query.Where("role_id NOT IN ?", filter.ExcludeRoleIds)
+	}
+
+	if filter.LocationId != 0 {
+		query = query.Where("location_id = ?", filter.LocationId)
+	}
+
+	err := query.Count(&totalData).Error
 	if err != nil {
 		return 0, err
 	}
