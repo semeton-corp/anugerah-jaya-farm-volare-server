@@ -1554,6 +1554,7 @@ func (s *ChickenService) ArrivalConfirmationChickenProcurement(id uint64, reques
 		CageId:               chickenProcurement.CageId,
 		ChickenProcurementId: &chickenProcurement.Id,
 		TotalChicken:         uint64(chickenProcurement.ReceiveQuantity.Int64),
+		ChickenAgeBaseDate:   &chickenProcurement.TakenAt.Time,
 	}, userId)
 	if err != nil {
 		return dto.ChickenProcurementResponse{}, err

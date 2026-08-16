@@ -9,6 +9,7 @@ import (
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/enum"
 	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/errx"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type CageRepository struct {
@@ -36,7 +37,9 @@ type ICageRepository interface {
 	GetChickenCagesByCageIds(ids []uint64) ([]entity.ChickenCage, error)
 	GetChickenCageByCageId(cageId uint64) (entity.ChickenCage, error)
 	GetChickenCageByIds(ids []uint64) ([]entity.ChickenCage, error)
+	GetChickenCageByIdForUpdate(id uint64) (entity.ChickenCage, error)
 	DeleteChickenCageByCageId(cageId uint64) error
+	CreateChickenCageTotalChickenChange(data *entity.ChickenCageTotalChickenChange) error
 
 	CreateCageFeed(data *entity.CageFeed) error
 	GetCageFeeds() ([]entity.CageFeed, error)
@@ -209,6 +212,25 @@ func (r *CageRepository) GetChickenCageById(id uint64) (entity.ChickenCage, erro
 	return chickenCage, nil
 }
 
+func (r *CageRepository) GetChickenCageByIdForUpdate(id uint64) (entity.ChickenCage, error) {
+	var chickenCage entity.ChickenCage
+	err := r.GetDB().
+		Clauses(clause.Locking{Strength: "UPDATE"}).
+		Preload("Cage.Location").
+		Preload("ChickenProcurement").
+		Preload("Cage.CagePlacement.User.Role").
+		Where("id = ?", id).
+		First(&chickenCage).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return entity.ChickenCage{}, errx.NotFound("chicken cage not found")
+		}
+		return entity.ChickenCage{}, err
+	}
+
+	return chickenCage, nil
+}
+
 func (r *CageRepository) GetCagesByIds(ids []uint64) ([]entity.Cage, error) {
 	var cages []entity.Cage
 	err := r.GetDB().Model(&entity.Cage{}).Where("id IN ?", ids).Order("created_at DESC").Find(&cages).Error
@@ -259,12 +281,17 @@ func (r *CageRepository) UpdateChickenCage(chickenCage *entity.ChickenCage) erro
 			"cage_id":                            chickenCage.CageId,
 			"chicken_procurement_id":             chickenCage.ChickenProcurementId,
 			"total_chicken":                      chickenCage.TotalChicken,
+			"chicken_age_base_date":              chickenCage.ChickenAgeBaseDate,
 			"is_need_routine_vaccine":            chickenCage.IsNeedRoutineVaccine,
 			"latest_chicken_age_vaccine_routine": chickenCage.LatestChickenAgeVaccineRoutine,
 			"is_need_feed":                       chickenCage.IsNeedFeed,
 			"updated_at":                         time.Now(),
 			"updated_by":                         chickenCage.UpdatedBy,
 		}).Error
+}
+
+func (r *CageRepository) CreateChickenCageTotalChickenChange(data *entity.ChickenCageTotalChickenChange) error {
+	return r.GetDB().Model(&entity.ChickenCageTotalChickenChange{}).Create(data).Error
 }
 
 func (r *CageRepository) CreateChickenCageInBatch(chickenCage *[]entity.ChickenCage) error {

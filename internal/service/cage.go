@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -37,6 +38,7 @@ type ICageService interface {
 	GetChickenCages(filter dto.GetChickenCageFilter) ([]dto.ChickenCageResponse, error)
 	GetChickenCageById(id uint64) (dto.ChickenCageResponse, error)
 	UpdateChickenCage(id uint64, request dto.UpdateChickenCageRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
+	UpdateChickenCageAgeAndTotal(id uint64, request dto.UpdateChickenCageAgeAndTotalRequest, userId uuid.UUID) (dto.ChickenCageResponse, error)
 
 	GetChickenCageFeeds(filter dto.GetChickenCageFeedFilter) ([]dto.ChickenCageFeedListResponse, error)
 	GetChickenCageFeed(chickenCageId uint64) (dto.ChickenCageFeedResponse, error)
@@ -247,6 +249,9 @@ func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCage
 	if request.LatestChickenAgeVaccineRoutine != nil {
 		chickenCage.LatestChickenAgeVaccineRoutine = sql.NullInt64{Int64: int64(*request.LatestChickenAgeVaccineRoutine), Valid: true}
 	}
+	if request.ChickenAgeBaseDate != nil {
+		chickenCage.ChickenAgeBaseDate = sql.NullTime{Time: *request.ChickenAgeBaseDate, Valid: true}
+	}
 
 	err = s.repository.UpdateChickenCage(&chickenCage)
 	if err != nil {
@@ -255,6 +260,80 @@ func (s *CageService) UpdateChickenCage(id uint64, request dto.UpdateChickenCage
 	}
 
 	return mapper.ChickenCageToResponse(&chickenCage), nil
+}
+
+func (s *CageService) UpdateChickenCageAgeAndTotal(id uint64, request dto.UpdateChickenCageAgeAndTotalRequest, userId uuid.UUID) (dto.ChickenCageResponse, error) {
+	s.repository.UseTx(true)
+	defer s.repository.Rollback()
+
+	chickenCage, err := s.repository.GetChickenCageByIdForUpdate(id)
+	if err != nil {
+		s.log.Error("failed get chicken cage by id for update", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	if !chickenCage.ChickenProcurementId.Valid {
+		return dto.ChickenCageResponse{}, errx.BadRequest("chicken cage has no active batch")
+	}
+
+	if *request.TotalChicken == 0 {
+		return dto.ChickenCageResponse{}, errx.BadRequest("total chicken must be greater than zero")
+	}
+
+	if *request.TotalChicken > chickenCage.Cage.Capacity {
+		return dto.ChickenCageResponse{}, errx.BadRequest("total chicken is more than cage capacity")
+	}
+
+	ageBaseDate := chickenAgeBaseDateFromAge(*request.ChickenAge, time.Now())
+	previousTotalChicken := chickenCage.TotalChicken
+	chickenCage.TotalChicken = *request.TotalChicken
+	chickenCage.ChickenAgeBaseDate = sql.NullTime{Time: ageBaseDate, Valid: true}
+	chickenCage.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
+
+	if err := s.repository.UpdateChickenCage(&chickenCage); err != nil {
+		s.log.Error("failed update chicken cage age and total", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	if previousTotalChicken != *request.TotalChicken {
+		if err := s.repository.CreateChickenCageTotalChickenChange(&entity.ChickenCageTotalChickenChange{
+			ChickenCageId:        chickenCage.Id,
+			PreviousTotalChicken: previousTotalChicken,
+			NewTotalChicken:      *request.TotalChicken,
+			CreatedBy:            uuid.NullUUID{UUID: userId, Valid: true},
+		}); err != nil {
+			s.log.Error("failed create chicken cage total chicken change", zap.Error(err))
+			return dto.ChickenCageResponse{}, err
+		}
+	}
+
+	if err := s.repository.Commit(); err != nil {
+		s.log.Error("failed commit transaction", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	chickenCage, err = s.repository.GetChickenCageById(id)
+	if err != nil {
+		s.log.Error("failed get updated chicken cage by id", zap.Error(err))
+		return dto.ChickenCageResponse{}, err
+	}
+
+	return mapper.ChickenCageToResponse(&chickenCage), nil
+}
+
+func chickenAgeBaseDateFromAge(chickenAge uint64, referenceDate time.Time) time.Time {
+	if referenceDate.IsZero() {
+		referenceDate = time.Now()
+	}
+
+	loc, err := time.LoadLocation("Asia/Jakarta")
+	if err != nil {
+		loc = time.Local
+	}
+
+	referenceDate = referenceDate.In(loc)
+	today := time.Date(referenceDate.Year(), referenceDate.Month(), referenceDate.Day(), 0, 0, 0, 0, loc)
+	return today.AddDate(0, 0, -int(chickenAge*7))
 }
 
 func (s *CageService) GetCageById(id uint64) (dto.CageResponse, error) {
@@ -280,6 +359,9 @@ func (s *CageService) CreateChickenCage(request dto.CreateChickenCageRequest, us
 
 	if request.ChickenProcurementId != nil {
 		chickenCage.ChickenProcurementId = sql.NullInt64{Int64: int64(*request.ChickenProcurementId), Valid: true}
+	}
+	if request.ChickenAgeBaseDate != nil {
+		chickenCage.ChickenAgeBaseDate = sql.NullTime{Time: *request.ChickenAgeBaseDate, Valid: true}
 	}
 
 	err := s.repository.CreateChickenCage(&chickenCage)
@@ -780,6 +862,7 @@ func (s *CageService) MoveChickenCage(request dto.MoveChickenCageRequest, userId
 				CageId:               destinationCageId,
 				TotalChicken:         moveTotal,
 				ChickenProcurementId: sourceChickenCage.ChickenProcurementId,
+				ChickenAgeBaseDate:   sourceChickenCage.ChickenAgeBaseDate,
 				CreatedBy:            auditUser,
 			}
 

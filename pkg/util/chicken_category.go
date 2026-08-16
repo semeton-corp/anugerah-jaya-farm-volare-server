@@ -39,10 +39,22 @@ func GetChickenAgeByChickenCage(chickenCage *entity.ChickenCage) uint64 {
 }
 
 func GetChickenAgeByChickenCageAt(chickenCage *entity.ChickenCage, asOf time.Time) uint64 {
-	if !chickenCage.ChickenProcurement.CreatedAt.IsZero() && !asOf.IsZero() {
-		chickenAge := asOf.UTC().Add(time.Hour * 7).Sub(chickenCage.ChickenProcurement.CreatedAt)
-		chickenAgeInWeek := uint64(math.Floor(math.Abs(chickenAge.Hours()) / float64(7*24)))
-		return chickenAgeInWeek
+	baseDate := time.Time{}
+	if chickenCage.ChickenAgeBaseDate.Valid {
+		baseDate = chickenCage.ChickenAgeBaseDate.Time
+	} else if !chickenCage.ChickenProcurement.CreatedAt.IsZero() {
+		baseDate = chickenCage.ChickenProcurement.CreatedAt
 	}
-	return 0
+
+	if baseDate.IsZero() || asOf.IsZero() {
+		return 0
+	}
+
+	asOf = asOf.In(time.Local)
+	baseDate = baseDate.In(time.Local)
+	asOfDate := time.Date(asOf.Year(), asOf.Month(), asOf.Day(), 0, 0, 0, 0, time.Local)
+	baseDateOnly := time.Date(baseDate.Year(), baseDate.Month(), baseDate.Day(), 0, 0, 0, 0, time.Local)
+	chickenAge := asOfDate.Sub(baseDateOnly)
+	chickenAgeInWeek := uint64(math.Floor(math.Abs(chickenAge.Hours()) / float64(7*24)))
+	return chickenAgeInWeek
 }

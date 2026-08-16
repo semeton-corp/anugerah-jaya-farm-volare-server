@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+import (
+	"time"
+
+	"github.com/semeton-corp/anugerah-jaya-farm-volare/pkg/param"
+)
 
 type CageResponse struct {
 	Id              uint64           `json:"id"`
@@ -33,15 +37,22 @@ type GetCageFilter struct {
 }
 
 type UpdateChickenCageRequest struct {
-	TotalChicken                   uint64 `json:"totalChicken" validate:"required"`
-	LatestChickenAgeVaccineRoutine *int64 `json:"latestChickenAgeVaccineRoutine"`
-	IsNeedRoutineVaccine           bool   `json:"isNeedRoutineVaccine"`
+	TotalChicken                   uint64     `json:"totalChicken" validate:"required"`
+	LatestChickenAgeVaccineRoutine *int64     `json:"latestChickenAgeVaccineRoutine"`
+	IsNeedRoutineVaccine           bool       `json:"isNeedRoutineVaccine"`
+	ChickenAgeBaseDate             *time.Time `json:"-"`
 }
 
 type CreateChickenCageRequest struct {
-	CageId               uint64  `json:"cageId" validate:"required"`
-	ChickenProcurementId *uint64 `json:"chickenProcurementId" validate:"required"`
-	TotalChicken         uint64  `json:"totalChicken" validate:"required"`
+	CageId               uint64     `json:"cageId" validate:"required"`
+	ChickenProcurementId *uint64    `json:"chickenProcurementId" validate:"required"`
+	TotalChicken         uint64     `json:"totalChicken" validate:"required"`
+	ChickenAgeBaseDate   *time.Time `json:"-"`
+}
+
+type UpdateChickenCageAgeAndTotalRequest struct {
+	TotalChicken *uint64 `json:"totalChicken" validate:"required"`
+	ChickenAge   *uint64 `json:"chickenAge" validate:"required"`
 }
 
 type ChickenCageResponse struct {

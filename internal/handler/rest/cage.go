@@ -32,6 +32,7 @@ func (h *CageHandler) SetEndpoint(router *fiber.App) {
 	v1.Post("/chickens/feeds/:chickenCageId/confirmations", middleware.Authentication(), h.ConfirmationChickenCageFeed)
 	v1.Get("/chickens", middleware.Authentication(), h.GetChickenCages)
 	v1.Get("/chickens/:id", middleware.Authentication(), h.GetChickenCageById)
+	v1.Patch("/chickens/:id", middleware.Authentication(), h.UpdateChickenCageAgeAndTotal)
 
 	v1.Post("/feeds", middleware.Authentication(), h.CreateCageFeed)
 	v1.Get("/feeds", middleware.Authentication(), h.GetCageFeeds)
@@ -165,6 +166,38 @@ func (h *CageHandler) GetChickenCageById(c *fiber.Ctx) error {
 	}
 
 	return response.SuccessResponse(c, fiber.StatusOK, res, "success get chicken cage by id")
+}
+
+func (h *CageHandler) UpdateChickenCageAgeAndTotal(c *fiber.Ctx) error {
+	var request dto.UpdateChickenCageAgeAndTotalRequest
+	if err := c.BodyParser(&request); err != nil {
+		h.log.Error("failed to parse request", zap.Error(err))
+		return err
+	}
+
+	if err := h.validator.Struct(&request); err != nil {
+		h.log.Error("validation failed", zap.Error(err))
+		return err
+	}
+
+	id, err := strconv.ParseUint(c.Params("id"), 10, 64)
+	if err != nil {
+		h.log.Warn("failed to parse id param")
+		return errx.BadRequest("invalid id param")
+	}
+
+	userId, ok := c.Locals("userId").(string)
+	if !ok {
+		h.log.Error("userId not found in context")
+		return errx.Unauthorized("userId not found in context")
+	}
+
+	res, err := h.service.UpdateChickenCageAgeAndTotal(id, request, uuid.MustParse(userId))
+	if err != nil {
+		return err
+	}
+
+	return response.SuccessResponse(c, fiber.StatusOK, res, "success update chicken cage age and total")
 }
 
 func (h *CageHandler) CreateCageFeed(c *fiber.Ctx) error {
