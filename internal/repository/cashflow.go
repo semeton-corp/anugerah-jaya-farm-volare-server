@@ -186,8 +186,11 @@ func (r *CashflowRepository) GetAfkirChickenSalePayments(filter dto.GetAfkirChic
 		query = query.Where("DATE(afkir_chicken_sale_payments.payment_date) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("afkir_chicken_sale_payments.created_at DESC").Preload("AfkirChickenSale.AfkirChickenCustomer").
-		Preload("AfkirChickenSale.ChickenCage.Cage.Location").Find(&AfkirChickenSalePayments).Error
+	err := preloadChickenCageWithDeleted(
+		query.Order("afkir_chicken_sale_payments.created_at DESC").Preload("AfkirChickenSale.AfkirChickenCustomer"),
+		"AfkirChickenSale.ChickenCage",
+	).
+		Find(&AfkirChickenSalePayments).Error
 	if err != nil {
 		return nil, err
 	}
@@ -237,11 +240,11 @@ func (r *CashflowRepository) GetStoreSalePaymentById(id uint64) (entity.StoreSal
 
 func (r *CashflowRepository) GetAfkirChickenSalePaymentById(id uint64) (entity.AfkirChickenSalePayment, error) {
 	var payment entity.AfkirChickenSalePayment
-	err := r.GetDB().
-		Preload("AfkirChickenSale.AfkirChickenCustomer").
-		Preload("AfkirChickenSale.ChickenCage.Cage.Location").
-		Preload("CreatedByUser").
-		First(&payment, id).Error
+	query := preloadChickenCageWithDeleted(
+		r.GetDB().Preload("AfkirChickenSale.AfkirChickenCustomer"),
+		"AfkirChickenSale.ChickenCage",
+	).Preload("CreatedByUser")
+	err := query.First(&payment, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.AfkirChickenSalePayment{}, errx.NotFound("afkir chicken sale payment not fount")
@@ -258,7 +261,11 @@ func (r *CashflowRepository) CreateExpense(data *entity.Expense) error {
 
 func (r *CashflowRepository) GetExpense(id uint64) (entity.Expense, error) {
 	var data entity.Expense
-	err := r.GetDB().Model(&entity.Expense{}).Where("id = ?", id).Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").First(&data).Error
+	query := preloadCageWithDeleted(r.GetDB().Model(&entity.Expense{}).Where("id = ?", id).Preload("Location"), "Cage").
+		Preload("Warehouse.Location").
+		Preload("Store.Location").
+		Preload("CreatedByUser")
+	err := query.First(&data).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.Expense{}, errx.NotFound("expense not found")
@@ -285,7 +292,11 @@ func (r *CashflowRepository) GetExpenses(filter dto.GetExpenseFilter) ([]entity.
 		query = query.Where("DATE(created_at) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("created_at DESC").Preload("Location").Preload("Cage.Location").Preload("Warehouse.Location").Preload("Store.Location").Preload("CreatedByUser").Find(&data).Error
+	err := preloadCageWithDeleted(query.Order("created_at DESC").Preload("Location"), "Cage").
+		Preload("Warehouse.Location").
+		Preload("Store.Location").
+		Preload("CreatedByUser").
+		Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -309,8 +320,7 @@ func (r *CashflowRepository) GetChickenProcurementPayments(filter dto.GetChicken
 		query = query.Where("DATE(chicken_procurement_payments.payment_date) = ?", filter.Date.Value())
 	}
 
-	err := query.Order("chicken_procurement_payments.created_at DESC").
-		Preload("ChickenProcurement.Cage.Location").
+	err := preloadCageWithDeleted(query.Order("chicken_procurement_payments.created_at DESC"), "ChickenProcurement.Cage").
 		Preload("ChickenProcurement.Supplier").
 		Preload("CreatedByUser").
 		Find(&data).Error
@@ -468,8 +478,7 @@ func (r *CashflowRepository) GetWarehouseItemCornProcurementPayments(filter dto.
 
 func (r *CashflowRepository) GetChickenProcurementPaymentById(id uint64) (entity.ChickenProcurementPayment, error) {
 	var payment entity.ChickenProcurementPayment
-	err := r.db.
-		Preload("ChickenProcurement.Cage.Location").
+	err := preloadCageWithDeleted(r.GetDB(), "ChickenProcurement.Cage").
 		Preload("CreatedByUser").
 		First(&payment, id).Error
 	return payment, err
@@ -716,7 +725,14 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 		query = query.Where("afkir_chicken_sales.payment_status IN ?", paymentStatus)
 	}
 
-	err := query.Order("afkir_chicken_sales.payment_status DESC").Order("afkir_chicken_sales.created_at ASC").Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Order("created_at DESC").Find(&afkirChickenSales).Error
+	err := preloadChickenCageWithDeleted(
+		query.Order("afkir_chicken_sales.payment_status DESC").Order("afkir_chicken_sales.created_at ASC"),
+		"ChickenCage",
+	).
+		Preload("AfkirChickenCustomer").
+		Preload("Payments").
+		Order("created_at DESC").
+		Find(&afkirChickenSales).Error
 	if err != nil {
 		return nil, err
 	}
@@ -725,7 +741,11 @@ func (r *CashflowRepository) GetAfkirChickenSaleCashflows(filter dto.GetAfkirChi
 
 func (r *CashflowRepository) GetAfkirChickenSaleCashflow(id uint64) (entity.AfkirChickenSale, error) {
 	var afkirChickenSale entity.AfkirChickenSale
-	err := r.GetDB().Model(&entity.AfkirChickenSale{}).Preload("ChickenCage.Cage.Location").Preload("AfkirChickenCustomer").Preload("Payments").Preload("CreatedByUser").Where("id = ?", id).First(&afkirChickenSale).Error
+	query := preloadChickenCageWithDeleted(r.GetDB().Model(&entity.AfkirChickenSale{}), "ChickenCage").
+		Preload("AfkirChickenCustomer").
+		Preload("Payments").
+		Preload("CreatedByUser")
+	err := query.Where("id = ?", id).First(&afkirChickenSale).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return entity.AfkirChickenSale{}, errx.NotFound("afkir chicken sale not found")
@@ -884,7 +904,14 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 		query = query.Where("cages.location_id = ?", filter.LocationId)
 	}
 
-	err := query.Order("chicken_procurements.payment_status DESC").Order("chicken_procurements.deadline_payment_date ASC").Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").Find(&data).Error
+	err := preloadCageWithDeleted(
+		query.Order("chicken_procurements.payment_status DESC").Order("chicken_procurements.deadline_payment_date ASC"),
+		"Cage",
+	).
+		Preload("Supplier").
+		Preload("Payments").
+		Preload("CreatedByUser").
+		Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
@@ -894,7 +921,11 @@ func (r *CashflowRepository) GetChickenProcurementCashflows(filter dto.GetChicke
 
 func (r *CashflowRepository) GetChickenProcurementCashflow(id uint64) (entity.ChickenProcurement, error) {
 	var data entity.ChickenProcurement
-	err := r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id).Preload("Cage.Location").Preload("Supplier").Preload("Payments").Preload("CreatedByUser").First(&data).Error
+	query := preloadCageWithDeleted(r.GetDB().Model(&entity.ChickenProcurement{}).Where("id = ?", id), "Cage").
+		Preload("Supplier").
+		Preload("Payments").
+		Preload("CreatedByUser")
+	err := query.First(&data).Error
 	if err != nil {
 		return entity.ChickenProcurement{}, err
 	}
