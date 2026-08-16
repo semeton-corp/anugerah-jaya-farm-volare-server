@@ -2069,9 +2069,6 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 	if !paymentType.IsValid() {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
-	if paymentType == enum.PaymentTypePaidAtEnd {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
-	}
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
 
@@ -2125,22 +2122,16 @@ func (s *ChickenService) CreateAfkirChickenSale(request dto.CreateAfkirChickenSa
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff {
-		if !afkirSale.TotalPrice.Equal(totalPayment) {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
-		}
-		afkirSale.PaymentStatus = enum.PaymentStatusPaid
-		afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else {
-		if totalPayment.Equal(totalPrice) {
-			afkirSale.PaymentStatus = enum.PaymentStatusPaid
-			afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-		} else if totalPayment.LessThan(afkirSale.TotalPrice) {
-			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
-		} else {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("total payment is greater than total price")
-		}
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, afkirSale.TotalPrice, len(payments)); err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
 	}
+
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, afkirSale.TotalPrice, false)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+	afkirSale.PaymentStatus = paymentStatus
+	afkirSale.PaidDate = paidDate
 
 	if afkirSale.PaymentStatus != enum.PaymentStatusPaid {
 		afkirSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
@@ -2449,15 +2440,12 @@ func (s *ChickenService) UpdateAfkirChickenSalePayment(afkirChickenSaleId uint64
 		}
 	}
 
-	if totalCurrentPrice.Add(nominal).Equal(afkirChickenSale.TotalPrice) {
-		afkirChickenSale.PaymentStatus = enum.PaymentStatusPaid
-		afkirChickenSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else if totalCurrentPrice.Add(nominal).LessThan(afkirChickenSale.TotalPrice) {
-		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
-		afkirChickenSale.PaidDate = sql.NullTime{Valid: false}
-	} else if totalCurrentPrice.Add(nominal).GreaterThan(afkirChickenSale.TotalPrice) {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is greater than total price")
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalCurrentPrice.Add(nominal), afkirChickenSale.TotalPrice, false)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
 	}
+	afkirChickenSale.PaymentStatus = paymentStatus
+	afkirChickenSale.PaidDate = paidDate
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
 	if err != nil {
@@ -2521,12 +2509,12 @@ func (s *ChickenService) DeleteAfkirChickenSalePayment(afkirChickenSaleId uint64
 		}
 	}
 
-	if totalCurrentPrice.LessThan(decimal.Zero) {
-		return errx.BadRequest("nominal is less than 0")
-	} else if totalCurrentPrice.LessThan(afkirChickenSale.TotalPrice) {
-		afkirChickenSale.PaymentStatus = enum.PaymentStatusUnpaid
-		afkirChickenSale.PaidDate = sql.NullTime{Valid: false}
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalCurrentPrice, afkirChickenSale.TotalPrice, false)
+	if err != nil {
+		return err
 	}
+	afkirChickenSale.PaymentStatus = paymentStatus
+	afkirChickenSale.PaidDate = paidDate
 	afkirChickenSale.UpdatedBy = uuid.NullUUID{UUID: userId, Valid: true}
 
 	err = s.repository.UpdateAfkirChickenSale(&afkirChickenSale)
@@ -2584,9 +2572,6 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 	if !paymentType.IsValid() {
 		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
 	}
-	if paymentType == enum.PaymentTypePaidAtEnd {
-		return dto.AfkirChickenSaleResponse{}, errx.BadRequest(fmt.Sprintf("invalid payment type: %s", request.PaymentType))
-	}
 
 	totalPrice := pricePerChicken.Mul(decimal.NewFromUint64(request.TotalSellChicken))
 	takenAt, err := time.Parse("02-01-2006", request.TakenAt)
@@ -2638,22 +2623,16 @@ func (s *ChickenService) ConfirmationAfkirChickenSaleDraft(id uint64, request dt
 		})
 	}
 
-	if paymentType == enum.PaymentTypePaidOff {
-		if !afkirSale.TotalPrice.Equal(totalPayment) {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("nominal is not equal to total price")
-		}
-		afkirSale.PaymentStatus = enum.PaymentStatusPaid
-		afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-	} else {
-		if totalPayment.Equal(totalPrice) {
-			afkirSale.PaymentStatus = enum.PaymentStatusPaid
-			afkirSale.PaidDate = sql.NullTime{Time: time.Now(), Valid: true}
-		} else if totalPayment.LessThan(afkirSale.TotalPrice) {
-			afkirSale.PaymentStatus = enum.PaymentStatusUnpaid
-		} else {
-			return dto.AfkirChickenSaleResponse{}, errx.BadRequest("total payment is greater than total price")
-		}
+	if err := validateInitialProcurementPayment(paymentType, totalPayment, afkirSale.TotalPrice, len(payments)); err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
 	}
+
+	paymentStatus, paidDate, err := procurementPaymentStatus(totalPayment, afkirSale.TotalPrice, false)
+	if err != nil {
+		return dto.AfkirChickenSaleResponse{}, err
+	}
+	afkirSale.PaymentStatus = paymentStatus
+	afkirSale.PaidDate = paidDate
 
 	if afkirSale.PaymentStatus != enum.PaymentStatusPaid {
 		afkirSale.DeadlinePaymentDate = sql.NullTime{Time: dateNow.AddDate(0, 0, 7), Valid: true}
